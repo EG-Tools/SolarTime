@@ -1,4 +1,4 @@
-/* Solar Time v0.03 — clock, interaction and accessible UI. */
+/* Solar Time v0.04 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -20,16 +20,18 @@
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
           if(saved.quality==='low'||saved.quality==='auto')renderer.options.quality=saved.quality;
           if(saved.timezone==='utc')timezone='utc';
-          if(Number.isFinite(saved.elevation))renderer.camera.elevation=A.clamp(saved.elevation,15,80)*A.DEG;
+          if(Number.isFinite(saved.elevation))renderer.setOrbitView(renderer.camera.azimuth,saved.elevation*A.DEG);
+          if(Number.isFinite(saved.panY))renderer.setPanY(saved.panY);
         }
       } catch (_) { /* Private browsing, corrupt JSON and blocked storage must not break the clock. */ }
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
       $('quality').value=renderer.options.quality;
       const zoneLabel=()=>timezone==='utc'?'UTC':Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replaceAll('_',' ').toUpperCase();
-      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,elevation:renderer.camera.elevation/A.DEG})); } catch (_) {} }
+      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY})); } catch (_) {} }
       function cameraUi() {
         const deg=Math.round(renderer.camera.elevation/A.DEG),zoom=renderer.camera.zoom,limits=renderer.zoomLimits;
+        $('elevation').min=-90;$('elevation').max=90;
         $('elevation').value=deg;$('elevation-value').textContent=deg+'°';
         $('zoom-value').textContent=zoom.toFixed(1)+'×';
         $('zoom-in').disabled=zoom>=limits.maxZoom;$('zoom-out').disabled=zoom<=limits.minZoom;
@@ -115,7 +117,7 @@
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
       for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if((key==='pluto'||key==='moon')&&!$(id).checked&&renderer.selected===key)closeBody();navVisibility();persist();});
       $('quality').addEventListener('change',()=>{renderer.setOption('quality',$('quality').value);persist();});
-      $('elevation').addEventListener('input',()=>{renderer.camera.elevation=Number($('elevation').value)*A.DEG;renderer.dirty=true;cameraUi();persist();});
+      $('elevation').addEventListener('input',()=>{renderer.setOrbitView(renderer.camera.azimuth,Number($('elevation').value)*A.DEG);cameraUi();persist();});
       function reset() {renderer.resetCamera();cameraUi();persist();}
       $('reset-view').addEventListener('click',reset);$('fit-view').addEventListener('click',reset);
       function zoom(factor,target=null) {renderer.setZoom(renderer.camera.zoom*factor,target);cameraUi();}
@@ -165,9 +167,11 @@
       let drag=null,pinchDistance=0,pinchZoom=1,pinched=false;
       function pointerPosition(event) {const r=canvas.getBoundingClientRect();return {x:event.clientX-r.left,y:event.clientY-r.top};}
       canvas.addEventListener('pointerdown',event=>{
-        if(event.button!==0&&event.pointerType==='mouse')return;
+        if(event.pointerType==='mouse'&&event.button!==0&&event.button!==1)return;
+        const pan=event.pointerType==='mouse'&&event.button===1;
+        if(pan)event.preventDefault();
         const p=pointerPosition(event);pointers.set(event.pointerId,p);canvas.setPointerCapture(event.pointerId);
-        if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,moved:false};pinched=false;}
+        if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,mode:pan?'pan':'orbit',moved:false};pinched=false;}
         if(pointers.size===2){const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchZoom=renderer.camera.zoom;pinched=true;}
       });
       canvas.addEventListener('pointermove',event=>{
@@ -180,16 +184,22 @@
         if(!drag)return;
         const dx=p.x-drag.x,dy=p.y-drag.y;
         if(Math.hypot(p.x-drag.startX,p.y-drag.startY)>4)drag.moved=true;
-        if(drag.moved&&!pinched){renderer.camera.azimuth=A.wrap(renderer.camera.azimuth+dx*.004);renderer.camera.elevation=A.clamp(renderer.camera.elevation+dy*.003,15*A.DEG,80*A.DEG);renderer.dirty=true;cameraUi();canvas.classList.add('dragging');canvas.style.cursor='grabbing';}
+        if(drag.moved&&!pinched){
+          if(drag.mode==='pan')renderer.setPanY(drag.startPanY+(p.y-drag.startY)/renderer.h);
+          else renderer.setOrbitView(renderer.camera.azimuth+dx*.004,renderer.camera.elevation+dy*.003);
+          cameraUi();canvas.classList.add('dragging');canvas.style.cursor=drag.mode==='pan'?'ns-resize':'grabbing';
+        }
         drag.x=p.x;drag.y=p.y;
       });
       function endPointer(event,cancel=false) {
         if(!pointers.has(event.pointerId))return;const p=pointerPosition(event);pointers.delete(event.pointerId);
-        if(!cancel&&!pinched&&drag&&!drag.moved&&pointers.size===0){if(!zen)selectBody(renderer.hit(p.x,p.y));settings(false);}
+        if(!cancel&&!pinched&&drag&&drag.mode==='orbit'&&!drag.moved&&pointers.size===0){if(!zen)selectBody(renderer.hit(p.x,p.y));settings(false);}
         if(pointers.size===0){drag=null;pinched=false;canvas.classList.remove('dragging');canvas.style.cursor='grab';persist();}
         else if(drag){const last=[...pointers.values()][0];drag.x=last.x;drag.y=last.y;drag.moved=true;}
         if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);
       }
+      // Suppress middle-button autoscroll / aux-click only over the viewport.
+      for(const type of ['mousedown','auxclick'])canvas.addEventListener(type,event=>{if(event.button===1)event.preventDefault();});
       canvas.addEventListener('pointerup',event=>endPointer(event));canvas.addEventListener('pointercancel',event=>endPointer(event,true));
       canvas.addEventListener('lostpointercapture',event=>{pointers.delete(event.pointerId);if(!pointers.size){drag=null;canvas.classList.remove('dragging');wakePointer();}});
       canvas.addEventListener('pointerleave',()=>{if(!pointers.size)renderer.hover=null;});
@@ -205,7 +215,7 @@
         else if(event.target===canvas&&['arrowleft','arrowright','arrowup','arrowdown'].includes(key)) {
           event.preventDefault();if(key==='arrowleft')renderer.camera.azimuth-=.08;if(key==='arrowright')renderer.camera.azimuth+=.08;
           if(key==='arrowup')renderer.camera.elevation+=3*A.DEG;if(key==='arrowdown')renderer.camera.elevation-=3*A.DEG;
-          renderer.camera.elevation=A.clamp(renderer.camera.elevation,15*A.DEG,80*A.DEG);renderer.dirty=true;cameraUi();persist();
+          renderer.setOrbitView(renderer.camera.azimuth,renderer.camera.elevation);cameraUi();persist();
         }
       });
       let resizeTimer;
@@ -231,7 +241,7 @@
       window.addEventListener('pagehide',()=>{cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.03',clock,renderer,getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.04',clock,renderer,getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       if(!document.hidden)raf=requestAnimationFrame(frame);
     } catch(error){fatal(error);}

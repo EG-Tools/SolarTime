@@ -10,7 +10,7 @@ from time import perf_counter
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]
-HTML=(ROOT/'dist'/'Solar-Time_v0.03.html').read_text(encoding='utf-8')
+HTML=(ROOT/'dist'/'Solar-Time_v0.04.html').read_text(encoding='utf-8')
 OUT=ROOT/'test-results'
 OUT.mkdir(exist_ok=True)
 results=[]
@@ -38,9 +38,9 @@ with sync_playwright() as pw:
     check('No external network requests',not requests)
     check('Loading overlay dismissed',page.locator('#loading').is_hidden())
     check('All default orbit paths fit inside the viewport',page.evaluate('SolarTime.renderer.paths.every(path=>path.points.every(p=>{const q=SolarTime.renderer.project(p);return q.x>=0&&q.x<=innerWidth&&q.y>=0&&q.y<=innerHeight;}))'))
-    check('Default orbit bounds are shifted down by exactly ten percent of screen height',page.evaluate("""(()=>{
+    check('Default orbit bounds are five percent higher than v0.03',page.evaluate("""(()=>{
       const r=SolarTime.renderer,ys=r.paths.flatMap(path=>path.points.map(p=>r.project(p).y));
-      return Math.abs((Math.min(...ys)+Math.max(...ys))/2-innerHeight*.6)<.1;
+      return Math.abs((Math.min(...ys)+Math.max(...ys))/2-innerHeight*.55)<.1;
     })()"""))
     check('One-hour playback is not added',page.locator('[data-rate="3600"]').count()==0 and page.locator('[data-rate]').count()==3)
     check('Earth screen radius is exactly 1.5 times its old radius',page.evaluate('(()=>{const r=SolarTime.renderer,e=r.projected.find(p=>p.body.id==="earth");return Math.abs(e.r-11.5*1.5*r.bodyScale)<1e-8;})()'))
