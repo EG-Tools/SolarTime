@@ -1,22 +1,15 @@
-# Solar Time v0.02 검증 기록
+# SolarTime v0.03 validation
 
-## 완료한 검증
+Local release gate: Node.js 22 and Linux Chromium 144 (system executable) through Python Playwright. No runtime libraries or external image dependencies.
 
-- `npm test`: **29개 통과**. 기존 궤도·시간 계산 18개와 자전·표시 크기 회귀 11개.
-- `python tests/browser_test.py`: **56개 통과**. 단일 HTML을 `set_content`로 로드한 오프라인 브라우저 검사.
-- `node --check src/astro.js`, `src/renderer.js`, `src/app.js`: 구문 오류 없음.
-- `npm run build`: 동일 소스로 `dist/Solar-Time_v0.02.html` 생성.
+- 39 Node tests passed: orbital mathematics, shared simulation time, signed physical rotation periods, compact lunar spacing, and the common label-layout owner.
+- 83 Chromium checks passed: desktop 1648×928, mobile 390×844, narrow 320×780, reduced motion and restricted storage. The standalone HTML was injected offline. Requests to external resources: 0; JavaScript runtime errors: 0.
+- 64× zoom, target tracking, wheel/button/keyboard paths, 10% lower overview, lunar path/position agreement, deterministic cached corona, all-body label hit geometry, and intermediate Earth/Moon label positions were checked.
+- Label-layout tests verify all 11 bodies, stable priority independent of depth sorting, delayed switching, easing at different frame rates, body-relative anchoring, hit testing, bounded cleanup, and inactive-interval handling.
+- Physics and decorative-effects pause tests exclude label easing: label avoidance is UI motion and may finish after the simulation is paused.
 
-환경: Linux, Node.js 22.16.0, Chromium 144.0.7559.96 built on Debian GNU/Linux 13 (trixie). 데스크톱 1648×928 / 모바일 390×844 DPR 2. 테스트 환경에서 데스크톱 평균 약 59.8 FPS. 사용자 기기 성능을 보장하는 수치는 아닙니다.
+Measured overview frame rate in this run: 59.8 fps. This is a measurement on the test machine, not a frame-rate guarantee; closeups and accelerated textured spheres cost more.
 
-각 천체가 자기 항성 주기의 1/4 경과 시 표면이 달라지고, 한 주기 후 같은 표면으로 돌아오는 것을 검사했습니다. 행성 표면은 장식 효과 시간과 무관하며 공전의 시뮬레이션 시각에서 계산합니다. 지구 크기 1.5배, 실제 시간·배속·정지·날짜 이동, 역행 방향의 중복 반전 방지, 커서 유휴 숨김·이동 복귀·H/Esc 종료·드래그 중 유지·종료 후 남은 타이머 방지를 검사했습니다.
+Existing `docs/preview.png` is the v0.02 reference image. Updated v0.03 screenshots and offline build are provided with the release conversation. The website serves root sources directly; `npm run build` generates the standalone v0.03 file. Older committed files under `dist/` remain versioned archives.
 
-실행 중 외부 네트워크 요청과 JavaScript 런타임 오류는 없었습니다. 화면은 `docs/preview.png`, 상세 결과는 `docs/browser-results.json`에 있습니다.
-
-## 미검증 범위와 배포 상태
-
-브라우저의 `file://` 직접 탐색은 이 실행 환경의 관리자 정책으로 차단됐습니다 (`ERR_BLOCKED_BY_ADMINISTRATOR`). 우회 설정을 사용하지 않았습니다. Windows에서 실제 더블클릭 실행, 실제 휴대폰, Firefox/Safari, 실제 멀티터치 하드웨어는 검사하지 않았습니다. `set_content` 검사는 실제 URL 탐색을 대신한 환경 검증이지 Windows 실기기 검증이 아닙니다.
-
-GitHub 쓰기 요청은 보안 검사에서 차단됐으며, 저장소 main은 확인 시 `3dd1ff4051848b68f754ac589d5b669138a86b4c` 그대로였습니다. **v0.02 원격 커밋과 웹 배포는 완료하지 못했습니다.** 압축 파일에는 완성한 수정 소스와 단일 HTML을 담았습니다.
-
-이 모형은 자전 주기의 수학적 일관성을 검증한 것으로, 실제 관측 시각의 행성 본초자오선 방향을 재현하거나 천문력 전체와 비교한 검증이 아닙니다. 가스 행성과 태양은 대표 회전 주기를 사용하며 차등 자전은 생략합니다.
+Not verified on physical Windows, macOS, Android or iOS devices; Safari and Firefox were not exercised. Direct file:// and localhost HTTP navigation were blocked by the test browser policy (ERR_BLOCKED_BY_ADMINISTRATOR), so those entry paths are not verified. No browser policy was changed. Public Pages version/source verification is recorded with the release conversation. Repository deployment success must be confirmed from GitHub Pages Actions and the published application version, not from an old static release-status JSON.

@@ -72,3 +72,21 @@ test('Saturn and Uranus use the documented Cassini/Hubble representative periods
  close(A.BODIES.find(b=>b.id==='saturn').spin*86400,38018,1e-7);
  close(A.BODIES.find(b=>b.id==='uranus').spin*86400,-62092,1e-7);
 });
+
+test('Lunar display orbit stays compact and independent of the 1.5x Earth size',()=>{
+ close(A.MOON.displayOrbit,30);
+ assert.ok(A.MOON.displayOrbit/(earth.size*2.6)<.67);
+ close(A.MOON.period,27.321661);close(earth.size,17.25);
+ for(const t of [A.J2000,A.J2000+7*A.DAY,A.MAX_TIME]) {
+  const p=A.moonAt(t,A.MOON.displayOrbit);
+  close(Math.hypot(p.x,p.y,p.z),30);
+  const el=A.moonElements(t),path=A.pointOnOrbit(el,el.M,30);
+  assert.deepEqual(p,path);
+ }
+});
+test('One-day playback preserves the actual Jupiter/Saturn spin ratios',()=>{
+ const c=new A.SimulationClock(A.J2000,0);c.setRate(86400,0,A.J2000);
+ for(const b of all)close(A.rotationAt(b,c.value(1000)),A.rotationAt(b,A.J2000+A.DAY));
+ close(1/A.BODIES.find(b=>b.id==='jupiter').spin,2.418145765827731,1e-10);
+ close(1/A.BODIES.find(b=>b.id==='saturn').spin,86400/38018);
+});

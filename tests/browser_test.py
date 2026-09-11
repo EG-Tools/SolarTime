@@ -10,7 +10,7 @@ from time import perf_counter
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]
-HTML=(ROOT/'dist'/'Solar-Time_v0.02.html').read_text(encoding='utf-8')
+HTML=(ROOT/'dist'/'Solar-Time_v0.03.html').read_text(encoding='utf-8')
 OUT=ROOT/'test-results'
 OUT.mkdir(exist_ok=True)
 results=[]
@@ -37,7 +37,12 @@ with sync_playwright() as pw:
     check('Sun, 8 planets, Pluto and Moon render',page.evaluate('SolarTime.renderer.projected.length')==11)
     check('No external network requests',not requests)
     check('Loading overlay dismissed',page.locator('#loading').is_hidden())
-    check('All default orbit paths fit inside the viewport',page.evaluate('SolarTime.renderer.paths.every(path=>path.points.every(p=>{const q=SolarTime.renderer.project(p);return q.x>=0&&q.x<=innerWidth&&q.y>=180&&q.y<=innerHeight-175;}))'))
+    check('All default orbit paths fit inside the viewport',page.evaluate('SolarTime.renderer.paths.every(path=>path.points.every(p=>{const q=SolarTime.renderer.project(p);return q.x>=0&&q.x<=innerWidth&&q.y>=0&&q.y<=innerHeight;}))'))
+    check('Default orbit bounds are shifted down by exactly ten percent of screen height',page.evaluate("""(()=>{
+      const r=SolarTime.renderer,ys=r.paths.flatMap(path=>path.points.map(p=>r.project(p).y));
+      return Math.abs((Math.min(...ys)+Math.max(...ys))/2-innerHeight*.6)<.1;
+    })()"""))
+    check('One-hour playback is not added',page.locator('[data-rate="3600"]').count()==0 and page.locator('[data-rate]').count()==3)
     check('Earth screen radius is exactly 1.5 times its old radius',page.evaluate('(()=>{const r=SolarTime.renderer,e=r.projected.find(p=>p.body.id==="earth");return Math.abs(e.r-11.5*1.5*r.bodyScale)<1e-8;})()'))
     check('There is no artificial surface-speed option',page.locator('#show-spin').count()==0 and page.evaluate('!("spin" in SolarTime.renderer.options)'))
     check('Rotation uses the same timestamp for every body',page.evaluate("""(()=>{
@@ -53,6 +58,39 @@ with sync_playwright() as pw:
       const A=SolarAstro,r=SolarTime.renderer,t=SolarTime.getState().simulationMs,p={x:200,y:10,z:0};
       return [...A.BODIES,A.MOON].every(b=>r.shade(b,p,30,t,0,true).toDataURL()===r.shade(b,p,30,t,999,true).toDataURL());
     })()"""))
+    check('Lunar orbit is 30 reference pixels, independent of the enlarged Earth',page.evaluate("""(()=>{
+      const r=SolarTime.renderer,A=SolarAstro,t=A.J2000;r.draw(t,3);
+      const e=r.projected.find(p=>p.body.id==='earth'),m=r.projected.find(p=>p.body.id==='moon');
+      return Math.abs(Math.hypot(m.world.x-e.world.x,m.world.y-e.world.y,m.world.z-e.world.z)*r.scale/r.bodyScale-30)<1e-8;
+    })()"""))
+    check('Corona is cached, deterministic, and responds to the effects switch',page.evaluate("""(()=>{
+      const r=SolarTime.renderer,c=document.createElement('canvas');c.width=c.height=320;const ctx=c.getContext('2d');
+      const draw=t=>{ctx.clearRect(0,0,320,320);r.corona(ctx,160,160,40,t);return c.toDataURL();};
+      r.options.activity=true;const first=draw(2),asset=r.coronaTexture,again=draw(2),moving=draw(14);
+      r.options.activity=false;const off1=draw(2),off2=draw(14);r.options.activity=true;
+      return first===again&&first!==moving&&off1===off2&&asset===r.coronaTexture&&asset.width===384;
+    })()"""))
+    check('Canvas labels share the interpolated hit position for ALL bodies including Moon',page.evaluate("""(()=>{
+      const r=SolarTime.renderer,A=SolarAstro,c=r.ctx,items=[A.SUN,...A.BODIES,A.MOON].map((b,i)=>({body:b,screen:{x:60+i*130,y:320,z:0},r:16}));
+      r.clearLabels();r.hitTargets=[];r.labels(c,items,0);
+      const ok=items.every(p=>{const q=r.hitTargets.find(q=>q.label&&q.id===p.body.id),s=r.labelStates.get(p.body.id);
+        return q&&s&&Math.abs(q.x+q.w/2-p.screen.x-s.dx)<1e-8&&Math.abs(q.y-p.screen.y-s.dy)<1e-8&&r.hit(q.x+q.w/2,q.y+4)===p.body.id;
+      });r.clearLabels();return ok;
+    })()"""))
+    check('Earth/Moon avoidance uses intermediate positions, not a one-frame teleport',page.evaluate("""(()=>{
+      const r=SolarTime.renderer,A=SolarAstro,c=r.ctx,earth={body:A.BODIES[2],screen:{x:500,y:350,z:0},r:20},moon={body:A.MOON,screen:{x:650,y:391,z:1},r:8};
+      r.clearLabels();r.hitTargets=[];r.labels(c,[earth,moon],0);const original=r.labelStates.get('earth').dy;moon.screen.x=500;
+      let largest=0,prev=original,intermediate=false;
+      for(let t=16;t<1200;t+=16){r.hitTargets=[];r.labels(c,[earth,moon],t);const state=r.labelStates.get('earth');
+        largest=Math.max(largest,Math.abs(state.dy-prev));intermediate ||=state.slot!==0&&Math.abs(state.dy-original)>0.1&&Math.abs(state.dy-original)<25;prev=state.dy;}
+      const ok=intermediate&&largest<10;r.clearLabels();return ok;
+    })()"""))
+    page.locator('[data-body="jupiter"]').click()
+    page.locator('[data-rate="86400"]').click();page.wait_for_timeout(100)
+    check('Jupiter shows the correct 2.42 spins per second without artificially slowing it','초당 2.42회' in page.locator('#body-spin').inner_text())
+    page.locator('[data-body="saturn"]').click()
+    check('Saturn shows the correct 2.27 spins per second','초당 2.27회' in page.locator('#body-spin').inner_text())
+    page.locator('#body-close').click();page.locator('#live-button').click()
     page.wait_for_timeout(100)
     page.screenshot(path=str(OUT/'desktop.png'))
     page.locator('[data-rate="86400"]').click()
@@ -63,6 +101,8 @@ with sync_playwright() as pw:
     check('One day per second advances simulation at ×86400',abs(ratio-86400)<100)
     check('Time travel leaves the actual wall clock unaccelerated',sample2['s']['wallMs']-sample1['s']['wallMs']<1500)
     page.locator('#pause-button').click()
+    # Label easing is UI animation, not simulation time. Isolate the scene-freeze invariant.
+    page.evaluate('SolarTime.renderer.setOption("labels",false)')
     page.wait_for_timeout(120)
     frozen=page.evaluate('SolarTime.getState()')
     before_image=page.evaluate('document.getElementById("universe").toDataURL()')
@@ -71,6 +111,7 @@ with sync_playwright() as pw:
     after_image=page.evaluate('document.getElementById("universe").toDataURL()')
     check('Pause freezes simulation time',frozen['simulationMs']==after['simulationMs'])
     check('Pause freezes Sun and stars as well',frozen['effectTime']==after['effectTime'] and before_image==after_image)
+    page.evaluate('SolarTime.renderer.setOption("labels",true)')
     check('Pause shows the play SVG icon',page.locator('#play-icon').is_visible() and page.locator('#pause-icon').is_hidden())
     page.locator('#pause-button').click();page.wait_for_timeout(100)
     check('Resuming continues accelerated playback',not page.evaluate('SolarTime.getState().paused'))
@@ -126,6 +167,53 @@ with sync_playwright() as pw:
     check('Mouse wheel zooms the view',page.evaluate('SolarTime.renderer.camera.zoom')>z)
     page.locator('#fit-view').click()
     check('Reset restores 45-degree view and unit zoom',page.evaluate('Math.abs(SolarTime.renderer.camera.elevation-Math.PI/4)<1e-8 && SolarTime.renderer.camera.zoom===1'))
+    # Close observation uses the same camera owner for every body and input.
+    for body in ['sun','earth','jupiter']:
+        if page.evaluate('SolarTime.renderer.selected')!=body:
+            page.locator('[data-body="'+body+'"]').click()
+        page.locator('#focus-body').click();page.wait_for_timeout(150)
+        check(body+' close-view button increases zoom and tracks the target',page.evaluate("""id=>{
+          const r=SolarTime.renderer,p=r.projected.find(p=>p.body.id===id);
+          return r.camera.focus===id&&r.camera.zoom>3&&Math.abs(p.screen.x-r.centerX)<.01&&Math.abs(p.screen.y-r.centerY)<.01;
+        }""",body))
+        check(body+' stays centered as simulation time advances',page.evaluate("""id=>{
+          const r=SolarTime.renderer,A=SolarAstro;
+          for(const t of [A.J2000,A.J2000+150*A.DAY,A.J2000+1000*A.DAY]){
+            r.draw(t,4);const p=r.projected.find(p=>p.body.id===id);
+            if(Math.abs(p.screen.x-r.centerX)>.01||Math.abs(p.screen.y-r.centerY)>.01)return false;
+          }return true;
+        }""",body))
+        page.wait_for_timeout(80);page.screenshot(path=str(OUT/(body+'-closeup.png')))
+    check('High zoom supplies higher resolution surface textures',page.evaluate('SolarTime.renderer.sprites.get("jupiter").canvas.width>200'))
+    check('Zoom owner clamps invalid and excessive input without corrupting camera',page.evaluate("""(()=>{
+      const r=SolarTime.renderer;r.setZoom(999);const max=r.camera.zoom;r.setZoom(NaN);
+      if(max!==64||r.camera.zoom!==64)return false;r.setZoom(-100);
+      if(r.camera.zoom!==.6||r.camera.focus!==null)return false;r.setZoom(64,'earth');r.draw(SolarTime.getState().simulationMs,6);return true;
+    })()"""))
+    page.wait_for_timeout(260)
+    check('Maximum zoom is visible and its plus button is disabled',page.locator('#zoom-value').inner_text()=='64.0×' and page.locator('#zoom-in').is_disabled())
+    page.locator('#zoom-out').click()
+    check('Minus control shares the zoom limit owner',page.evaluate('SolarTime.renderer.camera.zoom')<64)
+    page.locator('#focus-reset').click();page.wait_for_timeout(80)
+    check('Overview button clears tracking and restores the requested lower composition',page.evaluate('SolarTime.renderer.camera.focus===null&&SolarTime.renderer.camera.zoom===1') and page.locator('#focus-reset').is_hidden())
+    page.locator('#body-close').click()
+    earth=page.evaluate('(()=>{const p=SolarTime.renderer.projected.find(p=>p.body.id==="earth");return p.screen;})()')
+    page.mouse.move(earth['x'],earth['y']);page.mouse.wheel(0,-120);page.wait_for_timeout(150)
+    check('Wheel zoom follows the planet under the pointer',page.evaluate('SolarTime.renderer.camera.focus')=='earth')
+    page.locator('#fit-view').click();page.wait_for_timeout(60)
+    sun=page.evaluate('SolarTime.renderer.projected.find(p=>p.body.id==="sun").screen')
+    page.mouse.dblclick(sun['x'],sun['y']);page.wait_for_timeout(150)
+    check('Double-clicking a body starts close observation, not fullscreen',page.evaluate('SolarTime.renderer.camera.focus==="sun"&&SolarTime.renderer.camera.zoom>3&&!document.fullscreenElement'))
+    page.locator('#universe').focus();page.keyboard.press('0');page.wait_for_timeout(80)
+    page.keyboard.press('+');page.wait_for_timeout(80)
+    check('Keyboard zoom uses the same follow owner',page.evaluate('SolarTime.renderer.camera.zoom>1&&SolarTime.renderer.camera.focus==="sun"'))
+    page.keyboard.press('0')
+    # No obsolete off-screen labels are clamped onto the viewport edge at high zoom.
+    check('Far-away bodies are excluded from label/picking work during close observation',page.evaluate("""(()=>{
+      const r=SolarTime.renderer;r.focusBody('jupiter');r.setZoom(64);r.draw(SolarAstro.J2000,4);
+      return r.hitTargets.filter(t=>t.label).every(t=>r.projected.some(p=>p.body.id===t.id&&r.visible(p.screen,p.r+20)));
+    })()"""))
+    page.locator('#fit-view').click()
     page.locator('#hide-ui').click()
     check('Viewing mode hides controls but keeps real clock',page.locator('.playback').is_hidden() and page.locator('#wall-clock').is_visible())
     check('Viewing-mode entry starts the cursor idle timer',page.evaluate('document.body.classList.contains("pointer-awake")'))
@@ -170,6 +258,23 @@ with sync_playwright() as pw:
     check('Mobile settings fit and scroll within viewport',mobile.evaluate('(()=>{const r=document.querySelector("#settings-panel").getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight;})()'))
     mobile.locator('#settings-close').tap()
     check('Mobile has no runtime errors',not mobile_errors)
+    # Narrow-screen control access and compact lunar spacing at multiple camera states.
+    mobile.set_viewport_size({'width':320,'height':780});mobile.wait_for_timeout(200)
+    check('Narrow mobile playback stays inside the viewport',mobile.evaluate('(()=>{const r=document.querySelector(".playback-bar").getBoundingClientRect();return r.left>=0&&r.right<=innerWidth;})()'))
+    mobile.locator('[data-rate="86400"]').tap()
+    check('One-day control remains reachable on a 320px viewport',mobile.evaluate('SolarTime.getState().rate')==86400)
+    mobile.locator('[data-rate="31557600"]').tap()
+    check('Farthest speed control remains reachable after horizontal scrolling',mobile.evaluate('SolarTime.getState().rate')==31557600)
+    check('Moon size and orbit remain matched across camera zoom and elevation',mobile.evaluate("""(()=>{
+      const r=SolarTime.renderer,A=SolarAstro;
+      for(const zoom of [.6,1,3,64])for(const elevation of [15,45,80]) {
+        r.camera.zoom=zoom;r.camera.elevation=elevation*A.DEG;r.dirty=true;r.draw(A.J2000+7*A.DAY,5);
+        const e=r.projected.find(p=>p.body.id==='earth'),m=r.projected.find(p=>p.body.id==='moon');
+        const offset=A.moonAt(A.J2000+7*A.DAY,A.MOON.displayOrbit*r.bodyScale/r.scale);
+        if(Math.hypot(m.world.x-e.world.x-offset.x,m.world.y-e.world.y-offset.y,m.world.z-e.world.z-offset.z)>1e-8)return false;
+      }
+      r.resetCamera();return true;
+    })()"""))
     # Reduced-motion preference has a quieter initial appearance.
     quiet=browser.new_page(viewport={'width':1280,'height':720},reduced_motion='reduce')
     quiet.set_content(HTML);quiet.wait_for_function('!!window.SolarTime',timeout=30000)

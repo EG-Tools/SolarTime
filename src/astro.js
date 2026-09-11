@@ -1,4 +1,4 @@
-/* Solar Time v0.02 | No runtime dependencies.
+/* Solar Time v0.03 | No runtime dependencies.
  * Approximate, heliocentric J2000 ecliptic positions, NOT an observing ephemeris.
  * Planet elements: JPL / Standish & Williams, 3000 BC–3000 AD fit, tables 2a/2b.
  * https://ssd.jpl.nasa.gov/planets/approx_pos.html
@@ -63,7 +63,9 @@
     Object.freeze({id,ko,en,orbit,size,color,period,spin,tilt,base,rates,correction,description:descriptions[id]}));
   const SUN = Object.freeze({id:'sun',ko:'태양',en:'SUN',size:28,color:'#ffb753',spin:25.38,tilt:7.25,
     description:'태양계의 중심. 표면의 입상 조직과 움직이는 코로나, 홍염은 감상을 위한 시각 효과입니다.'});
-  const MOON = Object.freeze({id:'moon',ko:'달',en:'MOON',size:3.9,color:'#d0ced0',period:27.321661,spin:27.321661,tilt:6.68,
+  // Lunar display-orbit radius is in reference-screen units, like body sizes.
+  // It is intentionally independent of Earth's display radius (not a physical distance).
+  const MOON = Object.freeze({id:'moon',ko:'달',en:'MOON',size:3.9,displayOrbit:30,color:'#d0ced0',period:27.321661,spin:27.321661,tilt:6.68,
     description:'지구를 약 27.32일에 한 바퀴 도는 유일한 자연 위성. 거리와 크기는 보기 편하게 확대했습니다.'});
   // One rotation authority. The SAME simulation timestamp drives orbits and spins.
   // Zero longitude at J2000 is illustrative; this is not a prime-meridian ephemeris.
