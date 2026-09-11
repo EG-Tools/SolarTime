@@ -1,4 +1,4 @@
-/* Solar Time v0.08 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.10 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -143,6 +143,24 @@
     get zoomLimits() {return VIEW;}
     visible(p,r=0) {return p.x+r>=0&&p.x-r<=this.w&&p.y+r>=0&&p.y-r<=this.h;}
 
+    cameraSnapshot() {return {...this.camera};}
+    static validCamera(state) {
+      if(!state||typeof state!=='object')return false;
+      for(const key of ['azimuth','elevation','zoom','panX','panY'])if(!Number.isFinite(state[key]))return false;
+      if(state.azimuth<0||state.azimuth>=TAU||state.elevation<VIEW.minElevation||state.elevation>VIEW.maxElevation||
+        state.zoom<VIEW.minZoom||state.zoom>VIEW.maxZoom||state.panX<VIEW.minPanX||state.panX>VIEW.maxPanX||
+        state.panY<VIEW.minPanY||state.panY>VIEW.maxPanY)return false;
+      const validFocus=state.focus===null||[A.SUN,...A.BODIES,A.MOON].some(b=>b.id===state.focus);
+      return validFocus&&(state.zoom>1||state.focus===null);
+    }
+    restoreCamera(state) {
+      if(!Renderer.validCamera(state))return false;
+      if((state.focus==='moon'&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
+      // Commit one camera transaction. Time, selected body and display toggles are not preset data.
+      this.camera={azimuth:state.azimuth,elevation:state.elevation,zoom:state.zoom,
+        focus:state.focus,panX:state.panX,panY:state.panY};
+      this.cameraChangeAt=performance.now();this.dirty=true;this.clearLabels();this.invalidateSurfaces();return true;
+    }
     resetCamera() {this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};this.dirty=true;}
     orbit(c,path,highlight) {
       const rgb=path.body.id==='earth'?'110,174,212':path.body.id==='pluto'?'155,140,127':'138,151,168';
@@ -172,7 +190,7 @@
       const len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
       const activity=false; // No surface distortion or erupting loops: physical spin + shine only.
       const spin=A.rotationAt(body,ms);
-      const geometry=[window.SolarAssets?.materialRevision||0,diam,textureWidth,this.camera.azimuth,this.camera.elevation,A.rotationPoleTilt(body),Number(activity)].join(':');
+      const geometry=[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,this.camera.azimuth,this.camera.elevation,A.rotationPoleTilt(body),Number(activity)].join(':');
       return {id:body.id,diam,textureWidth,frame,geometry,phase:spin/TAU,
         light:[lightVector.x/len,lightVector.y/len,lightVector.z/len],activity,seconds:activity?seconds:0};
     }

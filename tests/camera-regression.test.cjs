@@ -77,5 +77,41 @@ test('Returning home restores exact initial center, body sizes and no focus',()=
 test('Non-finite camera inputs do not corrupt a close-up or create giant radii',()=>{
  const r=renderer();r.focusBody('moon');const before={...r.camera};
  r.setZoom(NaN);r.setZoom(Infinity);r.setOrbitView(NaN,0);r.setPan(Infinity,0);
- assert.deepEqual(r.camera,before);all.forEach(b=>assert.ok(Number.isFinite(r.bodyRadiusAtZoom(b))));
+ assert.deepEqual({...r.camera},before);all.forEach(b=>assert.ok(Number.isFinite(r.bodyRadiusAtZoom(b))));
+});
+
+test('Saved camera is an independent snapshot with angle, zoom, pan and tracking',()=>{
+ const r=renderer();r.setOrbitView(2.3,-.8);r.setPan(.18,-.12);r.focusBody('moon');r.setZoom(21);
+ const saved=r.cameraSnapshot();assert.ok(R.validCamera(saved));const copy={...saved};
+ r.resetCamera();assert.deepEqual({...saved},copy);assert.ok(r.restoreCamera(saved));assert.deepEqual({...r.camera},copy);
+ r.camera.zoom=10;assert.equal(saved.zoom,21);
+});
+
+test('Camera presets reject malformed/out-of-range values without a partial camera change',()=>{
+ const r=renderer(),valid=r.cameraSnapshot(),before={...r.camera};
+ const invalid=[null,{},[],{...valid,azimuth:NaN},{...valid,elevation:Infinity},
+  {...valid,elevation:2},{...valid,azimuth:-1},{...valid,zoom:100},{...valid,panX:.21},
+  {...valid,panY:-.21},{...valid,focus:'bogus'},{...valid,zoom:'2'},{...valid,focus:'earth'}];
+ for(const value of invalid){assert.equal(R.validCamera(value),false);assert.equal(r.restoreCamera(value),false);assert.deepEqual({...r.camera},before);}
+});
+
+test('Disabled tracked bodies are never secretly enabled by recalling a camera',()=>{
+ const r=renderer();r.focusBody('moon');const saved=r.cameraSnapshot();r.resetCamera();r.options.moon=false;
+ const before={...r.camera};assert.equal(r.restoreCamera(saved),false);assert.deepEqual({...r.camera},before);
+ assert.equal(r.options.moon,false);r.options.moon=true;assert.equal(r.restoreCamera(saved),true);
+});
+
+test('Recalled camera and original camera produce identical geometry at the same time',()=>{
+ const r=renderer();r.focusBody('jupiter');r.setZoom(19);r.setPan(-.12,.14);r.setOrbitView(4.1,-1.1);
+ const ms=Date.UTC(2026,8,11);r.draw(ms,0,100);const saved=r.cameraSnapshot();
+ const positions=r.projected.map(p=>({id:p.body.id,x:p.screen.x,y:p.screen.y,r:p.r}));
+ r.resetCamera();r.draw(ms,0,200);r.restoreCamera(saved);r.draw(ms,0,300);
+ for(const p of r.projected){const q=positions.find(q=>q.id===p.body.id);near(p.screen.x,q.x);near(p.screen.y,q.y);near(p.r,q.r);}
+});
+
+test('Per-body surface signatures cannot alias another planets frame',()=>{
+ const r=renderer();r.cameraChangeAt=-Infinity;const ms=Date.UTC(2026,8,11);
+ const j=A.BODIES.find(b=>b.id==='jupiter'),s=A.BODIES.find(b=>b.id==='saturn');
+ const a=r.surfaceJob(j,{},16,ms,0,100),b=r.surfaceJob(s,{},16,ms,0,100);
+ assert.ok(a.geometry.startsWith('jupiter:'));assert.ok(b.geometry.startsWith('saturn:'));
 });

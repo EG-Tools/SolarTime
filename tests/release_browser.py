@@ -1,4 +1,4 @@
-"""v0.09 release gate: offline startup, controls, sphere geometry, materials & lifecycle.
+"""v0.10 release gate: offline startup, controls, sphere geometry, materials & lifecycle.
 Requires Python Playwright + Chromium. No server/network is required for the injected
 standalone run. Actual file navigation is separately reported, not assumed successful.
 """
@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 import time,json,os
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'test-results';OUT.mkdir(exist_ok=True)
-report={'version':'0.09','checks':[],'measurements':{},'limitations':[]}
+report={'version':'0.10','checks':[],'measurements':{},'limitations':[]}
 def check(name,cond,detail=None):
  report['checks'].append({'name':name,'passed':bool(cond),'detail':detail})
  if not cond: raise AssertionError(name+': '+str(detail))
@@ -18,8 +18,8 @@ with sync_playwright() as tool:
  page=context.new_page();context.set_offline(True);errors=[];network=[]
  page.on('pageerror',lambda e: errors.append(str(e)))
  page.on('request',lambda r: network.append(r.url) if r.url.startswith(('http://','https://')) else None)
- started=time.perf_counter();page.set_content((ROOT/'dist/Solar-Time_v0.09.html').read_text(),wait_until='load')
- page.wait_for_function('window.SolarTime?.version==="0.09"',timeout=15000)
+ started=time.perf_counter();page.set_content((ROOT/'dist/Solar-Time_v0.10.html').read_text(),wait_until='load')
+ page.wait_for_function('window.SolarTime?.version==="0.10"',timeout=15000)
  report['measurements']['first_scene_ms']=round((time.perf_counter()-started)*1000,2)
  page.wait_for_function('SolarTime.renderer.surface.frames.size>=8 && SolarTime.renderer.sky.stats.frames>0',timeout=15000)
  data=page.evaluate('({version:SolarTime.version,model:SolarTime.getModel(),calibrationMs:SolarTime.calibrationMs,online:navigator.onLine,frames:SolarTime.renderer.surface.frames.size,sky:SolarTime.renderer.sky.stats,surface:SolarTime.renderer.surface.stats})')
@@ -29,7 +29,7 @@ with sync_playwright() as tool:
  check('All material/sky startup requests are local or embedded',not network,network)
  check('All worlds load while completely offline',data['frames']>=8,data['frames'])
  check('Browser tab title is exactly Solar Time',page.title()=='Solar Time',page.title())
- check('Identity and footer contact',page.locator('.signature').inner_text().startswith('Life User') and 'v0.09' in page.locator('.signature').inner_text())
+ check('Identity and footer contact',page.locator('.signature').inner_text().startswith('Life User') and 'v0.10' in page.locator('.signature').inner_text())
  nav=page.locator('#planet-nav').bounding_box();check('Bottom planet controls are centered',abs(nav['x']+nav['width']/2-824)<1,nav)
  def sun():return page.evaluate('SolarTime.renderer.projected.find(p=>p.body.id==="sun").screen')
  check('Startup Sun at viewport center',abs(sun()['x']-824)<1,sun())
@@ -67,14 +67,14 @@ with sync_playwright() as tool:
  check('Comet midpoint is measurably off a straight trajectory',curve['distance']>15,curve)
  check('Comet passage is slow and bounded',11<=curve['duration']<=18,curve)
  page.evaluate('SolarTime.renderer.options.skyMotion=true;SolarTime.renderer.options.comets=true;SolarTime.renderer.resetCamera()');page.wait_for_timeout(300)
- page.screenshot(path=str(OUT/'overview-v0.09.png'))
- page.locator('#universe').focus();page.keyboard.press('h');page.wait_for_timeout(200);page.screenshot(path=str(OUT/'zen-v0.09.png'));check('Pointer activity reveals only home and mode actions',set(page.locator('button:visible').evaluate_all('(els)=>els.map(e=>e.id)'))=={'fit-view','show-ui'});page.keyboard.press('Escape')
+ page.screenshot(path=str(OUT/'overview-v0.10.png'))
+ page.locator('#universe').focus();page.keyboard.press('h');page.wait_for_timeout(200);page.screenshot(path=str(OUT/'zen-v0.10.png'));check('Pointer activity reveals only home and mode actions',set(page.locator('button:visible').evaluate_all('(els)=>els.map(e=>e.id)'))=={'fit-view','show-ui'});page.keyboard.press('Escape')
  for target in ['earth','moon','jupiter','saturn']:
   page.evaluate('''id=>{const r=SolarTime.renderer;r.focusBody(id);if(id==='earth')r.faceFeature(id,37.5665,126.978,SolarTime.getState().simulationMs);if(id==='jupiter')r.faceFeature(id,-22,70,SolarTime.getState().simulationMs);r.setZoom(40);}''',target)
   page.wait_for_function('''id=>{const r=SolarTime.renderer,e=r.surface.frames.get(id);return e&&e.job.textureWidth===4096&&e.image.width>=512}''',arg=target,timeout=15000)
   page.wait_for_timeout(300)
   check(target+' has high-detail embedded material at close-up',True)
-  page.screenshot(path=str(OUT/(target+'-v0.09.png')))
+  page.screenshot(path=str(OUT/(target+'-v0.10.png')))
  # At the same maximum zoom tiny bodies use the same viewport fill fraction.
  sizes=page.evaluate('''()=>{const r=SolarTime.renderer;return [SolarAstro.SUN,...SolarAstro.BODIES,SolarAstro.MOON].map(b=>{r.camera.focus=b.id;r.setZoom(64);return {id:b.id,r:r.bodyRadiusAtZoom(b)};});}''')
  check('All 11 bodies have identical maximum screen size',all(abs(x['r']-928*.34)<1e-8 for x in sizes),sizes)
@@ -109,11 +109,11 @@ with sync_playwright() as tool:
  for width,height in [(390,844),(320,568)]:
   page.set_viewport_size({'width':width,'height':height});page.keyboard.press('0');page.wait_for_timeout(350)
   check(f'{width}px has no document overflow',page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
-  page.locator('#settings-button').click();check(f'{width}px settings contains contact and offline description','Life User / Solar Time v0.09 /' in page.locator('.settings-credit').inner_text() and '인터넷 없이' in page.locator('.settings-note').inner_text())
+  page.locator('#settings-button').click();check(f'{width}px settings contains contact and offline description','Life User / Solar Time v0.10 /' in page.locator('.settings-credit').inner_text() and '인터넷 없이' in page.locator('.settings-note').inner_text())
   page.locator('#settings-close').click()
-  page.screenshot(path=str(OUT/f'mobile-{width}-v0.09.png'))
+  page.screenshot(path=str(OUT/f'mobile-{width}-v0.10.png'))
  check('No external runtime requests during full workflow',not network,network)
  context.close();browser.close()
 report['passed']=all(x['passed'] for x in report['checks']);report['check_count']=len(report['checks'])
-(ROOT/'docs/release-browser-v0.09.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+(ROOT/'docs/release-browser-v0.10.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
 print(json.dumps(report,ensure_ascii=False,indent=2))

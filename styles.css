@@ -57,3 +57,22 @@ body.zen.pointer-awake #fit-view,body.zen.pointer-awake #show-ui{visibility:visi
 .material-actions{display:flex;gap:7px}.material-actions .text-button{font-size:10px;flex:1;padding:9px 4px}
 .material-source{font-size:9px;line-height:1.6;color:var(--muted);margin:8px 0 0}
 .settings-panel{max-height:calc(100dvh - 100px);overflow-y:auto;scrollbar-width:thin}
+
+/* v0.10 camera bookmarks live beneath Help, not in separately positioned viewport coordinates. */
+.camera-presets-anchor{position:relative;align-self:flex-start}
+.camera-presets{position:absolute;top:calc(100% + 9px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:7px}
+.camera-preset{position:relative;border:1px dashed var(--line);border-radius:50%;font-size:12px;font-variant-numeric:tabular-nums;background:rgba(9,14,23,.64);color:var(--muted)}
+.camera-preset.saved{border-style:solid;border-color:rgba(225,199,150,.45);color:var(--accent);background:rgba(185,150,97,.12)}
+.camera-preset.saved::after{content:"";position:absolute;right:5px;bottom:5px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.timezone-readout{font-size:9px;letter-spacing:.7px;color:#9aabc0;white-space:nowrap}
+.preset-delete-dialog{position:fixed;inset:auto;margin:0;box-sizing:border-box;width:270px;max-width:calc(100vw - 16px);padding:18px;border:1px solid var(--line);border-radius:12px;background:rgba(14,20,30,.98);color:var(--fg);box-shadow:0 14px 45px #0009}
+.preset-delete-dialog::backdrop{background:transparent}
+.preset-delete-dialog h2{margin:0 0 9px;font-weight:500;font-size:13px;line-height:1.5;color:#e8dac3}
+.preset-delete-dialog p{margin:0 0 17px;font-size:11px;line-height:1.7;color:var(--muted)}
+.preset-delete-actions{display:flex;justify-content:flex-end;gap:8px}
+.preset-delete-actions button{min-height:36px;padding:8px 16px;border-radius:7px;border:1px solid var(--line);background:#ffffff05;color:#b9c5d4;font-size:11px}
+.preset-delete-actions #preset-delete-confirm{color:#efb29c;border-color:#a06d594f;background:#9b574a1a}
+.preset-delete-actions button:hover{background:#ffffff12}
+@media(max-width:680px){.camera-presets{gap:6px;top:calc(100% + 6px)}.camera-preset{font-size:11px}.timezone-readout{font-size:8px}}
+
+@media(max-width:680px){.camera-presets{flex-direction:row;left:0;transform:none;gap:1px}.clock-face{top:110px}.scene-status{top:226px}}

@@ -1,4 +1,4 @@
-/* Solar Time v0.07. One bounded producer of analytic spherical surfaces.
+/* Solar Time v0.10. One bounded producer of analytic spherical surfaces.
    GPU/CPU are explicit adapters of the same job and material coordinates.
    All body positions, axes and physical rotation come from SolarAstro. */
 (function(root){
@@ -51,9 +51,10 @@ function surfaceKernel(){
       gl_FragColor=vec4(col,alpha);
     }`;
   class Engine{
-    constructor(){
+    constructor({gpu=true}={}){
       this.disposed=false;this.canvas=makeCanvas(32);this.stats={renders:0,texturesBuilt:0,mapsBuilt:0,backend:'cpu'};this.mapPixels=0;this.textures=new Map();this.cpuMaps=new Map();this.gl=null;
       try{
+        if(!gpu)throw Error('CPU compatibility adapter');
         const g=this.canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false,antialias:false,preserveDrawingBuffer:true});
         if(!g)throw Error('WebGL unavailable');this.gl=g;
         const vs=compile(g,g.VERTEX_SHADER,vertex),fs=compile(g,g.FRAGMENT_SHADER,fragment),program=g.createProgram();g.attachShader(program,vs);g.attachShader(program,fs);g.linkProgram(program);g.deleteShader(vs);g.deleteShader(fs);
@@ -98,18 +99,21 @@ function surfaceKernel(){
     }
     async render(job){
       if(this.disposed)throw Error('Surface disposed');
+      if(this.gl?.isContextLost())throw Error('WebGL context lost');
       const {id,frame,phase,light}=job;const n=this.gl?Math.min(1024,job.diam):Math.min(768,job.diam);
       const width=this.gl?job.textureWidth:Math.min(4096,job.textureWidth);
       const color=await this.texture(id,width),bump=assets[id+'-relief']?await this.texture(id+'-relief',width):color;
       const clouds=id==='earth'?await this.texture('clouds',Math.min(2048,width)):color;
       if(this.canvas.width!==n){this.canvas.width=this.canvas.height=n;}
+      if(this.gl?.isContextLost())throw Error('WebGL context lost');
       if(this.gl){
-        const g=this.gl,u=this.uniforms;g.viewport(0,0,n,n);g.useProgram(this.program);g.bindBuffer(g.ARRAY_BUFFER,this.buffer);
+        const g=this.gl,u=this.uniforms;g.viewport(0,0,n,n);g.clearColor(0,0,0,0);g.clear(g.COLOR_BUFFER_BIT);g.useProgram(this.program);g.bindBuffer(g.ARRAY_BUFFER,this.buffer);
         const a=g.getAttribLocation(this.program,'a');g.enableVertexAttribArray(a);g.vertexAttribPointer(a,2,g.FLOAT,false,0,0);
         for(const [i,t,name] of [[0,color,'colorMap'],[1,bump,'bumpMap'],[2,clouds,'cloudsMap']]){g.activeTexture(g.TEXTURE0+i);g.bindTexture(g.TEXTURE_2D,t.handle);g.uniform1i(u[name],i);}
         g.uniform3fv(u.axisU,frame.u);g.uniform3fv(u.axisV,frame.v);g.uniform3fv(u.pole,frame.pole);g.uniform3fv(u.light,light);
         g.uniform1f(u.phase,phase);g.uniform1f(u.kind,id==='earth'?1:id==='sun'?2:['jupiter','saturn','venus','uranus','neptune'].includes(id)?3:0);
         g.uniform1f(u.hasBump,bump!==color?1:0);g.uniform1f(u.diameter,n);g.uniform1f(u.texel,1/width);g.drawArrays(g.TRIANGLES,0,6);
+        if(g.isContextLost())throw Error('WebGL context lost');
       }else{
         // Identical UV geometry, cooperatively rasterized when GPU is disabled.
         // Cached inverse spherical map prevents per-frame atan/acos work.
@@ -145,23 +149,24 @@ function surfaceKernel(){
 class SurfaceService{
   constructor({worker=true}={}){
     this.frames=new Map();this.desired=new Map();this.pending=null;this.inflight=false;this.disposed=false;
-    this.epoch=0;this.revision=0;this.worker=null;this.sync=null;this.timer=null;this.assetsSent=false;
+    this.epoch=0;this.revision=0;this.worker=null;this.sync=null;this.timer=null;this.assetsSent=false;this.batch=null;
     this.stats={backend:'compatibility',submitted:0,accepted:0,discarded:0,workerMs:0,mapPixels:0,texturePixels:0};
     if(worker&&typeof Worker==='function'&&typeof OffscreenCanvas==='function'){
       let url;try{
-        const boot=`const kernel=(${surfaceKernel.toString()})();const engine=new kernel.Engine();onmessage=async e=>{const {jobs,revision,epoch,assets}=e.data;if(assets)kernel.setAssets(assets);const start=performance.now();try{for(const job of jobs){const canvas=await engine.render(job);const bitmap=canvas.transferToImageBitmap();postMessage({kind:'frame',revision,epoch,job,bitmap},[bitmap]);}postMessage({kind:'done',revision,epoch,ms:performance.now()-start,stats:engine.stats,mapPixels:engine.mapPixels,texturePixels:engine.texturePixels});}catch(error){postMessage({kind:'error',message:error.message});}};`;
+        const boot=`const kernel=(${surfaceKernel.toString()})();const engine=new kernel.Engine();onmessage=async e=>{const {jobs,revision,epoch,assets}=e.data;if(assets)kernel.setAssets(assets);const start=performance.now();try{for(const job of jobs){const canvas=await engine.render(job);const bitmap=canvas.transferToImageBitmap();postMessage({kind:'frame',revision,epoch,job,bitmap},[bitmap]);}postMessage({kind:'done',revision,epoch,ms:performance.now()-start,stats:engine.stats,mapPixels:engine.mapPixels,texturePixels:engine.texturePixels});}catch(error){postMessage({kind:'error',revision,epoch,message:error.message});}};`;
         url=URL.createObjectURL(new Blob([boot],{type:'text/javascript'}));this.worker=new Worker(url);this.worker.onmessage=e=>this.receive(e.data);this.worker.onerror=e=>{this.stats.workerError=e.message||'Worker unavailable';this.fallback();};this.stats.backend='worker';
       }catch(error){this.stats.workerError=error.message;this.fallback();}finally{if(url)URL.revokeObjectURL(url);}
     }
     if(!this.worker&&!this.sync)this.createSync();
   }
-  createSync(){this.sync?.clear();const kernel=surfaceKernel();kernel.setAssets(root.SolarAssets?.materials||{});this.sync=new kernel.Engine();}
-  fallback(){if(this.disposed)return;this.epoch++;this.revision++;this.worker?.terminate();this.worker=null;this.inflight=false;this.createSync();this.stats.backend='compatibility';this.pump();}
-  update(jobs,mono){if(this.disposed)return;const assetRevision=root.SolarAssets?.materialRevision||0;if(this.assetRevision!==assetRevision){this.assetRevision=assetRevision;this.assetsSent=false;this.invalidate(true);if(this.sync)this.createSync();}this.desired=new Map(jobs.map(j=>[j.id,j]));for(const [id,e] of this.frames)if(!this.desired.has(id)){e.image.close?.();this.frames.delete(id);}this.pending={jobs,mono};this.pump();}
+  createSync(){this.sync?.clear();const kernel=surfaceKernel();kernel.setAssets(root.SolarAssets?.materials||{});this.sync=new kernel.Engine({gpu:!this.forceCPU});}
+  fallback(){if(this.disposed)return;this.epoch++;this.revision++;this.worker?.terminate();this.worker=null;this.inflight=false;this.batch=null;this.forceCPU=true;this.createSync();this.stats.backend='compatibility';this.pump();}
+  update(jobs,mono){if(this.disposed)return;const assetRevision=root.SolarAssets?.materialRevision||0;if(this.assetRevision!==assetRevision){this.assetRevision=assetRevision;this.assetsSent=false;this.invalidate(false);if(this.sync)this.createSync();}this.desired=new Map(jobs.map(j=>[j.id,j]));for(const [id,e] of this.frames)if(!this.desired.has(id)){e.image.close?.();this.frames.delete(id);}this.pending={jobs,mono};this.pump();}
   needs(job,mono){const old=this.frames.get(job.id);if(!old||old.epoch!==this.epoch||old.job.geometry!==job.geometry)return true;if(job.phase===old.job.phase&&job.seconds===old.job.seconds&&job.light.every((v,i)=>v===old.job.light[i]))return false;const turn=Math.abs(job.phase-old.job.phase);return mono-old.mono>=120||Math.min(turn,1-turn)*Math.PI*job.diam>.18;}
   pump(){
     if(this.disposed||this.inflight||!this.pending)return;const {mono}=this.pending;let jobs=this.pending.jobs.filter(j=>this.needs(j,mono));this.pending=null;if(!jobs.length)return;
     this.inflight=true;this.stats.submitted++;const revision=++this.revision,epoch=this.epoch;jobs=jobs.map(job=>({...job,requestedMono:mono}));
+    this.batch={revision,epoch,jobs:new Map(jobs.map(job=>[job.id,job]))};
     if(this.worker){this.worker.postMessage({jobs,revision,epoch,assets:this.assetsSent?undefined:root.SolarAssets?.materials});this.assetsSent=true;}
     else{
       const engine=this.sync;
@@ -176,19 +181,39 @@ class SurfaceService{
             this.receive({kind:'frame',revision,epoch,job,bitmap:image});
           }
           this.receive({kind:'done',revision,epoch,ms:performance.now()-start,stats:engine.stats,mapPixels:engine.mapPixels,texturePixels:engine.texturePixels});
-        }catch(error){if(!this.disposed){this.inflight=false;this.stats.error=error.message;}}
+        }catch(error){if(!this.disposed){this.inflight=false;this.batch=null;this.stats.error=error.message;this.pump();}}
       },0);
     }
   }
   receive(msg){
-    if(this.disposed){msg.bitmap?.close?.();return;}if(msg.kind==='error'){this.stats.error=msg.message;this.fallback();return;}
-    if(msg.kind==='done'){if(msg.revision!==this.revision||msg.epoch!==this.epoch){if(msg.revision===this.revision){this.inflight=false;this.pump();}return;}this.inflight=false;this.stats.workerMs=msg.ms;this.stats.kernel=msg.stats;this.stats.mapPixels=msg.mapPixels;this.stats.texturePixels=msg.texturePixels;this.pump();return;}
-    const current=this.desired.get(msg.job.id);if(msg.revision!==this.revision||msg.epoch!==this.epoch||!current||current.geometry!==msg.job.geometry){msg.bitmap?.close?.();this.stats.discarded++;return;}
-    this.frames.get(msg.job.id)?.image.close?.();this.frames.set(msg.job.id,{image:msg.bitmap,job:msg.job,epoch:msg.epoch,mono:msg.job.requestedMono});this.stats.accepted++;
+    if(this.disposed){msg.bitmap?.close?.();return;}
+    const belongs=this.batch&&msg.revision===this.batch.revision&&msg.epoch===this.batch.epoch;
+    if(msg.kind==='error'){
+      if(!belongs)return;
+      if(msg.epoch!==this.epoch){this.inflight=false;this.batch=null;this.pump();return;}
+      this.stats.error=msg.message;this.fallback();return;
+    }
+    if(msg.kind==='done'){
+      if(!belongs)return;
+      this.inflight=false;this.batch=null;
+      if(msg.epoch===this.epoch){this.stats.workerMs=msg.ms;this.stats.kernel=msg.stats;this.stats.mapPixels=msg.mapPixels;this.stats.texturePixels=msg.texturePixels;}
+      this.pump();return;
+    }
+    const requested=this.batch?.jobs.get(msg.job?.id),current=this.desired.get(msg.job?.id),bitmap=msg.bitmap;
+    const validImage=bitmap&&Number.isFinite(bitmap.width)&&bitmap.width>0&&bitmap.width===bitmap.height&&bitmap.width<=1024;
+    if(!belongs||msg.epoch!==this.epoch||!requested||!current||current.geometry!==msg.job.geometry||
+      requested.geometry!==msg.job.geometry||requested.phase!==msg.job.phase||requested.requestedMono!==msg.job.requestedMono||!validImage){
+      bitmap?.close?.();this.stats.discarded++;return;
+    }
+    // Publish a complete per-body replacement before retiring the prior resource.
+    // Source/quality changes retain the last good image instead of exposing a blank/flat disk.
+    const previous=this.frames.get(msg.job.id);
+    this.frames.set(msg.job.id,{image:bitmap,job:msg.job,epoch:msg.epoch,mono:msg.job.requestedMono});
+    previous?.image.close?.();this.stats.accepted++;
   }
   get(id){return this.frames.get(id)?.image;}
   invalidate(clear=false){this.epoch++;this.pending=null;if(clear){for(const e of this.frames.values())e.image.close?.();this.frames.clear();}this.desired.clear();}
-  suspend(){this.invalidate(true);this.worker?.terminate();this.worker=null;clearTimeout(this.timer);this.timer=null;this.inflight=false;this.sync?.clear();}
+  suspend(){this.invalidate(true);this.worker?.terminate();this.worker=null;clearTimeout(this.timer);this.timer=null;this.inflight=false;this.batch=null;this.sync?.clear();}
   dispose(){this.suspend();this.disposed=true;}
 }
 root.SolarSurface={kernel:surfaceKernel,Service:SurfaceService};if(typeof module==='object'&&module.exports)module.exports=root.SolarSurface;

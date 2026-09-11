@@ -7,7 +7,7 @@ function owner(){
  vm.runInNewContext(code,sandbox);return new sandbox.SolarSurface.Service();
 }
 const job=(phase=0,geometry='g')=>({id:'moon',diam:64,textureWidth:256,phase,geometry,light:[1,0,0],seconds:0,activity:false});
-const image=()=>({closed:false,close(){this.closed=true;}});
+const image=()=>({width:64,height:64,closed:false,close(){this.closed=true;}});
 test('Worker has at most one producer batch and coalesces intermediate snapshots',()=>{
  const s=owner();s.update([job(0)],0);s.update([job(.1)],20);s.update([job(.2)],40);
  assert.equal(s.worker.sent.length,1);assert.equal(s.pending.jobs[0].phase,.2);
@@ -32,7 +32,39 @@ test('Both source and offline build load surface before renderer; release identi
  const root=require('node:path').join(__dirname,'..'),read=p=>fs.readFileSync(require('node:path').join(root,p),'utf8');
  const html=read('index.html'),build=read('tools/build.cjs'),app=read('src/app.js');
  assert.ok(html.indexOf('src/surface.js')<html.indexOf('src/renderer.js'));assert.match(build,/'assets','materials','astro','surface','sky','renderer','app'/);
- assert.ok(html.includes('Life User <span>/</span> v0.09'));
- assert.match(app,/version:'0\.09'/);assert.equal(JSON.parse(read('package.json')).version,'0.0.9');
- assert.ok(!html.includes('EG TOOLS'));assert.ok(html.includes('Life User / Solar Time v0.09 /')); // Historical release comparisons are allowed in help.
+ assert.ok(html.includes('Life User <span>/</span> v0.10'));
+ assert.match(app,/version:'0\.10'/);assert.equal(JSON.parse(read('package.json')).version,'0.0.10');
+ assert.ok(!html.includes('EG TOOLS'));assert.ok(html.includes('Life User / Solar Time v0.10 /')); // Historical release comparisons are allowed in help.
+});
+
+test('Material revision changes keep the last good planet frame until its replacement is ready',()=>{
+ const s=owner();s.update([job()],0);let b=s.worker.sent[0],good=image();
+ s.receive({kind:'frame',revision:b.revision,epoch:b.epoch,job:b.jobs[0],bitmap:good});s.receive({kind:'done',...b,ms:1});
+ s.assetRevision=-1;s.update([job(.01)],500);assert.equal(s.get('moon'),good);assert.equal(good.closed,false);
+ b=s.worker.sent.at(-1);const replacement=image();s.receive({kind:'frame',revision:b.revision,epoch:b.epoch,job:b.jobs[0],bitmap:replacement});
+ assert.equal(s.get('moon'),replacement);assert.equal(good.closed,true);s.dispose();
+});
+
+test('Invalid, empty or misrouted image frames cannot replace a healthy planet image',()=>{
+ const s=owner();s.update([job()],0);const b=s.worker.sent[0],msg={kind:'frame',revision:b.revision,epoch:b.epoch,job:b.jobs[0]};
+ const good=image();s.receive({...msg,bitmap:good});
+ for(const broken of [{width:0},{height:32},{width:2048,height:2048}]){
+  const bitmap=Object.assign(image(),broken);s.receive({...msg,bitmap});assert.equal(bitmap.closed,true);assert.equal(s.get('moon'),good);
+ }
+ const bitmap=image();s.receive({...msg,job:{...msg.job,phase:.2},bitmap});assert.equal(bitmap.closed,true);assert.equal(good.closed,false);
+ const other=image();s.receive({...msg,job:{...msg.job,id:'jupiter'},bitmap:other});assert.equal(other.closed,true);assert.equal(s.get('jupiter'),undefined);s.dispose();
+});
+
+test('Late worker failures cannot reset a newer camera/material generation',()=>{
+ const s=owner();s.update([job()],0);const first=s.worker.sent[0],w=s.worker;
+ s.invalidate();s.update([job(.4,'new')],100);
+ s.receive({kind:'error',revision:first.revision,epoch:first.epoch,message:'old GPU failure'});
+ assert.equal(s.worker,w);assert.equal(s.stats.error,undefined);assert.equal(w.sent.length,2);
+ s.receive({kind:'error',revision:first.revision,epoch:first.epoch,message:'duplicate old failure'});
+ assert.equal(s.worker,w);assert.equal(w.sent.length,2);s.dispose();
+});
+
+test('GPU loss guard does not return a corrupted or transparent surface as successful output',()=>{
+ assert.match(code,/isContextLost\(\)\)throw Error\('WebGL context lost'\)/);
+ assert.match(code,/this.forceCPU=true/);assert.match(code,/new kernel.Engine\(\{gpu:!this.forceCPU\}\)/);
 });

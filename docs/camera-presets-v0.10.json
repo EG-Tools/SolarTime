@@ -1,0 +1,490 @@
+{
+  "version": "0.10",
+  "checks": [
+    {
+      "name": "Title, release and creator are current",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Exactly three empty camera slots appear below Help",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Left click saves full current camera including Earth tracking",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Key 1 recalls saved angle, zoom and pan exactly",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Recall leaves time and speed unchanged",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Clicking an occupied slot saves the new camera as requested",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Camera 2 stores and recalls independently",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Camera 3 stores and recalls independently",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Number shortcut is not swallowed by focused buttons",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Right click opens confirmation near cursor and inside viewport",
+      "passed": true,
+      "detail": {
+        "x": 1370,
+        "y": 106,
+        "width": 270,
+        "height": 138.1875
+      }
+    },
+    {
+      "name": "Cancel, not Delete, receives initial popup focus",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Cancel keeps saved slot unchanged",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Escape cancels without deleting",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Click outside cancels without deleting",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Only explicit Delete clears the selected slot",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Right click on an empty slot does not delete another slot or open confirmation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "An empty number key leaves camera untouched",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "SEOUL remains readable as non-interactive text in viewing mode",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Viewing mode still reveals only home and mode buttons",
+      "passed": true,
+      "detail": [
+        "fit-view",
+        "show-ui"
+      ]
+    },
+    {
+      "name": "SEOUL remains visible after controls and cursor fade",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Key 2 recalls Moon while keeping viewing mode",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Key 1 restores Earth while keeping viewing mode and current time",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Preset recall does not leak preset buttons into idle viewing mode",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Normal timezone button and preset controls return on mode exit",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "All slots survive app startup with persisted valid storage",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Restored persisted slot recalls correct Jupiter camera",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Jupiter stays visible while a new material generation is queued",
+      "passed": true,
+      "detail": {
+        "retained": true,
+        "exists": true,
+        "width": 256,
+        "height": 256,
+        "backend": "worker",
+        "kernel": {
+          "renders": 15,
+          "texturesBuilt": 17,
+          "mapsBuilt": 13,
+          "backend": "cpu",
+          "fallback": "WebGL unavailable"
+        },
+        "acceptedBefore": 2,
+        "acceptedAfter": 4
+      }
+    },
+    {
+      "name": "Repeated settled Jupiter frames are nonempty and color-stable on CPU",
+      "passed": true,
+      "detail": [
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ],
+        [
+          59,
+          53,
+          45,
+          255
+        ]
+      ]
+    },
+    {
+      "name": "Image-inclusive export retains new preset UI and version",
+      "passed": true,
+      "detail": {
+        "title": true,
+        "preset": true,
+        "version": true,
+        "popup": true
+      }
+    },
+    {
+      "name": "Corrupt preset storage is ignored without breaking startup",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Blocked storage still permits in-session save and recall",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "390px camera buttons remain within viewport beneath Help",
+      "passed": true,
+      "detail": [
+        {
+          "x": 272,
+          "y": 58,
+          "w": 33,
+          "h": 33
+        },
+        {
+          "x": 306,
+          "y": 58,
+          "w": 33,
+          "h": 33
+        },
+        {
+          "x": 340,
+          "y": 58,
+          "w": 33,
+          "h": 33
+        }
+      ]
+    },
+    {
+      "name": "390px confirmation is clamped at screen edge",
+      "passed": true,
+      "detail": {
+        "x": 112,
+        "y": 81,
+        "width": 270,
+        "height": 138.1875
+      }
+    },
+    {
+      "name": "390px SEOUL stays readable with no idle buttons",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "320px camera buttons remain within viewport beneath Help",
+      "passed": true,
+      "detail": [
+        {
+          "x": 202,
+          "y": 58,
+          "w": 33,
+          "h": 33
+        },
+        {
+          "x": 236,
+          "y": 58,
+          "w": 33,
+          "h": 33
+        },
+        {
+          "x": 270,
+          "y": 58,
+          "w": 33,
+          "h": 33
+        }
+      ]
+    },
+    {
+      "name": "320px confirmation is clamped at screen edge",
+      "passed": true,
+      "detail": {
+        "x": 42,
+        "y": 81,
+        "width": 270,
+        "height": 138.1875
+      }
+    },
+    {
+      "name": "320px SEOUL stays readable with no idle buttons",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "No uncaught browser errors",
+      "passed": true,
+      "detail": []
+    }
+  ],
+  "errors": [],
+  "measurements": {
+    "surface": {
+      "backend": "worker",
+      "submitted": 3,
+      "accepted": 4,
+      "discarded": 11,
+      "workerMs": 655.3000000000466,
+      "mapPixels": 123904,
+      "texturePixels": 8912896,
+      "kernel": {
+        "renders": 15,
+        "texturesBuilt": 17,
+        "mapsBuilt": 13,
+        "backend": "cpu",
+        "fallback": "WebGL unavailable"
+      }
+    },
+    "jupiter_samples": [
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ],
+      [
+        59,
+        53,
+        45,
+        255
+      ]
+    ]
+  },
+  "limitations": [
+    "Standalone HTML injected offline: loopback HTTP navigation was blocked by browser policy.",
+    "Storage persistence/denial tests use an in-memory Storage fixture because about:blank cannot access localStorage.",
+    "No hardware GPU is available. Jupiter purple flash was not reproduced; guards and CPU image continuity are tested."
+  ]
+}
