@@ -42,9 +42,10 @@ body.zen:not(.pointer-awake),body.zen:not(.pointer-awake) *{cursor:none!importan
 @media(min-width:681px) and (max-width:1280px){.signature{visibility:hidden;display:block;width:0;overflow:hidden}}
 @media(max-width:680px){.planet-nav{justify-content:safe center}}
 
-/* Same reset button stays reachable in zen mode; no duplicate camera controls. */
-body.zen .view-controls{display:flex!important;z-index:12;opacity:.45}
-body.zen .view-controls:hover,body.zen.pointer-awake .view-controls{opacity:1}
-body.zen .view-controls>:not(#fit-view){display:none!important}
-body.zen .view-controls #fit-view{display:flex!important;pointer-events:auto}
+/* Viewing mode is genuinely button-free, including hover/focus and reset. */
+body.zen button,body.zen input,body.zen select,body.zen a{visibility:hidden!important;pointer-events:none!important}
+body.zen .view-controls,body.zen #show-ui{display:none!important}
+.photo-status{font-size:10px;line-height:1.7;color:var(--muted);margin:12px 0 8px}
+.material-actions{display:flex;gap:7px}.material-actions .text-button{font-size:10px;flex:1;padding:9px 4px}
+.material-source{font-size:9px;line-height:1.6;color:var(--muted);margin:8px 0 0}
 .settings-panel{max-height:calc(100dvh - 100px);overflow-y:auto;scrollbar-width:thin}

@@ -92,16 +92,16 @@ test('Pan is a viewport-height fraction across resized windows and tracking',()=
  r.w=1920;r.h=1080;r.rebuild(A.J2000);near(r.centerY,1080*.7);near(r.camera.panY,.15);
 });
 
-test('Shine timing is exactly 6x, independent of physical rotation, star time and pause',()=>{
+test('Shine timing is exactly 4x v0.06, independent of physical rotation, star time and pause',()=>{
  const source=fs.readFileSync(require.resolve('../src/renderer.js'),'utf8');
  const SlowSandbox={window:{SolarAstro:A},performance:{now:()=>0}};
- vm.runInNewContext(source.replace('seconds*6:0','seconds:0'),SlowSandbox);
+ vm.runInNewContext(source.replace('seconds*24:0','seconds*6:0'),SlowSandbox);
  const trace=(R,seconds,activity=true)=>{
   const r=Object.create(R.prototype);r.options={activity,quality:'low'};r.dpr=1;r.coronaTexture={width:384};
   const calls=[],c=new Proxy({}, {get(_,key){if(key==='createRadialGradient')return()=>({addColorStop(){}});return(...args)=>calls.push([key,...args]);},set(_,key,value){calls.push([key,value]);return true;}});
   r.corona(c,0,0,30,seconds);return calls;
  };
- assert.equal(JSON.stringify(trace(Renderer,5)),JSON.stringify(trace(SlowSandbox.window.SolarRenderer,30)));
+ assert.equal(JSON.stringify(trace(Renderer,5)),JSON.stringify(trace(SlowSandbox.window.SolarRenderer,20)));
  assert.equal(JSON.stringify(trace(Renderer,999,false)),JSON.stringify(trace(Renderer,0,false)));
  assert.equal(JSON.stringify(trace(Renderer,5)),JSON.stringify(trace(Renderer,5)));
  assert.ok(source.includes('const spin=A.rotationAt(body,ms)'));

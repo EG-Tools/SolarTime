@@ -1,4 +1,4 @@
-/* Solar Time v0.06 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.07 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -151,7 +151,7 @@
       const tier=[32,64,128,192,256,384,512,768,1024].find(n=>n>=wanted)||1024;
       const diam=moving?Math.min(tier,SURFACE.previewRaster):tier;
       // A quick first sample makes the body visible before the detailed map is built.
-      const textureWidth=focused&&!moving&&this.surface.get(body.id)?SURFACE.detailWidth:SURFACE.baseWidth;
+      const textureWidth=focused&&!moving&&this.surface.get(body.id)?Math.min(SURFACE.detailWidth,window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth):SURFACE.baseWidth;
       const vectors=this.bodyFrame(body),frame=Object.fromEntries(Object.entries(vectors).map(([k,v])=>[k,[v.x,v.y,v.z]]));
       const earth=A.positionAt(A.BODIES.find(b=>b.id==='earth'),ms);
       const physical=body.id==='moon'?(()=>{const m=A.moonAt(ms,.0025696);return {x:earth.x+m.x,y:earth.y+m.y,z:earth.z+m.z};})():body.id==='sun'?{x:0,y:0,z:0}:A.positionAt(body,ms);
@@ -159,7 +159,7 @@
       const len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
       const activity=false; // No surface distortion or erupting loops: physical spin + shine only.
       const spin=A.rotationAt(body,ms);
-      const geometry=[diam,textureWidth,this.camera.azimuth,this.camera.elevation,A.rotationPoleTilt(body),Number(activity)].join(':');
+      const geometry=[window.SolarAssets?.materialRevision||0,diam,textureWidth,this.camera.azimuth,this.camera.elevation,A.rotationPoleTilt(body),Number(activity)].join(':');
       return {id:body.id,diam,textureWidth,frame,geometry,phase:spin/TAU,
         light:[lightVector.x/len,lightVector.y/len,lightVector.z/len],activity,seconds:activity?seconds:0};
     }
@@ -187,7 +187,7 @@
     }
     corona(c,x,y,r,seconds) {
       // Decorative shine only: physics and solar surface rotation keep their own time.
-      const t=this.options.activity?seconds*6:0;
+      const t=this.options.activity?seconds*24:0;
       const detail=r*this.dpr>128&&this.options.quality!=='low'?768:384;
       if(!this.coronaTexture||this.coronaTexture.width<detail)this.coronaTexture=this.makeCoronaTexture(detail);
       c.save();c.translate(x,y);c.globalCompositeOperation='screen';

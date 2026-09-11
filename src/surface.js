@@ -1,4 +1,4 @@
-/* Solar Time v0.06. One bounded producer of analytic spherical surfaces.
+/* Solar Time v0.07. One bounded producer of analytic spherical surfaces.
    GPU/CPU are explicit adapters of the same job and material coordinates.
    All body positions, axes and physical rotation come from SolarAstro. */
 (function(root){
@@ -63,8 +63,8 @@ function surfaceKernel(){
       }catch(error){if(this.gl){this.gl.getExtension('WEBGL_lose_context')?.loseContext();this.gl=null;}this.canvas=makeCanvas(32);this.ctx=this.canvas.getContext('2d');this.stats.fallback=error.message;}
     }
     async texture(id,width){
-      const key=id+':'+width;let t=this.textures.get(key);if(t){this.textures.delete(key);this.textures.set(key,t);return t;}
       const source=assets[id]||assets.moon;if(!source)throw Error('Material asset missing: '+id);
+      const key=id+':'+width;let t=this.textures.get(key);if(t&&t.source!==source){if(this.gl)this.gl.deleteTexture(t.handle);this.textures.delete(key);t=null;}if(t){this.textures.delete(key);this.textures.set(key,t);return t;}
       const bitmap=await createImageBitmap(blob(source),{resizeWidth:width,resizeHeight:width/2,resizeQuality:'high'});
       if(this.disposed){bitmap.close();throw Error('Surface disposed');}
       if(this.gl){
@@ -75,7 +75,7 @@ function surfaceKernel(){
       }else{
         const c=makeCanvas(width);c.height=width/2;const ctx=c.getContext('2d');ctx.drawImage(bitmap,0,0,width,width/2);t={width,height:width/2,data:ctx.getImageData(0,0,width,width/2).data};
       }
-      bitmap.close();this.textures.set(key,t);this.stats.texturesBuilt++;
+      bitmap.close();t.source=source;this.textures.set(key,t);this.stats.texturesBuilt++;
       // Bounded by pixels, not the number of times a body was visited.
       while(this.texturePixels>4096*2048*4&&this.textures.size>3){const oldest=this.textures.keys().next().value;const old=this.textures.get(oldest);if(this.gl)this.gl.deleteTexture(old.handle);this.textures.delete(oldest);}
       return t;
@@ -98,7 +98,7 @@ function surfaceKernel(){
     }
     async render(job){
       if(this.disposed)throw Error('Surface disposed');
-      const {id,frame,phase,light}=job;const n=this.gl?job.diam:Math.min(768,job.diam);
+      const {id,frame,phase,light}=job;const n=this.gl?Math.min(1024,job.diam):Math.min(768,job.diam);
       const width=this.gl?job.textureWidth:Math.min(4096,job.textureWidth);
       const color=await this.texture(id,width),bump=assets[id+'-relief']?await this.texture(id+'-relief',width):color;
       const clouds=id==='earth'?await this.texture('clouds',Math.min(2048,width)):color;
@@ -157,7 +157,7 @@ class SurfaceService{
   }
   createSync(){this.sync?.clear();const kernel=surfaceKernel();kernel.setAssets(root.SolarAssets?.materials||{});this.sync=new kernel.Engine();}
   fallback(){if(this.disposed)return;this.epoch++;this.revision++;this.worker?.terminate();this.worker=null;this.inflight=false;this.createSync();this.stats.backend='compatibility';this.pump();}
-  update(jobs,mono){if(this.disposed)return;this.desired=new Map(jobs.map(j=>[j.id,j]));for(const [id,e] of this.frames)if(!this.desired.has(id)){e.image.close?.();this.frames.delete(id);}this.pending={jobs,mono};this.pump();}
+  update(jobs,mono){if(this.disposed)return;const assetRevision=root.SolarAssets?.materialRevision||0;if(this.assetRevision!==assetRevision){this.assetRevision=assetRevision;this.assetsSent=false;this.invalidate(true);if(this.sync)this.createSync();}this.desired=new Map(jobs.map(j=>[j.id,j]));for(const [id,e] of this.frames)if(!this.desired.has(id)){e.image.close?.();this.frames.delete(id);}this.pending={jobs,mono};this.pump();}
   needs(job,mono){const old=this.frames.get(job.id);if(!old||old.epoch!==this.epoch||old.job.geometry!==job.geometry)return true;if(job.phase===old.job.phase&&job.seconds===old.job.seconds&&job.light.every((v,i)=>v===old.job.light[i]))return false;const turn=Math.abs(job.phase-old.job.phase);return mono-old.mono>=120||Math.min(turn,1-turn)*Math.PI*job.diam>.18;}
   pump(){
     if(this.disposed||this.inflight||!this.pending)return;const {mono}=this.pending;let jobs=this.pending.jobs.filter(j=>this.needs(j,mono));this.pending=null;if(!jobs.length)return;

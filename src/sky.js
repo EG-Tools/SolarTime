@@ -2,6 +2,11 @@
    of physical planetary time. Panorama/galaxies are artistic, not a star catalogue. */
 (function(root){'use strict';
 const TAU=Math.PI*2,DRIFT=.22*Math.PI/180;
+function cometPoint(path,t){
+ const f=Math.max(0,Math.min(1,t)),u=1-f;
+ const q={};for(const a of ['x','y','z'])q[a]=u*u*u*path.start[a]+3*u*u*f*path.control1[a]+3*u*f*f*path.control2[a]+f*f*f*path.end[a];
+ const n=Math.hypot(q.x,q.y,q.z)||1;return {x:q.x/n,y:q.y/n,z:q.z/n};
+}
 function rand(seed){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
 function shader(g,type,source){const s=g.createShader(type);g.shaderSource(s,source);g.compileShader(s);if(!g.getShaderParameter(s,g.COMPILE_STATUS))throw Error(g.getShaderInfoLog(s));return s;}
 function rotate(p,angle,axis){const c=Math.cos(angle),s=Math.sin(angle);return axis==='z'?{x:p.x*c-p.y*s,y:p.x*s+p.y*c,z:p.z}:{x:p.x,y:p.y*c-p.z*s,z:p.y*s+p.z*c};}
@@ -94,16 +99,28 @@ class Sky{
   if(!options.comets){this.comet=null;this.nextComet=Math.max(this.nextComet,seconds+15);return;}
   if(seconds<this.lastTime){this.nextComet=seconds+20;this.comet=null;}this.lastTime=seconds;
   if(!this.comet&&seconds>=this.nextComet){
-   const left=this.random()<.5,sy=this.h*(.10+this.random()*.40);const start=this.toPanorama(this.ray(left?-this.w*.05:this.w*1.05,sy));const end=this.toPanorama(this.ray(left?this.w*1.05:-this.w*.05,sy+this.h*(this.random()*.3-.1)));
-   this.comet={start,end,time:seconds,duration:7+this.random()*6};this.nextComet=seconds+50+this.random()*100;
+   const left=this.random()<.5,sy=this.h*(.12+this.random()*.28),ey=this.h*(.20+this.random()*.32);
+   const bend=(this.random()<.5?-1:1)*this.h*(.19+this.random()*.16);
+   const direction=left?1:-1,x0=left?-this.w*.08:this.w*1.08,x1=left?this.w*1.08:-this.w*.08;
+   const controlY=y=>Math.max(this.h*.04,Math.min(this.h*.76,y));
+   const point=(x,y)=>this.toPanorama(this.ray(x,y));
+   this.comet={start:point(x0,sy),control1:point(x0+direction*this.w*.36,controlY(sy+bend)),control2:point(x1-direction*this.w*.36,controlY(ey+bend)),end:point(x1,ey),time:seconds,duration:11+this.random()*7};
+   this.nextComet=seconds+50+this.random()*100;
   }
-  if(!this.comet)return;const k=this.comet,t=(seconds-k.time)/k.duration;if(t>1){this.comet=null;return;}
-  const at=f=>{const q={x:k.start.x*(1-f)+k.end.x*f,y:k.start.y*(1-f)+k.end.y*f,z:k.start.z*(1-f)+k.end.z*f},n=Math.hypot(q.x,q.y,q.z);return this.project({x:q.x/n,y:q.y/n,z:q.z/n});};
-  const head=at(t),tail=at(t-.06);if(!head||!tail)return;const life=Math.sin(t*Math.PI)**.6;
-  ctx.save();ctx.globalAlpha=life*.55;const g=ctx.createLinearGradient(tail.x,tail.y,head.x,head.y);g.addColorStop(0,'rgba(108,157,210,0)');g.addColorStop(.8,'rgba(140,192,238,.24)');g.addColorStop(1,'rgba(218,237,255,.7)');
-  ctx.strokeStyle=g;ctx.lineWidth=1.7;ctx.beginPath();ctx.moveTo(tail.x,tail.y);ctx.lineTo(head.x,head.y);ctx.stroke();glow(ctx,head.x,head.y,1.05,.5);ctx.restore();
+  if(!this.comet)return;const k=this.comet,t=(seconds-k.time)/k.duration;if(t>=1){this.comet=null;return;}if(t<0)return;
+  // World-space cubic arc; both coma and dust tail follow the same continuous path.
+  const at=f=>this.project(cometPoint(k,f)),head=at(t);if(!head)return;
+  const life=Math.sin(t*Math.PI)**.7;ctx.save();ctx.globalAlpha=life*.58;ctx.lineCap='round';
+  let previous=at(t-.10);
+  for(let i=1;i<=24;i++){
+   const f=i/24,p=at(t-.10+.10*f);
+   if(previous&&p){ctx.beginPath();ctx.moveTo(previous.x,previous.y);ctx.lineTo(p.x,p.y);ctx.strokeStyle=`rgba(149,191,226,${f*f*.42})`;ctx.lineWidth=1.4+(1-f)*3;ctx.stroke();
+    ctx.strokeStyle=`rgba(218,234,245,${f*f*.45})`;ctx.lineWidth=.7;ctx.stroke();}
+   previous=p;
+  }
+  glow(ctx,head.x,head.y,.90,.56);ctx.restore();
  }
  dispose(){this.disposed=true;clearTimeout(this.softwareTimer);this.softwareTimer=null;this.softwareDesired=null;this.softwareImage=null;this.softwareCanvas=null;this.abort.abort();if(this.gl){this.gl.deleteTexture(this.texture);this.gl.deleteBuffer(this.buffer);this.gl.deleteProgram(this.program);this.gl.getExtension('WEBGL_lose_context')?.loseContext();}this.image=null;this.pixels=null;this.comet=null;}
 }
-root.SolarSky=Sky;
+Sky.cometPoint=cometPoint;root.SolarSky=Sky;
 })(window);

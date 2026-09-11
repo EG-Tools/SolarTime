@@ -1,0 +1,48 @@
+{
+  "version": "0.07",
+  "main_only": true,
+  "repo_changed": false,
+  "new_public_photos_embedded": false,
+  "files": {
+    "index.html": {
+      "bytes": 20923,
+      "sha256": "389f242977c3053252595b91a87a686b85aef72d60808203d9616ff188d1bb3e"
+    },
+    "styles.css": {
+      "bytes": 19854,
+      "sha256": "c2fafa432cb0809ae6f10699dd1a9ce741d284f326c6334fca5f1746e57fad9b"
+    },
+    "src/app.js": {
+      "bytes": 25915,
+      "sha256": "31e1f4a956d8332bb7f0fe2ebb52890e908b2ca023a5d77224a097be39dc7e03"
+    },
+    "src/assets.js": {
+      "bytes": 8041553,
+      "sha256": "7c65791f710e60137f39d2a2ee02540c4442b7c8451232bf36513441ab60b24b"
+    },
+    "src/astro.js": {
+      "bytes": 14290,
+      "sha256": "82e2496f74e88f92ff0b17c060a736c4358cca5a94eb869dedbdfb1d9a749a36"
+    },
+    "src/materials.js": {
+      "bytes": 11943,
+      "sha256": "9f627ca8ea172d62cef5e7e1eff3a62002c6c115f3001d03db43a7ac49ce92bc"
+    },
+    "src/renderer.js": {
+      "bytes": 23762,
+      "sha256": "18eb2a02d4b41c966831a4997f1fcef7879fe5fe85f54244c8c69b07cb87ba56"
+    },
+    "src/sky.js": {
+      "bytes": 11344,
+      "sha256": "f4aa8a5ebda4df2f21f03e5ceca0c48bd5dc0f1b8735e3539396fdde6ab819eb"
+    },
+    "src/surface.js": {
+      "bytes": 16753,
+      "sha256": "7de8941b487e144e31a20e377ca7d750c63cfd3e860856c16b1a26f807d20a84"
+    },
+    "dist/Solar-Time_v0.07.html": {
+      "bytes": 8186188,
+      "sha256": "4017cd5f87035cf476a48ac39fbff5826925436a881387f5ed21ef29330b815e"
+    }
+  }
+}

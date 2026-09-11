@@ -1,4 +1,4 @@
-/* Solar Time v0.06 — clock, interaction and accessible UI. */
+/* Solar Time v0.07 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -8,6 +8,7 @@
   function fatal(error) { $('loading').hidden=true;$('fatal-error').hidden=false;$('fatal-message').textContent=error instanceof Error?error.message:String(error);console.error(error); }
   function init() {
     try {
+      const materials=new window.SolarMaterials.Owner();materials.capture();
       const bootWall=Date.now(),calibrationStarted=performance.now();
       A.calibrateAt(bootWall);
       const calibrationMs=performance.now()-calibrationStarted;
@@ -68,6 +69,7 @@
       function setStat(id,value,unit) {const el=$(id);el.replaceChildren(document.createTextNode(value+' '));if(unit){const small=document.createElement('small');small.textContent=unit;el.append(small);}}
       function updateBody(ms) {
         const b=bodies.find(v=>v.id===renderer.selected);if(!b)return;
+        const material=window.SolarAssets.materialInfo?.[b.id];$('body-material').textContent=material?material.credit+' · 사진 지도':b.id==='earth'?'NASA Blue Marble · 내장 이미지':'내장 재질 · 공개 사진 미수신';
         const spinSeconds=Math.round(Math.abs(b.spin)*86400),hours=Math.floor(spinSeconds/3600),minutes=Math.floor(spinSeconds%3600/60),seconds=spinSeconds%60;
         const period=hours>=48?Math.abs(b.spin).toFixed(2)+'일':`${hours}시간 ${minutes}분 ${seconds}초`;
         const screenSeconds=Math.abs(b.spin)*86400/clock.rate;
@@ -131,7 +133,7 @@
         renderer.focusBody(id);cameraUi();
       }
       $('focus-body').addEventListener('click',()=>focusBody(renderer.selected));
-      $('feature-view').addEventListener('click',()=>{const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;renderer.faceFeature(id,id==='earth'?37.5665:-22,id==='earth'?126.978:70,clock.value(performance.now()));cameraUi();});
+      $('feature-view').addEventListener('click',()=>{const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;renderer.faceFeature(id,id==='earth'?37.5665:-22,id==='earth'?126.978:(window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70),clock.value(performance.now()));cameraUi();});
       $('focus-reset').addEventListener('click',reset);
       $('zoom-in').addEventListener('click',()=>zoom(1.2));$('zoom-out').addEventListener('click',()=>zoom(1/1.2));
       async function fullscreen() {
@@ -150,7 +152,8 @@
         awakeTimer=setTimeout(()=>{awakeTimer=undefined;if(zen)document.body.classList.remove('pointer-awake');},1800);
       }
       function setZen(value) {
-        zen=value;clearAwake();document.body.classList.toggle('zen',zen);$('show-ui').hidden=!zen;
+        zen=value;clearAwake();document.body.classList.toggle('zen',zen);$('show-ui').hidden=true;
+        for(const el of document.querySelectorAll('.ui,#timezone-button,#show-ui'))el.inert=zen;
         renderer.hover=null;
         if(zen){closeBody();settings(false);$('universe').focus({preventScroll:true});wakePointer();}
         else $('hide-ui').focus({preventScroll:true});
@@ -178,6 +181,7 @@
         if(pan)event.preventDefault();
         const p=pointerPosition(event);pointers.set(event.pointerId,p);canvas.setPointerCapture(event.pointerId);
         if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,mode:pan?'pan':'orbit',moved:false};pinched=false;}
+        if(zen&&pointers.size===3){setZen(false);pinched=true;if(drag)drag.moved=true;return;}
         if(pointers.size===2){const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchZoom=renderer.camera.zoom;pinched=true;}
       });
       canvas.addEventListener('pointermove',event=>{
@@ -224,6 +228,14 @@
           renderer.setOrbitView(renderer.camera.azimuth,renderer.camera.elevation);cameraUi();persist();
         }
       });
+      function materialStatus(){
+        if(disposed)return;const s=materials.state;
+        $('photo-status').textContent=`공개 이미지 ${s.loaded}/${s.total} · ${s.status==='loading'?'수신 중 · 화면은 계속 재생':s.loaded===s.total?'전체 수신 완료':s.loaded?'미수신 천체는 내장 이미지':'내장 이미지 표시 · 연결 또는 CORS 제한'}`;
+        $('photo-retry').disabled=s.status==='loading';
+      }
+      window.addEventListener('solar-material-status',materialStatus);
+      $('photo-retry').addEventListener('click',()=>materials.load());
+      $('photo-export').addEventListener('click',async()=>{const b=$('photo-export');b.disabled=true;try{await materials.download();toast(`공개 이미지 ${materials.state.loaded}/${materials.state.total}를 포함한 파일을 저장했습니다.`);}catch(error){toast('HTML 저장 실패: '+error.message);}finally{b.disabled=false;}});
       let resizeTimer;
       window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>renderer.resize(),70);},{passive:true});
       function frame(mono) {
@@ -238,17 +250,18 @@
         try {
           renderer.draw(ms,effectTime,mono);
           if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);}
-        } catch(error){disposed=true;renderer.dispose();cancelAnimationFrame(raf);clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);fatal(error);}
+        } catch(error){disposed=true;renderer.dispose();materials.dispose();cancelAnimationFrame(raf);clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);fatal(error);}
       }
       document.addEventListener('visibilitychange',()=>{
         if(document.hidden){renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
         else if(!raf&&!disposed){lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
       });
-      window.addEventListener('pagehide',()=>{renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
+      window.addEventListener('pagehide',()=>{materials.cancel();renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.06',clock,renderer,calibrationMs,getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.07',clock,renderer,materials,calibrationMs,getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
+      materials.load();materialStatus();
       if(!document.hidden)raf=requestAnimationFrame(frame);
     } catch(error){fatal(error);}
   }

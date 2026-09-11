@@ -1,9 +1,11 @@
 {
-  "version": "0.06",
-  "local_package_complete": true,
-  "remote_commit_created": false,
-  "remote_branch_created": false,
+  "version": "0.07",
+  "local_package": true,
+  "repository_changed": false,
+  "new_branches_created": false,
   "deployed": false,
-  "observed_main_sha": "c0816f137ec27ae61df71a734d231b7ae5d341a0",
-  "note": "Current connector exposes repository reads but no writable file/commit/ref action. No partial upload attempted."
+  "photo_originals_preembedded": false,
+  "photo_sources": "NASA SVS and Solar System Scope; runtime optional fetching",
+  "live_source_fetch_verified": false,
+  "physics": "unchanged v0.06 local model"
 }

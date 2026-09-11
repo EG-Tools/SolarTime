@@ -1,17 +1,27 @@
-# v0.06 검증
+# Solar Time v0.07 verification
 
-## 확인한 범위
+## Passed
 
-- Node 단위 테스트: 66개 통과. 궤도·자전 루프, 초 단위 두 자리 반올림, 시작 시 보정, UTC 새해 기준 갱신, 시점·고리·이름 위치·작업 폐기·이미지 수명주기 포함.
-- Chromium 오프라인 브라우저: 33개 통과. 데스크톱 1648×928, 모바일 화면 크기 390×844 / 320×568.
-- 브라우저 네트워크 오프라인, 외부 HTTP(S) 런타임 요청 0개. 단일 HTML 내용을 독립된 빈 페이지에 주입해 실행.
-- 해당 실행의 위치 보정 0.40ms. 첫 장면 구성 약 1081.51ms. 모든 사용자 기기에서 같은 속도를 보장하는 수치는 아님.
-- 11개 천체 모두 60초 간격의 모델 회전각이 변화함. 60초를 실제로 기다린 육안 측정이 아니라 같은 모델의 두 시점 비교.
+- 71 Node unit tests: orbital/time invariants retained, spin continuity, spherical body/ring geometry, zoom/pan, label motion, render lifecycles, shared material catalogue/cache checks, normalized curved comet path, 1024 output ceiling, zen visibility and the exact 4× shine multiplier.
+- 36 offline Chromium workflow checks: injected standalone document, local boot/position calibration, embedded materials, planet-nav centering, camera controls, zen/no buttons, keyboard restore, curved comet, backdrop wrap/motion, close-up sizing, contact identity, 390/320px layouts and no outgoing HTTP requests.
+- 18 material integration checks using **explicit synthetic fetch responses**: all eight slots, bounded concurrency/retries, native image dimensions, material revision consumption by the renderer, Earth preservation, removal of unrelated relief, source-specific credits, corrupt-cache byte rejection, export and offline reopen, failure fallback, shared loading producer and cancellation.
 
-## 제한
+Reports: `unit-results-v0.07.txt`, `release-browser-v0.07.json`, `materials-browser-v0.07.json`.
 
-이 환경에서는 파일 URL 직접 탐색이 관리자 정책에 의해 차단되어 Windows에서 더블클릭하는 실제 경로를 검증하지 못했습니다. WebGL도 제공되지 않아 Worker+CPU 호환 경로를 실행했습니다. GPU 셰이더의 실제 기기 성능과 GPU 전용 요철/반사 표현은 검증하지 못했습니다.
+## Environment and measurements
 
-해당 CPU 호환 환경의 달 최대 확대 관찰 RAF는 약 43.5fps였습니다. RAF 빈도와 표면 재생성 빈도는 서로 다릅니다. 이 결과를 모든 기기에서 60fps라고 주장하지 않습니다. 공개 웹사이트 배포 검증은 수행되지 않았습니다.
+Node.js 22.16.0, Python Playwright, headless Chromium on Linux. No usable WebGL context in the test environment: rendering was checked using the CPU compatibility path. Offline standalone first scene was measured at about 1.56 seconds; this is one test environment, not a performance guarantee. Moon maximum-view measurement is in the raw report, not presented as a hardware-GPU frame rate.
 
-이전 버전의 UI/스크린샷 테스트는 해당 버전 기록입니다. v0.06의 브라우저 진입점은 `tests/release_browser.py`입니다.
+The offline overview/zen screenshots show the bundled fallbacks. They are **not screenshots of the newly selected NASA/Solar System Scope replacement maps**. Earth continues to use the pre-existing NASA Blue Marble image.
+
+## Unverified
+
+- Actual public image-host responses/CORS and external file download: unavailable in this build environment. Source pages, map URLs and license information were checked, but originals were not downloaded into the package.
+- Hardware WebGL shader rendering and real-user GPU performance.
+- Windows double-click and direct file/HTTP navigation in this test browser (restricted by environment policy).
+- Real IndexedDB persistence across browser restarts; cache validation and decode rules were tested at the owner boundary.
+- GitHub publication/Pages deployment: not performed for this package.
+
+## Deliberate behavior
+
+No change to `src/astro.js` or physical rotation periods. All position calculations and embedded graphics start without an internet wait. At most three image fetches are active; each approved URL has a 6.5-second timeout and each body has at most three approved sources. Received maps publish as one snapshot, invalidate prior rendered surfaces and can be exported with their bytes. Complete failure retains the embedded images and reports 0/8, never claims a successful photo upgrade.

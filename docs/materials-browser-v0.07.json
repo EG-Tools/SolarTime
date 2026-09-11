@@ -1,0 +1,202 @@
+{
+  "version": "0.07",
+  "mode": "synthetic fetch fixtures; no live source downloads",
+  "checks": [
+    {
+      "name": "All eight public-map slots accept, decode and publish fixture image bytes",
+      "passed": true,
+      "detail": {
+        "status": "ready",
+        "loaded": 8,
+        "total": 8,
+        "errors": [],
+        "cacheAvailable": false
+      }
+    },
+    {
+      "name": "Concurrent network producers are bounded to three",
+      "passed": true,
+      "detail": 3
+    },
+    {
+      "name": "First-host failure proceeds to a catalogued Saturn fallback",
+      "passed": true,
+      "detail": [
+        "https://www.solarsystemscope.com/textures/download/8k_saturn.jpg",
+        "https://www.solarsystemscope.com/textures/download/2k_neptune.jpg",
+        "https://www.solarsystemscope.com/textures/download/4k_venus_atmosphere.jpg",
+        "https://www.solarsystemscope.com/textures/download/2k_saturn.jpg",
+        "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg",
+        "https://www.solarsystemscope.com/textures/download/8k_jupiter.jpg",
+        "https://www.solarsystemscope.com/textures/download/8k_mars.jpg",
+        "https://www.solarsystemscope.com/textures/download/8k_mercury.jpg",
+        "https://www.solarsystemscope.com/textures/download/2k_uranus.jpg"
+      ]
+    },
+    {
+      "name": "Native 2K maps are not misreported or upscaled as 4K",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Earth remains embedded and orbital model remains local",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Original synthetic relief is not paired with newly received Moon map",
+      "passed": true,
+      "detail": [
+        "pluto-relief"
+      ]
+    },
+    {
+      "name": "Moon uses NASA credit when the NASA slot supplies the image",
+      "passed": true,
+      "detail": {
+        "revision": "public-maps-2026-09-v1",
+        "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg",
+        "width": 2048,
+        "height": 1024,
+        "credit": "NASA SVS / LRO / LROC · Ernie Wright",
+        "feature": null
+      }
+    },
+    {
+      "name": "Renderer consumes new map revision and preserves 1024 raster ceiling",
+      "passed": true,
+      "detail": {
+        "width": 768,
+        "textureWidth": 2048,
+        "geometry": "1:768:2048:0.4363323129985824:0.7853981633974483:0.1165879940332212:0",
+        "backend": {
+          "backend": "worker",
+          "submitted": 4,
+          "accepted": 9,
+          "discarded": 6,
+          "workerMs": 1.5999999998603016,
+          "mapPixels": 650240,
+          "texturePixels": 2621440,
+          "kernel": {
+            "renders": 15,
+            "texturesBuilt": 19,
+            "mapsBuilt": 13,
+            "backend": "cpu",
+            "fallback": "WebGL unavailable"
+          }
+        }
+      }
+    },
+    {
+      "name": "Portable export embeds photo data and catalogue credits",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Exported file reopens offline with all eight received materials",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "Exported offline app has no page exceptions",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "Repeated load calls share one producer",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Cache bytes must actually decode, not merely have matching metadata",
+      "passed": true,
+      "detail": {
+        "good": 1,
+        "bad": 0
+      }
+    },
+    {
+      "name": "Moon mirror fallback carries its actual Solar System Scope credit",
+      "passed": true,
+      "detail": {
+        "url": "https://cdn.jsdelivr.net/gh/Whitebee7/solarsystem@235e72c02e825e0c8d0792ec0aa6be43e1a14f68/textures/2k_moon.jpg",
+        "credit": "Solar System Scope / INOVE · CC BY 4.0"
+      }
+    },
+    {
+      "name": "Total failure is bounded and keeps the embedded fallback",
+      "passed": true,
+      "detail": {
+        "state": {
+          "status": "fallback",
+          "loaded": 0,
+          "total": 8,
+          "errors": [
+            {
+              "id": "neptune",
+              "message": "Synthetic network failure"
+            },
+            {
+              "id": "saturn",
+              "message": "Synthetic network failure"
+            },
+            {
+              "id": "venus",
+              "message": "Synthetic network failure"
+            },
+            {
+              "id": "moon",
+              "message": "Synthetic network failure"
+            },
+            {
+              "id": "jupiter",
+              "message": "Synthetic network failure"
+            },
+            {
+              "id": "mars",
+              "message": "Synthetic network failure"
+            },
+            {
+              "id": "mercury",
+              "message": "Synthetic network failure"
+            },
+            {
+              "id": "uranus",
+              "message": "Synthetic network failure"
+            }
+          ],
+          "cacheAvailable": false
+        },
+        "calls": 21,
+        "max": 21,
+        "moon": "fallback"
+      }
+    },
+    {
+      "name": "Disposal aborts in-flight requests and prevents late image commits",
+      "passed": true,
+      "detail": {
+        "disposed": true,
+        "controllers": 0,
+        "loaded": 0,
+        "active": 0
+      }
+    },
+    {
+      "name": "No public HTTP requests escaped the mocked test boundary",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "No page exceptions in integrated replacement/export workflow",
+      "passed": true,
+      "detail": []
+    }
+  ],
+  "limitations": [
+    "Public image server connectivity/CORS and hardware WebGL are not tested.",
+    "IDB persistence is not tested in the opaque injected document; cache records are supplied at the owner boundary."
+  ],
+  "passed": true,
+  "check_count": 18
+}
