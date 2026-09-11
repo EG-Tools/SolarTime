@@ -43,6 +43,9 @@ body.zen:not(.pointer-awake),body.zen:not(.pointer-awake) *{cursor:none!importan
 @media(max-width:680px){.focus-reset{top:230px;font-size:9px;padding:9px 12px}.body-panel{max-height:calc(100dvh - 275px);overflow-y:auto}.interaction-hint{font-size:7px}.interaction-hint>span{margin:0 5px}}
 @media(max-height:630px) and (min-width:681px){.focus-reset{top:130px}.body-panel{max-height:calc(100dvh - 190px);overflow-y:auto}}
 
+/* Shared contact identity in the version signature and settings. */
+.contact-email{color:inherit;text-decoration:none;letter-spacing:.2px;white-space:nowrap}.contact-email:hover{color:var(--accent);text-decoration:underline}.signature .contact-email{margin-left:12px}.settings-credit{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:10px;line-height:1.8;color:var(--muted);text-align:center}
+
 </style>
 </head>
 <body>
@@ -90,6 +93,7 @@ body.zen:not(.pointer-awake),body.zen:not(.pointer-awake) *{cursor:none!importan
     <div class="setting-row"><label for="quality">렌더링</label><select id="quality"><option value="auto">기본</option><option value="low">저전력</option></select></div>
     <button id="reset-view" class="text-button full-width">기본 시점으로 돌아가기</button>
     <p class="settings-note">자전은 천체별 실제 주기를 사용합니다.<br>공전을 배속하면 자전에도 같은 배율이 적용됩니다.<br>설정은 이 브라우저에만 저장됩니다.</p>
+    <p class="settings-credit">Life User / Solar Time v0.03 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
   </aside>
 
   <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보">
@@ -135,7 +139,7 @@ body.zen:not(.pointer-awake),body.zen:not(.pointer-awake) *{cursor:none!importan
   </section>
 
   <footer class="footer ui">
-    <span class="signature">EG TOOLS <span>/</span> v0.03</span>
+    <span class="signature">EG TOOLS <span>/</span> v0.03 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택"></nav>
     <button id="hide-ui" class="minimal-button" title="감상 모드 · H"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg><span>감상 모드</span></button>
   </footer>
