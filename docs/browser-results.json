@@ -1,0 +1,173 @@
+{
+  "passed": 41,
+  "tests": [
+    {
+      "test": "Starts in actual, playing local time",
+      "passed": true
+    },
+    {
+      "test": "Actual clock synchronized with wall time",
+      "passed": true
+    },
+    {
+      "test": "Sun, 8 planets, Pluto and Moon render",
+      "passed": true
+    },
+    {
+      "test": "No external network requests",
+      "passed": true
+    },
+    {
+      "test": "Loading overlay dismissed",
+      "passed": true
+    },
+    {
+      "test": "All default orbit paths fit inside the viewport",
+      "passed": true
+    },
+    {
+      "test": "One day per second advances simulation at ×86400",
+      "passed": true
+    },
+    {
+      "test": "Time travel leaves the actual wall clock unaccelerated",
+      "passed": true
+    },
+    {
+      "test": "Pause freezes simulation time",
+      "passed": true
+    },
+    {
+      "test": "Pause freezes Sun and stars as well",
+      "passed": true
+    },
+    {
+      "test": "Pause shows the play SVG icon",
+      "passed": true
+    },
+    {
+      "test": "Resuming continues accelerated playback",
+      "passed": true
+    },
+    {
+      "test": "Actual-time button resets rate and date",
+      "passed": true
+    },
+    {
+      "test": "Keyboard-accessible Earth selector opens details",
+      "passed": true
+    },
+    {
+      "test": "Settings panel opens",
+      "passed": true
+    },
+    {
+      "test": "Pluto visibility toggles both orbit and navigation",
+      "passed": true
+    },
+    {
+      "test": "Moon visibility toggle works",
+      "passed": true
+    },
+    {
+      "test": "Disabling Sun activity freezes its texture",
+      "passed": true
+    },
+    {
+      "test": "Label setting reaches renderer",
+      "passed": true
+    },
+    {
+      "test": "Low-power rendering limits pixel ratio",
+      "passed": true
+    },
+    {
+      "test": "Time zone can switch to UTC",
+      "passed": true
+    },
+    {
+      "test": "Selected date is exact in UTC and starts paused",
+      "passed": true
+    },
+    {
+      "test": "Speed button resumes a selected date",
+      "passed": true
+    },
+    {
+      "test": "Help is a modal dialog with accuracy disclosure",
+      "passed": true
+    },
+    {
+      "test": "Escape closes native modal",
+      "passed": true
+    },
+    {
+      "test": "Dragging rotates camera",
+      "passed": true
+    },
+    {
+      "test": "Mouse wheel zooms the view",
+      "passed": true
+    },
+    {
+      "test": "Reset restores 45-degree view and unit zoom",
+      "passed": true
+    },
+    {
+      "test": "Viewing mode hides controls but keeps real clock",
+      "passed": true
+    },
+    {
+      "test": "Viewing mode has a working exit",
+      "passed": true
+    },
+    {
+      "test": "Space keyboard shortcut pauses",
+      "passed": true
+    },
+    {
+      "test": "R keyboard shortcut returns to NOW",
+      "passed": true
+    },
+    {
+      "test": "No runtime errors during desktop interactions",
+      "passed": true
+    },
+    {
+      "test": "Mobile starts with all bodies",
+      "passed": true
+    },
+    {
+      "test": "Mobile playback bar stays within viewport",
+      "passed": true
+    },
+    {
+      "test": "Mobile page has no horizontal body overflow",
+      "passed": true
+    },
+    {
+      "test": "Mobile speed selection works",
+      "passed": true
+    },
+    {
+      "test": "Mobile settings fit and scroll within viewport",
+      "passed": true
+    },
+    {
+      "test": "Mobile has no runtime errors",
+      "passed": true
+    },
+    {
+      "test": "Reduced-motion preference disables decorative animation by default",
+      "passed": true
+    },
+    {
+      "test": "Storage restrictions do not stop initialization",
+      "passed": true
+    }
+  ],
+  "desktop_fps": 59.8,
+  "errors": [],
+  "network_requests": [],
+  "execution": "Chromium, standalone HTML injected offline; file:// and HTTP navigation are blocked by the test environment."
+}

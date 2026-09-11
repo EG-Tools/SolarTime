@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#03060b">
+  <meta name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주.">
+  <title>Solar Time — 태양계 시계</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23060910'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='12' transform='rotate(-28 32 32)' fill='none' stroke='%23748295' stroke-width='1.4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23efbf76'/%3E%3Ccircle cx='54' cy='20' r='3' fill='%23b6d8ed'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="starfield" aria-hidden="true"></canvas>
+  <canvas id="universe" tabindex="0" aria-label="태양계. 드래그로 시점 회전, 마우스 휠로 확대. 하단 천체 버튼으로 상세 정보를 확인할 수 있습니다."></canvas>
+  <div class="edge-shade" aria-hidden="true"></div>
+
+  <header class="masthead ui">
+    <div class="brand">
+      <svg viewBox="0 0 46 40" aria-hidden="true"><ellipse cx="23" cy="20" rx="21" ry="9" transform="rotate(-30 23 20)"/><circle cx="23" cy="20" r="5.5"/><circle class="satellite" cx="41" cy="10" r="2"/></svg>
+      <div><h1>SOLAR TIME</h1><p>A LITTLE CLOSER TO THE COSMOS</p></div>
+    </div>
+    <div class="top-actions">
+      <button id="help-button" class="icon-button" aria-label="사용 방법과 계산 기준" title="사용 방법과 계산 기준">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.8 9a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.7-2.2 3.4M12 16v.1"/></svg>
+      </button>
+      <button id="settings-button" class="icon-button" aria-label="화면 설정" aria-expanded="false" aria-controls="settings-panel" title="화면 설정">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5"/><circle cx="15" cy="17" r="2.5"/></svg>
+      </button>
+      <button id="fullscreen-button" class="icon-button" aria-label="전체 화면" title="전체 화면 · F">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="clock-face">
+    <p class="eyebrow">EVERY MOMENT, IN ORBIT</p>
+    <time id="wall-clock" class="wall-clock" aria-label="현재 기기 시각"><span id="hours">00</span><span class="colon">:</span><span id="minutes">00</span><span class="colon">:</span><span id="seconds">00</span></time>
+    <div class="date-line"><span id="wall-date">시간을 불러오는 중</span><span class="date-divider"></span><button id="timezone-button" title="현지 시간 / UTC 전환" aria-label="시간대 전환">LOCAL</button></div>
+  </main>
+
+  <div class="scene-status ui">
+    <span id="status-dot" class="status-dot"></span><span id="mode-label">LIVE ORBITS</span><span class="status-separator">/</span><time id="simulation-date"></time>
+  </div>
+
+  <aside id="settings-panel" class="panel settings-panel ui" hidden aria-label="화면 설정">
+    <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2>화면 설정</h2></div><button id="settings-close" class="close-button" aria-label="설정 닫기">×</button></div>
+    <div class="setting-row"><label for="show-orbits">궤도선</label><input id="show-orbits" type="checkbox" checked role="switch"></div>
+    <div class="setting-row"><label for="show-labels">천체 이름</label><input id="show-labels" type="checkbox" checked role="switch"></div>
+    <div class="setting-row"><label for="show-twinkle">별 반짝임</label><input id="show-twinkle" type="checkbox" checked role="switch"></div>
+    <div class="setting-row"><label for="show-activity">태양의 이글거림</label><input id="show-activity" type="checkbox" checked role="switch"></div>
+    <div class="setting-row"><label for="show-moon">지구의 달</label><input id="show-moon" type="checkbox" checked role="switch"></div>
+    <div class="setting-row"><label for="show-pluto">명왕성 <small>왜행성</small></label><input id="show-pluto" type="checkbox" checked role="switch"></div>
+    <div class="setting-range"><label for="elevation">내려다보는 각도 <output id="elevation-value">45°</output></label><input id="elevation" type="range" min="15" max="80" value="45"></div>
+    <div class="setting-row"><label for="quality">렌더링</label><select id="quality"><option value="auto">기본</option><option value="low">저전력</option></select></div>
+    <button id="reset-view" class="text-button full-width">기본 시점으로 돌아가기</button>
+    <p class="settings-note">설정은 이 브라우저에만 저장됩니다.</p>
+  </aside>
+
+  <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보">
+    <button id="body-close" class="close-button" aria-label="천체 정보 닫기">×</button>
+    <span id="body-category" class="eyebrow">OUR HOME</span>
+    <h2><span id="body-name">지구</span><span id="body-english">EARTH</span></h2>
+    <p id="body-description"></p>
+    <div class="body-stats"><div><span id="stat-label-one">공전 주기</span><strong id="stat-value-one">365.26 <small>일</small></strong></div><div><span id="stat-label-two">태양까지 거리</span><strong id="stat-value-two">1.00 <small>AU</small></strong></div></div>
+    <p id="body-note" class="body-note"></p>
+  </aside>
+
+  <div class="view-controls ui" aria-label="시점 조절">
+    <button id="zoom-in" class="icon-button" aria-label="확대" title="확대"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+    <button id="zoom-out" class="icon-button" aria-label="축소" title="축소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+    <span></span>
+    <button id="fit-view" class="icon-button" aria-label="전체 궤도 보기" title="기본 시점 · 0"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></button>
+  </div>
+
+  <section class="playback ui" aria-label="공전 재생 조절">
+    <div class="playback-caption"><span id="playback-hint">지금, 이 순간의 태양계</span><span id="speed-value">1 ×</span></div>
+    <div class="playback-bar">
+      <button id="pause-button" class="play-button" aria-label="공전 일시정지" aria-pressed="false" title="공전 일시정지 · Space">
+        <svg id="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>
+        <svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m9 5 10 7-10 7Z"/></svg>
+      </button>
+      <span class="bar-divider"></span>
+      <div class="speed-buttons" role="group" aria-label="공전 속도">
+        <button id="live-button" class="speed-button active" aria-pressed="true"><span class="tiny-dot"></span>실제 시간</button>
+        <button class="speed-button" data-rate="86400" aria-pressed="false">1일 <span>/ 초</span></button>
+        <button class="speed-button" data-rate="604800" aria-pressed="false">7일 <span>/ 초</span></button>
+        <button class="speed-button" data-rate="31557600" aria-pressed="false">1년 <span>/ 초</span></button>
+      </div>
+      <span class="bar-divider"></span>
+      <button id="date-button" class="icon-button" aria-label="시뮬레이션 날짜 선택" title="날짜 선택">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3v5m8-5v5M4 11h16M8 15h2m4 0h2"/></svg>
+      </button>
+    </div>
+    <p class="interaction-hint">드래그로 회전<span>·</span>휠로 확대<span>·</span>행성을 눌러 자세히</p>
+  </section>
+
+  <footer class="footer ui">
+    <span class="signature">EG TOOLS <span>/</span> v0.01</span>
+    <nav id="planet-nav" class="planet-nav" aria-label="천체 선택"></nav>
+    <button id="hide-ui" class="minimal-button" title="감상 모드 · H"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg><span>감상 모드</span></button>
+  </footer>
+  <p class="scale-note ui">크기·거리 축척 조정<span>·</span>평균 궤도 근사</p>
+  <button id="show-ui" class="show-ui" hidden>조작 표시 <kbd>H</kbd></button>
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <dialog id="help-dialog" class="modal">
+    <form method="dialog"><button class="close-button" aria-label="도움말 닫기">×</button></form>
+    <span class="eyebrow">A SMALL GUIDE TO YOUR UNIVERSE</span><h2>별빛과 함께 흐르는 시간</h2>
+    <p>위쪽 시계는 <strong>실제 기기 시각</strong>입니다. 아래 재생 속도를 바꾸어도 시계는 실제 시간을 유지하고, <strong>태양계의 시뮬레이션 날짜</strong>만 빨라집니다.</p>
+    <h3>실제 시간과 배속</h3>
+    <p>실제 공전은 매우 느립니다. <b>1일 / 초</b>를 누르면 1초에 하루만큼 움직입니다. <b>1년 / 초</b>에서는 바깥 행성의 움직임도 보입니다. 모든 행성에 같은 시간 배율을 적용하므로 상대적인 공전 속도는 유지됩니다.</p>
+    <p>일시정지는 공전과 별·태양 효과를 멈춥니다. 실제 시간 모드에서 재개하면 현재 시각으로 다시 맞춥니다. 날짜를 선택하면 해당 시각에서 일시정지합니다.</p>
+    <h3>정확도와 표현 범위</h3>
+    <p>8개 행성은 <a href="https://ssd.jpl.nasa.gov/planets/approx_pos.html" target="_blank" rel="noopener noreferrer">NASA JPL 평균 궤도 요소</a>로 계산한 근사 위치입니다. 지구는 지구·달 질량중심으로 근사하며 UTC와 TDB의 차이를 생략합니다. 달은 평균 항성 주기를 이용한 원 궤도, 명왕성은 고정된 평균 타원 궤도입니다.</p>
+    <p>행성과 궤도선은 동일한 좌표식을 사용합니다. 거리와 크기는 보기 편하게 조정하고, 넓은 화면에서는 궤도 투영을 가로로 확장합니다.  표면·자전축 방향·고리 방향·별·태양 효과는 예술적 표현입니다. 실제 관측, 월식·일식 예측에는 사용할 수 없습니다. 날짜 범위는 1800–2999년이며 끝에 도달하면 정지합니다.</p>
+    <p>달의 공전과 위상은 <a href="https://science.nasa.gov/moon/moon-phases/" target="_blank" rel="noopener noreferrer">NASA의 달 설명</a>, 명왕성의 개략 주기는 <a href="https://science.nasa.gov/dwarf-planets/pluto/facts/" target="_blank" rel="noopener noreferrer">NASA 명왕성 자료</a>를 참고했습니다.</p>
+    <h3>단축키</h3>
+    <div class="shortcuts"><span><kbd>Space</kbd> 일시정지</span><span><kbd>R</kbd> 실제 시간</span><span><kbd>F</kbd> 전체 화면</span><span><kbd>H</kbd> 감상 모드</span><span><kbd>0</kbd> 기본 시점</span><span><kbd>Esc</kbd> 패널 닫기</span></div>
+    <p class="modal-note">외부 라이브러리, 계정, 인터넷 연결 없이 작동합니다. 별 반짝임과 태양 표면은 실시간 관측 데이터가 아닙니다.</p>
+  </dialog>
+
+  <dialog id="date-dialog" class="modal date-modal">
+    <form id="date-form">
+      <button id="date-close" type="button" class="close-button" aria-label="날짜 선택 닫기">×</button>
+      <span class="eyebrow">TRAVEL THROUGH TIME</span><h2>다른 순간의 태양계</h2>
+      <label for="date-input">날짜와 시간 <small id="date-timezone">현지 시간</small></label>
+      <input id="date-input" type="datetime-local" min="1800-01-01T00:00" max="2999-12-31T23:59" required>
+      <p>선택한 날짜에서 멈춥니다. 배속 버튼을 눌러 공전을 재생하세요.</p>
+      <p id="date-error" class="error-text" role="alert" hidden></p>
+      <button type="submit" class="primary-button">이 순간으로 이동</button>
+    </form>
+  </dialog>
+  <div id="loading" class="loading"><div class="loading-orbit"></div><span>작은 우주를 펼치는 중</span></div>
+  <div id="fatal-error" class="fatal-error" role="alert" hidden><h2>화면을 시작하지 못했습니다.</h2><p id="fatal-message"></p><p>최신 Edge 또는 Chrome에서 다시 열어 주세요.</p></div>
+  <noscript><div class="fatal-error">태양계 시계를 실행하려면 브라우저의 JavaScript를 켜 주세요.</div></noscript>
+  <script src="src/astro.js"></script>
+  <script src="src/renderer.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>

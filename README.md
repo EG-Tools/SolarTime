@@ -1,94 +1,123 @@
-# Shared Agent Constitution
+# SOLAR TIME
 
-## Scope And Precedence
-- Applies to agent work in `ReStartHuman`, `ThinkStock`, `MagicNumber`, and `SpaceO` under `D:\_Program`.
-- This is the shared baseline among repository guides. A repository-local `AGENTS.md` MAY add stricter or product-specific rules, but MUST NOT weaken this baseline.
-- Apply a rule only when its subject exists in the target project. Absence of a UI, cache, network layer, background task, or other optional subsystem does not require creating one.
-- Treat this file as execution constraints for agents, not as user-facing documentation.
+**EG Tools · v0.01**
 
-## Mandatory Reasoning Model
-- Before editing, identify the requested outcome, the invariant that must remain true, the authoritative owner, inputs, outputs, lifecycle, failure modes, and affected tests.
-- Prefer a root-cause change at the authoritative owner over a symptom patch at a consumer.
-- Implement the general rule once. Model exceptional behavior as an explicit option, policy, adapter, or strategy beneath that rule.
-- Do not infer a new abstraction from one hypothetical use. Generalize only when an active requirement or repeated implementation proves the shared concept.
+별빛과 함께 흐르는 태양계 시계. 실제 기기 시각을 표시하고, 같은 시간축 위에서 태양·8개 행성·지구의 달·명왕성을 그립니다.
 
-## Ownership And Derivation
-- Every mutable state domain, operation, resource, and lifecycle MUST have one authoritative owner.
-- Consumers MUST receive snapshots, selectors, events, commands, or injected dependencies; they MUST NOT maintain an unsynchronized copy of authoritative state.
-- Values that can be derived from authoritative inputs MUST remain derived. Persist or cache a derived value only with an explicit invalidation contract.
-- Related state changes that represent one logical action SHOULD commit as one transaction so observers cannot see a partially updated state.
-- When one object conceptually belongs to another, encode that relationship structurally or through one shared model. Do not maintain duplicate identity, position, status, or lifetime state for the child.
+![Solar Time 화면](docs/preview.png)
 
-## Reuse And Duplication Gate
-- Search the repository for semantically equivalent code, including alternate names, generated variants, environment-specific paths, and legacy fallbacks, before adding an implementation.
-- Extend an existing authoritative primitive before creating a new helper, module, store, cache, queue, renderer, popup, scheduler, or controller.
-- One behavior MUST NOT have parallel implementations for different callers, devices, environments, buttons, or loading states when parameters or adapters can express the difference.
-- If the existing owner cannot safely support the requirement, replace or generalize it and remove the superseded path in the same change.
-- A temporary compatibility path MUST have an owner, removal condition, and regression test. It MUST NOT remain as an undocumented fallback.
+## 바로 실행
 
-## Modules And Dependencies
-- Modules SHOULD be cohesive around one responsibility and lifecycle. Avoid both large multi-domain files and one-function fragment sprawl.
-- Entry files SHOULD orchestrate construction, dependency wiring, and lifecycle only; domain rules belong to domain modules.
-- Cross-module dependencies MUST be explicit through imports, exports, constructor arguments, or factory arguments.
-- Do not add `globalThis`, `window`, string-based registries, implicit load-order dependencies, or duplicate service locators except at a documented platform boundary.
-- Prefer standard `import`/`export`. Boundary adapters MAY expose a minimal global surface when required by a host, worker, generated bundle, or test harness.
-- Merge modules that share the same owner and lifecycle. Split a module only when the new boundary is independently understandable, testable, and reusable.
+`dist/Solar-Time_v0.01.html`을 더블클릭해 Edge 또는 Chrome에서 여세요. 설치, 로그인, 인터넷 연결, API 키가 필요하지 않습니다.
 
-## Events, Async Work, And Concurrency
-- High-frequency input or event streams SHOULD coalesce pending work to the latest valid request rather than queue every intermediate request.
-- Completion work SHOULD run once after a burst unless every intermediate result is an explicit product requirement.
-- Every asynchronous result MUST verify that its request revision, input revision, and owner lifecycle are still current before commit.
-- Long-running work MUST support cancellation or supersession when its result can become irrelevant.
-- Concurrent requests for the same immutable result SHOULD share one producer; independent consumers MUST retain independent cancellation semantics.
-- Retries MUST be bounded, classified by transient versus permanent failure, and owned by the relevant service rather than duplicated by callers.
+프로젝트를 수정할 때는 루트의 `index.html`을 열면 됩니다. 모든 런타임 코드는 기본 JavaScript, CSS, Canvas 2D이며, npm 패키지나 CDN에 의존하지 않습니다.
 
-## Performance And Resource Lifecycle
-- Deliver the smallest user-visible critical result first. Defer optional or expensive work unless it is required by an enabled feature or the critical result.
-- During active interaction, use the cheapest update that preserves the invariant. Reconcile once after interaction only when reconciliation is actually necessary.
-- Reuse immutable or unchanged work. Recompute only inputs whose authoritative revision changed.
-- Every timer, listener, worker, process, watcher, browser session, subscription, and background job MUST have an owner and disposal path.
-- Background work MUST be bounded, deduplicated, yield to active interaction, and stop when its owner is disposed.
-- Do not leave development servers, tests, workers, polling loops, or CPU-intensive processes running after the task.
+## 화면과 움직임
 
-## Data And Cache Integrity
-- Source data and validated current state outrank caches. A cache MUST NOT become an independent authority.
-- Persistent caches MUST define schema/version, source revision, freshness policy, bounded retention, validation, and deterministic invalidation.
-- Partial, stale, malformed, or lower-priority data MUST NOT replace newer validated data.
-- Immutable history SHOULD be reused; only changed or newly available regions SHOULD refresh.
-- Source precedence, normalization, merge, retry, and fallback policy belong to one service per data domain, not to individual consumers.
-- Equivalent local, deployed, desktop, mobile, or offline paths MUST use the same domain rules when given the same input revision.
+- 별은 서로 다른 간격으로 짧고 부드럽게 반짝입니다. 태양은 표면 흐름, 코로나와 홍염 효과로 움직입니다.
+- 행성 위치와 궤도선은 같은 궤도 좌표식을 사용합니다. 지구의 달은 지구 위치를 중심으로 공전합니다.
+- 기본 카메라는 45도입니다. 넓은 화면에서는 궤도 투영을 가로로 확장하는 시네마틱 구도를 사용하고, 행성 표시는 원형을 유지합니다.
+- 행성의 표면, 구름, 별 배경은 코드로 생성합니다. 제공받은 참고 이미지는 실행 파일이나 저장소에 포함하지 않습니다.
+- 명왕성은 왜행성으로 구분하며 점선 궤도를 사용합니다. 소행성대는 넣지 않았습니다.
 
-## UI Rules When A UI Exists
-- Reuse design tokens, shared controls, templates, popup shells, progress components, spacing, typography, animation timing, and hit-area policy.
-- Visual size and interaction size are separate shared tokens; do not scatter per-feature hit-radius constants.
-- UI attached to another control or component SHOULD live beneath that owner in the layout/component structure so moving the owner does not require a second coordinate edit.
-- Product-specific variants extend a shared component through options or modifier classes; they do not clone the component.
-- Accessibility state, visible state, stored state, and enabled behavior MUST be driven from one control-state model.
+## 시간 조작
 
-## Validation Contract
-- Test the invariant at its authoritative owner, then add integration coverage only at affected system or environment boundaries.
-- A duplicate-path fix MUST include a regression test proving the formerly divergent callers now produce the same state or result.
-- Test cold and warm state, enabled and disabled state, cancellation, stale async completion, and relevant platform boundaries when they affect the change.
-- Do not weaken an assertion, timeout, or tolerance to hide a defect unless measured platform variance justifies the exact change.
-- A non-release task is complete when its diff is inspected, proportionate affected checks pass, and spawned resources are stopped. Generated outputs MUST be current when the local product consumes them or before release.
+**위쪽 큰 시계는 항상 실제 기기 시각입니다.** 재생 속도나 날짜를 바꿔도 이 시계를 배속하지 않습니다. 실제 시각의 정확도는 기기 시계 설정에 따르며, 외부 시간 서버에 접속하지 않습니다.
 
-## Proportional Validation Cadence
-- Batch validation around a stable logical change. Do not rerun a full suite, full build, browser matrix, or equivalent overlapping check after every small edit.
-- Copy-only, comment-only, or token-based visual changes normally require diff inspection only. Add a focused visual check only when layout, interaction, accessibility, or generated output can change.
-- During implementation, run only the narrowest check that gives useful feedback for a changed high-risk owner such as data integrity, cache invalidation, date alignment, concurrency, rendering topology, or analysis logic.
-- When several edits belong to one feature or fix, finish the coherent source batch first, then run its affected unit or smoke checks once. Rebuild generated artifacts once after that source batch is stable rather than after each edit.
-- Reserve the full unit suite, production build, cross-browser or device coverage, data validation, and deployment verification for the final release gate immediately before an explicitly requested deployment, unless the user asks for them earlier or broad diagnosis requires them.
-- After a failed check, rerun the failed or directly affected scope while fixing it. Run the full release gate only once more after the fixes are stable; do not repeatedly rerun already-proven unaffected checks.
-- Avoid invoking multiple commands that validate the same invariant. Prefer one authoritative validation entry point and record narrower checks already completed so they are not repeated without a new relevant revision.
+| 조작 | 태양계의 동작 |
+| --- | --- |
+| 실제 시간 | 현재 기기 시각으로 돌아가 1배속으로 공전 |
+| 1일 / 초 | 실제 1초마다 시뮬레이션 1일 진행 |
+| 7일 / 초 | 실제 1초마다 시뮬레이션 7일 진행 |
+| 1년 / 초 | 실제 1초마다 시뮬레이션 365.25일 진행 |
+| 일시정지 | 공전, 태양 효과, 별 반짝임 정지. 실제 시계는 계속 표시 |
+| 날짜 선택 | 선택한 날짜로 이동한 뒤 일시정지. 배속 버튼으로 재생 |
 
-## Change Discipline
-- Preserve unrelated user changes and dirty-worktree content.
-- Keep diffs focused, but fix a discovered shared root cause instead of stacking another local patch over it.
-- Remove dead branches, stale exports, disconnected listeners, duplicate constants, obsolete generated references, and replaced compatibility code exposed by the change.
-- Do not introduce a framework, dependency, service, cache, or abstraction without a current need and a clear owner.
-- Version and deployment behavior follow the repository-local release policy. Deploy only when explicitly requested.
+모든 천체에 같은 시간 배율을 적용합니다. 감상을 위해 바깥 행성만 별도로 빠르게 돌리지 않습니다. 따라서 실제 시간 모드에서는 행성의 공전이 눈에 거의 보이지 않을 수 있습니다.
 
-## Required Agent Checklist
-- Before editing: locate the authoritative owner, existing reusable path, dependency direction, state source, lifecycle, async boundaries, and tests.
-- During editing: preserve one owner and one normal path; express exceptions explicitly; coalesce redundant work; remove the superseded path.
-- Before finishing: search again for duplicate owners and dead references; verify invalidation, cancellation, and disposal; run only proportionate affected validation; inspect generated output when applicable; confirm no process remains. Apply the full validation matrix only at the release gate defined above.
+실제 시간 모드에서 일시정지를 해제하면 현재 시각으로 다시 동기화합니다. 배속 모드에서는 멈췄던 시뮬레이션 시점부터 이어집니다. 비활성 탭에서는 렌더링을 중단하지만, 재생 중인 시뮬레이션 시간은 기준 시각으로부터 계산하므로 돌아왔을 때 경과 시간을 반영합니다.
+
+## 화면 조작
+
+마우스로 드래그하면 시점이 회전하고, 휠로 확대·축소합니다. 모바일에서는 한 손가락 회전과 두 손가락 확대·축소를 지원합니다. `+`, `−`, 기본 시점 버튼도 제공합니다.
+
+행성 또는 하단 천체 이름을 누르면 설명과 근사 공전 정보를 확인할 수 있습니다. 하단 천체 목록은 키보드로도 접근할 수 있습니다. 휴대폰에서는 목록을 가로로 스크롤합니다.
+
+| 키 | 기능 |
+| --- | --- |
+| Space | 공전 일시정지 / 재생 |
+| R | 실제 시간으로 돌아가기 |
+| F | 전체 화면 전환 |
+| H | 조작부를 숨기는 감상 모드 |
+| 0 | 기본 카메라와 배율 |
+| + / − | 확대 / 축소 |
+| 방향키 | 태양계 캔버스에 포커스가 있을 때 시점 조절 |
+| Esc | 패널 또는 대화상자 닫기 / 감상 모드 종료 |
+
+설정에서 궤도, 이름, 별 반짝임, 태양 효과, 달, 명왕성을 각각 켜거나 끌 수 있습니다. 저전력 모드는 프레임과 픽셀 비율을 낮춥니다. 설정은 해당 브라우저에만 저장하며, 저장 기능이 차단되어도 앱은 실행됩니다. 시스템의 동작 줄이기 설정이 있으면 장식 애니메이션을 기본으로 끕니다.
+
+## 계산 기준과 한계
+
+이 앱은 **시계와 감상용 태양계 시각화**입니다. 관측 장비의 조준, 항법, 엄밀한 천문력, 월식·일식 예측용이 아닙니다.
+
+8개 행성은 NASA JPL의 3000 BC–3000 AD 근사 궤도 요소(Table 2a)와 외행성 보정항(Table 2b)을 사용합니다. 케플러 방정식을 풀어 타원 궤도상의 위치를 계산합니다. 앱의 시뮬레이션 범위는 UTC 기준 1800년부터 2999년 말까지이며, 끝에 도달하면 자동으로 정지합니다. 표시 시간대에 따라 경계의 현지 날짜는 다를 수 있습니다.
+
+지구는 지구·달 질량중심으로 근사합니다. 계산에서 UTC와 TDB의 차이는 생략합니다. 달은 약 27.321661일의 평균 항성 주기와 단순한 궤도면 기울기·교점 이동을 사용한 원 궤도입니다. 달의 밝은 면 수치는 이 모델로 구한 근사값이며 실제 월령과 다를 수 있습니다. 명왕성은 고정된 평균 케플러 궤도로 표현하며 JPL 정밀 천문력이 아닙니다.
+
+행성마다 거리 축척을 다르게 압축하고 크기는 확대합니다. 달의 궤도도 보기 편하도록 확대합니다. 표면, 자전축의 절대 방향, 고리 방향, 태양 활동과 별 반짝임은 예술적 표현입니다. 배경 별빛은 실제 별자리 지도가 아닙니다.
+
+자료:
+
+- [NASA JPL — Approximate Positions of the Planets](https://ssd.jpl.nasa.gov/planets/approx_pos.html)
+- [NASA — Moon Phases](https://science.nasa.gov/moon/moon-phases/)
+- [NASA — Pluto Facts](https://science.nasa.gov/dwarf-planets/pluto/facts/)
+
+## GitHub 저장소에 넣기
+
+이 배포 파일은 `EG-Tools/Solar-Time`에 넣을 수 있는 전체 프로젝트입니다. **이 패키지를 만드는 과정에서 GitHub에 커밋하거나 배포하지는 않았습니다.**
+
+압축을 푼 `Solar-Time` 폴더 **안의 내용**을 저장소 루트에 추가합니다. 루트에 `index.html`, `styles.css`, `src/`가 있는 구조를 유지하세요. ZIP 파일 자체만 업로드하면 웹사이트가 실행되지 않습니다.
+
+GitHub Pages로 공개하려면 커밋 후 저장소의 `Settings → Pages`에서 `Deploy from a branch`, `main`, `/(root)`를 선택하고 저장하세요. 별도의 빌드 단계는 필요하지 않습니다. 포함된 `.nojekyll`은 정적 파일 그대로 게시하기 위한 파일입니다. Pages 설정을 저장하기 전에는 온라인 실행 주소가 만들어졌다고 가정하지 마세요.
+
+[GitHub 공식 배포 설정 안내](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
+
+## 파일 구조
+
+```text
+index.html                     웹사이트 진입점
+styles.css                     반응형 UI
+src/astro.js                   궤도 계산과 시뮬레이션 시계
+src/renderer.js                별·태양·행성·고리·궤도 렌더러
+src/app.js                     시간 표시, 입력, 설정과 UI
+package.json                   테스트 / 단일 HTML 생성 명령
+.nojekyll                      GitHub Pages 정적 게시
+.gitignore
+README.md
+dist/Solar-Time_v0.01.html      더블클릭으로 실행하는 단일 파일
+tools/build.cjs                의존성 없는 단일 HTML 생성기
+tests/astro.test.cjs            수치·시간 계산 회귀 테스트
+tests/browser_test.py           오프라인 브라우저 회귀 테스트
+docs/preview.png               실행 화면
+docs/QA.md                     검증 내용과 범위
+docs/browser-results.json      브라우저 테스트 결과
+```
+
+## 개발과 검증
+
+Node.js 18 이상에서 다음 명령을 사용할 수 있습니다. `npm install`은 필요 없습니다.
+
+```sh
+npm test
+npm run build
+```
+
+`npm run build`는 소스 파일을 `dist/Solar-Time_v0.01.html` 한 파일로 묶습니다. 소스를 고친 뒤 단일 실행 파일도 갱신하려면 다시 실행하세요.
+
+브라우저 테스트는 Python Playwright와 Chromium이 별도로 있는 개발 환경에서 실행합니다. 필요하면 `CHROMIUM_PATH` 환경변수로 Chromium 실행 파일 경로를 지정합니다.
+
+```sh
+python tests/browser_test.py
+```
+
+검증: 수치·시간 계산 18개 테스트와 데스크톱·모바일 Chromium UI 41개 확인 항목이 통과했습니다. 자세한 실행 환경과 테스트하지 못한 범위는 `docs/QA.md`에 기록했습니다.
