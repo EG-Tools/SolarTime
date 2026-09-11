@@ -1,4 +1,4 @@
-/* Solar Time v0.02 — clock, interaction and accessible UI. */
+/* Solar Time v0.03 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -28,7 +28,14 @@
       $('quality').value=renderer.options.quality;
       const zoneLabel=()=>timezone==='utc'?'UTC':Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replaceAll('_',' ').toUpperCase();
       function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,elevation:renderer.camera.elevation/A.DEG})); } catch (_) {} }
-      function cameraUi() {const deg=Math.round(renderer.camera.elevation/A.DEG);$('elevation').value=deg;$('elevation-value').textContent=deg+'°';}
+      function cameraUi() {
+        const deg=Math.round(renderer.camera.elevation/A.DEG),zoom=renderer.camera.zoom,limits=renderer.zoomLimits;
+        $('elevation').value=deg;$('elevation-value').textContent=deg+'°';
+        $('zoom-value').textContent=zoom.toFixed(1)+'×';
+        $('zoom-in').disabled=zoom>=limits.maxZoom;$('zoom-out').disabled=zoom<=limits.minZoom;
+        const target=[A.SUN,...A.BODIES,A.MOON].find(b=>b.id===renderer.camera.focus);
+        $('focus-reset').hidden=!target;$('focus-label').textContent=target?target.ko+' 추적 중':'';
+      }
       cameraUi();
       const realFormat=()=>new Intl.DateTimeFormat('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long',...(timezone==='utc'?{timeZone:'UTC'}:{})});
       let dateFormatter=realFormat();
@@ -55,6 +62,11 @@
       function setStat(id,value,unit) {const el=$(id);el.replaceChildren(document.createTextNode(value+' '));if(unit){const small=document.createElement('small');small.textContent=unit;el.append(small);}}
       function updateBody(ms) {
         const b=bodies.find(v=>v.id===renderer.selected);if(!b)return;
+        const spinSeconds=Math.round(Math.abs(b.spin)*86400),hours=Math.floor(spinSeconds/3600),minutes=Math.floor(spinSeconds%3600/60),seconds=spinSeconds%60;
+        const period=hours>=48?Math.abs(b.spin).toFixed(3)+'일':`${hours}시간 ${minutes}분 ${seconds}초`;
+        const screenSeconds=Math.abs(b.spin)*86400/clock.rate;
+        const playback=clock.paused?'일시정지':clock.live?'실제 시간':screenSeconds<1?`초당 ${(1/screenSeconds).toFixed(2)}회`:`${screenSeconds.toFixed(screenSeconds<100?1:0)}초에 1회`;
+        $('body-spin').textContent=`자전 주기 약 ${period}${b.spin<0?' · 역행 자전':''} · ${playback} · 공전과 같은 시간 배율`;
         if(b.id==='sun') {
           $('stat-label-one').textContent='표현';setStat('stat-value-one','항성','');
           $('stat-label-two').textContent='태양계의 중심';setStat('stat-value-two','SUN','');
@@ -66,7 +78,7 @@
         } else {
           $('stat-label-one').textContent='공전 주기';setStat('stat-value-one',b.period>1000?(b.period/365.25).toFixed(1):b.period.toFixed(2),b.period>1000?'년':'일');
           const p=A.positionAt(b,ms);$('stat-label-two').textContent='태양까지 거리 · 근사';setStat('stat-value-two',Math.hypot(p.x,p.y,p.z).toFixed(2),'AU');
-          $('body-note').textContent=b.id==='pluto'?'고정된 평균 궤도 · 정밀 위치 예측용이 아닙니다.':b.id==='earth'?'지구·달 질량중심을 지구 위치로 근사합니다. 달의 궤도는 확대 표시합니다.':'1 AU는 지구와 태양 사이의 평균 거리입니다. 크기와 거리는 화면에서 축척을 조정했습니다.';
+          $('body-note').textContent=b.id==='pluto'?'고정된 평균 궤도 · 정밀 위치 예측용이 아닙니다.':b.id==='earth'?'지구·달 질량중심을 지구 위치로 근사합니다. 달의 궤도는 크기와 별개로 축척을 조정합니다.':'1 AU는 지구와 태양 사이의 평균 거리입니다. 크기와 거리는 화면에서 축척을 조정했습니다.';
         }
       }
       function closeBody() {renderer.selected=null;$('body-panel').hidden=true;for(const button of navButtons.values()){button.classList.remove('active');button.setAttribute('aria-pressed','false');}}
@@ -76,9 +88,6 @@
         renderer.selected=id;$('body-panel').hidden=false;$('settings-panel').hidden=true;$('settings-button').setAttribute('aria-expanded','false');
         $('body-category').textContent=id==='sun'?'THE HEART OF OUR SYSTEM':id==='earth'?'OUR PALE BLUE HOME':id==='moon'?'EARTH’S COMPANION':id==='pluto'?'A DISTANT DWARF PLANET':'A WORLD IN MOTION';
         $('body-name').textContent=b.ko;$('body-english').textContent=b.en;$('body-description').textContent=b.description;
-        const spinSeconds=Math.round(Math.abs(b.spin)*86400),hours=Math.floor(spinSeconds/3600),minutes=Math.floor(spinSeconds%3600/60),seconds=spinSeconds%60;
-        const period=hours>=48?Math.abs(b.spin).toFixed(3)+'일':`${hours}시간 ${minutes}분 ${seconds}초`;
-        $('body-spin').textContent=`자전 주기 약 ${period}${b.spin<0?' · 역행 자전':''} · 공전과 같은 시간 배율`;
         for(const [key,button] of navButtons){button.classList.toggle('active',key===id);button.setAttribute('aria-pressed',String(key===id));}
         updateBody(clock.value(performance.now()));
       }
@@ -93,7 +102,7 @@
         $('simulation-date').textContent=compactDate(ms);$('simulation-date').dateTime=new Date(ms).toISOString();
         const ratio=clock.rate===1?'1 ×':clock.rate===86400?'1 DAY / SEC':clock.rate===604800?'7 DAYS / SEC':'1 YEAR / SEC';
         $('speed-value').textContent=clock.paused?'PAUSED':ratio;
-        $('playback-hint').textContent=clock.paused?'공전 일시정지 · 위 시계는 실제 시간입니다':clock.live?'지금, 이 순간의 태양계':'시뮬레이션 재생 중 · 위 시계는 실제 시간입니다';
+        $('playback-hint').textContent=clock.paused?'공전 일시정지 · 위 시계는 실제 시간입니다':clock.live?'지금, 이 순간의 태양계':clock.rate===86400?'1초 = 1일 · 목성 약 2.42회 / 초':'고배속 · 자전이 역회전·정지처럼 보일 수 있습니다';
       }
       function uiNow() {const mono=performance.now(),wall=Date.now(),ms=clock.value(mono,wall);updateWall(wall);updateControls(ms);updateBody(ms);}
       function now() {clock.now(performance.now());uiNow();toast('현재 시각의 태양계로 돌아왔습니다.');}
@@ -109,7 +118,13 @@
       $('elevation').addEventListener('input',()=>{renderer.camera.elevation=Number($('elevation').value)*A.DEG;renderer.dirty=true;cameraUi();persist();});
       function reset() {renderer.resetCamera();cameraUi();persist();}
       $('reset-view').addEventListener('click',reset);$('fit-view').addEventListener('click',reset);
-      function zoom(factor) {renderer.camera.zoom=A.clamp(renderer.camera.zoom*factor,.6,3);renderer.dirty=true;}
+      function zoom(factor,target=null) {renderer.setZoom(renderer.camera.zoom*factor,target);cameraUi();}
+      function focusBody(id) {
+        if(!id)return;
+        renderer.focusBody(id);cameraUi();
+      }
+      $('focus-body').addEventListener('click',()=>focusBody(renderer.selected));
+      $('focus-reset').addEventListener('click',reset);
       $('zoom-in').addEventListener('click',()=>zoom(1.2));$('zoom-out').addEventListener('click',()=>zoom(1/1.2));
       async function fullscreen() {
         try {if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('이 브라우저는 전체 화면을 지원하지 않습니다.');}
@@ -160,7 +175,7 @@
         if(!pointers.has(event.pointerId)) {renderer.hover=zen?null:renderer.hit(p.x,p.y);canvas.style.cursor=renderer.hover?'pointer':'grab';return;}
         pointers.set(event.pointerId,p);
         if(pointers.size>=2) {
-          const [a,b]=[...pointers.values()];if(pinchDistance>0){renderer.camera.zoom=A.clamp(pinchZoom*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance,.6,3);renderer.dirty=true;}if(drag)drag.moved=true;return;
+          const [a,b]=[...pointers.values()];if(pinchDistance>0){renderer.setZoom(pinchZoom*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance,renderer.hit((a.x+b.x)/2,(a.y+b.y)/2));cameraUi();}if(drag)drag.moved=true;return;
         }
         if(!drag)return;
         const dx=p.x-drag.x,dy=p.y-drag.y;
@@ -178,8 +193,8 @@
       canvas.addEventListener('pointerup',event=>endPointer(event));canvas.addEventListener('pointercancel',event=>endPointer(event,true));
       canvas.addEventListener('lostpointercapture',event=>{pointers.delete(event.pointerId);if(!pointers.size){drag=null;canvas.classList.remove('dragging');wakePointer();}});
       canvas.addEventListener('pointerleave',()=>{if(!pointers.size)renderer.hover=null;});
-      canvas.addEventListener('wheel',event=>{event.preventDefault();zoom(Math.exp(-A.clamp(event.deltaY,-120,120)*.0017));},{passive:false});
-      canvas.addEventListener('dblclick',()=>fullscreen());
+      canvas.addEventListener('wheel',event=>{event.preventDefault();const p=pointerPosition(event);zoom(Math.exp(-A.clamp(event.deltaY,-120,120)*.0017),renderer.hit(p.x,p.y));},{passive:false});
+      canvas.addEventListener('dblclick',event=>{const p=pointerPosition(event),id=renderer.hit(p.x,p.y);if(id)focusBody(id);});
       document.addEventListener('keydown',event=>{
         if(event.key==='Escape'){if(!$('help-dialog').open&&!$('date-dialog').open){settings(false);closeBody();if(zen)setZen(false);}return;}
         if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||$('help-dialog').open||$('date-dialog').open||event.target.closest?.('input,select,textarea,button,a,[contenteditable=true]'))return;
@@ -205,8 +220,8 @@
         const wall=Date.now(),ms=clock.value(mono,wall);
         if(!clock.paused&&!clock.live&&ms>=A.MAX_TIME){clock.anchorMs=A.MAX_TIME;clock.anchorMono=mono;clock.paused=true;toast('2999년 끝에 도달해 정지했습니다. 실제 시간으로 돌아갈 수 있습니다.');}
         try {
-          renderer.draw(ms,effectTime);
-          if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);if(renderer.selected)updateBody(ms);}
+          renderer.draw(ms,effectTime,mono);
+          if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);}
         } catch(error){disposed=true;cancelAnimationFrame(raf);clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);fatal(error);}
       }
       document.addEventListener('visibilitychange',()=>{
@@ -216,7 +231,7 @@
       window.addEventListener('pagehide',()=>{cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.02',clock,renderer,getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.03',clock,renderer,getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       if(!document.hidden)raf=requestAnimationFrame(frame);
     } catch(error){fatal(error);}

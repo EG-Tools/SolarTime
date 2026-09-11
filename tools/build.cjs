@@ -10,5 +10,5 @@ for(const name of ['astro','renderer','app']) {
   html=html.replace(`<script src="src/${name}.js"></script>`,()=>'<script>\n'+code+'\n</script>');
 }
 const out=path.join(root,'dist');fs.mkdirSync(out,{recursive:true});
-const file=path.join(out,'Solar-Time_v0.02.html');fs.writeFileSync(file,html);
+const file=path.join(out,'Solar-Time_v0.03.html');fs.writeFileSync(file,html);
 console.log('Built '+file+' ('+Buffer.byteLength(html)+' bytes)');

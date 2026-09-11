@@ -337,5 +337,17 @@
   "desktop_fps": 59.8,
   "errors": [],
   "network_requests": [],
-  "execution": "Chromium, standalone HTML injected offline; desktop, mobile, reduced-motion and cursor/rotation regression tests."
+  "execution": "Chromium, standalone HTML injected offline; desktop, mobile, reduced-motion and cursor/rotation regression tests.",
+  "version": "0.03",
+  "unit_tests_passed": 39,
+  "render_browser_version": "Chromium 144.0.7559.96",
+  "direct_file_navigation": "Not verified: ERR_BLOCKED_BY_ADMINISTRATOR",
+  "localhost_navigation": "Not verified: ERR_BLOCKED_BY_ADMINISTRATOR",
+  "remote_status": {
+    "feature_source_push": "blocked at GitHub.create_tree",
+    "feature_merge": "not completed",
+    "feature_deployment": "not completed",
+    "observed_main": "d076f34699c543e24e8554f6f23947b556ef4335",
+    "observed_pr_1": "Only package.json version preparation was merged; feature sources were not included."
+  }
 }

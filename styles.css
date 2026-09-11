@@ -20,3 +20,15 @@
 
 /* Override inline canvas hover/drag cursors throughout idle viewing mode. */
 body.zen:not(.pointer-awake),body.zen:not(.pointer-awake) *{cursor:none!important}
+
+/* Compact, scrollable speed group keeps every control reachable on narrow screens. */
+.speed-buttons{min-width:0;overflow-x:auto;scrollbar-width:thin}.speed-button{flex-shrink:0}
+@media(max-width:680px){.speed-buttons{justify-content:flex-start}.speed-button{padding:11px 6px}.playback-caption{gap:8px}.playback-caption>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.playback-caption>span:last-child{flex-shrink:0}}
+
+/* Camera observation controls share the existing buttons and color tokens. */
+.view-controls output{font-size:9px;color:#9ba7b8;text-align:center;padding:8px 0;min-width:38px;font-variant-numeric:tabular-nums}
+.focus-button{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:11px 9px;color:var(--accent)}
+.focus-reset{position:absolute;top:270px;left:50%;transform:translateX(-50%);z-index:6;display:flex;gap:14px;align-items:center;border:1px solid var(--line);border-radius:20px;padding:10px 15px;background:#0c111ccc;color:#aeb9c8;font-size:10px;white-space:nowrap}
+.focus-reset span:last-child{color:var(--accent)}
+@media(max-width:680px){.focus-reset{top:230px;font-size:9px;padding:9px 12px}.body-panel{max-height:calc(100dvh - 275px);overflow-y:auto}.interaction-hint{font-size:7px}.interaction-hint>span{margin:0 5px}}
+@media(max-height:630px) and (min-width:681px){.focus-reset{top:130px}.body-panel{max-height:calc(100dvh - 190px);overflow-y:auto}}
