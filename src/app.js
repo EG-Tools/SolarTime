@@ -1,4 +1,4 @@
-/* Solar Time v0.01 — clock, interaction and accessible UI. */
+/* Solar Time v0.02 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -76,6 +76,9 @@
         renderer.selected=id;$('body-panel').hidden=false;$('settings-panel').hidden=true;$('settings-button').setAttribute('aria-expanded','false');
         $('body-category').textContent=id==='sun'?'THE HEART OF OUR SYSTEM':id==='earth'?'OUR PALE BLUE HOME':id==='moon'?'EARTH’S COMPANION':id==='pluto'?'A DISTANT DWARF PLANET':'A WORLD IN MOTION';
         $('body-name').textContent=b.ko;$('body-english').textContent=b.en;$('body-description').textContent=b.description;
+        const spinSeconds=Math.round(Math.abs(b.spin)*86400),hours=Math.floor(spinSeconds/3600),minutes=Math.floor(spinSeconds%3600/60),seconds=spinSeconds%60;
+        const period=hours>=48?Math.abs(b.spin).toFixed(3)+'일':`${hours}시간 ${minutes}분 ${seconds}초`;
+        $('body-spin').textContent=`자전 주기 약 ${period}${b.spin<0?' · 역행 자전':''} · 공전과 같은 시간 배율`;
         for(const [key,button] of navButtons){button.classList.toggle('active',key===id);button.setAttribute('aria-pressed',String(key===id));}
         updateBody(clock.value(performance.now()));
       }
@@ -114,9 +117,23 @@
       }
       $('fullscreen-button').addEventListener('click',fullscreen);
       document.addEventListener('fullscreenchange',()=>{$('fullscreen-button').setAttribute('aria-label',document.fullscreenElement?'전체 화면 종료':'전체 화면');renderer.resize();});
-      function setZen(value) {zen=value;document.body.classList.toggle('zen',zen);$('show-ui').hidden=!zen;if(zen){closeBody();settings(false);}else $('hide-ui').focus({preventScroll:true});}
+      // One idle owner for both the cursor and the viewing-mode exit affordance.
+      function clearAwake() {clearTimeout(awakeTimer);awakeTimer=undefined;document.body.classList.remove('pointer-awake');}
+      function wakePointer() {
+        clearAwake();
+        if(!zen||disposed||document.hidden)return;
+        document.body.classList.add('pointer-awake');
+        if(pointers.size)return; // Do not hide midway through a held drag/pinch.
+        awakeTimer=setTimeout(()=>{awakeTimer=undefined;if(zen)document.body.classList.remove('pointer-awake');},1800);
+      }
+      function setZen(value) {
+        zen=value;clearAwake();document.body.classList.toggle('zen',zen);$('show-ui').hidden=!zen;
+        renderer.hover=null;
+        if(zen){closeBody();settings(false);$('universe').focus({preventScroll:true});wakePointer();}
+        else $('hide-ui').focus({preventScroll:true});
+      }
       $('hide-ui').addEventListener('click',()=>setZen(true));$('show-ui').addEventListener('click',()=>setZen(false));
-      document.addEventListener('pointermove',()=>{if(!zen)return;document.body.classList.add('pointer-awake');clearTimeout(awakeTimer);awakeTimer=setTimeout(()=>document.body.classList.remove('pointer-awake'),1800);},{passive:true});
+      for(const event of ['pointermove','pointerdown','pointerup','pointercancel','wheel','keydown','focusin'])document.addEventListener(event,wakePointer,{passive:true});
       $('help-button').addEventListener('click',()=>{$('help-dialog').showModal();});
       $('date-button').addEventListener('click',()=>{
         const p=dateParts(clock.value(performance.now()));$('date-input').value=`${p.y}-${two(p.mo)}-${two(p.d)}T${two(p.h)}:${two(p.mi)}`;
@@ -140,7 +157,7 @@
       });
       canvas.addEventListener('pointermove',event=>{
         const p=pointerPosition(event);
-        if(!pointers.has(event.pointerId)) {renderer.hover=renderer.hit(p.x,p.y);canvas.style.cursor=renderer.hover?'pointer':'grab';return;}
+        if(!pointers.has(event.pointerId)) {renderer.hover=zen?null:renderer.hit(p.x,p.y);canvas.style.cursor=renderer.hover?'pointer':'grab';return;}
         pointers.set(event.pointerId,p);
         if(pointers.size>=2) {
           const [a,b]=[...pointers.values()];if(pinchDistance>0){renderer.camera.zoom=A.clamp(pinchZoom*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance,.6,3);renderer.dirty=true;}if(drag)drag.moved=true;return;
@@ -159,7 +176,7 @@
         if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);
       }
       canvas.addEventListener('pointerup',event=>endPointer(event));canvas.addEventListener('pointercancel',event=>endPointer(event,true));
-      canvas.addEventListener('lostpointercapture',event=>{pointers.delete(event.pointerId);if(!pointers.size){drag=null;canvas.classList.remove('dragging');}});
+      canvas.addEventListener('lostpointercapture',event=>{pointers.delete(event.pointerId);if(!pointers.size){drag=null;canvas.classList.remove('dragging');wakePointer();}});
       canvas.addEventListener('pointerleave',()=>{if(!pointers.size)renderer.hover=null;});
       canvas.addEventListener('wheel',event=>{event.preventDefault();zoom(Math.exp(-A.clamp(event.deltaY,-120,120)*.0017));},{passive:false});
       canvas.addEventListener('dblclick',()=>fullscreen());
@@ -183,23 +200,23 @@
         raf=requestAnimationFrame(frame);
         const fps=renderer.options.quality==='low'?24:window.innerWidth<680?30:60;
         if(mono-lastFrame<1000/fps-.5)return;
-        const dt=lastFrame?Math.min((mono-lastFrame)/1000,.25):0;lastFrame=mono;
+        const dt=lastFrame?Math.max(0,(mono-lastFrame)/1000):0;lastFrame=mono;
         if(!clock.paused)effectTime+=dt;
         const wall=Date.now(),ms=clock.value(mono,wall);
         if(!clock.paused&&!clock.live&&ms>=A.MAX_TIME){clock.anchorMs=A.MAX_TIME;clock.anchorMono=mono;clock.paused=true;toast('2999년 끝에 도달해 정지했습니다. 실제 시간으로 돌아갈 수 있습니다.');}
         try {
           renderer.draw(ms,effectTime);
           if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);if(renderer.selected)updateBody(ms);}
-        } catch(error){disposed=true;cancelAnimationFrame(raf);fatal(error);}
+        } catch(error){disposed=true;cancelAnimationFrame(raf);clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);fatal(error);}
       }
       document.addEventListener('visibilitychange',()=>{
-        if(document.hidden){cancelAnimationFrame(raf);raf=0;lastFrame=0;}
-        else if(!raf&&!disposed){lastFrame=0;uiNow();raf=requestAnimationFrame(frame);}
+        if(document.hidden){cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
+        else if(!raf&&!disposed){lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
       });
-      window.addEventListener('pagehide',()=>{cancelAnimationFrame(raf);raf=0;});
-      window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden)raf=requestAnimationFrame(frame);});
+      window.addEventListener('pagehide',()=>{cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
+      window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.01',clock,renderer,getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.02',clock,renderer,getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       if(!document.hidden)raf=requestAnimationFrame(frame);
     } catch(error){fatal(error);}

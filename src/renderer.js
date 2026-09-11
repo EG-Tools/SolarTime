@@ -1,4 +1,4 @@
-/* Solar Time v0.01 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.02 — dependency-free, depth-projected Canvas renderer.
    Textures and star field are original procedural artwork, not astronomical imagery. */
 (function () {
   'use strict';
@@ -187,15 +187,15 @@
       c.setLineDash([]);
     }
     shade(body,p,r,ms,t,force=false) {
-      const sun=body.id==='sun',tex=this.textures[body.id],diam=Math.max(18,Math.min(sun?180:200,Math.ceil(r*2*this.dpr*1.25))),days=(ms-A.J2000)/A.DAY;
-      const spin=sun?(this.options.activity?t*.022:0):A.wrap(days/body.spin,1)*TAU;
-      const key=[diam,Math.round(spin*120),Math.round(this.camera.azimuth*100),Math.round(this.camera.elevation*100),Math.round(Math.atan2(p.y,p.x)*80),sun&&this.options.activity?Math.floor(t*12):0].join(':');
+      const sun=body.id==='sun',tex=this.textures[body.id],diam=Math.max(18,Math.min(sun?180:200,Math.ceil(r*2*this.dpr*1.25)));
+      const spin=A.rotationAt(body,ms);
+      const key=[diam,Math.round(spin*tex.w*2),Math.round(this.camera.azimuth*100),Math.round(this.camera.elevation*100),Math.round(Math.atan2(p.y,p.x)*80),sun&&this.options.activity?Math.floor(t*12):0].join(':');
       const cached=this.sprites.get(body.id);if(cached&&cached.key===key&&!force)return cached.canvas;
       const canvas=cached&&cached.canvas.width===diam?cached.canvas:document.createElement('canvas');canvas.width=diam;canvas.height=diam;
       const c=canvas.getContext('2d'),img=c.createImageData(diam,diam),out=img.data;
       const {azimuth:a,elevation:e}=this.camera,ca=Math.cos(a),sa=Math.sin(a),ce=Math.cos(e),se=Math.sin(e);
       const light=this.view({x:-p.x,y:-p.y,z:-p.z});light.x/=this.lensStretch;const len=Math.hypot(light.x,light.y,light.z)||1;
-      const lx=light.x/len,ly=light.y/len,lz=light.z/len,tilt=body.tilt*DEG,ct=Math.cos(tilt),st=Math.sin(tilt);
+      const lx=light.x/len,ly=light.y/len,lz=light.z/len,tilt=A.rotationPoleTilt(body),ct=Math.cos(tilt),st=Math.sin(tilt);
       for(let py=0;py<diam;py++)for(let px=0;px<diam;px++) {
         const nx=(px+.5)/diam*2-1,ny=(py+.5)/diam*2-1,r2=nx*nx+ny*ny;if(r2>=1)continue;
         const nz=Math.sqrt(1-r2);
@@ -204,12 +204,17 @@
         const ty=wy*ct+wz*st,tz=-wy*st+wz*ct;
         let u=A.wrap(Math.atan2(ty,wx)-spin+Math.PI)/TAU,v=Math.acos(clamp(tz,-1,1))/Math.PI;
         if(sun&&this.options.activity) {u=A.wrap(u+Math.sin(v*45+t*.65)*.007,1);v=clamp(v+Math.sin(u*37-t*.72)*.008,0,.999);}
-        const tx=Math.floor(u*tex.w)%tex.w,tyi=Math.min(tex.h-1,Math.floor(v*tex.h)),j=(tyi*tex.w+tx)*4;
+        const tx=u*tex.w,tyi=clamp(v*tex.h,0,tex.h-1),x0=Math.floor(tx),y0=Math.floor(tyi);
+        const x1=(x0+1)%tex.w,y1=Math.min(y0+1,tex.h-1),fx=tx-x0,fy=tyi-y0;
+        const j00=(y0*tex.w+x0)*4,j10=(y0*tex.w+x1)*4,j01=(y1*tex.w+x0)*4,j11=(y1*tex.w+x1)*4;
         let lit=sun ? .77+.23*nz : .30+.78*Math.max(0,nx*lx+ny*ly+nz*lz);
         if(sun&&this.options.activity)lit*=1+.035*Math.sin(t*1.7+nx*20+ny*15);
         const rim=!sun&&['earth','uranus','neptune'].includes(body.id)?(1-nz)**5*.24:0;
         const i=(py*diam+px)*4;
-        out[i]=tex.data[j]*lit+rim*55;out[i+1]=tex.data[j+1]*lit+rim*142;out[i+2]=tex.data[j+2]*lit+rim*240;
+        for(let k=0;k<3;k++) {
+          const color=mix(mix(tex.data[j00+k],tex.data[j10+k],fx),mix(tex.data[j01+k],tex.data[j11+k],fx),fy);
+          out[i+k]=color*lit+rim*(k===0?55:k===1?142:240);
+        }
         out[i+3]=clamp((1-Math.sqrt(r2))*diam,0,1)*255;
       }
       c.putImageData(img,0,0);this.sprites.set(body.id,{key,canvas});return canvas;

@@ -10,7 +10,7 @@ from time import perf_counter
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]
-HTML=(ROOT/'dist'/'Solar-Time_v0.01.html').read_text(encoding='utf-8')
+HTML=(ROOT/'dist'/'Solar-Time_v0.02.html').read_text(encoding='utf-8')
 OUT=ROOT/'test-results'
 OUT.mkdir(exist_ok=True)
 results=[]
@@ -38,6 +38,22 @@ with sync_playwright() as pw:
     check('No external network requests',not requests)
     check('Loading overlay dismissed',page.locator('#loading').is_hidden())
     check('All default orbit paths fit inside the viewport',page.evaluate('SolarTime.renderer.paths.every(path=>path.points.every(p=>{const q=SolarTime.renderer.project(p);return q.x>=0&&q.x<=innerWidth&&q.y>=180&&q.y<=innerHeight-175;}))'))
+    check('Earth screen radius is exactly 1.5 times its old radius',page.evaluate('(()=>{const r=SolarTime.renderer,e=r.projected.find(p=>p.body.id==="earth");return Math.abs(e.r-11.5*1.5*r.bodyScale)<1e-8;})()'))
+    check('There is no artificial surface-speed option',page.locator('#show-spin').count()==0 and page.evaluate('!("spin" in SolarTime.renderer.options)'))
+    check('Rotation uses the same timestamp for every body',page.evaluate("""(()=>{
+      const A=SolarAstro,r=SolarTime.renderer,t=A.J2000,p={x:200,y:10,z:0};
+      return [...A.BODIES,A.MOON,A.SUN].every(b=>{
+        const first=r.shade(b,p,30,t,0,true).toDataURL();
+        const quarter=r.shade(b,p,30,t+Math.abs(b.spin)*A.DAY/4,0,true).toDataURL();
+        const full=r.shade(b,p,30,t+Math.abs(b.spin)*A.DAY,0,true).toDataURL();
+        return first!==quarter&&first===full;
+      });
+    })()"""))
+    check('Planet textures are independent of decorative animation seconds',page.evaluate("""(()=>{
+      const A=SolarAstro,r=SolarTime.renderer,t=SolarTime.getState().simulationMs,p={x:200,y:10,z:0};
+      return [...A.BODIES,A.MOON].every(b=>r.shade(b,p,30,t,0,true).toDataURL()===r.shade(b,p,30,t,999,true).toDataURL());
+    })()"""))
+    page.wait_for_timeout(100)
     page.screenshot(path=str(OUT/'desktop.png'))
     page.locator('[data-rate="86400"]').click()
     sample1=page.evaluate('({s:SolarTime.getState(),p:performance.now()})')
@@ -63,10 +79,12 @@ with sync_playwright() as pw:
     check('Actual-time button resets rate and date',state['live'] and state['rate']==1 and abs(state['simulationMs']-state['wallMs'])<5)
     page.locator('[data-body="earth"]').click()
     check('Keyboard-accessible Earth selector opens details',page.locator('#body-panel').is_visible() and page.locator('#body-name').inner_text()=='지구')
+    check('Selected body shows its own rotation period','23시간 56분 4초' in page.locator('#body-spin').inner_text())
     page.screenshot(path=str(OUT/'earth-details.png'))
     page.locator('#body-close').click()
     page.locator('#settings-button').click()
     check('Settings panel opens',page.locator('#settings-panel').is_visible())
+    check('UI explains physical spin and the shared playback rate','실제 주기' in page.locator('#settings-panel').inner_text() and page.locator('#spin-mode-note').inner_text()=='자전·공전 시간 연동')
     page.locator('#show-pluto').uncheck();page.wait_for_timeout(60)
     check('Pluto visibility toggles both orbit and navigation',not page.evaluate('SolarTime.renderer.projected.some(p=>p.body.id==="pluto")') and page.locator('[data-body="pluto"]').is_hidden())
     page.locator('#show-pluto').check()
@@ -74,10 +92,13 @@ with sync_playwright() as pw:
     check('Moon visibility toggle works',not page.evaluate('SolarTime.renderer.projected.some(p=>p.body.id==="moon")'))
     page.locator('#show-moon').check()
     page.locator('#show-activity').uncheck();page.wait_for_timeout(100)
-    s1=page.evaluate('SolarTime.renderer.sprites.get("sun").canvas.toDataURL()')
-    page.wait_for_timeout(700)
-    s2=page.evaluate('SolarTime.renderer.sprites.get("sun").canvas.toDataURL()')
-    check('Disabling Sun activity freezes its texture',s1==s2)
+    check('Disabling Sun activity removes flutter without a separate spin clock',page.evaluate("""(()=>{
+      const r=SolarTime.renderer,A=SolarAstro,t=SolarTime.getState().simulationMs,p={x:0,y:0,z:0};
+      const a=r.shade(A.SUN,p,30,t,0,true).toDataURL();
+      const b=r.shade(A.SUN,p,30,t,999,true).toDataURL();
+      const next=r.shade(A.SUN,p,30,t+A.SUN.spin*A.DAY/4,999,true).toDataURL();
+      return a===b&&a!==next;
+    })()"""))
     page.locator('#show-activity').check()
     page.locator('#show-labels').uncheck()
     check('Label setting reaches renderer',not page.evaluate('SolarTime.renderer.options.labels'))
@@ -107,6 +128,25 @@ with sync_playwright() as pw:
     check('Reset restores 45-degree view and unit zoom',page.evaluate('Math.abs(SolarTime.renderer.camera.elevation-Math.PI/4)<1e-8 && SolarTime.renderer.camera.zoom===1'))
     page.locator('#hide-ui').click()
     check('Viewing mode hides controls but keeps real clock',page.locator('.playback').is_hidden() and page.locator('#wall-clock').is_visible())
+    check('Viewing-mode entry starts the cursor idle timer',page.evaluate('document.body.classList.contains("pointer-awake")'))
+    page.wait_for_timeout(2050)
+    check('Idle viewing mode hides the cursor on both canvas and controls',page.evaluate('getComputedStyle(document.querySelector("#universe")).cursor==="none" && getComputedStyle(document.querySelector("#show-ui")).cursor==="none"'))
+    page.mouse.move(500,550)
+    check('Moving the pointer restores it without leaving viewing mode',page.evaluate('getComputedStyle(document.querySelector("#universe")).cursor!=="none" && SolarTime.getState().zen'))
+    page.wait_for_timeout(2050)
+    check('Cursor hides again after subsequent inactivity',page.evaluate('getComputedStyle(document.querySelector("#universe")).cursor==="none"'))
+    page.keyboard.press('h')
+    check('H restores the UI and cursor from idle viewing mode',page.locator('.playback').is_visible() and page.evaluate('getComputedStyle(document.querySelector("#universe")).cursor!=="none"'))
+    page.wait_for_timeout(1900)
+    check('No old idle timer hides the normal-mode cursor',page.evaluate('getComputedStyle(document.querySelector("#universe")).cursor!=="none"'))
+    page.locator('#hide-ui').click();page.keyboard.press('Escape')
+    check('Escape exits viewing mode',not page.evaluate('SolarTime.getState().zen'))
+    page.locator('#hide-ui').click();page.mouse.move(500,550);page.mouse.down()
+    page.wait_for_timeout(2050)
+    check('Held pointer prevents cursor hiding during a drag',page.evaluate('getComputedStyle(document.querySelector("#universe")).cursor!=="none"'))
+    page.mouse.up()
+    page.wait_for_timeout(2050)
+    check('Releasing a drag rearms the idle timer',page.evaluate('getComputedStyle(document.querySelector("#universe")).cursor==="none"'))
     page.locator('#show-ui').click()
     check('Viewing mode has a working exit',page.locator('.playback').is_visible())
     page.locator('#universe').focus();page.keyboard.press('Space')
@@ -136,5 +176,5 @@ with sync_playwright() as pw:
     check('Reduced-motion preference disables decorative animation by default',quiet.evaluate('!SolarTime.renderer.options.twinkle&&!SolarTime.renderer.options.activity'))
     check('Storage restrictions do not stop initialization',quiet.evaluate('!!window.SolarTime'))
     browser.close()
-    (OUT/'browser-results.json').write_text(json.dumps({'passed':len(results),'tests':results,'desktop_fps':round(fps,1),'errors':errors+mobile_errors,'network_requests':requests,'execution':'Chromium, standalone HTML injected offline; file:// and HTTP navigation are blocked by the test environment.'},ensure_ascii=False,indent=2),encoding='utf-8')
+    (OUT/'browser-results.json').write_text(json.dumps({'passed':len(results),'tests':results,'desktop_fps':round(fps,1),'errors':errors+mobile_errors,'network_requests':requests,'execution':'Chromium, standalone HTML injected offline; desktop, mobile, reduced-motion and cursor/rotation regression tests.'},ensure_ascii=False,indent=2),encoding='utf-8')
     print(f'{len(results)} browser checks passed.')

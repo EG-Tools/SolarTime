@@ -1,0 +1,15 @@
+{
+  "version": "0.02",
+  "unit_tests_passed": 29,
+  "browser_checks_passed": 56,
+  "source_base_commit": "3dd1ff4051848b68f754ac589d5b669138a86b4c",
+  "remote_commit": null,
+  "deployed": false,
+  "reason": "GitHub write request blocked by the tool security check",
+  "unverified": [
+    "Windows double-click",
+    "real mobile hardware",
+    "file URL navigation",
+    "deployed v0.02 website"
+  ]
+}
