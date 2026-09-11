@@ -21,9 +21,9 @@ test('Every body completes one turn per its own sidereal period, not a display l
  }
 });
 test('Earth takes about 86164 seconds per turn and has no 20-second acceleration',()=>{
- close(earth.spin*86400,86164.100352,1e-6);
- close(A.rotationAt(earth,A.J2000+20000),A.TAU*20/86164.100352);
- assert.ok(A.rotationAt(earth,A.J2000+20000)<.002);
+ close(earth.spinSeconds,86164.10,1e-9);
+ close(signed(A.rotationAt(earth,A.J2000+20000)-A.rotationAt(earth,A.J2000)),A.TAU*20/86164.10);
+ assert.ok(Math.abs(signed(A.rotationAt(earth,A.J2000+20000)-A.rotationAt(earth,A.J2000)))<.002);
 });
 test('Rotation derives only from timestamp and never from frame count or visit history',()=>{
  const t=A.J2000+43210000,expected=all.map(b=>A.rotationAt(b,t));
@@ -49,12 +49,12 @@ test('Invalid rotation inputs fail explicitly',()=>{
 });
 test('The same live clock timestamp drives rotation and orbit',()=>{
  const c=new A.SimulationClock(A.J2000,0),wall=A.J2000+6*3600000,ms=c.value(1000,wall);
- close(A.rotationAt(earth,ms),A.TAU*6/24/earth.spin);
+ close(signed(A.rotationAt(earth,ms)-A.rotationAt(earth,A.J2000)),signed(A.TAU*6/24/earth.spin));
  assert.deepEqual(A.positionAt(earth,ms),A.positionAt(earth,wall));
 });
 test('Timelapse advances rotation at the selected orbital rate without phase resets',()=>{
  const c=new A.SimulationClock(A.J2000,0);c.setRate(86400,0,A.J2000);
- close(A.rotationAt(earth,c.value(250)),A.TAU*.25/earth.spin);
+ close(signed(A.rotationAt(earth,c.value(250))-A.rotationAt(earth,A.J2000)),signed(A.TAU*.25/earth.spin));
  const at=c.value(250),angle=A.rotationAt(earth,at);c.setRate(604800,250,A.J2000);
  close(A.rotationAt(earth,c.value(250)),angle);
  close(A.rotationAt(earth,c.value(350)),A.rotationAt(earth,at+.7*A.DAY));
@@ -87,6 +87,6 @@ test('Lunar display orbit stays compact and independent of the 1.5x Earth size',
 test('One-day playback preserves the actual Jupiter/Saturn spin ratios',()=>{
  const c=new A.SimulationClock(A.J2000,0);c.setRate(86400,0,A.J2000);
  for(const b of all)close(A.rotationAt(b,c.value(1000)),A.rotationAt(b,A.J2000+A.DAY));
- close(1/A.BODIES.find(b=>b.id==='jupiter').spin,2.418145765827731,1e-10);
+ close(1/A.BODIES.find(b=>b.id==='jupiter').spin,86400/35729.86,1e-10);
  close(1/A.BODIES.find(b=>b.id==='saturn').spin,86400/38018);
 });

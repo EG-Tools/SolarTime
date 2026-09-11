@@ -1,4 +1,4 @@
-/* Solar Time v0.03 | No runtime dependencies.
+/* Solar Time v0.06 | Annual reference + fixed-period loops.
  * Approximate, heliocentric J2000 ecliptic positions, NOT an observing ephemeris.
  * Planet elements: JPL / Standish & Williams, 3000 BC–3000 AD fit, tables 2a/2b.
  * https://ssd.jpl.nasa.gov/planets/approx_pos.html
@@ -14,6 +14,7 @@
   'use strict';
   const DAY = 86400000, TAU = Math.PI * 2, DEG = Math.PI / 180;
   const J2000 = Date.UTC(2000, 0, 1, 12), MIN_TIME = Date.UTC(1800, 0, 1), MAX_TIME = Date.UTC(2999, 11, 31, 23, 59, 59);
+  const round2 = value => Math.round(value*100)/100;
   const wrap = (v, m = TAU) => ((v % m) + m) % m;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   // Signed sidereal rotation periods in Earth days, not solar-day lengths.
@@ -60,24 +61,74 @@
     pluto:'행성이 아닌 왜행성입니다. 기울어진 타원 궤도는 고정된 평균 요소로 개략적으로 표현합니다.'
   };
   const BODIES = defs.map(([id,ko,en,orbit,size,color,period,spin,tilt,base,rates,correction]) =>
-    Object.freeze({id,ko,en,orbit,size,color,period,spin,tilt,base,rates,correction,description:descriptions[id]}));
-  const SUN = Object.freeze({id:'sun',ko:'태양',en:'SUN',size:28,color:'#ffb753',spin:25.38,tilt:7.25,
-    description:'태양계의 중심. 표면의 입상 조직과 움직이는 코로나, 홍염은 감상을 위한 시각 효과입니다.'});
+    Object.freeze({id,ko,en,orbit,size,color,period:round2(period*86400)/86400,
+      periodSeconds:round2(period*86400),spin:round2(spin*86400)/86400,spinSeconds:round2(spin*86400),
+      referenceSpinDays:spin,tilt:round2(tilt),base:Object.freeze(base),rates:Object.freeze(rates),
+      correction:correction&&Object.freeze(correction),description:descriptions[id]}));
+  const SUN = Object.freeze({id:'sun',ko:'태양',en:'SUN',size:28,color:'#ffb753',spin:25.38,spinSeconds:2192832,referenceSpinDays:25.38,tilt:7.25,
+    description:'태양계의 중심. 표면의 입상 조직과 부드러운 샤인은 감상을 위한 시각 효과입니다.'});
   // Lunar display-orbit radius is in reference-screen units, like body sizes.
   // It is intentionally independent of Earth's display radius (not a physical distance).
-  const MOON = Object.freeze({id:'moon',ko:'달',en:'MOON',size:3.9,displayOrbit:30,color:'#d0ced0',period:27.321661,spin:27.321661,tilt:6.68,
+  const MOON = Object.freeze({id:'moon',ko:'달',en:'MOON',size:3.9,displayOrbit:30,color:'#d0ced0',period:2360591.51/86400,periodSeconds:2360591.51,spin:2360591.51/86400,spinSeconds:2360591.51,referenceSpinDays:27.321661,tilt:6.68,
     description:'지구를 약 27.32일에 한 바퀴 도는 유일한 자연 위성. 거리와 크기는 보기 편하게 확대했습니다.'});
-  // One rotation authority. The SAME simulation timestamp drives orbits and spins.
-  // Zero longitude at J2000 is illustrative; this is not a prime-meridian ephemeris.
-  function rotationAt(body, ms) {
-    if (!Number.isFinite(ms) || !Number.isFinite(body.spin) || body.spin===0)
-      throw new RangeError('Rotation requires a finite timestamp and a nonzero sidereal period.');
-    return wrap((ms-J2000)/(DAY*body.spin),1)*TAU;
+  // One local reference owner. A frame does not numerically integrate its predecessor:
+  // any timestamp (seek, reopen, sleep, leap year) gives the same phase directly.
+  // The saved period is seconds to TWO decimals, never degrees/second rounded to 0.
+  // Reference elements are evaluated once at startup/explicit seek, and at a UTC year boundary.
+  // No fetch, online status check, remote clock, retry or network timeout is involved.
+  const ALL=[SUN,...BODIES,MOON],axesCache=new Map();
+  let annual=null,yearBuilds=0,referenceEvaluations=0;
+  function referenceRotation(body,ms) {
+    if(body.id==='earth')return wrap((280.46061837+360.98564736629*(ms-J2000)/DAY)*DEG);
+    return wrap((ms-J2000)/(DAY*body.referenceSpinDays),1)*TAU;
+  }
+  function calibrateAt(ms) {
+    if(!Number.isFinite(ms))throw new TypeError('A finite timestamp is required.');
+    const year=new Date(ms).getUTCFullYear(),start=Date.UTC(year,0,1),end=Date.UTC(year+1,0,1);
+    const orbits=new Map(BODIES.map(body=>{referenceEvaluations++;return [body.id,referenceElementsAt(body,ms)];}));
+    const spins=new Map(ALL.map(body=>[body.id,referenceRotation(body,ms)]));
+    const d=(ms-J2000)/DAY,moon={node:wrap((125.045-.0529538083*d)*DEG),lon:wrap((218.3164477+360/MOON.referenceSpinDays*d)*DEG)};
+    annual={year,start,end,epoch:ms,orbits,spins,moon};yearBuilds++;return modelStatus();
+  }
+  function annualState(ms) {
+    if(!Number.isFinite(ms))throw new TypeError('A finite timestamp is required.');
+    if(!annual||ms<annual.start||ms>=annual.end)calibrateAt(Date.UTC(new Date(ms).getUTCFullYear(),0,1));
+    return annual;
+  }
+  function modelStatus() {return annual&&Object.freeze({year:annual.year,epoch:annual.epoch,start:annual.start,end:annual.end,
+    calibrations:yearBuilds,referenceEvaluations,source:'local',networkRequired:false,periodUnit:'seconds',decimals:2});}
+  function modelYear(ms) {const a=annualState(ms);return a.year+':'+a.epoch;}
+  function rotationAt(body,ms) {
+    if(!Number.isFinite(ms)||!Number.isFinite(body.spinSeconds)||body.spinSeconds===0)
+      throw new RangeError('Rotation requires a finite timestamp and a nonzero signed period.');
+    const y=annualState(ms),anchor=y.spins.get(body.id);
+    if(anchor===undefined)throw new RangeError('Unknown body.');
+    return wrap(anchor+wrap((ms-y.epoch)/(body.spinSeconds*1000),1)*TAU);
   }
   function rotationPoleTilt(body) {
     // Signed retrograde period already reverses angular velocity. Use its northern
     // pole here, otherwise tilt > 90 degrees would reverse the direction twice.
     return (body.spin<0?180-body.tilt:body.tilt)*DEG;
+  }
+  // Greenwich sidereal rotation and existing orbital sunlight are sufficient for
+  // a day/night indication. No weather, terrain/refraction or eclipse calculation.
+  function bodyAxes(body){
+    if(axesCache.has(body.id))return axesCache.get(body.id);
+    const tilt=body.id==='earth'?-body.tilt*DEG:rotationPoleTilt(body),node=body.id==='saturn'?90*DEG:body.id==='uranus'?25*DEG:0;
+    const c=Math.cos(node),s=Math.sin(node),ct=Math.cos(tilt),st=Math.sin(tilt);
+    const axes=Object.freeze({u:Object.freeze({x:c,y:s,z:0}),v:Object.freeze({x:-s*ct,y:c*ct,z:st}),pole:Object.freeze({x:s*st,y:-c*st,z:ct})});
+    axesCache.set(body.id,axes);return axes;
+  }
+  function surfaceDirection(body,latitude,longitude,ms){
+    const frame=bodyAxes(body),a=longitude*DEG+rotationAt(body,ms),lat=latitude*DEG;
+    const x=Math.cos(lat)*Math.cos(a),y=Math.cos(lat)*Math.sin(a),z=Math.sin(lat);
+    return {x:frame.u.x*x+frame.v.x*y+frame.pole.x*z,y:frame.u.y*x+frame.v.y*y+frame.pole.y*z,z:frame.u.z*x+frame.v.z*y+frame.pole.z*z};
+  }
+
+  function siteSun(ms,latitude=37.5665,longitude=126.978){
+    const earth=BODIES.find(b=>b.id==='earth'),p=positionAt(earth,ms),n=surfaceDirection(earth,latitude,longitude,ms);
+    const cosine=-(p.x*n.x+p.y*n.y+p.z*n.z)/Math.hypot(p.x,p.y,p.z);
+    return {altitude:Math.asin(clamp(cosine,-1,1))/DEG,latitude,longitude};
   }
   function eccentricAnomaly(M, e) {
     M = wrap(M + Math.PI) - Math.PI;
@@ -89,13 +140,18 @@
     }
     return E;
   }
-  function elementsAt(body, ms) {
+  function referenceElementsAt(body, ms) {
     if (!Number.isFinite(ms)) throw new TypeError('A finite timestamp is required.');
     const T = (ms-J2000)/DAY/36525;
     const [a,e,inc,L,peri,node] = body.base.map((v,i)=>v+body.rates[i]*T);
     const c = body.correction;
     const extra = c ? c[0]*T*T+c[1]*Math.cos(c[3]*T*DEG)+c[2]*Math.sin(c[3]*T*DEG) : 0;
     return {a,e,inc:inc*DEG,node:node*DEG,omega:(peri-node)*DEG,M:wrap((L-peri+extra)*DEG)};
+  }
+  function elementsAt(body,ms) {
+    const year=annualState(ms),base=year.orbits.get(body.id);
+    if(!base)throw new RangeError('Unknown orbital body.');
+    return {...base,M:wrap(base.M+TAU*wrap((ms-year.epoch)/(body.periodSeconds*1000),1))};
   }
   // Both a planet and every point of its orbit use this exact transform.
   function pointOnOrbit(elements, E, semiMajor = elements.a) {
@@ -114,10 +170,10 @@
     return Array.from({length:count+1},(_,i)=>pointOnOrbit(el,TAU*i/count,body.orbit));
   }
   function moonElements(ms) {
-    const d=(ms-J2000)/DAY;
-    const node=wrap((125.045-.0529538083*d)*DEG);
-    const lon=wrap((218.3164477+360/MOON.period*d)*DEG);
-    return {a:1,e:0,inc:5.145*DEG,node,omega:0,M:wrap(lon-node)};
+    const y=annualState(ms),d=(ms-y.epoch)/DAY;
+    // One low-cost nodal drift retains the tilted lunar plane; no perturbation series.
+    const node=wrap(y.moon.node-.0529538083*d*DEG),lon=wrap(y.moon.lon+TAU*wrap((ms-y.epoch)/(MOON.periodSeconds*1000),1));
+    return {a:1,e:0,inc:5.14*DEG,node,omega:0,M:wrap(lon-node)};
   }
   function moonAt(ms, radius=38) { const el=moonElements(ms); return pointOnOrbit(el,el.M,radius); }
   function moonPhase(ms) {
@@ -149,5 +205,5 @@
     }
     now(mono,wall=Date.now()) { this.anchorMs=wall; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false; }
   }
-  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,BODIES,SUN,MOON,wrap,clamp,rotationAt,rotationPoleTilt,eccentricAnomaly,elementsAt,pointOnOrbit,positionAt,orbitAt,moonElements,moonAt,moonPhase,SimulationClock});
+  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,BODIES,SUN,MOON,wrap,clamp,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,positionAt,orbitAt,moonElements,moonAt,moonPhase,SimulationClock});
 });

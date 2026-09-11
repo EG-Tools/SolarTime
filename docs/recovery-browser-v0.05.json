@@ -1,0 +1,80 @@
+{
+  "passed": 17,
+  "tests": [
+    {
+      "test": "v0.05 entrypoint loads and starts the surface worker",
+      "passed": true
+    },
+    {
+      "test": "Life User, v0.05 and the requested email are present",
+      "passed": true
+    },
+    {
+      "test": "Planet navigation is centered at 1920px",
+      "passed": true
+    },
+    {
+      "test": "Planet navigation is centered at 1648px",
+      "passed": true
+    },
+    {
+      "test": "Planet navigation is centered at 1280px",
+      "passed": true
+    },
+    {
+      "test": "Planet navigation is centered at 1100px",
+      "passed": true
+    },
+    {
+      "test": "Planet navigation is centered at 800px",
+      "passed": true
+    },
+    {
+      "test": "Playback is lower and separate from navigation",
+      "passed": true
+    },
+    {
+      "test": "Moon uses the detailed worker-rendered image",
+      "passed": true
+    },
+    {
+      "test": "Hidden disks are not submitted just because their glow intersects",
+      "passed": true
+    },
+    {
+      "test": "Moon fills the requested common maximum size",
+      "passed": true
+    },
+    {
+      "test": "Focused Moon keeps producing display frames",
+      "passed": true
+    },
+    {
+      "test": "Live Moon surface continues updating, not just the display loop",
+      "passed": true
+    },
+    {
+      "test": "Paused time stops redundant surface jobs",
+      "passed": true
+    },
+    {
+      "test": "Renderer recreates its worker after a suspension",
+      "passed": true
+    },
+    {
+      "test": "Standalone HTML can initialize again",
+      "passed": true
+    },
+    {
+      "test": "Injected standalone runtime has no JavaScript errors",
+      "passed": true
+    }
+  ],
+  "moonTiming": {
+    "fps": 42.33489391373545,
+    "mainThreadDrawMs": 1.398823529396973,
+    "samples": 85
+  },
+  "errors": [],
+  "execution": "standalone HTML injected offline; file navigation blocked by browser policy"
+}

@@ -10,7 +10,7 @@ from time import perf_counter
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]
-HTML=(ROOT/'dist'/'Solar-Time_v0.04.html').read_text(encoding='utf-8')
+HTML=(ROOT/'dist'/'Solar-Time_v0.05.html').read_text(encoding='utf-8')
 OUT=ROOT/'test-results'
 OUT.mkdir(exist_ok=True)
 results=[]
@@ -31,11 +31,17 @@ with sync_playwright() as pw:
     page.set_content(HTML,wait_until='load')
     page.wait_for_function('!!window.SolarTime',timeout=30000)
     page.wait_for_timeout(650)
+    # Exercise the single shared kernel, instead of the removed main-thread shader.
+    page.evaluate("""()=>{const engine=new (SolarSurface.kernel().Engine)();
+      window.testShade=(b,p,r,ms,t)=>{const job=SolarTime.renderer.surfaceJob(b,p,r,ms,t,performance.now());
+        job.diam=64;job.textureWidth=256;const image=engine.render(job),canvas=document.createElement('canvas');
+        canvas.width=canvas.height=64;canvas.getContext('2d').drawImage(image,0,0);return canvas;};}
+    """)
     state=page.evaluate('SolarTime.getState()')
     check('Starts in actual, playing local time',state['live'] and not state['paused'] and state['rate']==1)
     check('Actual clock synchronized with wall time',abs(state['simulationMs']-state['wallMs'])<5)
     check('Sun, 8 planets, Pluto and Moon render',page.evaluate('SolarTime.renderer.projected.length')==11)
-    check('No external network requests',not requests)
+    check('No external network requests',not any(u.startswith(('http:', 'https:')) for u in requests))
     check('Loading overlay dismissed',page.locator('#loading').is_hidden())
     check('All default orbit paths fit inside the viewport',page.evaluate('SolarTime.renderer.paths.every(path=>path.points.every(p=>{const q=SolarTime.renderer.project(p);return q.x>=0&&q.x<=innerWidth&&q.y>=0&&q.y<=innerHeight;}))'))
     check('Default orbit bounds are five percent higher than v0.03',page.evaluate("""(()=>{
@@ -48,15 +54,15 @@ with sync_playwright() as pw:
     check('Rotation uses the same timestamp for every body',page.evaluate("""(()=>{
       const A=SolarAstro,r=SolarTime.renderer,t=A.J2000,p={x:200,y:10,z:0};
       return [...A.BODIES,A.MOON,A.SUN].every(b=>{
-        const first=r.shade(b,p,30,t,0,true).toDataURL();
-        const quarter=r.shade(b,p,30,t+Math.abs(b.spin)*A.DAY/4,0,true).toDataURL();
-        const full=r.shade(b,p,30,t+Math.abs(b.spin)*A.DAY,0,true).toDataURL();
+        const first=testShade(b,p,30,t,0,true).toDataURL();
+        const quarter=testShade(b,p,30,t+Math.abs(b.spin)*A.DAY/4,0,true).toDataURL();
+        const full=testShade(b,p,30,t+Math.abs(b.spin)*A.DAY,0,true).toDataURL();
         return first!==quarter&&first===full;
       });
     })()"""))
     check('Planet textures are independent of decorative animation seconds',page.evaluate("""(()=>{
       const A=SolarAstro,r=SolarTime.renderer,t=SolarTime.getState().simulationMs,p={x:200,y:10,z:0};
-      return [...A.BODIES,A.MOON].every(b=>r.shade(b,p,30,t,0,true).toDataURL()===r.shade(b,p,30,t,999,true).toDataURL());
+      return [...A.BODIES,A.MOON].every(b=>testShade(b,p,30,t,0,true).toDataURL()===testShade(b,p,30,t,999,true).toDataURL());
     })()"""))
     check('Lunar orbit is 30 reference pixels, independent of the enlarged Earth',page.evaluate("""(()=>{
       const r=SolarTime.renderer,A=SolarAstro,t=A.J2000;r.draw(t,3);
@@ -116,6 +122,12 @@ with sync_playwright() as pw:
     page.locator('#pause-button').click();page.wait_for_timeout(100)
     check('Resuming continues accelerated playback',not page.evaluate('SolarTime.getState().paused'))
     page.locator('#live-button').click();page.wait_for_timeout(80)
+    # Exercise the single shared kernel, instead of the removed main-thread shader.
+    page.evaluate("""()=>{const engine=new (SolarSurface.kernel().Engine)();
+      window.testShade=(b,p,r,ms,t)=>{const job=SolarTime.renderer.surfaceJob(b,p,r,ms,t,performance.now());
+        job.diam=64;job.textureWidth=256;const image=engine.render(job),canvas=document.createElement('canvas');
+        canvas.width=canvas.height=64;canvas.getContext('2d').drawImage(image,0,0);return canvas;};}
+    """)
     state=page.evaluate('SolarTime.getState()')
     check('Actual-time button resets rate and date',state['live'] and state['rate']==1 and abs(state['simulationMs']-state['wallMs'])<5)
     page.locator('[data-body="earth"]').click()
@@ -135,9 +147,9 @@ with sync_playwright() as pw:
     page.locator('#show-activity').uncheck();page.wait_for_timeout(100)
     check('Disabling Sun activity removes flutter without a separate spin clock',page.evaluate("""(()=>{
       const r=SolarTime.renderer,A=SolarAstro,t=SolarTime.getState().simulationMs,p={x:0,y:0,z:0};
-      const a=r.shade(A.SUN,p,30,t,0,true).toDataURL();
-      const b=r.shade(A.SUN,p,30,t,999,true).toDataURL();
-      const next=r.shade(A.SUN,p,30,t+A.SUN.spin*A.DAY/4,999,true).toDataURL();
+      const a=testShade(A.SUN,p,30,t,0,true).toDataURL();
+      const b=testShade(A.SUN,p,30,t,999,true).toDataURL();
+      const next=testShade(A.SUN,p,30,t+A.SUN.spin*A.DAY/4,999,true).toDataURL();
       return a===b&&a!==next;
     })()"""))
     page.locator('#show-activity').check()
@@ -151,6 +163,12 @@ with sync_playwright() as pw:
     page.locator('#timezone-button').click()
     check('Time zone can switch to UTC',page.evaluate('SolarTime.getState().timezone')=='utc')
     page.locator('#date-button').click();page.locator('#date-input').fill('2040-01-01T12:30');page.locator('#date-form button[type="submit"]').click()
+    # Exercise the single shared kernel, instead of the removed main-thread shader.
+    page.evaluate("""()=>{const engine=new (SolarSurface.kernel().Engine)();
+      window.testShade=(b,p,r,ms,t)=>{const job=SolarTime.renderer.surfaceJob(b,p,r,ms,t,performance.now());
+        job.diam=64;job.textureWidth=256;const image=engine.render(job),canvas=document.createElement('canvas');
+        canvas.width=canvas.height=64;canvas.getContext('2d').drawImage(image,0,0);return canvas;};}
+    """)
     state=page.evaluate('SolarTime.getState()')
     check('Selected date is exact in UTC and starts paused',state['simulationMs']==2209033800000 and state['paused'] and not state['live'])
     page.locator('[data-rate="604800"]').click();page.wait_for_timeout(100)
@@ -184,7 +202,8 @@ with sync_playwright() as pw:
           }return true;
         }""",body))
         page.wait_for_timeout(80);page.screenshot(path=str(OUT/(body+'-closeup.png')))
-    check('High zoom supplies higher resolution surface textures',page.evaluate('SolarTime.renderer.sprites.get("jupiter").canvas.width>200'))
+    page.wait_for_function('SolarTime.renderer.surface.frames.get("jupiter")?.job.textureWidth===2048',timeout=30000)
+    check('High zoom supplies higher resolution surface textures',page.evaluate('SolarTime.renderer.surface.frames.get("jupiter").image.width>200'))
     check('Zoom owner clamps invalid and excessive input without corrupting camera',page.evaluate("""(()=>{
       const r=SolarTime.renderer;r.setZoom(999);const max=r.camera.zoom;r.setZoom(NaN);
       if(max!==64||r.camera.zoom!==64)return false;r.setZoom(-100);

@@ -1,32 +1,17 @@
-# Solar Time v0.04 — verification
+# v0.06 검증
 
-- Base: `4db386c475c9055516197ee3f91f81a05aaf5b5d` (v0.03 with contact credit).
-- Node unit tests: **55 passed**, 0 failed.
-- General Chromium regression checks: **83 passed**.
-- New viewport/closeup/surface/pan checks: **32 passed**.
-- Built standalone HTML: `npm run build`; no runtime packages, textures or CDN requests.
-- Browser environment: Linux, Chromium, Python Playwright; desktop and mobile viewport sizes, DPR 1/2, reduced motion. Tests inject the built HTML directly. They do not establish Windows double-click or public deployment behavior.
-- The initial combined shell execution exceeded the container command lifetime; the stable full run subsequently completed successfully, with all spawned test/browser processes closed.
+## 확인한 범위
 
-## Checked invariants
+- Node 단위 테스트: 66개 통과. 궤도·자전 루프, 초 단위 두 자리 반올림, 시작 시 보정, UTC 새해 기준 갱신, 시점·고리·이름 위치·작업 폐기·이미지 수명주기 포함.
+- Chromium 오프라인 브라우저: 33개 통과. 데스크톱 1648×928, 모바일 화면 크기 390×844 / 320×568.
+- 브라우저 네트워크 오프라인, 외부 HTTP(S) 런타임 요청 0개. 단일 HTML 내용을 독립된 빈 페이지에 주입해 실행.
+- 해당 실행의 위치 보정 0.40ms. 첫 장면 구성 약 1081.51ms. 모든 사용자 기기에서 같은 속도를 보장하는 수치는 아님.
+- 11개 천체 모두 60초 간격의 모델 회전각이 변화함. 60초를 실제로 기다린 육안 측정이 아니라 같은 모델의 두 시점 비교.
 
-All camera input paths share -90°/+90° limits. Saturn/Uranus ring planes are perpendicular to the same body pole as the sphere surface; front/back halves use view-space depth. All bodies reach the same screen-relative diameter at maximum tracked zoom. Closeups upgrade to 1024×512 textures, and longitude borders join without a hard seam. High-resolution raster/geometry caches are bounded. Middle-button dragging applies only vertical screen-relative translation, clamped to ±20%; default framing is 5% higher than v0.03. Mouse default autoscroll is suppressed only over the viewport. Cursor idle, pause, date selection, relative periods, contact credits, responsive controls and the common label easing remain covered. Shine trace at 5 seconds matches the old 15-second decorative trace exactly, without changing the physics timestamp.
+## 제한
 
-## Rotation audit
+이 환경에서는 파일 URL 직접 탐색이 관리자 정책에 의해 차단되어 Windows에서 더블클릭하는 실제 경로를 검증하지 못했습니다. WebGL도 제공되지 않아 Worker+CPU 호환 경로를 실행했습니다. GPU 셰이더의 실제 기기 성능과 GPU 전용 요철/반사 표현은 검증하지 못했습니다.
 
-The unmodified v0.03 runtime was observed for 61.036 real seconds: its simulated clock matched wall time, frames advanced, and all orbital/rotation angles changed. Controlled same-camera, effects-disabled sprite comparisons 60 seconds apart found changed Jupiter/Saturn/Earth/Mars/Uranus/Neptune/Pluto images. Sun/Mercury/Venus/Moon could reuse the same sprite because the cache rounded the rotation phase. v0.04 removes that phase rounding for every body. All 11 new sprites change pixels in the same controlled test while representative sidereal periods remain unchanged. A completely unchanged paused timestamp reuses its sprite.
+해당 CPU 호환 환경의 달 최대 확대 관찰 RAF는 약 43.5fps였습니다. RAF 빈도와 표면 재생성 빈도는 서로 다릅니다. 이 결과를 모든 기기에서 60fps라고 주장하지 않습니다. 공개 웹사이트 배포 검증은 수행되지 않았습니다.
 
-## Reproduce
-
-```sh
-npm test
-npm run build
-python tests/browser_test.py
-python tests/view_browser_test.py
-```
-
-Python Playwright and Chromium are required for browser checks; `CHROMIUM_PATH` overrides the executable path.
-
-## Publication status
-
-The source-upload tool call was blocked before any source commit was created. The newly created `update/v0.04-viewport-closeup` branch was subsequently compared to main and was identical. No v0.04 PR was merged or deployed. The source ZIP and standalone HTML are the v0.04 deliverables. See `release-verification-v0.04.json` for results and `rotation-audit-v0.04.json` for raw observations.
+이전 버전의 UI/스크린샷 테스트는 해당 버전 기록입니다. v0.06의 브라우저 진입점은 `tests/release_browser.py`입니다.

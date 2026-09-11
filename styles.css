@@ -41,3 +41,10 @@ body.zen:not(.pointer-awake),body.zen:not(.pointer-awake) *{cursor:none!importan
 /* Keep the navigation centered independently of the signature/action widths. */
 @media(min-width:681px) and (max-width:1280px){.signature{visibility:hidden;display:block;width:0;overflow:hidden}}
 @media(max-width:680px){.planet-nav{justify-content:safe center}}
+
+/* Same reset button stays reachable in zen mode; no duplicate camera controls. */
+body.zen .view-controls{display:flex!important;z-index:12;opacity:.45}
+body.zen .view-controls:hover,body.zen.pointer-awake .view-controls{opacity:1}
+body.zen .view-controls>:not(#fit-view){display:none!important}
+body.zen .view-controls #fit-view{display:flex!important;pointer-events:auto}
+.settings-panel{max-height:calc(100dvh - 100px);overflow-y:auto;scrollbar-width:thin}

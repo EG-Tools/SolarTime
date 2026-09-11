@@ -1,648 +1,343 @@
 {
-  "version": "0.04",
-  "general": {
-    "passed": 83,
-    "tests": [
-      {
-        "test": "Starts in actual, playing local time",
-        "passed": true
-      },
-      {
-        "test": "Actual clock synchronized with wall time",
-        "passed": true
-      },
-      {
-        "test": "Sun, 8 planets, Pluto and Moon render",
-        "passed": true
-      },
-      {
-        "test": "No external network requests",
-        "passed": true
-      },
-      {
-        "test": "Loading overlay dismissed",
-        "passed": true
-      },
-      {
-        "test": "All default orbit paths fit inside the viewport",
-        "passed": true
-      },
-      {
-        "test": "Default orbit bounds are five percent higher than v0.03",
-        "passed": true
-      },
-      {
-        "test": "One-hour playback is not added",
-        "passed": true
-      },
-      {
-        "test": "Earth screen radius is exactly 1.5 times its old radius",
-        "passed": true
-      },
-      {
-        "test": "There is no artificial surface-speed option",
-        "passed": true
-      },
-      {
-        "test": "Rotation uses the same timestamp for every body",
-        "passed": true
-      },
-      {
-        "test": "Planet textures are independent of decorative animation seconds",
-        "passed": true
-      },
-      {
-        "test": "Lunar orbit is 30 reference pixels, independent of the enlarged Earth",
-        "passed": true
-      },
-      {
-        "test": "Corona is cached, deterministic, and responds to the effects switch",
-        "passed": true
-      },
-      {
-        "test": "Canvas labels share the interpolated hit position for ALL bodies including Moon",
-        "passed": true
-      },
-      {
-        "test": "Earth/Moon avoidance uses intermediate positions, not a one-frame teleport",
-        "passed": true
-      },
-      {
-        "test": "Jupiter shows the correct 2.42 spins per second without artificially slowing it",
-        "passed": true
-      },
-      {
-        "test": "Saturn shows the correct 2.27 spins per second",
-        "passed": true
-      },
-      {
-        "test": "One day per second advances simulation at ×86400",
-        "passed": true
-      },
-      {
-        "test": "Time travel leaves the actual wall clock unaccelerated",
-        "passed": true
-      },
-      {
-        "test": "Pause freezes simulation time",
-        "passed": true
-      },
-      {
-        "test": "Pause freezes Sun and stars as well",
-        "passed": true
-      },
-      {
-        "test": "Pause shows the play SVG icon",
-        "passed": true
-      },
-      {
-        "test": "Resuming continues accelerated playback",
-        "passed": true
-      },
-      {
-        "test": "Actual-time button resets rate and date",
-        "passed": true
-      },
-      {
-        "test": "Keyboard-accessible Earth selector opens details",
-        "passed": true
-      },
-      {
-        "test": "Selected body shows its own rotation period",
-        "passed": true
-      },
-      {
-        "test": "Settings panel opens",
-        "passed": true
-      },
-      {
-        "test": "UI explains physical spin and the shared playback rate",
-        "passed": true
-      },
-      {
-        "test": "Pluto visibility toggles both orbit and navigation",
-        "passed": true
-      },
-      {
-        "test": "Moon visibility toggle works",
-        "passed": true
-      },
-      {
-        "test": "Disabling Sun activity removes flutter without a separate spin clock",
-        "passed": true
-      },
-      {
-        "test": "Label setting reaches renderer",
-        "passed": true
-      },
-      {
-        "test": "Low-power rendering limits pixel ratio",
-        "passed": true
-      },
-      {
-        "test": "Time zone can switch to UTC",
-        "passed": true
-      },
-      {
-        "test": "Selected date is exact in UTC and starts paused",
-        "passed": true
-      },
-      {
-        "test": "Speed button resumes a selected date",
-        "passed": true
-      },
-      {
-        "test": "Help is a modal dialog with accuracy disclosure",
-        "passed": true
-      },
-      {
-        "test": "Escape closes native modal",
-        "passed": true
-      },
-      {
-        "test": "Dragging rotates camera",
-        "passed": true
-      },
-      {
-        "test": "Mouse wheel zooms the view",
-        "passed": true
-      },
-      {
-        "test": "Reset restores 45-degree view and unit zoom",
-        "passed": true
-      },
-      {
-        "test": "sun close-view button increases zoom and tracks the target",
-        "passed": true
-      },
-      {
-        "test": "sun stays centered as simulation time advances",
-        "passed": true
-      },
-      {
-        "test": "earth close-view button increases zoom and tracks the target",
-        "passed": true
-      },
-      {
-        "test": "earth stays centered as simulation time advances",
-        "passed": true
-      },
-      {
-        "test": "jupiter close-view button increases zoom and tracks the target",
-        "passed": true
-      },
-      {
-        "test": "jupiter stays centered as simulation time advances",
-        "passed": true
-      },
-      {
-        "test": "High zoom supplies higher resolution surface textures",
-        "passed": true
-      },
-      {
-        "test": "Zoom owner clamps invalid and excessive input without corrupting camera",
-        "passed": true
-      },
-      {
-        "test": "Maximum zoom is visible and its plus button is disabled",
-        "passed": true
-      },
-      {
-        "test": "Minus control shares the zoom limit owner",
-        "passed": true
-      },
-      {
-        "test": "Overview button clears tracking and restores the requested lower composition",
-        "passed": true
-      },
-      {
-        "test": "Wheel zoom follows the planet under the pointer",
-        "passed": true
-      },
-      {
-        "test": "Double-clicking a body starts close observation, not fullscreen",
-        "passed": true
-      },
-      {
-        "test": "Keyboard zoom uses the same follow owner",
-        "passed": true
-      },
-      {
-        "test": "Far-away bodies are excluded from label/picking work during close observation",
-        "passed": true
-      },
-      {
-        "test": "Viewing mode hides controls but keeps real clock",
-        "passed": true
-      },
-      {
-        "test": "Viewing-mode entry starts the cursor idle timer",
-        "passed": true
-      },
-      {
-        "test": "Idle viewing mode hides the cursor on both canvas and controls",
-        "passed": true
-      },
-      {
-        "test": "Moving the pointer restores it without leaving viewing mode",
-        "passed": true
-      },
-      {
-        "test": "Cursor hides again after subsequent inactivity",
-        "passed": true
-      },
-      {
-        "test": "H restores the UI and cursor from idle viewing mode",
-        "passed": true
-      },
-      {
-        "test": "No old idle timer hides the normal-mode cursor",
-        "passed": true
-      },
-      {
-        "test": "Escape exits viewing mode",
-        "passed": true
-      },
-      {
-        "test": "Held pointer prevents cursor hiding during a drag",
-        "passed": true
-      },
-      {
-        "test": "Releasing a drag rearms the idle timer",
-        "passed": true
-      },
-      {
-        "test": "Viewing mode has a working exit",
-        "passed": true
-      },
-      {
-        "test": "Space keyboard shortcut pauses",
-        "passed": true
-      },
-      {
-        "test": "R keyboard shortcut returns to NOW",
-        "passed": true
-      },
-      {
-        "test": "No runtime errors during desktop interactions",
-        "passed": true
-      },
-      {
-        "test": "Mobile starts with all bodies",
-        "passed": true
-      },
-      {
-        "test": "Mobile playback bar stays within viewport",
-        "passed": true
-      },
-      {
-        "test": "Mobile page has no horizontal body overflow",
-        "passed": true
-      },
-      {
-        "test": "Mobile speed selection works",
-        "passed": true
-      },
-      {
-        "test": "Mobile settings fit and scroll within viewport",
-        "passed": true
-      },
-      {
-        "test": "Mobile has no runtime errors",
-        "passed": true
-      },
-      {
-        "test": "Narrow mobile playback stays inside the viewport",
-        "passed": true
-      },
-      {
-        "test": "One-day control remains reachable on a 320px viewport",
-        "passed": true
-      },
-      {
-        "test": "Farthest speed control remains reachable after horizontal scrolling",
-        "passed": true
-      },
-      {
-        "test": "Moon size and orbit remain matched across camera zoom and elevation",
-        "passed": true
-      },
-      {
-        "test": "Reduced-motion preference disables decorative animation by default",
-        "passed": true
-      },
-      {
-        "test": "Storage restrictions do not stop initialization",
-        "passed": true
-      }
-    ],
-    "desktop_fps": 60.3,
-    "errors": [],
-    "network_requests": [],
-    "execution": "Chromium, standalone HTML injected offline; desktop, mobile, reduced-motion and cursor/rotation regression tests."
-  },
-  "viewport": {
-    "passed": 32,
-    "tests": [
-      {
-        "test": "Release and both contact credits are current",
-        "passed": true
-      },
-      {
-        "test": "No interaction caption remains below the speed card",
-        "passed": true
-      },
-      {
-        "test": "Interaction guide directly precedes help shortcuts",
-        "passed": true
-      },
-      {
-        "test": "Speed card uses freed caption space below (83px bottom gap)",
-        "passed": true
-      },
-      {
-        "test": "No unrequested one-hour speed",
-        "passed": true
-      },
-      {
-        "test": "Settings can look up from below the ecliptic",
-        "passed": true
-      },
-      {
-        "test": "Left drag crosses from positive to negative elevation",
-        "passed": true
-      },
-      {
-        "test": "Middle drag down stops exactly at +20%",
-        "passed": true
-      },
-      {
-        "test": "Middle drag is pure vertical translation, no orbit/zoom or selection",
-        "passed": true
-      },
-      {
-        "test": "Downward pan applies in screen coordinates",
-        "passed": true
-      },
-      {
-        "test": "Middle drag up stops exactly at -20%",
-        "passed": true
-      },
-      {
-        "test": "Reset clears the pan and restores the new base position",
-        "passed": true
-      },
-      {
-        "test": "Horizontal middle drag has no effect",
-        "passed": true
-      },
-      {
-        "test": "Middle button prevents browser auxiliary/default scrolling on viewport",
-        "passed": true
-      },
-      {
-        "test": "Middle drag works while held",
-        "passed": true
-      },
-      {
-        "test": "Middle release clears active drag",
-        "passed": true
-      },
-      {
-        "test": "Every target including Moon and Pluto fills the same 68% viewport diameter",
-        "passed": true
-      },
-      {
-        "test": "Every target remains centered at maximum zoom",
-        "passed": true
-      },
-      {
-        "test": "All closeups use 1024x512 textures and the higher raster level",
-        "passed": true
-      },
-      {
-        "test": "All high-resolution textures join seamlessly at the longitude border",
-        "passed": true
-      },
-      {
-        "test": "Middle translation works at maximum zoom without changing size",
-        "passed": true
-      },
-      {
-        "test": "Saturn genuinely changes appearance from above/below/edge views",
-        "passed": true
-      },
-      {
-        "test": "ALL 11 bodies change pixels after 60 real-time seconds with effects disabled",
-        "passed": true
-      },
-      {
-        "test": "An identical paused time reuses each unchanged sprite",
-        "passed": true
-      },
-      {
-        "test": "During an orbit drag preview rendering stays bounded",
-        "passed": true
-      },
-      {
-        "test": "After orbit dragging settles the detailed raster is restored",
-        "passed": true
-      },
-      {
-        "test": "Low-power keeps its own bounded raster level",
-        "passed": true
-      },
-      {
-        "test": "Middle drag also works in viewing mode and held cursor remains visible",
-        "passed": true
-      },
-      {
-        "test": "Middle release rearms the viewing-mode cursor timer",
-        "passed": true
-      },
-      {
-        "test": "Mobile Pluto maximum also uses the same screen-relative diameter",
-        "passed": true
-      },
-      {
-        "test": "Mobile speed bar remains below the scene and above navigation",
-        "passed": true
-      },
-      {
-        "test": "No runtime errors or external requests in new interactions",
-        "passed": true
-      }
-    ],
-    "maximumSizes": [
-      {
-        "id": "sun",
-        "r": 315.52000000000004,
-        "x": 824,
-        "y": 510.4,
-        "texture": 1024,
-        "raster": 768
-      },
-      {
-        "id": "mercury",
-        "r": 315.52000000000004,
-        "x": 824,
-        "y": 510.4000000000001,
-        "texture": 1024,
-        "raster": 768
-      },
-      {
-        "id": "venus",
-        "r": 315.52000000000004,
-        "x": 824,
-        "y": 510.4,
-        "texture": 1024,
-        "raster": 768
-      },
-      {
-        "id": "earth",
-        "r": 315.52000000000004,
-        "x": 824,
-        "y": 510.39999999999986,
-        "texture": 1024,
-        "raster": 768
-      },
-      {
-        "id": "mars",
-        "r": 315.52000000000004,
-        "x": 824,
-        "y": 510.39999999999964,
-        "texture": 1024,
-        "raster": 768
-      },
-      {
-        "id": "jupiter",
-        "r": 315.52000000000004,
-        "x": 824,
-        "y": 510.39999999999964,
-        "texture": 1024,
-        "raster": 768
-      },
-      {
-        "id": "saturn",
-        "r": 315.52,
-        "x": 824,
-        "y": 510.39999999999964,
-        "texture": 1024,
-        "raster": 768
-      },
-      {
-        "id": "uranus",
-        "r": 315.52000000000004,
-        "x": 824,
-        "y": 510.39999999999964,
-        "texture": 1024,
-        "raster": 768
-      },
-      {
-        "id": "neptune",
-        "r": 315.52000000000004,
-        "x": 824,
-        "y": 510.39999999999964,
-        "texture": 1024,
-        "raster": 768
-      },
-      {
-        "id": "pluto",
-        "r": 315.52000000000004,
-        "x": 824,
-        "y": 510.39999999999964,
-        "texture": 1024,
-        "raster": 768
-      },
-      {
-        "id": "moon",
-        "r": 315.52000000000004,
-        "x": 824,
-        "y": 510.4,
-        "texture": 1024,
-        "raster": 768
-      }
-    ],
-    "oneMinuteRotation": [
-      {
-        "id": "sun",
-        "changedPixels": 187708,
-        "cacheChanged": true,
-        "degreesPerMinute": 0.009850275807722617,
-        "pausedReusesCanvas": true
-      },
-      {
-        "id": "mercury",
-        "changedPixels": 13608,
-        "cacheChanged": true,
-        "degreesPerMinute": 0.004262865327558572,
-        "pausedReusesCanvas": true
-      },
-      {
-        "id": "venus",
-        "changedPixels": 695,
-        "cacheChanged": true,
-        "degreesPerMinute": -0.0010287007509515481,
-        "pausedReusesCanvas": true
-      },
-      {
-        "id": "earth",
-        "changedPixels": 222683,
-        "cacheChanged": true,
-        "degreesPerMinute": 0.2506844487641497,
-        "pausedReusesCanvas": true
-      },
-      {
-        "id": "mars",
-        "changedPixels": 249469,
-        "cacheChanged": true,
-        "degreesPerMinute": 0.2436749298459877,
-        "pausedReusesCanvas": true
-      },
-      {
-        "id": "jupiter",
-        "changedPixels": 224078,
-        "cacheChanged": true,
-        "degreesPerMinute": 0.6045364414566909,
-        "pausedReusesCanvas": true
-      },
-      {
-        "id": "saturn",
-        "changedPixels": 202592,
-        "cacheChanged": true,
-        "degreesPerMinute": 0.5681519280340891,
-        "pausedReusesCanvas": true
-      },
-      {
-        "id": "uranus",
-        "changedPixels": 86577,
-        "cacheChanged": true,
-        "degreesPerMinute": -0.3478709012433164,
-        "pausedReusesCanvas": true
-      },
-      {
-        "id": "neptune",
-        "changedPixels": 145286,
-        "cacheChanged": true,
-        "degreesPerMinute": 0.37243947858473,
-        "pausedReusesCanvas": true
-      },
-      {
-        "id": "pluto",
-        "changedPixels": 68594,
-        "cacheChanged": true,
-        "degreesPerMinute": -0.03914059772389596,
-        "pausedReusesCanvas": true
-      },
-      {
-        "id": "moon",
-        "changedPixels": 26761,
-        "cacheChanged": true,
-        "degreesPerMinute": 0.009150248954483403,
-        "pausedReusesCanvas": true
-      }
-    ],
-    "errors": [],
-    "requests": []
-  }
+  "passed": 83,
+  "tests": [
+    {
+      "test": "Starts in actual, playing local time",
+      "passed": true
+    },
+    {
+      "test": "Actual clock synchronized with wall time",
+      "passed": true
+    },
+    {
+      "test": "Sun, 8 planets, Pluto and Moon render",
+      "passed": true
+    },
+    {
+      "test": "No external network requests",
+      "passed": true
+    },
+    {
+      "test": "Loading overlay dismissed",
+      "passed": true
+    },
+    {
+      "test": "All default orbit paths fit inside the viewport",
+      "passed": true
+    },
+    {
+      "test": "Default orbit bounds are five percent higher than v0.03",
+      "passed": true
+    },
+    {
+      "test": "One-hour playback is not added",
+      "passed": true
+    },
+    {
+      "test": "Earth screen radius is exactly 1.5 times its old radius",
+      "passed": true
+    },
+    {
+      "test": "There is no artificial surface-speed option",
+      "passed": true
+    },
+    {
+      "test": "Rotation uses the same timestamp for every body",
+      "passed": true
+    },
+    {
+      "test": "Planet textures are independent of decorative animation seconds",
+      "passed": true
+    },
+    {
+      "test": "Lunar orbit is 30 reference pixels, independent of the enlarged Earth",
+      "passed": true
+    },
+    {
+      "test": "Corona is cached, deterministic, and responds to the effects switch",
+      "passed": true
+    },
+    {
+      "test": "Canvas labels share the interpolated hit position for ALL bodies including Moon",
+      "passed": true
+    },
+    {
+      "test": "Earth/Moon avoidance uses intermediate positions, not a one-frame teleport",
+      "passed": true
+    },
+    {
+      "test": "Jupiter shows the correct 2.42 spins per second without artificially slowing it",
+      "passed": true
+    },
+    {
+      "test": "Saturn shows the correct 2.27 spins per second",
+      "passed": true
+    },
+    {
+      "test": "One day per second advances simulation at ×86400",
+      "passed": true
+    },
+    {
+      "test": "Time travel leaves the actual wall clock unaccelerated",
+      "passed": true
+    },
+    {
+      "test": "Pause freezes simulation time",
+      "passed": true
+    },
+    {
+      "test": "Pause freezes Sun and stars as well",
+      "passed": true
+    },
+    {
+      "test": "Pause shows the play SVG icon",
+      "passed": true
+    },
+    {
+      "test": "Resuming continues accelerated playback",
+      "passed": true
+    },
+    {
+      "test": "Actual-time button resets rate and date",
+      "passed": true
+    },
+    {
+      "test": "Keyboard-accessible Earth selector opens details",
+      "passed": true
+    },
+    {
+      "test": "Selected body shows its own rotation period",
+      "passed": true
+    },
+    {
+      "test": "Settings panel opens",
+      "passed": true
+    },
+    {
+      "test": "UI explains physical spin and the shared playback rate",
+      "passed": true
+    },
+    {
+      "test": "Pluto visibility toggles both orbit and navigation",
+      "passed": true
+    },
+    {
+      "test": "Moon visibility toggle works",
+      "passed": true
+    },
+    {
+      "test": "Disabling Sun activity removes flutter without a separate spin clock",
+      "passed": true
+    },
+    {
+      "test": "Label setting reaches renderer",
+      "passed": true
+    },
+    {
+      "test": "Low-power rendering limits pixel ratio",
+      "passed": true
+    },
+    {
+      "test": "Time zone can switch to UTC",
+      "passed": true
+    },
+    {
+      "test": "Selected date is exact in UTC and starts paused",
+      "passed": true
+    },
+    {
+      "test": "Speed button resumes a selected date",
+      "passed": true
+    },
+    {
+      "test": "Help is a modal dialog with accuracy disclosure",
+      "passed": true
+    },
+    {
+      "test": "Escape closes native modal",
+      "passed": true
+    },
+    {
+      "test": "Dragging rotates camera",
+      "passed": true
+    },
+    {
+      "test": "Mouse wheel zooms the view",
+      "passed": true
+    },
+    {
+      "test": "Reset restores 45-degree view and unit zoom",
+      "passed": true
+    },
+    {
+      "test": "sun close-view button increases zoom and tracks the target",
+      "passed": true
+    },
+    {
+      "test": "sun stays centered as simulation time advances",
+      "passed": true
+    },
+    {
+      "test": "earth close-view button increases zoom and tracks the target",
+      "passed": true
+    },
+    {
+      "test": "earth stays centered as simulation time advances",
+      "passed": true
+    },
+    {
+      "test": "jupiter close-view button increases zoom and tracks the target",
+      "passed": true
+    },
+    {
+      "test": "jupiter stays centered as simulation time advances",
+      "passed": true
+    },
+    {
+      "test": "High zoom supplies higher resolution surface textures",
+      "passed": true
+    },
+    {
+      "test": "Zoom owner clamps invalid and excessive input without corrupting camera",
+      "passed": true
+    },
+    {
+      "test": "Maximum zoom is visible and its plus button is disabled",
+      "passed": true
+    },
+    {
+      "test": "Minus control shares the zoom limit owner",
+      "passed": true
+    },
+    {
+      "test": "Overview button clears tracking and restores the requested lower composition",
+      "passed": true
+    },
+    {
+      "test": "Wheel zoom follows the planet under the pointer",
+      "passed": true
+    },
+    {
+      "test": "Double-clicking a body starts close observation, not fullscreen",
+      "passed": true
+    },
+    {
+      "test": "Keyboard zoom uses the same follow owner",
+      "passed": true
+    },
+    {
+      "test": "Far-away bodies are excluded from label/picking work during close observation",
+      "passed": true
+    },
+    {
+      "test": "Viewing mode hides controls but keeps real clock",
+      "passed": true
+    },
+    {
+      "test": "Viewing-mode entry starts the cursor idle timer",
+      "passed": true
+    },
+    {
+      "test": "Idle viewing mode hides the cursor on both canvas and controls",
+      "passed": true
+    },
+    {
+      "test": "Moving the pointer restores it without leaving viewing mode",
+      "passed": true
+    },
+    {
+      "test": "Cursor hides again after subsequent inactivity",
+      "passed": true
+    },
+    {
+      "test": "H restores the UI and cursor from idle viewing mode",
+      "passed": true
+    },
+    {
+      "test": "No old idle timer hides the normal-mode cursor",
+      "passed": true
+    },
+    {
+      "test": "Escape exits viewing mode",
+      "passed": true
+    },
+    {
+      "test": "Held pointer prevents cursor hiding during a drag",
+      "passed": true
+    },
+    {
+      "test": "Releasing a drag rearms the idle timer",
+      "passed": true
+    },
+    {
+      "test": "Viewing mode has a working exit",
+      "passed": true
+    },
+    {
+      "test": "Space keyboard shortcut pauses",
+      "passed": true
+    },
+    {
+      "test": "R keyboard shortcut returns to NOW",
+      "passed": true
+    },
+    {
+      "test": "No runtime errors during desktop interactions",
+      "passed": true
+    },
+    {
+      "test": "Mobile starts with all bodies",
+      "passed": true
+    },
+    {
+      "test": "Mobile playback bar stays within viewport",
+      "passed": true
+    },
+    {
+      "test": "Mobile page has no horizontal body overflow",
+      "passed": true
+    },
+    {
+      "test": "Mobile speed selection works",
+      "passed": true
+    },
+    {
+      "test": "Mobile settings fit and scroll within viewport",
+      "passed": true
+    },
+    {
+      "test": "Mobile has no runtime errors",
+      "passed": true
+    },
+    {
+      "test": "Narrow mobile playback stays inside the viewport",
+      "passed": true
+    },
+    {
+      "test": "One-day control remains reachable on a 320px viewport",
+      "passed": true
+    },
+    {
+      "test": "Farthest speed control remains reachable after horizontal scrolling",
+      "passed": true
+    },
+    {
+      "test": "Moon size and orbit remain matched across camera zoom and elevation",
+      "passed": true
+    },
+    {
+      "test": "Reduced-motion preference disables decorative animation by default",
+      "passed": true
+    },
+    {
+      "test": "Storage restrictions do not stop initialization",
+      "passed": true
+    }
+  ],
+  "desktop_fps": 58.8,
+  "errors": [],
+  "network_requests": [
+    "blob:null/3858f8bf-bbe0-409c-a932-34f9019d22f0"
+  ],
+  "execution": "Chromium, standalone HTML injected offline; desktop, mobile, reduced-motion and cursor/rotation regression tests."
 }

@@ -1,0 +1,38 @@
+{
+  "index.html": {
+    "bytes": 16302,
+    "sha256": "677eb571d36e0bd5d1673954fcf89fa230ca6aae6c937f4c59959ebe582a4722"
+  },
+  "styles.css": {
+    "bytes": 19232,
+    "sha256": "dd1ce4b1a93b618f0db1d5d2ce500912768af38027460f2eb370273de7e0200c"
+  },
+  "src/astro.js": {
+    "bytes": 10115,
+    "sha256": "5811fee0da0c6f45119bf473d197b12c2f59f81d599a0375463095d53ddb41fb"
+  },
+  "src/surface.js": {
+    "bytes": 19974,
+    "sha256": "1cd8d3e65e6a71af1df5a8f37790b70db063682a18c1d20bbee69f046ab30fa2"
+  },
+  "src/renderer.js": {
+    "bytes": 25362,
+    "sha256": "14e0e05c32a6577ca1fda2067536a71b14ccf0e44e657d6a0e825bd20a71ff83"
+  },
+  "src/app.js": {
+    "bytes": 23348,
+    "sha256": "bf8552196715f0cda541a29488254411e362c218101e0c0ba8e3521d44cf9629"
+  },
+  "package.json": {
+    "bytes": 318,
+    "sha256": "09d85689aecc06cd895d36d481e2c290424b50971be09ac47a4860f7a8f9c715"
+  },
+  "tools/build.cjs": {
+    "bytes": 842,
+    "sha256": "4479482b8bc017703a11ae74f08c412e4edfabed934576cd772aaa0a5b93f3df"
+  },
+  "dist/Solar-Time_v0.05.html": {
+    "bytes": 114238,
+    "sha256": "0324a1a36f490588d381d9a1fec80a997947756fded702fad9e4e543b3014d95"
+  }
+}

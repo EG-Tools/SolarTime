@@ -36,7 +36,7 @@ test('Ring projection changes with camera azimuth and elevation, not a billboard
  const r=renderer(),b=A.BODIES.find(b=>b.id==='saturn');const f=r.bodyFrame(b);r.setOrbitView(1,-.6);const g=r.bodyFrame(b);
  assert.notEqual(f.u.x,g.u.x);assert.notEqual(f.v.y,g.v.y);
  // Exactly edge-on when the line of sight lies in Saturn's equatorial plane.
- r.setOrbitView(0,-A.rotationPoleTilt(b));const {u,v,pole}=r.bodyFrame(b);
+ const n=A.bodyAxes(b).u;r.setOrbitView(Math.atan2(-n.x,-n.y),Math.asin(n.z));const {u,v,pole}=r.bodyFrame(b);
  near(u.x*v.y-u.y*v.x,0);near(pole.z,0);
 });
 test('Front and back ring passes split at view-space depth, including underside views',()=>{
@@ -64,8 +64,13 @@ test('Illustrative zoom changes no physical sizes, lunar spacing, periods or tim
  const r=renderer(),t=Date.UTC(2026,8,11),before=all.map(b=>A.rotationAt(b,t));r.focusBody('moon');r.setZoom(64);
  assert.deepEqual(all.map(b=>A.rotationAt(b,t)),before);near(A.MOON.displayOrbit,30);near(A.MOON.size,3.9);near(A.BODIES[2].size,17.25);
 });
-test('Geometry cache remains bounded across repeated high-resolution camera changes',()=>{
- const r=renderer(),body=A.BODIES[4];for(let i=0;i<5;i++){r.setOrbitView(i*.1,-.3);r.surfaceMap(body,768);assert.ok(r.mapPixels<=768*768*2+65536);assert.ok(r.surfaceMaps.size<=2);}
+test('Worker geometry cache remains bounded across high-resolution camera changes',()=>{
+ const {Engine}=require('../src/surface.js').kernel(),engine=Object.create(Engine.prototype),r=renderer(),body=A.BODIES[4];Object.assign(engine,{cpuMaps:new Map(),textures:new Map(),mapPixels:0,stats:{mapsBuilt:0}});
+ for(let i=0;i<6;i++){
+  r.setOrbitView(i*.1,-.3);const axes=r.bodyFrame(body),frame=Object.fromEntries(Object.entries(axes).map(([k,v])=>[k,[v.x,v.y,v.z]]));
+  const m=engine.cpuMap({frame},1024);assert.ok(m.length>0);assert.ok(engine.mapPixels<=1024*1024+384*384*4);
+ }
+ engine.clear();assert.equal(engine.mapPixels,0);
 });
 test('One-minute rotations remain signed and correct for ALL bodies',()=>{
  const t=Date.UTC(2026,8,11,4,20);for(const b of all){const d=A.wrap(A.rotationAt(b,t+60000)-A.rotationAt(b,t)+Math.PI)-Math.PI;near(d,A.TAU*60000/(A.DAY*b.spin));assert.notEqual(d,0);}
@@ -87,18 +92,19 @@ test('Pan is a viewport-height fraction across resized windows and tracking',()=
  r.w=1920;r.h=1080;r.rebuild(A.J2000);near(r.centerY,1080*.7);near(r.camera.panY,.15);
 });
 
-test('Shine timing is exactly 3x, independent of physical rotation, star time and pause',()=>{
+test('Shine timing is exactly 6x, independent of physical rotation, star time and pause',()=>{
  const source=fs.readFileSync(require.resolve('../src/renderer.js'),'utf8');
  const SlowSandbox={window:{SolarAstro:A},performance:{now:()=>0}};
- vm.runInNewContext(source.replace('seconds*3:0','seconds:0'),SlowSandbox);
+ vm.runInNewContext(source.replace('seconds*6:0','seconds:0'),SlowSandbox);
  const trace=(R,seconds,activity=true)=>{
   const r=Object.create(R.prototype);r.options={activity,quality:'low'};r.dpr=1;r.coronaTexture={width:384};
   const calls=[],c=new Proxy({}, {get(_,key){if(key==='createRadialGradient')return()=>({addColorStop(){}});return(...args)=>calls.push([key,...args]);},set(_,key,value){calls.push([key,value]);return true;}});
   r.corona(c,0,0,30,seconds);return calls;
  };
- assert.equal(JSON.stringify(trace(Renderer,5)),JSON.stringify(trace(SlowSandbox.window.SolarRenderer,15)));
+ assert.equal(JSON.stringify(trace(Renderer,5)),JSON.stringify(trace(SlowSandbox.window.SolarRenderer,30)));
  assert.equal(JSON.stringify(trace(Renderer,999,false)),JSON.stringify(trace(Renderer,0,false)));
  assert.equal(JSON.stringify(trace(Renderer,5)),JSON.stringify(trace(Renderer,5)));
  assert.ok(source.includes('const spin=A.rotationAt(body,ms)'));
- assert.ok(source.includes('this.starGlow(c,s.x,s.y,s.r,alpha)'));
+ assert.ok(source.includes('this.sky.decorate(c,seconds,this.options,this.starGlow.bind(this))'));
+ assert.ok(!source.includes('loop(c,'));
 });

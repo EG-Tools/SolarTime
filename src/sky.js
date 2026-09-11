@@ -1,0 +1,109 @@
+/* Seamless celestial sphere. Camera rotation and decorative drift are independent
+   of physical planetary time. Panorama/galaxies are artistic, not a star catalogue. */
+(function(root){'use strict';
+const TAU=Math.PI*2,DRIFT=.22*Math.PI/180;
+function rand(seed){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
+function shader(g,type,source){const s=g.createShader(type);g.shaderSource(s,source);g.compileShader(s);if(!g.getShaderParameter(s,g.COMPILE_STATUS))throw Error(g.getShaderInfoLog(s));return s;}
+function rotate(p,angle,axis){const c=Math.cos(angle),s=Math.sin(angle);return axis==='z'?{x:p.x*c-p.y*s,y:p.x*s+p.y*c,z:p.z}:{x:p.x,y:p.y*c-p.z*s,z:p.y*s+p.z*c};}
+class Sky{
+ constructor(canvas){
+  this.canvas=canvas;this.ready=false;this.disposed=false;this.abort=new AbortController();this.gl=null;this.stats={backend:'loading',frames:0};this.random=rand(610639);this.comet=null;this.nextComet=18+this.random()*22;this.lastTime=0;
+  this.offset=0;this.lastEffect=null;this.tanFov=Math.tan(38*Math.PI/180);
+  canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.ready=false;this.stats.backend='context-lost';},{signal:this.abort.signal});
+  canvas.addEventListener('webglcontextrestored',()=>{if(!this.disposed)this.initialize();},{signal:this.abort.signal});
+  this.initialize();
+ }
+ async initialize(){
+  const image=new Image();image.src=root.SolarAssets.sky;
+  try{await image.decode();if(this.disposed)return;this.image=image;
+   const g=this.canvas.getContext('webgl',{alpha:false,antialias:false,preserveDrawingBuffer:true});if(!g)throw Error('WebGL unavailable');this.gl=g;
+   const vs=shader(g,g.VERTEX_SHADER,'attribute vec2 a;varying vec2 p;void main(){p=a;gl_Position=vec4(a,0.,1.);}');
+   const fs=shader(g,g.FRAGMENT_SHADER,`precision highp float;varying vec2 p;uniform sampler2D sky;uniform vec3 right,down,forward;uniform vec2 size;uniform float drift,fov;
+    void main(){vec3 ray=normalize(vec3(p.x*size.x/size.y*fov,-p.y*fov,-1.));vec3 q=right*ray.x+down*ray.y+forward*ray.z;
+    float cs=cos(drift),sn=sin(drift);q=vec3(q.x*cs-q.y*sn,q.x*sn+q.y*cs,q.z);
+    q=vec3(q.x,q.y*.8660254-q.z*.5,q.y*.5+q.z*.8660254);
+    vec2 uv=vec2(fract(atan(q.y,q.x)/6.28318530718+.5),.5-asin(clamp(q.z,-1.,1.))/3.14159265359);
+    vec3 col=texture2D(sky,uv).rgb;float vignette=1.-.24*pow(clamp(length(p)*.6,0.,1.),2.);
+    col=pow(col,vec3(.95))*.67*vignette;gl_FragColor=vec4(col,1.);}`);
+   this.program=g.createProgram();g.attachShader(this.program,vs);g.attachShader(this.program,fs);g.linkProgram(this.program);g.deleteShader(vs);g.deleteShader(fs);if(!g.getProgramParameter(this.program,g.LINK_STATUS))throw Error(g.getProgramInfoLog(this.program));
+   this.buffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
+   this.texture=g.createTexture();g.bindTexture(g.TEXTURE_2D,this.texture);g.texImage2D(g.TEXTURE_2D,0,g.RGB,g.RGB,g.UNSIGNED_BYTE,image);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
+   this.u=Object.fromEntries(['right','down','forward','size','drift','fov','sky'].map(k=>[k,g.getUniformLocation(this.program,k)]));this.stats.backend='gpu';this.ready=true;
+  }catch(error){if(this.disposed)return;this.stats.error=error.message;this.stats.backend='compatibility';this.ready=!!this.image;
+   // A small spherical software raster is used only when WebGL is unavailable.
+   if(!this.gl){this.ctx=this.canvas.getContext('2d');const c=document.createElement('canvas');c.width=this.image?.width||1;c.height=this.image?.height||1;if(this.image){const cx=c.getContext('2d');cx.drawImage(this.image,0,0);this.pixels=cx.getImageData(0,0,c.width,c.height);}}
+  }
+ }
+ resize(w,h,dpr){this.w=w;this.h=h;this.canvas.width=Math.max(1,Math.round(w*Math.min(dpr,1.5)));this.canvas.height=Math.max(1,Math.round(h*Math.min(dpr,1.5)));this.lastKey='';}
+ axes(camera){const a=camera.azimuth,e=camera.elevation,c=Math.cos(a),s=Math.sin(a),ce=Math.cos(e),se=Math.sin(e);return {right:[c,-s,0],down:[-s*se,-c*se,-ce],forward:[-s*ce,-c*ce,se]};}
+ draw(seconds,camera,options){
+  if(this.lastEffect!==null&&options.skyMotion)this.offset=(this.offset+Math.max(0,seconds-this.lastEffect)*DRIFT)%TAU;this.lastEffect=seconds;
+  this.camera=camera;this.axesNow=this.axes(camera);if(!this.ready||this.disposed)return;
+  const key=[this.offset,camera.azimuth,camera.elevation,this.w,this.h].join(':');
+  if(!this.gl){
+    this.softwareDesired={key,geometry:[camera.azimuth,camera.elevation,this.w,this.h].join(':'),axes:this.axesNow,offset:this.offset,w:this.w,h:this.h};
+    this.softwarePump();return;
+  }
+  if(key===this.lastKey)return;this.lastKey=key;
+  if(this.gl){const g=this.gl;g.viewport(0,0,this.canvas.width,this.canvas.height);g.useProgram(this.program);g.bindBuffer(g.ARRAY_BUFFER,this.buffer);const a=g.getAttribLocation(this.program,'a');g.enableVertexAttribArray(a);g.vertexAttribPointer(a,2,g.FLOAT,false,0,0);
+   for(const k of ['right','down','forward'])g.uniform3fv(this.u[k],this.axesNow[k]);g.uniform2f(this.u.size,this.w,this.h);g.uniform1f(this.u.drift,this.offset);g.uniform1f(this.u.fov,this.tanFov);g.uniform1i(this.u.sky,0);g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,this.texture);g.drawArrays(g.TRIANGLES,0,6);
+  }this.stats.frames++;
+ }
+ softwarePump(){
+  if(this.disposed||this.softwareBusy||!this.ctx||!this.pixels||!this.softwareDesired)return;
+  const request=this.softwareDesired;
+  if(request.key===this.lastKey)return;
+  const delay=Math.max(0,160-(performance.now()-(this.lastSoftware||-Infinity)));
+  if(delay>0){if(!this.softwareTimer)this.softwareTimer=setTimeout(()=>{this.softwareTimer=null;this.softwarePump();},delay);return;}
+  this.softwareBusy=true;this.lastSoftware=performance.now();
+  const sw=512,sh=Math.max(1,Math.round(sw*request.h/request.w));
+  if(!this.softwareCanvas)this.softwareCanvas=document.createElement('canvas');
+  const canvas=this.softwareCanvas;
+  if(canvas.width!==sw||canvas.height!==sh){canvas.width=sw;canvas.height=sh;this.softwareImage=canvas.getContext('2d').createImageData(sw,sh);}
+  const image=this.softwareImage,tex=this.pixels,a=request.axes,fov=this.tanFov;
+  const cs=Math.cos(request.offset),sn=Math.sin(request.offset),aspect=request.w/request.h;
+  let row=0;
+  const chunk=()=>{
+    this.softwareTimer=null;if(this.disposed){this.softwareBusy=false;return;}
+    const start=performance.now();
+    while(row<sh){
+      const y=row++,qy=((y+.5)/sh*2-1)*fov;
+      for(let x=0;x<sw;x++){
+        const qx=((x+.5)/sw*2-1)*aspect*fov,len=Math.hypot(qx,qy,1);
+        const wx=(a.right[0]*qx+a.down[0]*qy-a.forward[0])/len,wy=(a.right[1]*qx+a.down[1]*qy-a.forward[1])/len,wz=(a.right[2]*qx+a.down[2]*qy-a.forward[2])/len;
+        const px=wx*cs-wy*sn,ty=wx*sn+wy*cs,py=ty*.86602540378-wz*.5,pz=ty*.5+wz*.86602540378;
+        const u=(Math.atan2(py,px)/TAU+1.5)%1,v=.5-Math.asin(Math.max(-1,Math.min(1,pz)))/Math.PI;
+        const j=(Math.min(tex.height-1,Math.floor(v*tex.height))*tex.width+Math.floor(u*tex.width))*4,i=(y*sw+x)*4;
+        image.data[i]=tex.data[j]*.67;image.data[i+1]=tex.data[j+1]*.67;image.data[i+2]=tex.data[j+2]*.67;image.data[i+3]=255;
+      }
+      if(performance.now()-start>5&&row<sh){this.softwareTimer=setTimeout(chunk,0);return;}
+    }
+    if(this.softwareDesired?.geometry===request.geometry){canvas.getContext('2d').putImageData(image,0,0);this.ctx.drawImage(canvas,0,0,this.canvas.width,this.canvas.height);this.lastKey=request.key;this.stats.frames++;}
+    this.softwareBusy=false;this.softwarePump();
+  };
+  this.softwareTimer=setTimeout(chunk,0);
+ }
+
+ toPanorama(world){return rotate(rotate(world,this.offset,'z'),Math.PI/6,'x');}
+ fromPanorama(p){return rotate(rotate(p,-Math.PI/6,'x'),-this.offset,'z');}
+ ray(x,y){const a=this.axesNow,qx=(x/this.w*2-1)*this.w/this.h*this.tanFov,qy=(y/this.h*2-1)*this.tanFov,len=Math.hypot(qx,qy,1);return {x:(a.right[0]*qx+a.down[0]*qy-a.forward[0])/len,y:(a.right[1]*qx+a.down[1]*qy-a.forward[1])/len,z:(a.right[2]*qx+a.down[2]*qy-a.forward[2])/len};}
+ project(p){const world=this.fromPanorama(p),axes=this.axesNow;const dot=a=>a[0]*world.x+a[1]*world.y+a[2]*world.z,z=dot(axes.forward);if(z>=-.08)return null;return {x:(1+dot(axes.right)/(-z*this.tanFov*this.w/this.h))*this.w/2,y:(1+dot(axes.down)/(-z*this.tanFov))*this.h/2};}
+ decorate(ctx,seconds,options,glow){
+  if(!this.axesNow)return;
+  if(options.twinkle)for(const [x,y,z,r,brightness,phase] of root.SolarAssets.stars){const p=this.project({x,y,z});if(!p||p.x<0||p.x>this.w||p.y<0||p.y>this.h)continue;const period=6+phase,t=((seconds+phase)%period)/period,pulse=Math.max(0,Math.sin(t*TAU))**16;glow(ctx,p.x,p.y,r*.8,brightness*(.32+pulse*.75));}
+  if(!options.comets){this.comet=null;this.nextComet=Math.max(this.nextComet,seconds+15);return;}
+  if(seconds<this.lastTime){this.nextComet=seconds+20;this.comet=null;}this.lastTime=seconds;
+  if(!this.comet&&seconds>=this.nextComet){
+   const left=this.random()<.5,sy=this.h*(.10+this.random()*.40);const start=this.toPanorama(this.ray(left?-this.w*.05:this.w*1.05,sy));const end=this.toPanorama(this.ray(left?this.w*1.05:-this.w*.05,sy+this.h*(this.random()*.3-.1)));
+   this.comet={start,end,time:seconds,duration:7+this.random()*6};this.nextComet=seconds+50+this.random()*100;
+  }
+  if(!this.comet)return;const k=this.comet,t=(seconds-k.time)/k.duration;if(t>1){this.comet=null;return;}
+  const at=f=>{const q={x:k.start.x*(1-f)+k.end.x*f,y:k.start.y*(1-f)+k.end.y*f,z:k.start.z*(1-f)+k.end.z*f},n=Math.hypot(q.x,q.y,q.z);return this.project({x:q.x/n,y:q.y/n,z:q.z/n});};
+  const head=at(t),tail=at(t-.06);if(!head||!tail)return;const life=Math.sin(t*Math.PI)**.6;
+  ctx.save();ctx.globalAlpha=life*.55;const g=ctx.createLinearGradient(tail.x,tail.y,head.x,head.y);g.addColorStop(0,'rgba(108,157,210,0)');g.addColorStop(.8,'rgba(140,192,238,.24)');g.addColorStop(1,'rgba(218,237,255,.7)');
+  ctx.strokeStyle=g;ctx.lineWidth=1.7;ctx.beginPath();ctx.moveTo(tail.x,tail.y);ctx.lineTo(head.x,head.y);ctx.stroke();glow(ctx,head.x,head.y,1.05,.5);ctx.restore();
+ }
+ dispose(){this.disposed=true;clearTimeout(this.softwareTimer);this.softwareTimer=null;this.softwareDesired=null;this.softwareImage=null;this.softwareCanvas=null;this.abort.abort();if(this.gl){this.gl.deleteTexture(this.texture);this.gl.deleteBuffer(this.buffer);this.gl.deleteProgram(this.program);this.gl.getExtension('WEBGL_lose_context')?.loseContext();}this.image=null;this.pixels=null;this.comet=null;}
+}
+root.SolarSky=Sky;
+})(window);
