@@ -1,10 +1,21 @@
 # SOLAR TIME
 
-**Life User · Solar Time v0.04 · Lyrikey@Naver.com**
+**Life User · Solar Time v0.05 · Lyrikey@Naver.com**
 
 실제 기기 시각과 같은 시간축에서 태양·8개 행성·지구의 달·명왕성이 움직이는 태양계 시계. 기본 JavaScript, CSS, Canvas 2D로 구현했으며 외부 라이브러리·이미지·CDN·계정 없이 실행됩니다.
 
-## v0.04 변경
+## v0.05 복원
+
+이 버전은 v0.04 위에 일부 모듈만 병합된 상태를 완성합니다. 버전 표시만 변경한 것이 아닙니다.
+
+- `index.html`과 단일 HTML 빌드가 `surface.js`를 렌더러보다 먼저 불러옵니다.
+- 화면에 보이는 천체의 표면만 공통 작업 스레드에서 계산합니다. 태양의 샤인만 보일 때 숨겨진 태양 표면까지 계산하지 않습니다.
+- 확대용 표면은 2048×1024, 초점 천체의 래스터는 최대 1024×1024입니다. 실측 사진이 아닌 절차적 표면입니다. 작업 스레드가 불가능한 환경에서는 같은 커널의 저해상도 호환 경로를 사용합니다.
+- 요청은 최신 상태로 합쳐지며, 동시에 실행하는 작업 묶음은 하나입니다. 기하 정보·시각 무효화·화면 밖 대상·수명주기가 바뀌면 오래된 결과는 폐기합니다. 탭을 숨기거나 페이지를 떠나면 작업자를 종료합니다.
+- 하단 행성 버튼을 화면 중앙에 정렬하고 재생 카드를 더 내렸습니다. 제작자 표시를 Life User로 통일했습니다.
+- 태양 주변 샤인은 v0.04보다 두 배 빠릅니다. 물리적 자전·공전 속도는 변경하지 않았습니다.
+
+## v0.04 변경 (이전 버전)
 
 - **상하 시점**: 좌클릭 드래그·방향키·설정 슬라이더 모두 -90°에서 +90°까지 조절하여 태양계 아래쪽도 볼 수 있습니다.
 - **고리와 극점**: 토성·천왕성 고리는 행성 표면과 같은 자전축 좌표계를 사용하는 적도면에 배치합니다. 카메라 각도에 따라 기울기와 앞뒤 가림이 함께 변합니다. 고리 입자의 궤도 운동까지 계산하는 모형은 아닙니다.
@@ -35,7 +46,7 @@
 
 ## 실행과 배포
 
-루트의 `index.html`을 열면 로컬에서 실행됩니다. 이 v0.04 패키지는 소스 업로드가 도구 보안 검사에서 차단되어 아직 GitHub Pages에 반영되지 않았습니다. 게시된 사이트와 이 파일의 버전을 구분하세요. Pages는 `main` 브랜치의 루트를 게시합니다. 루트에 `index.html`, `styles.css`, `src/` 구조를 유지하세요.
+루트의 `index.html` 또는 `dist/Solar-Time_v0.05.html`을 열면 로컬에서 실행됩니다. 이 복원 패키지의 GitHub 업로드는 보안 검사에서 차단되어, 생성 시점에는 공개 사이트에 반영되지 않았습니다. Pages는 `main` 브랜치의 루트를 게시합니다. 루트에 `index.html`, `styles.css`, `src/` 구조를 유지하세요.
 
 오프라인 단일 HTML을 만들려면 Node.js 18 이상에서 실행합니다. `npm install`은 필요 없습니다.
 
@@ -44,7 +55,7 @@ npm test
 npm run build
 ```
 
-생성되는 `dist/Solar-Time_v0.04.html`을 Chrome 또는 Edge에서 열면 됩니다. `dist/`의 이전 버전 HTML은 보관본입니다. 소스를 고친 뒤에는 빌드를 다시 실행합니다.
+생성되는 `dist/Solar-Time_v0.05.html`을 Chrome 또는 Edge에서 열면 됩니다. `dist/`의 이전 버전 HTML은 보관본입니다. 소스를 고친 뒤에는 빌드를 다시 실행합니다.
 
 ## 시간과 조작
 
@@ -97,3 +108,5 @@ npm run build
 이름 재배치 애니메이션은 UI 동작입니다. 공전 일시정지 후에도 이름의 충돌 회피 전환은 마저 완료합니다. 감상 모드의 커서 자동 숨김은 v0.02와 같습니다.
 
 수치·UI 배치 회귀: `npm test`. 오프라인 브라우저 회귀: `npm run build` 후 `python tests/browser_test.py` (Python Playwright와 Chromium 필요). 추가 뷰포트 회귀는 `python tests/view_browser_test.py`로 실행합니다. 검증 범위는 `docs/QA.md`를 참고하세요. 저장소의 배포 상태는 GitHub Pages의 Actions 기록을 기준으로 확인합니다. `docs/preview.png`는 v0.04 검증 중 촬영한 화면입니다.
+
+복원 검증: `npm test`, `python tests/browser_test.py`, `python tests/recovery_browser_test.py`. `tests/view_browser_test.py`는 보관된 v0.04 단일 HTML에 대한 이전 회귀 검사입니다.

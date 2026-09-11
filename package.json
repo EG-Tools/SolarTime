@@ -1,6 +1,6 @@
 {
   "name": "eg-solar-time",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
   "description": "Offline solar-system clock with real-time orbits, a procedural Sun and twinkling stars.",
   "scripts": {
