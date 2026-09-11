@@ -17,3 +17,6 @@
 @media(max-width:365px){.speed-button{padding:10px 5px}.speed-button span:not(.tiny-dot){font-size:7px}.playback-bar{gap:3px}.playback{width:calc(100% - 20px)}.planet-nav{gap:14px}.wall-clock{font-size:54px}}
 @media(max-height:630px) and (min-width:681px){.masthead{top:16px}.clock-face{top:17px}.clock-face .eyebrow{display:none}.wall-clock{font-size:54px}.date-line{margin-top:5px;font-size:9px}.scene-status{top:102px}.playback{bottom:52px}.playback-caption{display:none}.interaction-hint{display:none}.footer{bottom:12px}.scale-note{display:none}.body-panel{bottom:120px;left:23px;width:226px;padding:19px}.body-panel>p{font-size:10px}.body-stats{margin-top:13px;padding-top:12px}.settings-panel{top:60px;max-height:calc(100vh - 75px);overflow:auto}.view-controls{right:15px}.modal{max-height:90vh}body.zen .clock-face{top:17px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}.loading{transition:none}}
+
+/* Override inline canvas hover/drag cursors throughout idle viewing mode. */
+body.zen:not(.pointer-awake),body.zen:not(.pointer-awake) *{cursor:none!important}

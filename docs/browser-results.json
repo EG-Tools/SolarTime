@@ -1,5 +1,5 @@
 {
-  "passed": 41,
+  "passed": 56,
   "tests": [
     {
       "test": "Starts in actual, playing local time",
@@ -23,6 +23,22 @@
     },
     {
       "test": "All default orbit paths fit inside the viewport",
+      "passed": true
+    },
+    {
+      "test": "Earth screen radius is exactly 1.5 times its old radius",
+      "passed": true
+    },
+    {
+      "test": "There is no artificial surface-speed option",
+      "passed": true
+    },
+    {
+      "test": "Rotation uses the same timestamp for every body",
+      "passed": true
+    },
+    {
+      "test": "Planet textures are independent of decorative animation seconds",
       "passed": true
     },
     {
@@ -58,7 +74,15 @@
       "passed": true
     },
     {
+      "test": "Selected body shows its own rotation period",
+      "passed": true
+    },
+    {
       "test": "Settings panel opens",
+      "passed": true
+    },
+    {
+      "test": "UI explains physical spin and the shared playback rate",
       "passed": true
     },
     {
@@ -70,7 +94,7 @@
       "passed": true
     },
     {
-      "test": "Disabling Sun activity freezes its texture",
+      "test": "Disabling Sun activity removes flutter without a separate spin clock",
       "passed": true
     },
     {
@@ -115,6 +139,42 @@
     },
     {
       "test": "Viewing mode hides controls but keeps real clock",
+      "passed": true
+    },
+    {
+      "test": "Viewing-mode entry starts the cursor idle timer",
+      "passed": true
+    },
+    {
+      "test": "Idle viewing mode hides the cursor on both canvas and controls",
+      "passed": true
+    },
+    {
+      "test": "Moving the pointer restores it without leaving viewing mode",
+      "passed": true
+    },
+    {
+      "test": "Cursor hides again after subsequent inactivity",
+      "passed": true
+    },
+    {
+      "test": "H restores the UI and cursor from idle viewing mode",
+      "passed": true
+    },
+    {
+      "test": "No old idle timer hides the normal-mode cursor",
+      "passed": true
+    },
+    {
+      "test": "Escape exits viewing mode",
+      "passed": true
+    },
+    {
+      "test": "Held pointer prevents cursor hiding during a drag",
+      "passed": true
+    },
+    {
+      "test": "Releasing a drag rearms the idle timer",
       "passed": true
     },
     {
@@ -169,5 +229,5 @@
   "desktop_fps": 59.8,
   "errors": [],
   "network_requests": [],
-  "execution": "Chromium, standalone HTML injected offline; file:// and HTTP navigation are blocked by the test environment."
+  "execution": "Chromium, standalone HTML injected offline; desktop, mobile, reduced-motion and cursor/rotation regression tests."
 }

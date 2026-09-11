@@ -1,4 +1,4 @@
-/* Solar Time v0.01 | No runtime dependencies.
+/* Solar Time v0.02 | No runtime dependencies.
  * Approximate, heliocentric J2000 ecliptic positions, NOT an observing ephemeris.
  * Planet elements: JPL / Standish & Williams, 3000 BC–3000 AD fit, tables 2a/2b.
  * https://ssd.jpl.nasa.gov/planets/approx_pos.html
@@ -16,6 +16,9 @@
   const J2000 = Date.UTC(2000, 0, 1, 12), MIN_TIME = Date.UTC(1800, 0, 1), MAX_TIME = Date.UTC(2999, 11, 31, 23, 59, 59);
   const wrap = (v, m = TAU) => ((v % m) + m) % m;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  // Signed sidereal rotation periods in Earth days, not solar-day lengths.
+  // Saturn: Cassini ring-seismology representative period (NASA, 2019).
+  // Uranus: Hubble auroral period (NASA, 2025). See README.md for sources.
   const defs = [
     ['mercury','수성','MERCURY', 95, 6.5,'#baa999',87.9691,58.646,0.034,
       [0.38709843,.20563661,7.00559432,252.25166724,77.45771895,48.33961819],
@@ -23,7 +26,7 @@
     ['venus','금성','VENUS',143,10.5,'#e3bd7c',224.701,-243.025,177.36,
       [.72332102,.00676399,3.39777545,181.97970850,131.76755713,76.67261496],
       [-.00000026,-.00005107,.00043494,58517.81560260,.05679648,-.27274174]],
-    ['earth','지구','EARTH',198,11.5,'#73b9ec',365.256,0.99726968,23.439,
+    ['earth','지구','EARTH',198,17.25,'#73b9ec',365.256,0.99726968,23.439,
       [1.00000018,.01673163,-.00054346,100.46691572,102.93005885,-5.11260389],
       [-.00000003,-.00003661,-.01337178,35999.37306329,.31795260,-.24123856]],
     ['mars','화성','MARS',254,8.5,'#d88762',686.98,1.025957,25.19,
@@ -32,10 +35,10 @@
     ['jupiter','목성','JUPITER',344,29,'#d7b59a',4332.589,.41354,3.13,
       [5.20248019,.04853590,1.29861416,34.33479152,14.27495244,100.29282654],
       [-.00002864,.00018026,-.00322699,3034.90371757,.18199196,.13024619],[-.00012452,.06064060,-.35635438,38.35125]],
-    ['saturn','토성','SATURN',440,24,'#dbc59b',10759.22,.44401,26.73,
+    ['saturn','토성','SATURN',440,24,'#dbc59b',10759.22,(10*3600+33*60+38)/86400,26.73,
       [9.54149883,.05550825,2.49424102,50.07571329,92.86136063,113.63998702],
       [-.00003065,-.00032044,.00451969,1222.11494724,.54179478,-.25015002],[.00025899,-.13434469,.87320147,38.35125]],
-    ['uranus','천왕성','URANUS',533,16.5,'#9ed7dc',30685.4,-.71833,97.77,
+    ['uranus','천왕성','URANUS',533,16.5,'#9ed7dc',30685.4,-(17*3600+14*60+52)/86400,97.77,
       [19.18797948,.04685740,.77298127,314.20276625,172.43404441,73.96250215],
       [-.00020455,-.00001550,-.00180155,428.49512595,.09266985,.05739699],[.00058331,-.97731848,.17689245,7.67025]],
     ['neptune','해왕성','NEPTUNE',625,16,'#5389ef',60189,.67125,28.32,
@@ -62,6 +65,18 @@
     description:'태양계의 중심. 표면의 입상 조직과 움직이는 코로나, 홍염은 감상을 위한 시각 효과입니다.'});
   const MOON = Object.freeze({id:'moon',ko:'달',en:'MOON',size:3.9,color:'#d0ced0',period:27.321661,spin:27.321661,tilt:6.68,
     description:'지구를 약 27.32일에 한 바퀴 도는 유일한 자연 위성. 거리와 크기는 보기 편하게 확대했습니다.'});
+  // One rotation authority. The SAME simulation timestamp drives orbits and spins.
+  // Zero longitude at J2000 is illustrative; this is not a prime-meridian ephemeris.
+  function rotationAt(body, ms) {
+    if (!Number.isFinite(ms) || !Number.isFinite(body.spin) || body.spin===0)
+      throw new RangeError('Rotation requires a finite timestamp and a nonzero sidereal period.');
+    return wrap((ms-J2000)/(DAY*body.spin),1)*TAU;
+  }
+  function rotationPoleTilt(body) {
+    // Signed retrograde period already reverses angular velocity. Use its northern
+    // pole here, otherwise tilt > 90 degrees would reverse the direction twice.
+    return (body.spin<0?180-body.tilt:body.tilt)*DEG;
+  }
   function eccentricAnomaly(M, e) {
     M = wrap(M + Math.PI) - Math.PI;
     let E = M;
@@ -132,5 +147,5 @@
     }
     now(mono,wall=Date.now()) { this.anchorMs=wall; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false; }
   }
-  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,BODIES,SUN,MOON,wrap,clamp,eccentricAnomaly,elementsAt,pointOnOrbit,positionAt,orbitAt,moonElements,moonAt,moonPhase,SimulationClock});
+  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,BODIES,SUN,MOON,wrap,clamp,rotationAt,rotationPoleTilt,eccentricAnomaly,elementsAt,pointOnOrbit,positionAt,orbitAt,moonElements,moonAt,moonPhase,SimulationClock});
 });
