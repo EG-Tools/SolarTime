@@ -1,4 +1,4 @@
-/* Solar Time v0.07 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.08 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -77,13 +77,26 @@
     baseBodyScale() {return clamp(Math.min(this.w/1330,this.h/820),.55,1.35);}
     focusRadius() {return Math.min(this.w,this.h)*VIEW.fillRadius;}
     bodyScaleAtZoom() {
-      const base=this.baseBodyScale(),zoom=this.camera.zoom;
-      const body=[A.SUN,...this.getBodies(),...(this.options.moon?[A.MOON]:[])].find(b=>b.id===this.camera.focus);
-      if(!body||zoom<=1)return base*Math.sqrt(zoom);
-      // Same endpoint in SCREEN space for every target, including Pluto and Moon.
-      // Only the illustrative size scale changes, never the orbit or spin clock.
+      // Scene magnification depends ONLY on viewport and zoom. A small tracking
+      // target must never divide the scale used by every other planet or the Sun.
+      return this.baseBodyScale()*Math.sqrt(this.camera.zoom);
+    }
+    bodyRadiusAtZoom(body) {
+      const zoom=this.camera.zoom;
+      if(body.id!==this.camera.focus||zoom<=1)return body.size*this.bodyScaleAtZoom();
+      // The requested common screen-filling endpoint belongs to the target alone.
+      // A continuous interpolation preserves both its overview size and max zoom.
       const t=(Math.sqrt(zoom)-1)/(Math.sqrt(VIEW.maxZoom)-1);
-      return mix(body.size*base,this.focusRadius(),t)/body.size;
+      return mix(body.size*this.baseBodyScale(),this.focusRadius(),t);
+    }
+    moonOrbitRadius(earthRadius,moonRadius) {
+      // A close-up may enlarge Earth or Moon independently. Keep only their local
+      // illustrative clearance, using the existing orbit/body ratio, not a second
+      // global magnifier. The orbit line and lunar position share this ONE radius.
+      const earth=A.BODIES.find(body=>body.id==='earth');
+      const clearance=A.MOON.displayOrbit/(earth.size+A.MOON.size);
+      return Math.max(A.MOON.displayOrbit*this.bodyScale,
+        (earthRadius+moonRadius)*clearance)/this.scale;
     }
     project(p) { const v=this.view(p);return {x:this.cx+v.x*this.scale,y:this.cy+v.y*this.scale,z:v.z}; }
     getBodies() { return this.options.pluto?A.BODIES:A.BODIES.filter(b=>b.id!=='pluto'); }
@@ -309,14 +322,16 @@
       if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
       this.sky.draw(seconds,this.camera,this.options);
       this.sky.decorate(c,seconds,this.options,this.starGlow.bind(this));
-      const bodies=this.getBodies().map(body=>{const world=A.positionAt(body,ms,true);return {body,world,r:body.size*this.bodyScale};});
-      bodies.push({body:A.SUN,world:{x:0,y:0,z:0},r:A.SUN.size*this.bodyScale});
+      const bodies=this.getBodies().map(body=>{const world=A.positionAt(body,ms,true);return {body,world,r:this.bodyRadiusAtZoom(body)};});
+      bodies.push({body:A.SUN,world:{x:0,y:0,z:0},r:this.bodyRadiusAtZoom(A.SUN)});
       const earth=bodies.find(p=>p.body.id==='earth');
+      let lunarRadius=0;
       if(this.options.moon) {
-        // Keep the lunar display spacing independent of Earth's enlarged icon.
-        const radius=A.MOON.displayOrbit*this.bodyScale/this.scale,local=A.moonAt(ms,radius);
+        const r=this.bodyRadiusAtZoom(A.MOON);
+        lunarRadius=this.moonOrbitRadius(earth.r,r);
+        const local=A.moonAt(ms,lunarRadius);
         const world={x:earth.world.x+local.x,y:earth.world.y+local.y,z:earth.world.z+local.z};
-        bodies.push({body:A.MOON,world,r:A.MOON.size*this.bodyScale});
+        bodies.push({body:A.MOON,world,r});
       }
       // One snapshot owns positions and tracking: the target cannot drift out of frame.
       const target=bodies.find(p=>p.body.id===this.camera.focus);
@@ -327,10 +342,10 @@
       if(this.options.orbits) {
         for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id);
         if(this.options.moon) {
-          const radius=A.MOON.displayOrbit*this.bodyScale/this.scale,el=A.moonElements(ms);
+          const el=A.moonElements(ms);
           c.strokeStyle='rgba(115,155,189,.26)';c.lineWidth=.65;c.beginPath();
           for(let i=0;i<=90;i++) {
-            const p=A.pointOnOrbit(el,i/90*TAU,radius),s=this.project({x:earth.world.x+p.x,y:earth.world.y+p.y,z:earth.world.z+p.z});
+            const p=A.pointOnOrbit(el,i/90*TAU,lunarRadius),s=this.project({x:earth.world.x+p.x,y:earth.world.y+p.y,z:earth.world.z+p.z});
             i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);
           }
           c.stroke();

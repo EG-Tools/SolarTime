@@ -51,14 +51,14 @@ test('Front and back ring passes split at view-space depth, including underside 
 });
 test('Maximum zoom has the same on-screen radius for ALL bodies and both desktop/mobile',()=>{
  for(const [w,h] of [[1648,928],[1920,1080],[390,844],[320,568]])for(const body of all){
-  const r=renderer(w,h);r.camera.focus=body.id;r.setZoom(64);near(r.bodyScaleAtZoom()*body.size,Math.min(w,h)*.34);
+  const r=renderer(w,h);r.camera.focus=body.id;r.setZoom(64);near(r.bodyRadiusAtZoom(body),Math.min(w,h)*.34);
  }
 });
 test('Close-view command targets the same readable screen radius, including Moon and Pluto',()=>{
- for(const body of all){const r=renderer();r.focusBody(body.id);assert.equal(r.camera.focus,body.id);near(r.bodyScaleAtZoom()*body.size,Math.min(r.w,r.h)*.14);assert.ok(r.camera.zoom>3&&r.camera.zoom<64);}
+ for(const body of all){const r=renderer();r.focusBody(body.id);assert.equal(r.camera.focus,body.id);near(r.bodyRadiusAtZoom(body),Math.min(r.w,r.h)*.14);assert.ok(r.camera.zoom>3&&r.camera.zoom<64);}
 });
-test('Focus-size scale is continuous and increasing from overview to maximum',()=>{
- for(const body of all){const r=renderer();r.camera.focus=body.id;let prev=body.size*r.baseBodyScale();for(let z=1.01;z<=64;z+=.2){r.setZoom(z);const radius=r.bodyScaleAtZoom()*body.size;assert.ok(radius>=prev);prev=radius;}}
+test('Focus target radius is continuous and increasing from overview to maximum',()=>{
+ for(const body of all){const r=renderer();r.camera.focus=body.id;let prev=body.size*r.baseBodyScale();for(let z=1.01;z<=64;z+=.2){r.setZoom(z);const radius=r.bodyRadiusAtZoom(body);assert.ok(radius>=prev);prev=radius;}}
 });
 test('Illustrative zoom changes no physical sizes, lunar spacing, periods or time',()=>{
  const r=renderer(),t=Date.UTC(2026,8,11),before=all.map(b=>A.rotationAt(b,t));r.focusBody('moon');r.setZoom(64);

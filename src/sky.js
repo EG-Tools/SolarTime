@@ -2,6 +2,16 @@
    of physical planetary time. Panorama/galaxies are artistic, not a star catalogue. */
 (function(root){'use strict';
 const TAU=Math.PI*2,DRIFT=.22*Math.PI/180;
+// WebGL LINEAR-equivalent pixel-centre sampling for the software path. Wrap
+// longitude *per texel*, including the neighbour across the -pi/+pi meridian.
+// Latitude clamps to the single-colour poles baked in the panorama.
+function samplePanorama(tex,u,v,out,index=0){
+ const w=tex.width,h=tex.height,tx=((u%1+1)%1)*w-.5,ty=Math.max(0,Math.min(h-1,v*h-.5));
+ const ix=Math.floor(tx),y0=Math.floor(ty),x0=(ix%w+w)%w,x1=(x0+1)%w,y1=Math.min(h-1,y0+1),fx=tx-ix,fy=ty-y0;
+ const a=(y0*w+x0)*4,b=(y0*w+x1)*4,c=(y1*w+x0)*4,d=(y1*w+x1)*4;
+ const wa=(1-fx)*(1-fy),wb=fx*(1-fy),wc=(1-fx)*fy,wd=fx*fy,data=tex.data;
+ for(let k=0;k<3;k++)out[index+k]=data[a+k]*wa+data[b+k]*wb+data[c+k]*wc+data[d+k]*wd;
+}
 function cometPoint(path,t){
  const f=Math.max(0,Math.min(1,t)),u=1-f;
  const q={};for(const a of ['x','y','z'])q[a]=u*u*u*path.start[a]+3*u*u*f*path.control1[a]+3*u*f*f*path.control2[a]+f*f*f*path.end[a];
@@ -26,8 +36,9 @@ class Sky{
    const fs=shader(g,g.FRAGMENT_SHADER,`precision highp float;varying vec2 p;uniform sampler2D sky;uniform vec3 right,down,forward;uniform vec2 size;uniform float drift,fov;
     void main(){vec3 ray=normalize(vec3(p.x*size.x/size.y*fov,-p.y*fov,-1.));vec3 q=right*ray.x+down*ray.y+forward*ray.z;
     float cs=cos(drift),sn=sin(drift);q=vec3(q.x*cs-q.y*sn,q.x*sn+q.y*cs,q.z);
-    q=vec3(q.x,q.y*.8660254-q.z*.5,q.y*.5+q.z*.8660254);
-    vec2 uv=vec2(fract(atan(q.y,q.x)/6.28318530718+.5),.5-asin(clamp(q.z,-1.,1.))/3.14159265359);
+    q=normalize(vec3(q.x,q.y*.866025403784-q.z*.5,q.y*.5+q.z*.866025403784));
+    float longitude=length(q.xy)>0.0000001?atan(q.y,q.x):0.;
+    vec2 uv=vec2(fract(longitude/6.28318530718+.5),.5-asin(clamp(q.z,-1.,1.))/3.14159265359);
     vec3 col=texture2D(sky,uv).rgb;float vignette=1.-.24*pow(clamp(length(p)*.6,0.,1.),2.);
     col=pow(col,vec3(.95))*.67*vignette;gl_FragColor=vec4(col,1.);}`);
    this.program=g.createProgram();g.attachShader(this.program,vs);g.attachShader(this.program,fs);g.linkProgram(this.program);g.deleteShader(vs);g.deleteShader(fs);if(!g.getProgramParameter(this.program,g.LINK_STATUS))throw Error(g.getProgramInfoLog(this.program));
@@ -65,7 +76,7 @@ class Sky{
   if(!this.softwareCanvas)this.softwareCanvas=document.createElement('canvas');
   const canvas=this.softwareCanvas;
   if(canvas.width!==sw||canvas.height!==sh){canvas.width=sw;canvas.height=sh;this.softwareImage=canvas.getContext('2d').createImageData(sw,sh);}
-  const image=this.softwareImage,tex=this.pixels,a=request.axes,fov=this.tanFov;
+  const image=this.softwareImage,tex=this.pixels,a=request.axes,fov=this.tanFov,sample=new Float32Array(3);
   const cs=Math.cos(request.offset),sn=Math.sin(request.offset),aspect=request.w/request.h;
   let row=0;
   const chunk=()=>{
@@ -78,8 +89,12 @@ class Sky{
         const wx=(a.right[0]*qx+a.down[0]*qy-a.forward[0])/len,wy=(a.right[1]*qx+a.down[1]*qy-a.forward[1])/len,wz=(a.right[2]*qx+a.down[2]*qy-a.forward[2])/len;
         const px=wx*cs-wy*sn,ty=wx*sn+wy*cs,py=ty*.86602540378-wz*.5,pz=ty*.5+wz*.86602540378;
         const u=(Math.atan2(py,px)/TAU+1.5)%1,v=.5-Math.asin(Math.max(-1,Math.min(1,pz)))/Math.PI;
-        const j=(Math.min(tex.height-1,Math.floor(v*tex.height))*tex.width+Math.floor(u*tex.width))*4,i=(y*sw+x)*4;
-        image.data[i]=tex.data[j]*.67;image.data[i+1]=tex.data[j+1]*.67;image.data[i+2]=tex.data[j+2]*.67;image.data[i+3]=255;
+        const i=(y*sw+x)*4;
+        samplePanorama(tex,u,v,sample);
+        const pxScreen=(x+.5)/sw*2-1,pyScreen=(y+.5)/sh*2-1;
+        const vignette=1-.24*Math.min(1,Math.hypot(pxScreen,pyScreen)*.6)**2;
+        for(let channel=0;channel<3;channel++)image.data[i+channel]=Math.pow(sample[channel]/255,.95)*255*.67*vignette;
+        image.data[i+3]=255;
       }
       if(performance.now()-start>5&&row<sh){this.softwareTimer=setTimeout(chunk,0);return;}
     }
@@ -122,5 +137,5 @@ class Sky{
  }
  dispose(){this.disposed=true;clearTimeout(this.softwareTimer);this.softwareTimer=null;this.softwareDesired=null;this.softwareImage=null;this.softwareCanvas=null;this.abort.abort();if(this.gl){this.gl.deleteTexture(this.texture);this.gl.deleteBuffer(this.buffer);this.gl.deleteProgram(this.program);this.gl.getExtension('WEBGL_lose_context')?.loseContext();}this.image=null;this.pixels=null;this.comet=null;}
 }
-Sky.cometPoint=cometPoint;root.SolarSky=Sky;
+Sky.cometPoint=cometPoint;Sky.samplePanorama=samplePanorama;root.SolarSky=Sky;
 })(window);

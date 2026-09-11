@@ -1,4 +1,4 @@
-/* Solar Time v0.07 — clock, interaction and accessible UI. */
+/* Solar Time v0.08 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -173,7 +173,7 @@
       });
       for(const dialog of [$('help-dialog'),$('date-dialog')])dialog.addEventListener('click',event=>{if(event.target!==dialog)return;const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();});
       const canvas=$('universe'),pointers=new Map();
-      let drag=null,pinchDistance=0,pinchZoom=1,pinched=false;
+      let drag=null,pinchDistance=0,pinchZoom=1,pinched=false,clickGestures=0;
       function pointerPosition(event) {const r=canvas.getBoundingClientRect();return {x:event.clientX-r.left,y:event.clientY-r.top};}
       canvas.addEventListener('pointerdown',event=>{
         if(event.pointerType==='mouse'&&event.button!==0&&event.button!==1)return;
@@ -182,7 +182,7 @@
         const p=pointerPosition(event);pointers.set(event.pointerId,p);canvas.setPointerCapture(event.pointerId);
         if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,mode:pan?'pan':'orbit',moved:false};pinched=false;}
         if(zen&&pointers.size===3){setZen(false);pinched=true;if(drag)drag.moved=true;return;}
-        if(pointers.size===2){const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchZoom=renderer.camera.zoom;pinched=true;}
+        if(pointers.size===2){clickGestures=0;const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchZoom=renderer.camera.zoom;pinched=true;}
       });
       canvas.addEventListener('pointermove',event=>{
         const p=pointerPosition(event);
@@ -203,7 +203,11 @@
       });
       function endPointer(event,cancel=false) {
         if(!pointers.has(event.pointerId))return;const p=pointerPosition(event);pointers.delete(event.pointerId);
-        if(!cancel&&!pinched&&drag&&drag.mode==='orbit'&&!drag.moved&&pointers.size===0){if(!zen)selectBody(renderer.hit(p.x,p.y));settings(false);}
+        const clicked=!cancel&&!pinched&&drag&&drag.mode==='orbit'&&!drag.moved&&pointers.size===0;
+        // Pointer capture can still produce a native dblclick after a short drag.
+        // Tracking is intentional only when BOTH completed gestures were clicks.
+        clickGestures=clicked?Math.min(2,clickGestures+1):0;
+        if(clicked){if(!zen)selectBody(renderer.hit(p.x,p.y));settings(false);}
         if(pointers.size===0){drag=null;pinched=false;canvas.classList.remove('dragging');canvas.style.cursor='grab';persist();}
         else if(drag){const last=[...pointers.values()][0];drag.x=last.x;drag.y=last.y;drag.moved=true;}
         if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);
@@ -214,7 +218,7 @@
       canvas.addEventListener('lostpointercapture',event=>{pointers.delete(event.pointerId);if(!pointers.size){drag=null;canvas.classList.remove('dragging');wakePointer();}});
       canvas.addEventListener('pointerleave',()=>{if(!pointers.size)renderer.hover=null;});
       canvas.addEventListener('wheel',event=>{event.preventDefault();const p=pointerPosition(event);zoom(Math.exp(-A.clamp(event.deltaY,-120,120)*.0017),renderer.hit(p.x,p.y));},{passive:false});
-      canvas.addEventListener('dblclick',event=>{const p=pointerPosition(event),id=renderer.hit(p.x,p.y);if(id)focusBody(id);});
+      canvas.addEventListener('dblclick',event=>{if(event.button!==0||clickGestures<2)return;clickGestures=0;const p=pointerPosition(event),id=renderer.hit(p.x,p.y);if(id)focusBody(id);});
       document.addEventListener('keydown',event=>{
         if(event.key==='Escape'){if(!$('help-dialog').open&&!$('date-dialog').open){settings(false);closeBody();if(zen)setZen(false);}return;}
         if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||$('help-dialog').open||$('date-dialog').open||event.target.closest?.('input,select,textarea,button,a,[contenteditable=true]'))return;
@@ -259,7 +263,7 @@
       window.addEventListener('pagehide',()=>{materials.cancel();renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.07',clock,renderer,materials,calibrationMs,getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.08',clock,renderer,materials,calibrationMs,getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       materials.load();materialStatus();
       if(!document.hidden)raf=requestAnimationFrame(frame);

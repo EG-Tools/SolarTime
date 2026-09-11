@@ -1,4 +1,4 @@
-"""v0.07 release gate: offline startup, controls, sphere geometry, materials & lifecycle.
+"""v0.08 release gate: offline startup, controls, sphere geometry, materials & lifecycle.
 Requires Python Playwright + Chromium. No server/network is required for the injected
 standalone run. Actual file navigation is separately reported, not assumed successful.
 """
@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 import time,json,os
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'test-results';OUT.mkdir(exist_ok=True)
-report={'version':'0.07','checks':[],'measurements':{},'limitations':[]}
+report={'version':'0.08','checks':[],'measurements':{},'limitations':[]}
 def check(name,cond,detail=None):
  report['checks'].append({'name':name,'passed':bool(cond),'detail':detail})
  if not cond: raise AssertionError(name+': '+str(detail))
@@ -18,8 +18,8 @@ with sync_playwright() as tool:
  page=context.new_page();context.set_offline(True);errors=[];network=[]
  page.on('pageerror',lambda e: errors.append(str(e)))
  page.on('request',lambda r: network.append(r.url) if r.url.startswith(('http://','https://')) else None)
- started=time.perf_counter();page.set_content((ROOT/'dist/Solar-Time_v0.07.html').read_text(),wait_until='load')
- page.wait_for_function('window.SolarTime?.version==="0.07"',timeout=15000)
+ started=time.perf_counter();page.set_content((ROOT/'dist/Solar-Time_v0.08.html').read_text(),wait_until='load')
+ page.wait_for_function('window.SolarTime?.version==="0.08"',timeout=15000)
  report['measurements']['first_scene_ms']=round((time.perf_counter()-started)*1000,2)
  page.wait_for_function('SolarTime.renderer.surface.frames.size>=8 && SolarTime.renderer.sky.stats.frames>0',timeout=15000)
  data=page.evaluate('({version:SolarTime.version,model:SolarTime.getModel(),calibrationMs:SolarTime.calibrationMs,online:navigator.onLine,frames:SolarTime.renderer.surface.frames.size,sky:SolarTime.renderer.sky.stats,surface:SolarTime.renderer.surface.stats})')
@@ -28,7 +28,8 @@ with sync_playwright() as tool:
  check('Current-time local position calibration takes less than five seconds',data['calibrationMs']<5000,data['calibrationMs'])
  check('All material/sky startup requests are local or embedded',not network,network)
  check('All worlds load while completely offline',data['frames']>=8,data['frames'])
- check('Identity and footer contact',page.locator('.signature').inner_text().startswith('Life User') and 'v0.07' in page.locator('.signature').inner_text())
+ check('Browser tab title is exactly Solar Time',page.title()=='Solar Time',page.title())
+ check('Identity and footer contact',page.locator('.signature').inner_text().startswith('Life User') and 'v0.08' in page.locator('.signature').inner_text())
  nav=page.locator('#planet-nav').bounding_box();check('Bottom planet controls are centered',abs(nav['x']+nav['width']/2-824)<1,nav)
  def sun():return page.evaluate('SolarTime.renderer.projected.find(p=>p.body.id==="sun").screen')
  check('Startup Sun at viewport center',abs(sun()['x']-824)<1,sun())
@@ -39,6 +40,13 @@ with sync_playwright() as tool:
  page.mouse.move(1100,700);page.mouse.down(button='middle');page.mouse.move(200,100,steps=5);page.mouse.up(button='middle')
  camera=page.evaluate('SolarTime.renderer.camera');check('Middle drag clamps left/up to -20%',abs(camera['panX']+.2)<1e-8 and abs(camera['panY']+.2)<1e-8,camera);page.keyboard.press('0')
  page.mouse.move(700,700);page.mouse.down();page.mouse.move(700,100,steps=5);page.mouse.up();check('Left drag reaches underside',page.evaluate('SolarTime.renderer.camera.elevation')<0);page.keyboard.press('0')
+ # Native double-click must not convert a preceding captured drag into tracking.
+ page.mouse.move(770,480);page.mouse.down();page.mouse.move(815,525,steps=4);page.mouse.up()
+ ss=sun();page.locator('#universe').dispatch_event('dblclick',{'clientX':ss['x'],'clientY':ss['y'],'button':0,'detail':2})
+ check('A drag followed by native dblclick does not unexpectedly zoom or track',page.evaluate('SolarTime.renderer.camera.focus===null && SolarTime.renderer.camera.zoom===1'))
+ ss=sun();page.mouse.dblclick(ss['x'],ss['y'],delay=80);page.wait_for_timeout(200)
+ check('Two deliberate clicks still track a visible body',page.evaluate('SolarTime.renderer.camera.focus==="sun" && SolarTime.renderer.camera.zoom>1'))
+ page.locator('#fit-view').click();page.locator('#body-close').click() if page.locator('#body-close').is_visible() else None
  page.locator('#universe').focus();page.keyboard.press('h');check('Home and all other buttons are hidden in viewing mode',not page.locator('#fit-view').is_visible() and page.locator('button:visible').count()==0);page.keyboard.press('0')
  page.wait_for_timeout(1900);check('Viewing-mode cursor hides and no button appears on hover',page.evaluate('getComputedStyle(document.body).cursor')=='none' and page.locator('button:visible').count()==0);page.keyboard.press('Escape')
  page.locator('#help-button').click();check('Interaction hint immediately precedes keyboard shortcuts',page.evaluate('document.querySelector(".help-interaction").nextElementSibling.textContent==="단축키"'))
@@ -59,17 +67,34 @@ with sync_playwright() as tool:
  check('Comet midpoint is measurably off a straight trajectory',curve['distance']>15,curve)
  check('Comet passage is slow and bounded',11<=curve['duration']<=18,curve)
  page.evaluate('SolarTime.renderer.options.skyMotion=true;SolarTime.renderer.options.comets=true;SolarTime.renderer.resetCamera()');page.wait_for_timeout(300)
- page.screenshot(path=str(OUT/'overview-v0.07.png'))
- page.locator('#universe').focus();page.keyboard.press('h');page.wait_for_timeout(200);page.screenshot(path=str(OUT/'zen-v0.07.png'));check('No button reappears after pointer movement',page.locator('button:visible').count()==0);page.keyboard.press('Escape')
+ page.screenshot(path=str(OUT/'overview-v0.08.png'))
+ page.locator('#universe').focus();page.keyboard.press('h');page.wait_for_timeout(200);page.screenshot(path=str(OUT/'zen-v0.08.png'));check('No button reappears after pointer movement',page.locator('button:visible').count()==0);page.keyboard.press('Escape')
  for target in ['earth','moon','jupiter','saturn']:
   page.evaluate('''id=>{const r=SolarTime.renderer;r.focusBody(id);if(id==='earth')r.faceFeature(id,37.5665,126.978,SolarTime.getState().simulationMs);if(id==='jupiter')r.faceFeature(id,-22,70,SolarTime.getState().simulationMs);r.setZoom(40);}''',target)
   page.wait_for_function('''id=>{const r=SolarTime.renderer,e=r.surface.frames.get(id);return e&&e.job.textureWidth===4096&&e.image.width>=512}''',arg=target,timeout=15000)
   page.wait_for_timeout(300)
   check(target+' has high-detail embedded material at close-up',True)
-  page.screenshot(path=str(OUT/(target+'-v0.07.png')))
+  page.screenshot(path=str(OUT/(target+'-v0.08.png')))
  # At the same maximum zoom tiny bodies use the same viewport fill fraction.
- sizes=page.evaluate('''()=>{const r=SolarTime.renderer;return [SolarAstro.SUN,...SolarAstro.BODIES,SolarAstro.MOON].map(b=>{r.camera.focus=b.id;r.setZoom(64);return {id:b.id,r:r.bodyScaleAtZoom()*b.size};});}''')
+ sizes=page.evaluate('''()=>{const r=SolarTime.renderer;return [SolarAstro.SUN,...SolarAstro.BODIES,SolarAstro.MOON].map(b=>{r.camera.focus=b.id;r.setZoom(64);return {id:b.id,r:r.bodyRadiusAtZoom(b)};});}''')
  check('All 11 bodies have identical maximum screen size',all(abs(x['r']-928*.34)<1e-8 for x in sizes),sizes)
+ # Exercise the actual Moon info button, not just prototype maths.
+ page.locator('#fit-view').click()
+ page.locator('[data-body="moon"]').click();page.locator('#focus-body').click();page.wait_for_timeout(300)
+ camera_result=page.evaluate('''()=>{const r=SolarTime.renderer;return {zoom:r.camera.zoom,focus:r.camera.focus,bodies:r.projected.map(p=>({id:p.body.id,r:p.r,x:p.screen.x,y:p.screen.y}))};}''')
+ check('Moon tracking button uses the readable target size without inflating the Sun',camera_result['focus']=='moon' and abs(next(b['r'] for b in camera_result['bodies'] if b['id']=='moon')-928*.14)<.01 and next(b['r'] for b in camera_result['bodies'] if b['id']=='sun')<130,camera_result)
+ page.locator('#body-close').click()
+ page.evaluate('SolarTime.renderer.setZoom(40)');page.wait_for_timeout(200)
+ def radii():return page.evaluate('Object.fromEntries(SolarTime.renderer.projected.map(p=>[p.body.id,p.r]))')
+ before=radii()
+ page.mouse.move(720,530);page.mouse.down();page.mouse.move(1080,710,steps=12);page.mouse.up();page.wait_for_timeout(220)
+ after=radii();check('Orbit drag does not change any displayed body radius at fixed zoom',all(abs(after[k]-v)<1e-8 for k,v in before.items()),{'before':before,'after':after})
+ page.mouse.move(730,520);page.mouse.down(button='middle');page.mouse.move(1000,630,steps=6);page.mouse.up(button='middle');page.wait_for_timeout(180)
+ pan=radii();check('Middle pan preserves all body sizes while tracking Moon',all(abs(pan[k]-v)<1e-8 for k,v in before.items()))
+ report['measurements']['moon_40x_after_fix']=pan
+ check('40x Moon tracking keeps Sun and Jupiter radius below 210px',pan['sun']<210 and pan['jupiter']<210,pan)
+ page.locator('#fit-view').click();page.wait_for_timeout(220)
+ check('Home after tiny-body tracking returns to zoom 1 without residual scale',page.evaluate('SolarTime.renderer.camera.zoom===1 && SolarTime.renderer.camera.focus===null && Math.abs(SolarTime.renderer.projected.find(p=>p.body.id==="sun").r-SolarAstro.SUN.size*SolarTime.renderer.baseBodyScale())<1e-8'))
  page.evaluate('SolarTime.renderer.focusBody("earth")');page.locator('[data-body="earth"]').click();page.locator('#feature-view').click();page.wait_for_timeout(300)
  check('Korea view exposes local approximate daylight status','한국' in page.locator('#body-note').inner_text() and any(x in page.locator('#body-note').inner_text() for x in ['낮','밤']))
  page.locator('#body-close').click()
@@ -84,11 +109,11 @@ with sync_playwright() as tool:
  for width,height in [(390,844),(320,568)]:
   page.set_viewport_size({'width':width,'height':height});page.keyboard.press('0');page.wait_for_timeout(350)
   check(f'{width}px has no document overflow',page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
-  page.locator('#settings-button').click();check(f'{width}px settings contains contact and offline description','Life User / Solar Time v0.07 /' in page.locator('.settings-credit').inner_text() and '인터넷 없이' in page.locator('.settings-note').inner_text())
+  page.locator('#settings-button').click();check(f'{width}px settings contains contact and offline description','Life User / Solar Time v0.08 /' in page.locator('.settings-credit').inner_text() and '인터넷 없이' in page.locator('.settings-note').inner_text())
   page.locator('#settings-close').click()
-  page.screenshot(path=str(OUT/f'mobile-{width}-v0.07.png'))
+  page.screenshot(path=str(OUT/f'mobile-{width}-v0.08.png'))
  check('No external runtime requests during full workflow',not network,network)
  context.close();browser.close()
 report['passed']=all(x['passed'] for x in report['checks']);report['check_count']=len(report['checks'])
-(ROOT/'docs/release-browser-v0.07.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+(ROOT/'docs/release-browser-v0.08.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
 print(json.dumps(report,ensure_ascii=False,indent=2))

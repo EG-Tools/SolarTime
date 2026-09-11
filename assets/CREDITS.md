@@ -1,4 +1,4 @@
-# Solar Time v0.07 — image sources and licenses
+# Solar Time v0.08 — image sources and licenses
 
 ## Already embedded in this package
 
@@ -43,3 +43,7 @@ Image: https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg
 ## Exclusions and validation limits
 
 The downloaded-map catalogue does not replace the existing Earth, Sun or Pluto assets. The Saturn ring is separately rendered rather than taken from a photograph of the whole planet. No live photographs were downloaded inside this restricted build environment. Network/decoder tests use explicitly synthetic test fixtures, excluded from the released app, and do not establish live source reachability.
+
+## v0.08 sky seam correction
+
+The artistic sky alone was rebaked from periodic 3D fields. Diffuse haze stays attenuated by 62%, galaxies use uncropped radial support, and the poles collapse smoothly. The map is stored losslessly to preserve its edge samples. No planetary asset or third-party photo was changed. Regeneration owner: `tools/bake_sky.py`.

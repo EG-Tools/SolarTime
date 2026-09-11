@@ -123,36 +123,9 @@ for id in ['jupiter','saturn','venus','uranus','neptune','sun']:
         rgb=np.stack([238+t*22,84+t*160,8+t*71],-1)
     save(id,rgb)
 
-# Complete sphere, not a repeated screen picture. Dark dusty galactic band + stars.
-normal=np.array([.12,.31,.943],np.float32);normal/=np.linalg.norm(normal)
-b=np.arcsin(np.clip(nx*normal[0]+ny*normal[1]+nz*normal[2],-1,1))
-cloud=field(5)*.45+field(14)*.32+field(39)*.17+field(116)*.06
-gal=np.exp(-(b/.14)**2)*(.25+cloud**2*2.2)
-dust=np.exp(-((b+.006+(field(9)-.5)*.095)/.055)**2)*np.clip((field(18)-.24)*1.5,0,.91)
-core=np.exp(-((lon-.1)/.75)**2)*.9+.35
-light=gal*(1-dust)*core
-rgb=np.zeros((H,W,3),np.float32);rgb[:]=[1,2,5]
-for ch,f in enumerate([91,97,118]):rgb[:,:,ch]+=light*f
-neb=np.clip(field(9,6)-.60,0,.4)*np.exp(-(b/.33)**2)*38
-rgb[:,:,0]+=neb*.9;rgb[:,:,2]+=neb*1.9
-image=Image.fromarray(np.clip(rgb,0,255).astype('uint8'))
-d=ImageDraw.Draw(image,'RGB');r=np.random.default_rng(607)
-for k in range(38000):
-    x=int(r.random()*W);y=int((np.arccos(r.uniform(-1,1)))/np.pi*H)
-    brightness=int(35+r.random()**3*181);size=1 if r.random()<.985 else 2
-    col=(brightness,int(brightness*.94),min(255,int(brightness*1.06)))
-    if size==1:d.point((x,y),fill=col)
-    else:d.ellipse((x-1,y-1,x+1,y+1),fill=col)
-# Small distant galaxies are painterly/illustrative and embedded in celestial directions.
-arr=np.asarray(image).astype('float32')
-for xc,yc,scale,angle in [(720,865,80,.5),(3110,1350,107,-.6),(2360,415,61,.9),(1170,1510,48,-.2)]:
-    xs=np.arange(max(0,xc-scale*2),min(W,xc+scale*2));ys=np.arange(max(0,yc-scale),min(H,yc+scale))
-    xx,yy=np.meshgrid(xs-xc,ys-yc);c=np.cos(angle);s=np.sin(angle)
-    u=(xx*c+yy*s)/scale;v=(-xx*s+yy*c)/(scale*.40);rho=np.sqrt(u*u+v*v);phi=np.arctan2(v,u)
-    arms=(.5+.5*np.cos(phi*2-rho*10+1))**4
-    spiral=(np.exp(-rho*2)*(.16+.58*arms)+np.exp(-rho*rho*48)*1.2)*np.clip(2-rho,0,1)
-    for k,f in enumerate([128,132,154]):arr[np.ix_(ys,xs,[k])]+=spiral[:,:,None]*f
-save('universe',arr,92)
+# Sky has one dedicated bake path with periodic noise and uncropped galaxies.
+from bake_sky import bake as bake_sky
+bake_sky(OUT/'universe.webp')
 # Explicit bright stellar directions are twinkled in the GPU on top of the panorama.
 r=np.random.default_rng(481)
 stars=[]

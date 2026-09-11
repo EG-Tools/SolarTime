@@ -1,4 +1,4 @@
-/* Solar Time v0.07: one owner for optional public image maps and their local cache.
+/* Solar Time v0.08: one owner for optional public image maps and their local cache.
  * The scene and all astronomy start from embedded assets without waiting for I/O.
  * Only catalogued, creditable public images are requested; no credentials are sent.
  */
@@ -119,7 +119,7 @@ class Materials {
  }
  download(){if(this.exporting)return this.exporting;this.exporting=(async()=>{
   const html=await this.offlineHTML();if(this.disposed)return;
-  const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='SolarTime_v0.07_photos.html';a.click();
+  const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='SolarTime_v0.08_photos.html';a.click();
   const timer=setTimeout(()=>{URL.revokeObjectURL(url);this.objectURLs.delete(url);},30000);this.objectURLs.set(url,timer);
  })().finally(()=>{this.exporting=null;});return this.exporting;}
  cancel(){this.generation++;for(const ctl of this.controllers)ctl.abort();this.controllers.clear();}

@@ -1,11 +1,7 @@
 {
-  "version": "0.07",
-  "local_package": true,
   "repository_changed": false,
-  "new_branches_created": false,
+  "new_branch": false,
   "deployed": false,
-  "photo_originals_preembedded": false,
-  "photo_sources": "NASA SVS and Solar System Scope; runtime optional fetching",
-  "live_source_fetch_verified": false,
-  "physics": "unchanged v0.06 local model"
+  "version": "0.08",
+  "local_package": true
 }

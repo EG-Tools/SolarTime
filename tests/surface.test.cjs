@@ -32,7 +32,7 @@ test('Both source and offline build load surface before renderer; release identi
  const root=require('node:path').join(__dirname,'..'),read=p=>fs.readFileSync(require('node:path').join(root,p),'utf8');
  const html=read('index.html'),build=read('tools/build.cjs'),app=read('src/app.js');
  assert.ok(html.indexOf('src/surface.js')<html.indexOf('src/renderer.js'));assert.match(build,/'assets','materials','astro','surface','sky','renderer','app'/);
- assert.ok(html.includes('Life User <span>/</span> v0.07'));
- assert.match(app,/version:'0\.07'/);assert.equal(JSON.parse(read('package.json')).version,'0.0.7');
- assert.ok(!html.includes('EG TOOLS'));assert.ok(html.includes('Life User / Solar Time v0.07 /')); // Historical release comparisons are allowed in help.
+ assert.ok(html.includes('Life User <span>/</span> v0.08'));
+ assert.match(app,/version:'0\.08'/);assert.equal(JSON.parse(read('package.json')).version,'0.0.8');
+ assert.ok(!html.includes('EG TOOLS'));assert.ok(html.includes('Life User / Solar Time v0.08 /')); // Historical release comparisons are allowed in help.
 });
