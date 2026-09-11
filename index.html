@@ -11,7 +11,7 @@
 </head>
 <body>
   <canvas id="starfield" aria-hidden="true"></canvas>
-  <canvas id="universe" tabindex="0" aria-label="태양계. 드래그로 시점 회전, 마우스 휠로 확대. 하단 천체 버튼으로 상세 정보를 확인할 수 있습니다."></canvas>
+  <canvas id="universe" tabindex="0" aria-label="태양계. 좌클릭 드래그로 시점 회전, 가운데 버튼 드래그로 수직 이동, 마우스 휠로 확대. 하단 천체 버튼으로 상세 정보를 확인할 수 있습니다."></canvas>
   <div class="edge-shade" aria-hidden="true"></div>
 
   <header class="masthead ui">
@@ -50,11 +50,11 @@
     <div class="setting-row"><label for="show-activity">태양의 이글거림</label><input id="show-activity" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-moon">지구의 달</label><input id="show-moon" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-pluto">명왕성 <small>왜행성</small></label><input id="show-pluto" type="checkbox" checked role="switch"></div>
-    <div class="setting-range"><label for="elevation">내려다보는 각도 <output id="elevation-value">45°</output></label><input id="elevation" type="range" min="15" max="80" value="45"></div>
+    <div class="setting-range"><label for="elevation">내려다보는 각도 <output id="elevation-value">45°</output></label><input id="elevation" type="range" min="-90" max="90" value="45"></div>
     <div class="setting-row"><label for="quality">렌더링</label><select id="quality"><option value="auto">기본</option><option value="low">저전력</option></select></div>
     <button id="reset-view" class="text-button full-width">기본 시점으로 돌아가기</button>
     <p class="settings-note">자전은 천체별 실제 주기를 사용합니다.<br>공전을 배속하면 자전에도 같은 배율이 적용됩니다.<br>설정은 이 브라우저에만 저장됩니다.</p>
-    <p class="settings-credit">Life User / Solar Time v0.03 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
+    <p class="settings-credit">Life User / Solar Time v0.04 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
   </aside>
 
   <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보">
@@ -96,11 +96,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M8 3v5m8-5v5M4 11h16M8 15h2m4 0h2"/></svg>
       </button>
     </div>
-    <p class="interaction-hint">드래그 회전<span>·</span>휠 확대 · 최대 64×<span>·</span>천체 더블클릭 · 추적</p>
   </section>
 
   <footer class="footer ui">
-    <span class="signature">EG TOOLS <span>/</span> v0.03 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
+    <span class="signature">EG TOOLS <span>/</span> v0.04 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택"></nav>
     <button id="hide-ui" class="minimal-button" title="감상 모드 · H"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg><span>감상 모드</span></button>
   </footer>
@@ -116,16 +115,18 @@
     <p>실제 공전은 매우 느립니다. <b>1일 / 초</b>를 누르면 1초에 하루만큼 움직입니다. <b>1년 / 초</b>에서는 바깥 행성의 움직임도 보입니다. 모든 행성에 같은 시간 배율을 적용하므로 상대적인 공전 속도는 유지됩니다.</p>
     <p>일시정지는 공전과 자전, 별·태양 효과를 멈춥니다. 실제 시간 모드에서 재개하면 현재 시각으로 다시 맞춥니다. 날짜를 선택하면 해당 시각에서 일시정지합니다.</p>
     <h3>확대 관찰</h3>
-    <p>휠·+/−·두 손가락으로 최대 64배까지 확대합니다. 천체를 더블클릭하거나 천체 정보의 «가까이 보기»를 누르면 해당 천체를 중심에 두고 따라갑니다. 0 또는 전체 보기로 기본 구도로 돌아옵니다. 기본 태양계 구도는 화면 높이의 10%만큼 아래로 이동했습니다. 행성 표시는 거리 축척과 별개로 확대됩니다.</p>
+    <p>드래그와 각도 설정으로 위쪽 90°부터 아래쪽 −90°까지 관찰합니다. 휠·+/−·두 손가락으로 최대 64배까지 확대합니다. 달과 명왕성을 포함한 모든 천체는 최대 확대에서 같은 화면 크기로 채워집니다. 천체를 더블클릭하거나 천체 정보의 «가까이 보기»를 누르면 해당 천체를 중심에 두고 따라갑니다. 0 또는 전체 보기로 기본 구도로 돌아옵니다. 기본 구도는 v0.03보다 화면 높이의 5%만큼 위로 올렸습니다. 마우스 가운데 버튼을 누르고 드래그하면 기본 위치에서 위아래 각각 화면 높이의 20%까지 수직 이동합니다. 0 또는 기본 시점 버튼으로 이동량도 초기화합니다. 행성 표시는 거리 축척과 별개로 확대됩니다.</p>
     <p>태양·달·모든 행성의 이름은 겹침을 피할 때 부드럽게 이동합니다. 짧은 겹침 때문에 위치가 반복해서 바뀌지 않도록 유예 시간을 적용했습니다. 달의 표시 궤도는 지구 크기와 분리하여 이전 버전보다 약 33% 줄였습니다.</p>
+    <p>태양 주변 샤인·코로나·홍염의 장식 변화는 이전보다 3배 빠릅니다. 태양의 실제 자전, 행성 공전, 별 반짝임은 이 배율의 영향을 받지 않습니다.</p>
     <h3>자전과 감상 모드</h3>
     <p>지구의 표시 크기를 기존보다 1.5배 키웠습니다. 자전은 각 천체의 실제 항성 주기를 사용합니다. 지구는 약 23시간 56분 4초에 한 바퀴 돌며, 금성·천왕성·명왕성은 역행 자전합니다. 별도의 감상용 자전 가속은 없습니다. 공전을 배속하면 자전에도 같은 배율을 적용하고, 일시정지·날짜 이동도 함께 반영합니다.</p>
     <p>자전 주기는 대표 측정값을 사용합니다. 가스 행성의 구름은 위도에 따라 다르게 움직일 수 있으며, 태양의 차등 자전은 단일 대표 주기로 단순화했습니다. 자전의 초기 경도와 자전축의 절대 방향은 관측 시각과 일치시키지 않은 모형입니다.</p>
     <p>감상 모드에서는 약 1.8초간 조작하지 않으면 마우스 커서가 숨겨집니다. 마우스를 움직이면 다시 보입니다. <b>H</b> 또는 <b>Esc</b>로 감상 모드를 종료할 수 있습니다.</p>
     <h3>정확도와 표현 범위</h3>
     <p>8개 행성은 <a href="https://ssd.jpl.nasa.gov/planets/approx_pos.html" target="_blank" rel="noopener noreferrer">NASA JPL 평균 궤도 요소</a>로 계산한 근사 위치입니다. 지구는 지구·달 질량중심으로 근사하며 UTC와 TDB의 차이를 생략합니다. 달은 평균 항성 주기를 이용한 원 궤도, 명왕성은 고정된 평균 타원 궤도입니다.</p>
-    <p>행성과 궤도선은 동일한 좌표식을 사용합니다. 거리와 크기는 보기 편하게 조정하고, 넓은 화면에서는 궤도 투영을 가로로 확장합니다.  표면·자전축 방향·고리 방향·별·태양 효과는 예술적 표현입니다. 실제 관측, 월식·일식 예측에는 사용할 수 없습니다. 날짜 범위는 1800–2999년이며 끝에 도달하면 정지합니다.</p>
+    <p>행성과 궤도선은 동일한 좌표식을 사용합니다. 거리와 크기는 보기 편하게 조정하고, 넓은 화면에서는 궤도 투영을 가로로 확장합니다.  표면·자전축의 절대 방향·별·태양 효과는 예술적 표현입니다. 고리는 표면과 같은 자전축의 적도면에 놓고 카메라에 따라 입체 투영합니다. 실제 관측, 월식·일식 예측에는 사용할 수 없습니다. 날짜 범위는 1800–2999년이며 끝에 도달하면 정지합니다.</p>
     <p>달의 공전과 위상은 <a href="https://science.nasa.gov/moon/moon-phases/" target="_blank" rel="noopener noreferrer">NASA의 달 설명</a>, 명왕성의 개략 주기는 <a href="https://science.nasa.gov/dwarf-planets/pluto/facts/" target="_blank" rel="noopener noreferrer">NASA 명왕성 자료</a>를 참고했습니다.</p>
+    <p class="help-interaction">좌클릭 드래그 회전<span>·</span>가운데 버튼 드래그 수직 이동 ±20%<span>·</span>휠 확대 · 최대 64×<span>·</span>천체 더블클릭 · 추적</p>
     <h3>단축키</h3>
     <div class="shortcuts"><span><kbd>Space</kbd> 일시정지</span><span><kbd>R</kbd> 실제 시간</span><span><kbd>F</kbd> 전체 화면</span><span><kbd>H</kbd> 감상 모드</span><span><kbd>0</kbd> 기본 시점</span><span><kbd>Esc</kbd> 패널 닫기</span></div>
     <p class="modal-note">외부 라이브러리, 계정, 인터넷 연결 없이 작동합니다. 별 반짝임과 태양 표면은 실시간 관측 데이터가 아닙니다.</p>

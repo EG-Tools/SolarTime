@@ -1,15 +1,32 @@
-# SolarTime v0.03 validation
+# Solar Time v0.04 — verification
 
-Local release gate: Node.js 22 and Linux Chromium 144 (system executable) through Python Playwright. No runtime libraries or external image dependencies.
+- Base: `4db386c475c9055516197ee3f91f81a05aaf5b5d` (v0.03 with contact credit).
+- Node unit tests: **55 passed**, 0 failed.
+- General Chromium regression checks: **83 passed**.
+- New viewport/closeup/surface/pan checks: **32 passed**.
+- Built standalone HTML: `npm run build`; no runtime packages, textures or CDN requests.
+- Browser environment: Linux, Chromium, Python Playwright; desktop and mobile viewport sizes, DPR 1/2, reduced motion. Tests inject the built HTML directly. They do not establish Windows double-click or public deployment behavior.
+- The initial combined shell execution exceeded the container command lifetime; the stable full run subsequently completed successfully, with all spawned test/browser processes closed.
 
-- 39 Node tests passed: orbital mathematics, shared simulation time, signed physical rotation periods, compact lunar spacing, and the common label-layout owner.
-- 83 Chromium checks passed: desktop 1648×928, mobile 390×844, narrow 320×780, reduced motion and restricted storage. The standalone HTML was injected offline. Requests to external resources: 0; JavaScript runtime errors: 0.
-- 64× zoom, target tracking, wheel/button/keyboard paths, 10% lower overview, lunar path/position agreement, deterministic cached corona, all-body label hit geometry, and intermediate Earth/Moon label positions were checked.
-- Label-layout tests verify all 11 bodies, stable priority independent of depth sorting, delayed switching, easing at different frame rates, body-relative anchoring, hit testing, bounded cleanup, and inactive-interval handling.
-- Physics and decorative-effects pause tests exclude label easing: label avoidance is UI motion and may finish after the simulation is paused.
+## Checked invariants
 
-Measured overview frame rate in this run: 59.8 fps. This is a measurement on the test machine, not a frame-rate guarantee; closeups and accelerated textured spheres cost more.
+All camera input paths share -90°/+90° limits. Saturn/Uranus ring planes are perpendicular to the same body pole as the sphere surface; front/back halves use view-space depth. All bodies reach the same screen-relative diameter at maximum tracked zoom. Closeups upgrade to 1024×512 textures, and longitude borders join without a hard seam. High-resolution raster/geometry caches are bounded. Middle-button dragging applies only vertical screen-relative translation, clamped to ±20%; default framing is 5% higher than v0.03. Mouse default autoscroll is suppressed only over the viewport. Cursor idle, pause, date selection, relative periods, contact credits, responsive controls and the common label easing remain covered. Shine trace at 5 seconds matches the old 15-second decorative trace exactly, without changing the physics timestamp.
 
-Existing `docs/preview.png` is the v0.02 reference image. Updated v0.03 screenshots and offline build are provided with the release conversation. The website serves root sources directly; `npm run build` generates the standalone v0.03 file. Older committed files under `dist/` remain versioned archives.
+## Rotation audit
 
-Not verified on physical Windows, macOS, Android or iOS devices; Safari and Firefox were not exercised. Direct file:// and localhost HTTP navigation were blocked by the test browser policy (ERR_BLOCKED_BY_ADMINISTRATOR), so those entry paths are not verified. No browser policy was changed. Public Pages version/source verification is recorded with the release conversation. Repository deployment success must be confirmed from GitHub Pages Actions and the published application version, not from an old static release-status JSON.
+The unmodified v0.03 runtime was observed for 61.036 real seconds: its simulated clock matched wall time, frames advanced, and all orbital/rotation angles changed. Controlled same-camera, effects-disabled sprite comparisons 60 seconds apart found changed Jupiter/Saturn/Earth/Mars/Uranus/Neptune/Pluto images. Sun/Mercury/Venus/Moon could reuse the same sprite because the cache rounded the rotation phase. v0.04 removes that phase rounding for every body. All 11 new sprites change pixels in the same controlled test while representative sidereal periods remain unchanged. A completely unchanged paused timestamp reuses its sprite.
+
+## Reproduce
+
+```sh
+npm test
+npm run build
+python tests/browser_test.py
+python tests/view_browser_test.py
+```
+
+Python Playwright and Chromium are required for browser checks; `CHROMIUM_PATH` overrides the executable path.
+
+## Publication status
+
+The source-upload tool call was blocked before any source commit was created. The newly created `update/v0.04-viewport-closeup` branch was subsequently compared to main and was identical. No v0.04 PR was merged or deployed. The source ZIP and standalone HTML are the v0.04 deliverables. See `release-verification-v0.04.json` for results and `rotation-audit-v0.04.json` for raw observations.

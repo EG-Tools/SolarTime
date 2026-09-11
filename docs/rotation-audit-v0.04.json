@@ -1,0 +1,198 @@
+{
+  "baseline": {
+    "baselineCommit": "4db386c",
+    "controlled60SecondImages": [
+      {
+        "id": "sun",
+        "periodHours": 609.12,
+        "degreesPerMinute": 0.009850275807722617,
+        "cacheChanged": false,
+        "pixelsChanged": false
+      },
+      {
+        "id": "mercury",
+        "periodHours": 1407.504,
+        "degreesPerMinute": 0.004262865327558572,
+        "cacheChanged": false,
+        "pixelsChanged": false
+      },
+      {
+        "id": "venus",
+        "periodHours": 5832.6,
+        "degreesPerMinute": -0.0010287007509515481,
+        "cacheChanged": false,
+        "pixelsChanged": false
+      },
+      {
+        "id": "earth",
+        "periodHours": 23.93447232,
+        "degreesPerMinute": 0.2506844487641497,
+        "cacheChanged": true,
+        "pixelsChanged": true
+      },
+      {
+        "id": "mars",
+        "periodHours": 24.622968,
+        "degreesPerMinute": 0.2436749298459877,
+        "cacheChanged": true,
+        "pixelsChanged": true
+      },
+      {
+        "id": "jupiter",
+        "periodHours": 9.92496,
+        "degreesPerMinute": 0.6045364414566909,
+        "cacheChanged": true,
+        "pixelsChanged": true
+      },
+      {
+        "id": "saturn",
+        "periodHours": 10.560555555555556,
+        "degreesPerMinute": 0.5681519280340891,
+        "cacheChanged": true,
+        "pixelsChanged": true
+      },
+      {
+        "id": "uranus",
+        "periodHours": 17.247777777777777,
+        "degreesPerMinute": -0.3478709012433164,
+        "cacheChanged": true,
+        "pixelsChanged": true
+      },
+      {
+        "id": "neptune",
+        "periodHours": 16.11,
+        "degreesPerMinute": 0.37243947858473,
+        "cacheChanged": true,
+        "pixelsChanged": true
+      },
+      {
+        "id": "pluto",
+        "periodHours": 153.29352,
+        "degreesPerMinute": -0.03914059772389596,
+        "cacheChanged": true,
+        "pixelsChanged": true
+      },
+      {
+        "id": "moon",
+        "periodHours": 655.7198639999999,
+        "degreesPerMinute": 0.009150248954483403,
+        "cacheChanged": false,
+        "pixelsChanged": false
+      }
+    ],
+    "actualWait": {
+      "start": {
+        "time": 1789100588471,
+        "wall": 1789100588471,
+        "frames": 6,
+        "angles": [
+          1.5477871505866008,
+          5.541619825166178,
+          2.3585201072693454,
+          0.08185589944391657,
+          0.9677894102792679,
+          1.2828934645422116,
+          2.992793423698888,
+          4.191007997162536,
+          3.5585462907252494
+        ]
+      },
+      "end": {
+        "time": 1789100649507,
+        "wall": 1789100649507,
+        "frames": 3660,
+        "angles": [
+          1.547862836279928,
+          5.541601560941604,
+          2.3629709225950974,
+          0.08618226319718965,
+          0.9785227448400207,
+          1.2929808046975615,
+          2.9866170966586467,
+          4.197620530749673,
+          3.5578513630058635
+        ]
+      },
+      "elapsedMs": 61036
+    }
+  },
+  "fixed": [
+    {
+      "id": "sun",
+      "changedPixels": 187708,
+      "cacheChanged": true,
+      "degreesPerMinute": 0.009850275807722617,
+      "pausedReusesCanvas": true
+    },
+    {
+      "id": "mercury",
+      "changedPixels": 13608,
+      "cacheChanged": true,
+      "degreesPerMinute": 0.004262865327558572,
+      "pausedReusesCanvas": true
+    },
+    {
+      "id": "venus",
+      "changedPixels": 695,
+      "cacheChanged": true,
+      "degreesPerMinute": -0.0010287007509515481,
+      "pausedReusesCanvas": true
+    },
+    {
+      "id": "earth",
+      "changedPixels": 222683,
+      "cacheChanged": true,
+      "degreesPerMinute": 0.2506844487641497,
+      "pausedReusesCanvas": true
+    },
+    {
+      "id": "mars",
+      "changedPixels": 249469,
+      "cacheChanged": true,
+      "degreesPerMinute": 0.2436749298459877,
+      "pausedReusesCanvas": true
+    },
+    {
+      "id": "jupiter",
+      "changedPixels": 224078,
+      "cacheChanged": true,
+      "degreesPerMinute": 0.6045364414566909,
+      "pausedReusesCanvas": true
+    },
+    {
+      "id": "saturn",
+      "changedPixels": 202592,
+      "cacheChanged": true,
+      "degreesPerMinute": 0.5681519280340891,
+      "pausedReusesCanvas": true
+    },
+    {
+      "id": "uranus",
+      "changedPixels": 86577,
+      "cacheChanged": true,
+      "degreesPerMinute": -0.3478709012433164,
+      "pausedReusesCanvas": true
+    },
+    {
+      "id": "neptune",
+      "changedPixels": 145286,
+      "cacheChanged": true,
+      "degreesPerMinute": 0.37243947858473,
+      "pausedReusesCanvas": true
+    },
+    {
+      "id": "pluto",
+      "changedPixels": 68594,
+      "cacheChanged": true,
+      "degreesPerMinute": -0.03914059772389596,
+      "pausedReusesCanvas": true
+    },
+    {
+      "id": "moon",
+      "changedPixels": 26761,
+      "cacheChanged": true,
+      "degreesPerMinute": 0.009150248954483403,
+      "pausedReusesCanvas": true
+    }
+  ]
+}

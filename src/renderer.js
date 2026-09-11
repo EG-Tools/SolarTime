@@ -1,11 +1,12 @@
-/* Solar Time v0.03 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.04 — dependency-free, depth-projected Canvas renderer.
    Textures and star field are original procedural artwork, not astronomical imagery. */
 (function () {
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A;
   function random(seed) { return function() { let t=seed+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
   const mix=(a,b,t)=>a+(b-a)*t;
-  const VIEW=Object.freeze({minZoom:.6,maxZoom:64,lowerBy:.1});
+  const VIEW=Object.freeze({minZoom:.6,maxZoom:64,lowerBy:.05,minPanY:-.2,maxPanY:.2,minElevation:-Math.PI/2,maxElevation:Math.PI/2,fillRadius:.34});
+  const SURFACE=Object.freeze({baseWidth:512,detailWidth:1024,maxRaster:768,lowRaster:384,previewRaster:192,mapBudget:768*768*2+65536});
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
   function noise(x,y) {
     const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);
@@ -48,8 +49,8 @@
     [[167,-34],[178,-39],[172,-46],[166,-46]],
     [[-180,-72],[-145,-76],[-100,-72],[-62,-63],[-54,-72],[-14,-70],[24,-68],[70,-69],[106,-66],[150,-69],[180,-72],[180,-90],[-180,-90]]
   ];
-  function createTexture(id) {
-    const w=512,h=256,can=document.createElement('canvas'); can.width=w;can.height=h;
+  function createTexture(id,w=SURFACE.baseWidth) {
+    const h=w/2,can=document.createElement('canvas'); can.width=w;can.height=h;
     const c=can.getContext('2d'), image=c.createImageData(w,h),data=image.data;
     let mask=null;
     if(id==='earth') {
@@ -112,20 +113,30 @@
     if(['mercury','moon','pluto','mars'].includes(id)) {
       const rng=random(id.charCodeAt(0)*3941);
       for(let i=0;i<145;i++) {
-        const x=rng()*w,y=rng()*h,r=.6+rng()**3*6;
+        const x=rng()*w,y=rng()*h,r=(.6+rng()**3*6)*w/SURFACE.baseWidth;
         c.beginPath();c.ellipse(x,y,r,r*.8,0,0,TAU);c.fillStyle=`rgba(26,22,22,${.05+rng()*.14})`;c.fill();
-        c.beginPath();c.ellipse(x,y+.45,r,r*.8,0,.15,Math.PI+.1);c.strokeStyle='rgba(243,222,193,.18)';c.lineWidth=.7;c.stroke();
+        c.beginPath();c.ellipse(x,y+.45*w/SURFACE.baseWidth,r,r*.8,0,.15,Math.PI+.1);c.strokeStyle='rgba(243,222,193,.18)';c.lineWidth=.7*w/SURFACE.baseWidth;c.stroke();
       }
     }
-    return {w,h,data:c.getImageData(0,0,w,h).data};
+    // Blend the two longitude borders into the same samples. Procedural clouds
+    // and clipped craters must not reveal a hard meridian in close observation.
+    const pixels=c.getImageData(0,0,w,h).data,seam=Math.max(2,Math.round(w*.04));
+    for(let y=0;y<h;y++)for(let x=0;x<seam;x++) {
+      const q=1-x/seam,weight=q*q*(3-2*q),left=(y*w+x)*4,right=(y*w+w-1-x)*4;
+      for(let channel=0;channel<3;channel++) {
+        const a=pixels[left+channel],b=pixels[right+channel],middle=(a+b)/2;
+        pixels[left+channel]=mix(a,middle,weight);pixels[right+channel]=mix(b,middle,weight);
+      }
+    }
+    return {w,h,data:pixels};
   }
   class Renderer {
     constructor(background,canvas) {
       this.bg=background;this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:true});
       if(!this.ctx)throw new Error('Canvas 2D is unavailable.');
       this.options={orbits:true,labels:true,twinkle:true,activity:true,pluto:true,moon:true,quality:'auto'};
-      this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null};
-      this.textures={};this.sprites=new Map();this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
+      this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0};
+      this.textures={};this.sprites=new Map();this.surfaceMaps=new Map();this.mapPixels=0;this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
       this.labelStates=new Map();this.lastLabelMono=null;
       this.selected=null;this.hover=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
       for(const b of [...A.BODIES,A.SUN,A.MOON])this.textures[b.id]=createTexture(b.id);
@@ -138,7 +149,7 @@
       this.lensStretch=clamp(this.w/this.h,1,1.72);
       this.canvas.width=Math.round(this.w*this.dpr);this.canvas.height=Math.round(this.h*this.dpr);
       this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
-      this.makeBackground();this.dirty=true;this.sprites.clear();this.clearLabels();
+      this.makeBackground();this.dirty=true;this.sprites.clear();this.surfaceMaps.clear();this.mapPixels=0;this.clearLabels();
     }
     makeBackground() {
       const w=this.w,h=this.h,dpr=Math.min(this.dpr,1.5),rng=random(73915);
@@ -174,10 +185,40 @@
       c.strokeStyle=`rgba(213,228,252,${alpha*.6})`;c.lineWidth=.5;c.beginPath();c.moveTo(x-r*4,y);c.lineTo(x+r*4,y);c.moveTo(x,y-r*4);c.lineTo(x,y+r*4);c.stroke();
       c.fillStyle=`rgba(247,250,255,${alpha})`;c.beginPath();c.arc(x,y,r*.6,0,TAU);c.fill();
     }
-    view(p) {
-      const {azimuth:a,elevation:e}=this.camera, ca=Math.cos(a),sa=Math.sin(a),ce=Math.cos(e),se=Math.sin(e);
+    // Orthographic direction transform. Body normals and rings MUST NOT use the
+    // anamorphic orbital-distance stretch: their shared frame stays orthonormal.
+    viewDirection(p) {
+      const {azimuth:a,elevation:e}=this.camera,ca=Math.cos(a),sa=Math.sin(a),ce=Math.cos(e),se=Math.sin(e);
       const x=p.x*ca-p.y*sa,y=p.x*sa+p.y*ca;
-      return {x:x*this.lensStretch,y:-(y*se+p.z*ce),z:-y*ce+p.z*se};
+      return {x,y:-(y*se+p.z*ce),z:-y*ce+p.z*se};
+    }
+    view(p) {const v=this.viewDirection(p);v.x*=this.lensStretch;return v;}
+    bodyFrame(body) {
+      const tilt=A.rotationPoleTilt(body),ct=Math.cos(tilt),st=Math.sin(tilt);
+      return {u:this.viewDirection({x:1,y:0,z:0}),
+        v:this.viewDirection({x:0,y:ct,z:st}),pole:this.viewDirection({x:0,y:-st,z:ct})};
+    }
+    setOrbitView(azimuth,elevation) {
+      if(!Number.isFinite(azimuth)||!Number.isFinite(elevation))return;
+      this.camera.azimuth=A.wrap(azimuth);
+      this.camera.elevation=clamp(elevation,VIEW.minElevation,VIEW.maxElevation);
+      this.cameraChangeAt=performance.now();this.dirty=true;
+    }
+    setPanY(value) {
+      if(!Number.isFinite(value))return;
+      // Screen-height fractions: independent of zoom, target, angle or resolution.
+      this.camera.panY=clamp(value,VIEW.minPanY,VIEW.maxPanY);this.dirty=true;
+    }
+    baseBodyScale() {return clamp(Math.min(this.w/1330,this.h/820),.55,1.35);}
+    focusRadius() {return Math.min(this.w,this.h)*VIEW.fillRadius;}
+    bodyScaleAtZoom() {
+      const base=this.baseBodyScale(),zoom=this.camera.zoom;
+      const body=[A.SUN,...this.getBodies(),...(this.options.moon?[A.MOON]:[])].find(b=>b.id===this.camera.focus);
+      if(!body||zoom<=1)return base*Math.sqrt(zoom);
+      // Same endpoint in SCREEN space for every target, including Pluto and Moon.
+      // Only the illustrative size scale changes, never the orbit or spin clock.
+      const t=(Math.sqrt(zoom)-1)/(Math.sqrt(VIEW.maxZoom)-1);
+      return mix(body.size*base,this.focusRadius(),t)/body.size;
     }
     project(p) { const v=this.view(p);return {x:this.cx+v.x*this.scale,y:this.cy+v.y*this.scale,z:v.z}; }
     getBodies() { return this.options.pluto?A.BODIES:A.BODIES.filter(b=>b.id!=='pluto'); }
@@ -189,10 +230,10 @@
       const left=mobile?24:58,right=this.w-(mobile?24:58),top=compact?100:mobile?192:190,bottom=this.h-(compact?105:mobile?195:190);
       this.scale=Math.max(.05,Math.min((right-left)/(maxX-minX),(bottom-top)/(maxY-minY)))*this.camera.zoom;
       this.cx=(left+right)/2-(minX+maxX)*this.scale/2;
-      this.centerX=(left+right)/2;this.centerY=(top+bottom)/2+this.h*VIEW.lowerBy;
+      this.centerX=(left+right)/2;this.centerY=(top+bottom)/2+this.h*(VIEW.lowerBy+this.camera.panY);
       this.homeCx=this.cx;this.homeCy=this.centerY-(minY+maxY)*this.scale/2;
       this.cy=this.homeCy;
-      this.bodyScale=clamp(Math.min(this.w/1330,this.h/820),.55,1.35)*Math.sqrt(this.camera.zoom);
+      this.bodyScale=this.bodyScaleAtZoom();
       this.lastPathMs=ms;this.dirty=false;
     }
     setOption(key,value) {
@@ -202,7 +243,7 @@
     }
     setZoom(value,focusId=null) {
       if(!Number.isFinite(value))return;
-      this.camera.zoom=clamp(value,VIEW.minZoom,VIEW.maxZoom);
+      this.camera.zoom=clamp(value,VIEW.minZoom,VIEW.maxZoom);this.cameraChangeAt=performance.now();
       if(this.camera.zoom<=1)this.camera.focus=null;
       else if(!this.camera.focus) {
         const candidate=focusId||this.selected||'sun';
@@ -213,15 +254,15 @@
     focusBody(id) {
       const body=[A.SUN,...this.getBodies(),...(this.options.moon?[A.MOON]:[])].find(b=>b.id===id);
       if(!body)return;
-      const baseScale=clamp(Math.min(this.w/1330,this.h/820),.55,1.35);
-      const radius=Math.min(this.w,this.h)*.14;
+      const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.14;
+      const t=clamp((radius-baseRadius)/(this.focusRadius()-baseRadius),0,1);
       this.camera.focus=id;
-      this.setZoom(clamp((radius/(body.size*baseScale))**2,6,VIEW.maxZoom));
+      this.setZoom(clamp((1+t*(Math.sqrt(VIEW.maxZoom)-1))**2,6,VIEW.maxZoom));
     }
     get zoomLimits() {return VIEW;}
     visible(p,r=0) {return p.x+r>=0&&p.x-r<=this.w&&p.y+r>=0&&p.y-r<=this.h;}
 
-    resetCamera() {this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null};this.dirty=true;}
+    resetCamera() {this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0};this.dirty=true;}
     orbit(c,path,highlight) {
       const rgb=path.body.id==='earth'?'110,174,212':path.body.id==='pluto'?'155,140,127':'138,151,168';
       c.lineWidth=highlight?1.25:.72;
@@ -234,47 +275,77 @@
       }
       c.setLineDash([]);
     }
-    shade(body,p,r,ms,t,force=false) {
-      const sun=body.id==='sun',tex=this.textures[body.id],limit=this.options.quality==='low'?192:384;
-      const diam=Math.max(18,Math.min(limit,Math.ceil(r*2*this.dpr*1.25)));
-      const spin=A.rotationAt(body,ms);
-      const key=[diam,Math.round(spin*tex.w*2),Math.round(this.camera.azimuth*100),Math.round(this.camera.elevation*100),Math.round(Math.atan2(p.y,p.x)*80),sun?Number(this.options.activity):0,sun&&this.options.activity?Math.floor(t*12):0].join(':');
-      const cached=this.sprites.get(body.id);if(cached&&cached.key===key&&!force)return cached.canvas;
-      const canvas=cached&&cached.canvas.width===diam?cached.canvas:document.createElement('canvas');canvas.width=diam;canvas.height=diam;
-      const c=canvas.getContext('2d'),img=c.createImageData(diam,diam),out=img.data;
-      const {azimuth:a,elevation:e}=this.camera,ca=Math.cos(a),sa=Math.sin(a),ce=Math.cos(e),se=Math.sin(e);
-      const light=this.view({x:-p.x,y:-p.y,z:-p.z});light.x/=this.lensStretch;const len=Math.hypot(light.x,light.y,light.z)||1;
-      const lx=light.x/len,ly=light.y/len,lz=light.z/len,tilt=A.rotationPoleTilt(body),ct=Math.cos(tilt),st=Math.sin(tilt);
+    textureFor(body,diameter) {
+      // Lazy detail level: do not generate eleven large maps at startup. Each body
+      // owns at most one texture (a detail map replaces its base map).
+      if(diameter>SURFACE.baseWidth*.75&&this.textures[body.id].w<SURFACE.detailWidth)
+        this.textures[body.id]=createTexture(body.id,SURFACE.detailWidth);
+      return this.textures[body.id];
+    }
+    surfaceMap(body,diam) {
+      const key=[diam,this.camera.azimuth,this.camera.elevation,A.rotationPoleTilt(body)].join(':');
+      let map=this.surfaceMaps.get(key);
+      if(map){this.surfaceMaps.delete(key);this.surfaceMaps.set(key,map);return map;}
+      const n=diam*diam,frame=this.bodyFrame(body);
+      map={pixels:n,count:0,index:new Uint32Array(n),u:new Float32Array(n),v:new Float32Array(n),
+        nx:new Float32Array(n),ny:new Float32Array(n),nz:new Float32Array(n),alpha:new Uint8ClampedArray(n)};
+      const dot=(axis,x,y,z)=>axis.x*x+axis.y*y+axis.z*z;
       for(let py=0;py<diam;py++)for(let px=0;px<diam;px++) {
         const nx=(px+.5)/diam*2-1,ny=(py+.5)/diam*2-1,r2=nx*nx+ny*ny;if(r2>=1)continue;
-        const nz=Math.sqrt(1-r2);
-        const vx=nx,vy=-ny*se-nz*ce,vz=-ny*ce+nz*se;
-        const wx=vx*ca+vy*sa,wy=-vx*sa+vy*ca,wz=vz;
-        const ty=wy*ct+wz*st,tz=-wy*st+wz*ct;
-        let u=A.wrap(Math.atan2(ty,wx)-spin+Math.PI)/TAU,v=Math.acos(clamp(tz,-1,1))/Math.PI;
+        const nz=Math.sqrt(1-r2),j=map.count++;
+        map.index[j]=(py*diam+px)*4;map.nx[j]=nx;map.ny[j]=ny;map.nz[j]=nz;
+        map.u[j]=(Math.atan2(dot(frame.v,nx,ny,nz),dot(frame.u,nx,ny,nz))+Math.PI)/TAU;
+        map.v[j]=Math.acos(clamp(dot(frame.pole,nx,ny,nz),-1,1))/Math.PI;
+        map.alpha[j]=clamp((1-Math.sqrt(r2))*diam,0,1)*255;
+      }
+      // Bounded LRU: two detailed views plus ordinary scene sprites, not an
+      // unbounded history of every angle visited while dragging.
+      while(this.mapPixels+n>SURFACE.mapBudget&&this.surfaceMaps.size) {
+        const oldest=this.surfaceMaps.keys().next().value;
+        this.mapPixels-=this.surfaceMaps.get(oldest).pixels;this.surfaceMaps.delete(oldest);
+      }
+      this.surfaceMaps.set(key,map);this.mapPixels+=n;return map;
+    }
+    shade(body,p,r,ms,t,force=false) {
+      const sun=body.id==='sun',qualityLimit=this.options.quality==='low'?SURFACE.lowRaster:SURFACE.maxRaster;
+      const moving=performance.now()-this.cameraChangeAt<120;
+      const requested=Math.max(18,Math.min(qualityLimit,Math.ceil(r*2*this.dpr*1.25)));
+      const diam=moving?Math.min(SURFACE.previewRaster,requested):requested,tex=this.textureFor(body,requested);
+      const spin=A.rotationAt(body,ms),light=this.viewDirection({x:-p.x,y:-p.y,z:-p.z}),len=Math.hypot(light.x,light.y,light.z)||1;
+      const lx=light.x/len,ly=light.y/len,lz=light.z/len;
+      // Do not round the rotation angle to a texture-width bin. That cache used
+      // to freeze slow Mercury/Venus/Moon sprites for minutes even as time ran.
+      const key=[diam,tex.w,spin,this.camera.azimuth,this.camera.elevation,lx,ly,lz,
+        sun?Number(this.options.activity):0,sun&&this.options.activity?t:0].join(':');
+      let cached=this.sprites.get(body.id);
+      if(cached&&cached.key===key&&!force)return cached.canvas;
+      if(!cached||cached.canvas.width!==diam) {
+        const canvas=document.createElement('canvas');canvas.width=canvas.height=diam;
+        const ctx=canvas.getContext('2d');cached={canvas,ctx,image:ctx.createImageData(diam,diam)};
+      }
+      const map=this.surfaceMap(body,diam),out=cached.image.data,phase=spin/TAU,atmosphere=['earth','uranus','neptune'].includes(body.id);
+      for(let j=0;j<map.count;j++) {
+        const nx=map.nx[j],ny=map.ny[j],nz=map.nz[j];
+        let u=map.u[j]-phase,v=map.v[j];if(u<0)u+=1;if(u>=1)u-=1;
         if(sun&&this.options.activity) {
-          // Slow advection, not a second rotation clock or a rapidly boiling filter.
           u=A.wrap(u+Math.sin(v*37+t*.22)*.0025+Math.sin(v*83-t*.15)*.0012,1);
           v=clamp(v+Math.sin(u*49-t*.19)*.0025*Math.sin(v*Math.PI),0,.999);
         }
-        const tx=u*tex.w,tyi=clamp(v*tex.h,0,tex.h-1),x0=Math.floor(tx),y0=Math.floor(tyi);
-        const x1=(x0+1)%tex.w,y1=Math.min(y0+1,tex.h-1),fx=tx-x0,fy=tyi-y0;
+        const tx=u*tex.w,ty=clamp(v*tex.h,0,tex.h-1),x0=Math.floor(tx),y0=Math.floor(ty);
+        const x1=(x0+1)%tex.w,y1=Math.min(y0+1,tex.h-1),fx=tx-x0,fy=ty-y0;
         const j00=(y0*tex.w+x0)*4,j10=(y0*tex.w+x1)*4,j01=(y1*tex.w+x0)*4,j11=(y1*tex.w+x1)*4;
-        let lit=sun ? .56+.44*Math.pow(nz,.45) : .30+.78*Math.max(0,nx*lx+ny*ly+nz*lz);
+        let lit=sun?.56+.44*Math.pow(nz,.45):.30+.78*Math.max(0,nx*lx+ny*ly+nz*lz);
         if(sun&&this.options.activity)lit*=1+.018*Math.sin(t*.8+nx*20+ny*15);
-        const rim=!sun&&['earth','uranus','neptune'].includes(body.id)?(1-nz)**5*.24:0;
-        const i=(py*diam+px)*4;
-        for(let k=0;k<3;k++) {
-          const color=mix(mix(tex.data[j00+k],tex.data[j10+k],fx),mix(tex.data[j01+k],tex.data[j11+k],fx),fy);
-          out[i+k]=color*lit+rim*(k===0?55:k===1?142:240);
-        }
-        out[i+3]=clamp((1-Math.sqrt(r2))*diam,0,1)*255;
+        const rim=!sun&&atmosphere?(1-nz)**5*.24:0,i=map.index[j];
+        for(let k=0;k<3;k++)out[i+k]=mix(mix(tex.data[j00+k],tex.data[j10+k],fx),mix(tex.data[j01+k],tex.data[j11+k],fx),fy)*lit+rim*(k===0?55:k===1?142:240);
+        out[i+3]=map.alpha[j];
       }
-      c.putImageData(img,0,0);this.sprites.set(body.id,{key,canvas});return canvas;
+      cached.ctx.putImageData(cached.image,0,0);cached.key=key;cached.spin=spin;
+      this.sprites.set(body.id,cached);return cached.canvas;
     }
-    makeCoronaTexture() {
+    makeCoronaTexture(size=384) {
       // One bounded, reusable corona asset. No per-frame pixel noise, downloads or timers.
-      const size=384,extent=3.3,canvas=document.createElement('canvas');canvas.width=canvas.height=size;
+      const extent=3.3,canvas=document.createElement('canvas');canvas.width=canvas.height=size;
       const ctx=canvas.getContext('2d'),image=ctx.createImageData(size,size),out=image.data;
       for(let y=0;y<size;y++)for(let x=0;x<size;x++) {
         const px=((x+.5)/size*2-1)*extent,py=((y+.5)/size*2-1)*extent,d=Math.hypot(px,py);
@@ -291,8 +362,10 @@
       ctx.putImageData(image,0,0);return canvas;
     }
     corona(c,x,y,r,seconds) {
-      const t=this.options.activity?seconds:0;
-      if(!this.coronaTexture)this.coronaTexture=this.makeCoronaTexture();
+      // Decorative shine only: physics and solar surface rotation keep their own time.
+      const t=this.options.activity?seconds*3:0;
+      const detail=r*this.dpr>128&&this.options.quality!=='low'?768:384;
+      if(!this.coronaTexture||this.coronaTexture.width<detail)this.coronaTexture=this.makeCoronaTexture(detail);
       c.save();c.translate(x,y);c.globalCompositeOperation='screen';
       const halo=c.createRadialGradient(0,0,r*.92,0,0,r*5.1);
       halo.addColorStop(0,'rgba(255,167,64,.25)');halo.addColorStop(.17,'rgba(216,102,25,.095)');
@@ -303,7 +376,7 @@
         c.globalAlpha=(layer?.37:.8)*(1+Math.sin(t*.19+layer)*.035);
         const extent=r*3.3*(layer?1.08:1);c.drawImage(this.coronaTexture,-extent,-extent,extent*2,extent*2);c.restore();
       }
-      // Braided magnetic arches rise and fade individually over 18–33 seconds.
+      // Braided magnetic arches retain their 18–33 effect-second cycles (6–11 wall seconds).
       const loops=this.options.quality==='low'?7:12;
       for(let i=0;i<loops;i++) {
         const cycle=A.wrap(t/(18+i%6*3)+i*.618,1),life=Math.sin(cycle*Math.PI)**6;
@@ -330,15 +403,18 @@
       c.restore();
     }
     rings(c,b,p,r,front) {
-      const sat=b.id==='saturn',a=sat?-.28:-.64,flatten=sat?.35:.33;
-      c.save();c.translate(p.x,p.y);c.rotate(a);c.scale(1,flatten);
-      const inner=sat?1.28:1.58,outer=sat?2.26:1.94,steps=sat?58:9;
+      // Equatorial ring plane uses the SAME local-to-view frame as the surface.
+      // Split by actual view-space depth, not screen top/bottom or a fixed ellipse.
+      const sat=b.id==='saturn',{u,v}=this.bodyFrame(b),nearStart=Math.atan2(v.z,u.z)-Math.PI/2;
+      const start=nearStart+(front?0:Math.PI);
+      c.save();c.transform(u.x,u.y,v.x,v.y,p.x,p.y);
+      const inner=sat?1.28:1.58,outer=sat?2.26:1.94,steps=sat?116:18;
       for(let i=0;i<steps;i++) {
         const f=i/(steps-1),rr=mix(inner,outer,f)*r;
         if(sat&&f>.56&&f<.62)continue;
         const alpha=sat?(.19+.48*Math.sin(f*75)**2)*(f>.85?.6:1):.22;
         c.strokeStyle=sat?`rgba(${205+Math.round(f*25)},${180+Math.round(f*22)},${133+Math.round(f*38)},${alpha})`:`rgba(150,194,193,${alpha})`;
-        c.lineWidth=(outer-inner)*r/steps*1.18;c.beginPath();c.arc(0,0,rr,front?0:Math.PI,front?Math.PI:TAU);c.stroke();
+        c.lineWidth=(outer-inner)*r/steps*1.18;c.beginPath();c.arc(0,0,rr,start,start+Math.PI);c.stroke();
       }
       c.restore();
     }
@@ -461,7 +537,7 @@
       bodies.sort((a,b)=>a.screen.z-b.screen.z);
       this.hitTargets=[];
       for(const p of bodies) {
-        const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:1.3;
+        const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;
         if(!this.visible(p.screen,p.r*extent+16))continue;
         this.drawBody(c,p.body,p.world,p.screen,p.r,ms,seconds);
         this.hitTargets.push({id:p.body.id,x:p.screen.x,y:p.screen.y,r:Math.max(p.r+6,11),z:p.screen.z});
