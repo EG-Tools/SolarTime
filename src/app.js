@@ -1,4 +1,4 @@
-/* Solar Time v0.08 — clock, interaction and accessible UI. */
+/* Solar Time v0.09 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -40,8 +40,6 @@
         $('elevation').value=deg;$('elevation-value').textContent=deg+'°';
         $('zoom-value').textContent=zoom.toFixed(1)+'×';
         $('zoom-in').disabled=zoom>=limits.maxZoom;$('zoom-out').disabled=zoom<=limits.minZoom;
-        const target=[A.SUN,...A.BODIES,A.MOON].find(b=>b.id===renderer.camera.focus);
-        $('focus-reset').hidden=!target;$('focus-label').textContent=target?target.ko+' 추적 중':'';
       }
       cameraUi();
       const realFormat=()=>new Intl.DateTimeFormat('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long',...(timezone==='utc'?{timeZone:'UTC'}:{})});
@@ -134,7 +132,6 @@
       }
       $('focus-body').addEventListener('click',()=>focusBody(renderer.selected));
       $('feature-view').addEventListener('click',()=>{const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;renderer.faceFeature(id,id==='earth'?37.5665:-22,id==='earth'?126.978:(window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70),clock.value(performance.now()));cameraUi();});
-      $('focus-reset').addEventListener('click',reset);
       $('zoom-in').addEventListener('click',()=>zoom(1.2));$('zoom-out').addEventListener('click',()=>zoom(1/1.2));
       async function fullscreen() {
         try {if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('이 브라우저는 전체 화면을 지원하지 않습니다.');}
@@ -142,20 +139,31 @@
       }
       $('fullscreen-button').addEventListener('click',fullscreen);
       document.addEventListener('fullscreenchange',()=>{$('fullscreen-button').setAttribute('aria-label',document.fullscreenElement?'전체 화면 종료':'전체 화면');renderer.resize();});
-      // One idle owner for both the cursor and the viewing-mode exit affordance.
-      function clearAwake() {clearTimeout(awakeTimer);awakeTimer=undefined;document.body.classList.remove('pointer-awake');}
-      function wakePointer() {
-        clearAwake();
+      // A single idle owner controls the cursor, both actions and their hit/tab targets.
+      const viewControls=$('view-controls'),idleDelay=1800;
+      function showAwake(value) {
+        const awake=zen&&value&&!disposed&&!document.hidden;
+        document.body.classList.toggle('pointer-awake',awake);
+        // Move keyboard focus out before hiding/inerting the action group. The
+        // programmatic canvas focus below must not wake it again (see focusin).
+        if(zen&&!awake&&viewControls.contains(document.activeElement))$('universe').focus({preventScroll:true});
+        viewControls.inert=zen&&!awake;
+        viewControls.setAttribute('aria-hidden',String(zen&&!awake));
+      }
+      function clearAwake() {clearTimeout(awakeTimer);awakeTimer=undefined;showAwake(false);}
+      function wakePointer(event) {
+        if(event?.type==='focusin'&&event.target===$('universe'))return;
+        clearTimeout(awakeTimer);awakeTimer=undefined;
         if(!zen||disposed||document.hidden)return;
-        document.body.classList.add('pointer-awake');
-        if(pointers.size)return; // Do not hide midway through a held drag/pinch.
-        awakeTimer=setTimeout(()=>{awakeTimer=undefined;if(zen)document.body.classList.remove('pointer-awake');},1800);
+        showAwake(true);
+        if(pointers.size||event?.buttons)return; // Keep controls awake throughout a held drag/pinch.
+        awakeTimer=setTimeout(()=>{awakeTimer=undefined;showAwake(false);},idleDelay);
       }
       function setZen(value) {
-        zen=value;clearAwake();document.body.classList.toggle('zen',zen);$('show-ui').hidden=true;
-        for(const el of document.querySelectorAll('.ui,#timezone-button,#show-ui'))el.inert=zen;
+        zen=value;clearAwake();document.body.classList.toggle('zen',zen);$('show-ui').hidden=!zen;
+        for(const el of document.querySelectorAll('.ui,#timezone-button'))el.inert=zen;
         renderer.hover=null;
-        if(zen){closeBody();settings(false);$('universe').focus({preventScroll:true});wakePointer();}
+        if(zen){closeBody();settings(false);clearTimeout(toastTimer);$('toast').hidden=true;$('universe').focus({preventScroll:true});wakePointer();}
         else $('hide-ui').focus({preventScroll:true});
       }
       $('hide-ui').addEventListener('click',()=>setZen(true));$('show-ui').addEventListener('click',()=>setZen(false));
@@ -221,8 +229,10 @@
       canvas.addEventListener('dblclick',event=>{if(event.button!==0||clickGestures<2)return;clickGestures=0;const p=pointerPosition(event),id=renderer.hit(p.x,p.y);if(id)focusBody(id);});
       document.addEventListener('keydown',event=>{
         if(event.key==='Escape'){if(!$('help-dialog').open&&!$('date-dialog').open){settings(false);closeBody();if(zen)setZen(false);}return;}
-        if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||$('help-dialog').open||$('date-dialog').open||event.target.closest?.('input,select,textarea,button,a,[contenteditable=true]'))return;
+        if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||$('help-dialog').open||$('date-dialog').open||event.target.closest?.('input,select,textarea,[contenteditable=true]'))return;
         const key=event.key.toLowerCase();
+        if(zen&&(key==='h'||key==='0')){event.preventDefault();if(key==='h')setZen(false);else reset();return;}
+        if(event.target.closest?.('button,a'))return;
         if(key===' '){event.preventDefault();pause();}
         else if(key==='r')now();else if(key==='f')fullscreen();else if(key==='h')setZen(!zen);else if(key==='0')reset();
         else if(key==='+'||key==='=')zoom(1.15);else if(key==='-')zoom(1/1.15);
@@ -263,7 +273,7 @@
       window.addEventListener('pagehide',()=>{materials.cancel();renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.08',clock,renderer,materials,calibrationMs,getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.09',clock,renderer,materials,calibrationMs,getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       materials.load();materialStatus();
       if(!document.hidden)raf=requestAnimationFrame(frame);

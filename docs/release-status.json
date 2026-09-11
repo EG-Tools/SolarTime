@@ -1,7 +1,7 @@
 {
+  "version": "0.09",
+  "local_package": true,
   "repository_changed": false,
   "new_branch": false,
-  "deployed": false,
-  "version": "0.08",
-  "local_package": true
+  "deployed": false
 }

@@ -24,7 +24,14 @@ test('Surface raster is limited to 1024 independently of detailed input maps',()
  assert.ok(renderer.includes('detailWidth:4096,maxRaster:1024'));assert.ok(surface.includes('Math.min(1024,job.diam)'));
  assert.ok(renderer.includes('materialRevision'));assert.ok(surface.includes('t.source!==source'));
 });
-test('Viewing mode has no home-button exception and disables all button hit targets',()=>{
- const css=fs.readFileSync(require.resolve('../styles.css'),'utf8');assert.ok(css.includes('body.zen button'));assert.ok(css.includes('body.zen #show-ui{display:none!important}'));
- assert.ok(!css.includes('body.zen .view-controls #fit-view{display:flex!important}'));
+test('Viewing mode exposes only the shared home and mode actions while awake',()=>{
+ const css=fs.readFileSync(require.resolve('../styles.css'),'utf8');
+ assert.ok(css.includes('body.zen button'));
+ assert.ok(css.includes('body.zen.pointer-awake #fit-view,body.zen.pointer-awake #show-ui'));
+ assert.ok(css.includes('body.zen #view-controls>:not(#fit-view):not(#show-ui){display:none!important}'));
+ const html=fs.readFileSync(require.resolve('../index.html'),'utf8'),app=fs.readFileSync(require.resolve('../src/app.js'),'utf8');
+ assert.ok(!html.includes('id="focus-reset"'));assert.ok(!app.includes("$('focus-reset')"));
+ assert.equal((html.match(/id="fit-view"/g)||[]).length,1);
+ assert.equal((html.match(/id="show-ui"/g)||[]).length,1);
+ assert.ok(app.includes('viewControls.inert=zen&&!awake'));
 });

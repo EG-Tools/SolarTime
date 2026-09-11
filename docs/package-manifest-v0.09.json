@@ -1,0 +1,17 @@
+{
+  "version": "0.09",
+  "sha256": {
+    "index.html": "bec93627b576be4d92a5f832e0f1928f13262b19ed0322c578ec2f01cbf22c14",
+    "styles.css": "b39121a7dfd0ee322b458b4f189395af435eb3128932f6ed619ef0bb7352cd02",
+    "package.json": "e3e7dbc7e5c1dde56c986cdc1b2aee777ad943f225cdcbfffa960d41dd8bac5c",
+    "tools/build.cjs": "7771b8176ec9f1fff0f6e9a4bab33181dddefb38f649a0be1be3e068e265978a",
+    "src/app.js": "e291f6196ddef945a1623bbb83bf9026f81dd04a982a5e989a0de1368ea743e9",
+    "src/materials.js": "b0aa637ccb82badd08a890ecee489a10b50baf2f65254f27e82366eda5d17379",
+    "src/renderer.js": "4385aa5e41f677fc0d0894db26eb109020d0e4401af54c268f0ff324d8f60586",
+    "src/sky.js": "2c3549286946c0ff531fc4201d7c0ab2cb8087fef734c13405cb90f5733ee8ce",
+    "src/assets.js": "8b34a315b651d8fa135cf2355cc394b654db51aa3263273f370e9cf706e3a567",
+    "src/astro.js": "82e2496f74e88f92ff0b17c060a736c4358cca5a94eb869dedbdfb1d9a749a36",
+    "src/surface.js": "7de8941b487e144e31a20e377ca7d750c63cfd3e860856c16b1a26f807d20a84",
+    "dist/Solar-Time_v0.09.html": "f15fe65ef2f9b556995dfe4ea72de105672b3a8a255d7683dfa2ee826abea920"
+  }
+}

@@ -1,0 +1,530 @@
+
+> eg-solar-time@0.0.9 test
+> node --test tests/*.test.cjs
+
+TAP version 13
+# Subtest: J2000 is noon UTC, not local midnight
+ok 1 - J2000 is noon UTC, not local midnight
+  ---
+  duration_ms: 2.842165
+  type: 'test'
+  ...
+# Subtest: Kepler solver converges across eccentricities and negative mean anomalies
+ok 2 - Kepler solver converges across eccentricities and negative mean anomalies
+  ---
+  duration_ms: 4.501846
+  type: 'test'
+  ...
+# Subtest: All modeled positions are finite throughout the supported interval
+ok 3 - All modeled positions are finite throughout the supported interval
+  ---
+  duration_ms: 1.458753
+  type: 'test'
+  ...
+# Subtest: Earth J2000 position agrees with the published element solution at display precision
+ok 4 - Earth J2000 position agrees with the published element solution at display precision
+  ---
+  duration_ms: 0.26302
+  type: 'test'
+  ...
+# Subtest: Rendered planet centers and orbit curves share precisely the same transform
+ok 5 - Rendered planet centers and orbit curves share precisely the same transform
+  ---
+  duration_ms: 0.686899
+  type: 'test'
+  ...
+# Subtest: All orbit paths close without a visible seam
+ok 6 - All orbit paths close without a visible seam
+  ---
+  duration_ms: 4.265065
+  type: 'test'
+  ...
+# Subtest: Perihelion and aphelion radii follow a(1±e)
+ok 7 - Perihelion and aphelion radii follow a(1±e)
+  ---
+  duration_ms: 0.238844
+  type: 'test'
+  ...
+# Subtest: Mean lunar model preserves geocentric radius and its ~27.32-day sidereal cycle
+ok 8 - Mean lunar model preserves geocentric radius and its ~27.32-day sidereal cycle
+  ---
+  duration_ms: 0.278503
+  type: 'test'
+  ...
+# Subtest: Lunar illuminated fraction always lies in [0,1]
+ok 9 - Lunar illuminated fraction always lies in [0,1]
+  ---
+  duration_ms: 1.734272
+  type: 'test'
+  ...
+# Subtest: Invalid timestamps do not silently produce NaN orbits
+ok 10 - Invalid timestamps do not silently produce NaN orbits
+  ---
+  duration_ms: 0.739727
+  type: 'test'
+  ...
+# Subtest: Live clock is tied to wall time and ignores elapsed frame count
+ok 11 - Live clock is tied to wall time and ignores elapsed frame count
+  ---
+  duration_ms: 0.292995
+  type: 'test'
+  ...
+# Subtest: Timelapse progresses correctly even when no frames are rendered
+ok 12 - Timelapse progresses correctly even when no frames are rendered
+  ---
+  duration_ms: 0.204513
+  type: 'test'
+  ...
+# Subtest: Speed changes have no discontinuity in simulation time
+ok 13 - Speed changes have no discontinuity in simulation time
+  ---
+  duration_ms: 0.129301
+  type: 'test'
+  ...
+# Subtest: Pausing and resuming accelerated time excludes paused duration
+ok 14 - Pausing and resuming accelerated time excludes paused duration
+  ---
+  duration_ms: 0.130925
+  type: 'test'
+  ...
+# Subtest: Resuming a paused LIVE clock resynchronizes to actual wall time
+ok 15 - Resuming a paused LIVE clock resynchronizes to actual wall time
+  ---
+  duration_ms: 0.091216
+  type: 'test'
+  ...
+# Subtest: Selecting a date pauses and detaches the simulation from real time
+ok 16 - Selecting a date pauses and detaches the simulation from real time
+  ---
+  duration_ms: 0.116653
+  type: 'test'
+  ...
+# Subtest: NOW restores actual time, normal speed and playing state
+ok 17 - NOW restores actual time, normal speed and playing state
+  ---
+  duration_ms: 0.117434
+  type: 'test'
+  ...
+# Subtest: Simulation time is bounded and invalid commands are rejected
+ok 18 - Simulation time is bounded and invalid commands are rejected
+  ---
+  duration_ms: 0.308368
+  type: 'test'
+  ...
+# Subtest: Regression: Moon normalization never multiplies every body by 1 / Moon size
+ok 19 - Regression: Moon normalization never multiplies every body by 1 / Moon size
+  ---
+  duration_ms: 2.212641
+  type: 'test'
+  ...
+# Subtest: One ordinary magnifier depends only on zoom and viewport, not tracking identity
+ok 20 - One ordinary magnifier depends only on zoom and viewport, not tracking identity
+  ---
+  duration_ms: 1.21406
+  type: 'test'
+  ...
+# Subtest: Every unfocused planet has the same radius at the same zoom across all targets
+ok 21 - Every unfocused planet has the same radius at the same zoom across all targets
+  ---
+  duration_ms: 3.751994
+  type: 'test'
+  ...
+# Subtest: Orbit rotation and bounded panning never change zoom or body radius
+ok 22 - Orbit rotation and bounded panning never change zoom or body radius
+  ---
+  duration_ms: 117.361719
+  type: 'test'
+  ...
+# Subtest: Snapshot, surface requests and picking share the same per-body radii
+ok 23 - Snapshot, surface requests and picking share the same per-body radii
+  ---
+  duration_ms: 7.970019
+  type: 'test'
+  ...
+# Subtest: Earth-Moon spacing has one local radius and does not alter the solar display scale
+ok 24 - Earth-Moon spacing has one local radius and does not alter the solar display scale
+  ---
+  duration_ms: 18.532884
+  type: 'test'
+  ...
+# Subtest: Returning home restores exact initial center, body sizes and no focus
+ok 25 - Returning home restores exact initial center, body sizes and no focus
+  ---
+  duration_ms: 22.636469
+  type: 'test'
+  ...
+# Subtest: Non-finite camera inputs do not corrupt a close-up or create giant radii
+ok 26 - Non-finite camera inputs do not corrupt a close-up or create giant radii
+  ---
+  duration_ms: 0.789231
+  type: 'test'
+  ...
+# Subtest: Sun, Moon and every planet use the SAME smooth avoidance path
+ok 27 - Sun, Moon and every planet use the SAME smooth avoidance path
+  ---
+  duration_ms: 21.020703
+  type: 'test'
+  ...
+# Subtest: Brief boundary collisions do not repeatedly flip candidate slots
+ok 28 - Brief boundary collisions do not repeatedly flip candidate slots
+  ---
+  duration_ms: 1.736786
+  type: 'test'
+  ...
+# Subtest: Depth sorting and reversed caller order do not change label placement
+ok 29 - Depth sorting and reversed caller order do not change label placement
+  ---
+  duration_ms: 10.351861
+  type: 'test'
+  ...
+# Subtest: Planet movement is followed immediately; only avoidance offsets are eased
+ok 30 - Planet movement is followed immediately; only avoidance offsets are eased
+  ---
+  duration_ms: 0.194248
+  type: 'test'
+  ...
+# Subtest: Visible text, connector destination and hit boxes use the interpolated position
+ok 31 - Visible text, connector destination and hit boxes use the interpolated position
+  ---
+  duration_ms: 0.560461
+  type: 'test'
+  ...
+# Subtest: Label easing is independent of frame rate
+ok 32 - Label easing is independent of frame rate
+  ---
+  duration_ms: 1.203064
+  type: 'test'
+  ...
+# Subtest: Hidden and culled labels are pruned; the owner stays bounded
+ok 33 - Hidden and culled labels are pruned; the owner stays bounded
+  ---
+  duration_ms: 1.581064
+  type: 'test'
+  ...
+# Subtest: Returning from a long inactive interval does not jump to the avoidance target
+ok 34 - Returning from a long inactive interval does not jump to the avoidance target
+  ---
+  duration_ms: 0.186417
+  type: 'test'
+  ...
+# Subtest: Offline boot calibrates every body at current device time in under five seconds
+ok 35 - Offline boot calibrates every body at current device time in under five seconds
+  ---
+  duration_ms: 2.801695
+  type: 'test'
+  ...
+# Subtest: All stored tilt/period inputs have at most two decimals in degrees / seconds, not degrees per frame
+ok 36 - All stored tilt/period inputs have at most two decimals in degrees / seconds, not degrees per frame
+  ---
+  duration_ms: 0.278152
+  type: 'test'
+  ...
+# Subtest: References are reused throughout playback; no orbital-element rebuild on each frame
+ok 37 - References are reused throughout playback; no orbital-element rebuild on each frame
+  ---
+  duration_ms: 12.760132
+  type: 'test'
+  ...
+# Subtest: The UTC year changes one cached reference, while elapsed-time loops continue
+ok 38 - The UTC year changes one cached reference, while elapsed-time loops continue
+  ---
+  duration_ms: 0.358311
+  type: 'test'
+  ...
+# Subtest: Identical restart time produces identical positions and rotations without any saved cache
+ok 39 - Identical restart time produces identical positions and rotations without any saved cache
+  ---
+  duration_ms: 1.157847
+  type: 'test'
+  ...
+# Subtest: Korean solar side is day near local noon and night near local midnight throughout the year
+ok 40 - Korean solar side is day near local noon and night near local midnight throughout the year
+  ---
+  duration_ms: 0.460012
+  type: 'test'
+  ...
+# Subtest: Runtime contains no network calculation request or online-only dependency
+ok 41 - Runtime contains no network calculation request or online-only dependency
+  ---
+  duration_ms: 0.95774
+  type: 'test'
+  ...
+# Subtest: Public photo catalog covers requested Saturn, Neptune, Venus, Moon and other planets with credits
+ok 42 - Public photo catalog covers requested Saturn, Neptune, Venus, Moon and other planets with credits
+  ---
+  duration_ms: 1.73995
+  type: 'test'
+  ...
+# Subtest: Cache rejects old revisions, alien sources, malformed dimensions, future dates and expired rows
+ok 43 - Cache rejects old revisions, alien sources, malformed dimensions, future dates and expired rows
+  ---
+  duration_ms: 0.290381
+  type: 'test'
+  ...
+# Subtest: Background comet is a bounded curved cubic, with exact endpoint directions
+ok 44 - Background comet is a bounded curved cubic, with exact endpoint directions
+  ---
+  duration_ms: 1.833148
+  type: 'test'
+  ...
+# Subtest: Surface raster is limited to 1024 independently of detailed input maps
+ok 45 - Surface raster is limited to 1024 independently of detailed input maps
+  ---
+  duration_ms: 4.596116
+  type: 'test'
+  ...
+# Subtest: Viewing mode exposes only the shared home and mode actions while awake
+ok 46 - Viewing mode exposes only the shared home and mode actions while awake
+  ---
+  duration_ms: 0.510937
+  type: 'test'
+  ...
+# Subtest: Earth display radius is exactly 1.5x; other sizes and orbit stay unchanged
+ok 47 - Earth display radius is exactly 1.5x; other sizes and orbit stay unchanged
+  ---
+  duration_ms: 0.909499
+  type: 'test'
+  ...
+# Subtest: Every body completes one turn per its own sidereal period, not a display loop
+ok 48 - Every body completes one turn per its own sidereal period, not a display loop
+  ---
+  duration_ms: 2.73107
+  type: 'test'
+  ...
+# Subtest: Earth takes about 86164 seconds per turn and has no 20-second acceleration
+ok 49 - Earth takes about 86164 seconds per turn and has no 20-second acceleration
+  ---
+  duration_ms: 0.144434
+  type: 'test'
+  ...
+# Subtest: Rotation derives only from timestamp and never from frame count or visit history
+ok 50 - Rotation derives only from timestamp and never from frame count or visit history
+  ---
+  duration_ms: 0.904131
+  type: 'test'
+  ...
+# Subtest: Retrograde direction is applied exactly once to Venus, Uranus and Pluto
+ok 51 - Retrograde direction is applied exactly once to Venus, Uranus and Pluto
+  ---
+  duration_ms: 0.991711
+  type: 'test'
+  ...
+# Subtest: Rotation stays normalized before the epoch and across the supported date range
+ok 52 - Rotation stays normalized before the epoch and across the supported date range
+  ---
+  duration_ms: 0.539109
+  type: 'test'
+  ...
+# Subtest: Invalid rotation inputs fail explicitly
+ok 53 - Invalid rotation inputs fail explicitly
+  ---
+  duration_ms: 0.483126
+  type: 'test'
+  ...
+# Subtest: The same live clock timestamp drives rotation and orbit
+ok 54 - The same live clock timestamp drives rotation and orbit
+  ---
+  duration_ms: 0.344752
+  type: 'test'
+  ...
+# Subtest: Timelapse advances rotation at the selected orbital rate without phase resets
+ok 55 - Timelapse advances rotation at the selected orbital rate without phase resets
+  ---
+  duration_ms: 0.289199
+  type: 'test'
+  ...
+# Subtest: Pause, resume, date changes and NOW preserve one authoritative rotation time
+ok 56 - Pause, resume, date changes and NOW preserve one authoritative rotation time
+  ---
+  duration_ms: 0.541032
+  type: 'test'
+  ...
+# Subtest: Saturn and Uranus use the documented Cassini/Hubble representative periods
+ok 57 - Saturn and Uranus use the documented Cassini/Hubble representative periods
+  ---
+  duration_ms: 0.158234
+  type: 'test'
+  ...
+# Subtest: Lunar display orbit stays compact and independent of the 1.5x Earth size
+ok 58 - Lunar display orbit stays compact and independent of the 1.5x Earth size
+  ---
+  duration_ms: 0.325823
+  type: 'test'
+  ...
+# Subtest: One-day playback preserves the actual Jupiter/Saturn spin ratios
+ok 59 - One-day playback preserves the actual Jupiter/Saturn spin ratios
+  ---
+  duration_ms: 0.157303
+  type: 'test'
+  ...
+# Subtest: Browser title is exactly Solar Time, independent of the release label
+ok 60 - Browser title is exactly Solar Time, independent of the release label
+  ---
+  duration_ms: 1.099401
+  type: 'test'
+  ...
+# Subtest: Longitude sampler agrees at every periodic copy, including negative coordinates
+ok 61 - Longitude sampler agrees at every periodic copy, including negative coordinates
+  ---
+  duration_ms: 2.997866
+  type: 'test'
+  ...
+# Subtest: The meridian interpolates opposite texels; it never snaps to the first column
+ok 62 - The meridian interpolates opposite texels; it never snaps to the first column
+  ---
+  duration_ms: 0.152056
+  type: 'test'
+  ...
+# Subtest: Pixel-centre convention preserves exact texels without a half-pixel shift
+ok 63 - Pixel-centre convention preserves exact texels without a half-pixel shift
+  ---
+  duration_ms: 0.221439
+  type: 'test'
+  ...
+# Subtest: Latitude clamps at poles rather than wrapping the north pole to the south pole
+ok 64 - Latitude clamps at poles rather than wrapping the north pole to the south pole
+  ---
+  duration_ms: 0.796851
+  type: 'test'
+  ...
+# Subtest: Single-colour pole rows have one result for every longitude
+ok 65 - Single-colour pole rows have one result for every longitude
+  ---
+  duration_ms: 2.648648
+  type: 'test'
+  ...
+# Subtest: GPU retains repeat-S / clamp-T / linear filtering and guards the polar atan
+ok 66 - GPU retains repeat-S / clamp-T / linear filtering and guards the polar atan
+  ---
+  duration_ms: 0.274698
+  type: 'test'
+  ...
+# Subtest: Worker has at most one producer batch and coalesces intermediate snapshots
+ok 67 - Worker has at most one producer batch and coalesces intermediate snapshots
+  ---
+  duration_ms: 2.219651
+  type: 'test'
+  ...
+# Subtest: Stale geometry, hidden targets, invalidated time and disposed work never commit
+ok 68 - Stale geometry, hidden targets, invalidated time and disposed work never commit
+  ---
+  duration_ms: 0.860496
+  type: 'test'
+  ...
+# Subtest: Accepted images replace and close old bitmaps; identical paused state is reused
+ok 69 - Accepted images replace and close old bitmaps; identical paused state is reused
+  ---
+  duration_ms: 0.879575
+  type: 'test'
+  ...
+# Subtest: Both source and offline build load surface before renderer; release identity is consistent
+ok 70 - Both source and offline build load surface before renderer; release identity is consistent
+  ---
+  duration_ms: 0.706628
+  type: 'test'
+  ...
+# Subtest: Camera angle owner permits both hemispheres and clamps at signed poles
+ok 71 - Camera angle owner permits both hemispheres and clamps at signed poles
+  ---
+  duration_ms: 1.368649
+  type: 'test'
+  ...
+# Subtest: Pointer, keyboard, slider and restored settings route through the same angle owner
+ok 72 - Pointer, keyboard, slider and restored settings route through the same angle owner
+  ---
+  duration_ms: 0.363159
+  type: 'test'
+  ...
+# Subtest: All surface frames stay orthonormal above, edge-on and below the orbital plane
+ok 73 - All surface frames stay orthonormal above, edge-on and below the orbital plane
+  ---
+  duration_ms: 3.181658
+  type: 'test'
+  ...
+# Subtest: Ring plane is perpendicular to the SAME body pole in every camera orientation
+ok 74 - Ring plane is perpendicular to the SAME body pole in every camera orientation
+  ---
+  duration_ms: 1.263684
+  type: 'test'
+  ...
+# Subtest: Ring projection changes with camera azimuth and elevation, not a billboard ellipse
+ok 75 - Ring projection changes with camera azimuth and elevation, not a billboard ellipse
+  ---
+  duration_ms: 0.196091
+  type: 'test'
+  ...
+# Subtest: Front and back ring passes split at view-space depth, including underside views
+ok 76 - Front and back ring passes split at view-space depth, including underside views
+  ---
+  duration_ms: 4.491081
+  type: 'test'
+  ...
+# Subtest: Maximum zoom has the same on-screen radius for ALL bodies and both desktop/mobile
+ok 77 - Maximum zoom has the same on-screen radius for ALL bodies and both desktop/mobile
+  ---
+  duration_ms: 0.462296
+  type: 'test'
+  ...
+# Subtest: Close-view command targets the same readable screen radius, including Moon and Pluto
+ok 78 - Close-view command targets the same readable screen radius, including Moon and Pluto
+  ---
+  duration_ms: 0.365422
+  type: 'test'
+  ...
+# Subtest: Focus target radius is continuous and increasing from overview to maximum
+ok 79 - Focus target radius is continuous and increasing from overview to maximum
+  ---
+  duration_ms: 6.997797
+  type: 'test'
+  ...
+# Subtest: Illustrative zoom changes no physical sizes, lunar spacing, periods or time
+ok 80 - Illustrative zoom changes no physical sizes, lunar spacing, periods or time
+  ---
+  duration_ms: 0.865123
+  type: 'test'
+  ...
+# Subtest: Worker geometry cache remains bounded across high-resolution camera changes
+ok 81 - Worker geometry cache remains bounded across high-resolution camera changes
+  ---
+  duration_ms: 243.809793
+  type: 'test'
+  ...
+# Subtest: One-minute rotations remain signed and correct for ALL bodies
+ok 82 - One-minute rotations remain signed and correct for ALL bodies
+  ---
+  duration_ms: 0.226135
+  type: 'test'
+  ...
+# Subtest: Vertical translation uses one finite, bounded owner and preserves angle/zoom
+ok 83 - Vertical translation uses one finite, bounded owner and preserves angle/zoom
+  ---
+  duration_ms: 0.197684
+  type: 'test'
+  ...
+# Subtest: Overview center is 5% lower than center (5% higher than v0.03), with +/-20% pan
+ok 84 - Overview center is 5% lower than center (5% higher than v0.03), with +/-20% pan
+  ---
+  duration_ms: 25.282803
+  type: 'test'
+  ...
+# Subtest: Pan is a viewport-height fraction across resized windows and tracking
+ok 85 - Pan is a viewport-height fraction across resized windows and tracking
+  ---
+  duration_ms: 11.224726
+  type: 'test'
+  ...
+# Subtest: Shine timing is exactly 4x v0.06, independent of physical rotation, star time and pause
+ok 86 - Shine timing is exactly 4x v0.06, independent of physical rotation, star time and pause
+  ---
+  duration_ms: 1.8742
+  type: 'test'
+  ...
+1..86
+# tests 86
+# suites 0
+# pass 86
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 591.356284
