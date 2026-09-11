@@ -1,0 +1,11 @@
+{
+  "name": "eg-solar-time",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Offline solar-system clock with real-time orbits, a procedural Sun and twinkling stars.",
+  "scripts": {
+    "test": "node --test tests/astro.test.cjs",
+    "build": "node tools/build.cjs"
+  },
+  "engines": { "node": ">=18" }
+}
