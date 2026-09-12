@@ -60,7 +60,7 @@
     <p class="settings-note">주기는 초 단위 소수점 2자리로 저장합니다.<br>실행할 때 기기 시각으로 로컬 보정합니다.<br>인터넷 없이 동작하며 설정은 이 기기에 저장됩니다.</p>
     <p id="photo-status" class="photo-status" role="status">공개 텍스처 확인 중 · 연결 전에는 내장 이미지를 표시합니다.</p>
     <div class="material-actions"><button id="photo-retry" class="text-button">사진 다시 받기</button><button id="photo-export" class="text-button">이미지 포함 HTML 저장</button></div>
-    <p class="settings-credit">Life User / Solar Time v0.15 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
+    <p class="settings-credit">Life User / Solar Time v0.16 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
   </aside>
 
   <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보">
@@ -137,8 +137,9 @@
     <h3>실제 시간과 배속</h3>
     <p>실제 공전은 매우 느립니다. <b>1일 / 초</b>를 누르면 1초에 하루만큼 움직입니다. <b>1년 / 초</b>에서는 바깥 행성의 움직임도 보입니다. 모든 행성에 같은 시간 배율을 적용하므로 상대적인 공전 속도는 유지됩니다.</p>
     <p>일시정지는 공전과 자전, 별·태양 효과를 멈춥니다. 실제 시간 모드에서 재개하면 현재 시각으로 다시 맞춥니다. 날짜를 선택하면 해당 시각에서 일시정지합니다.</p>
-    <h3>v0.15 · 부드러운 카메라와 ESC</h3>
-    <p>천체 추적·한국 보기·기본 시점·저장 시점은 같은 부드러운 전환을 사용합니다. 휠·확대 버튼·각도·드래그도 짧게 보간하고, 이동 중 새로운 명령은 현재 보이는 위치에서 이어집니다.</p>
+    <h3>v0.16 · 중심 고정 카메라</h3>
+    <p>천체 추적은 이전 팬 위치를 끌고 가지 않고 화면 정중앙으로 부드럽게 수렴합니다. 추적 대상을 바꿀 때도 중간에 줌 1×를 거치지 않고 두 천체의 월드 위치를 직접 블렌딩하여 경로가 끊기지 않습니다. 휠·확대 버튼·각도·드래그도 같은 카메라 소유자에서 이어집니다.</p>
+    <p>휠 확대는 더 이상 숨은 추적 대상을 만들지 않습니다. 좌·우 자동 회전을 시작할 때 화면이 팬되어 있으면 먼저 중앙으로 짧게 복귀한 뒤 회전하므로 확대·축소처럼 보이는 비정상 반경을 제거했습니다. «한국 보기»는 지구를 약 224×까지 확대해 한국을 더 크게 관찰합니다.</p>
     <p>1·2·3(숫자패드 포함)은 감상 모드, 전체 화면, 버튼 포커스, 열린 팝업에서도 저장 시점을 불러옵니다. 입력란에서는 숫자 입력도 그대로 허용합니다. Ctrl·Alt·Meta 조합은 브라우저에 남깁니다. 숨겨진 달·명왕성 시점은 해당 천체를 다시 표시합니다.</p>
     <p><strong>ESC는 감상 모드 → 전체 화면 → 팝업·패널 순서</strong>로 한 번에 하나만 해제합니다. 전체 화면+감상 모드에서는 첫 ESC로 감상 모드만 해제하고 두 번째로 전체 화면을 종료합니다. F는 전체 화면만 켜고 끕니다.</p>
     <p>두 단계 ESC는 브라우저의 키보드 잠금 지원·허용이 필요합니다. 권한이 없으면 브라우저가 전체 화면 종료를 우선할 수 있습니다. ESC를 길게 누르는 브라우저의 강제 탈출 기능은 유지됩니다. F11이나 운영체제 창 최대화는 앱의 F 전체 화면과 별개입니다.</p>
@@ -192,13 +193,13 @@
   <div id="loading" class="loading"><div class="loading-orbit"></div><span>작은 우주를 펼치는 중</span></div>
   <div id="fatal-error" class="fatal-error" role="alert" hidden><h2>화면을 시작하지 못했습니다.</h2><p id="fatal-message"></p><p>최신 Edge 또는 Chrome에서 다시 열어 주세요.</p></div>
   <noscript><div class="fatal-error">태양계 시계를 실행하려면 브라우저의 JavaScript를 켜 주세요.</div></noscript>
-  <script id="solar-assets" src="src/assets.js?v=0.15"></script>
-  <script src="src/sky-asset.js?v=0.15"></script>
-  <script src="src/materials.js?v=0.15"></script>
-  <script src="src/astro.js?v=0.15"></script>
-  <script src="src/surface.js?v=0.15"></script>
-  <script src="src/sky.js?v=0.15"></script>
-  <script src="src/renderer.js?v=0.15"></script>
-  <script src="src/app.js?v=0.15"></script>
+  <script id="solar-assets" src="src/assets.js?v=0.16"></script>
+  <script src="src/sky-asset.js?v=0.16"></script>
+  <script src="src/materials.js?v=0.16"></script>
+  <script src="src/astro.js?v=0.16"></script>
+  <script src="src/surface.js?v=0.16"></script>
+  <script src="src/sky.js?v=0.16"></script>
+  <script src="src/renderer.js?v=0.16"></script>
+  <script src="src/app.js?v=0.16"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* Solar Time v0.15 — clock, interaction and accessible UI. */
+/* Solar Time v0.16 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -210,7 +210,7 @@
       $('elevation').addEventListener('input',()=>{renderer.smoothCamera({elevation:Number($('elevation').value)*A.DEG});cameraUi();});
       function reset() {cancelGesture();renderer.animateHome();cameraUi();}
       $('reset-view').addEventListener('click',reset);$('fit-view').addEventListener('click',reset);
-      function zoom(factor,target=null) {const mono=performance.now();renderer.smoothZoom(renderer.cameraInputState(mono).zoom*factor,target,mono);cameraUi();}
+      function zoom(factor) {const mono=performance.now();renderer.smoothZoom(renderer.cameraInputState(mono).zoom*factor,null,mono);cameraUi();}
       function focusBody(id) {
         if(!id)return;
         cancelGesture();renderer.animateFocus(id);cameraUi();
@@ -341,7 +341,7 @@
         if(!pointers.has(event.pointerId)) {renderer.hover=zen?null:renderer.hit(p.x,p.y);canvas.style.cursor=renderer.hover?'pointer':'grab';return;}
         pointers.set(event.pointerId,p);
         if(pointers.size>=2) {
-          const [a,b]=[...pointers.values()];if(pinchDistance>0){renderer.smoothZoom(pinchZoom*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance,renderer.hit((a.x+b.x)/2,(a.y+b.y)/2));cameraUi();}if(drag)drag.moved=true;return;
+          const [a,b]=[...pointers.values()];if(pinchDistance>0){renderer.smoothZoom(pinchZoom*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance,null);cameraUi();}if(drag)drag.moved=true;return;
         }
         if(!drag)return;
         const dx=p.x-drag.x,dy=p.y-drag.y;
@@ -369,7 +369,7 @@
       canvas.addEventListener('pointerup',event=>endPointer(event));canvas.addEventListener('pointercancel',event=>endPointer(event,true));
       canvas.addEventListener('lostpointercapture',event=>{pointers.delete(event.pointerId);if(!pointers.size){drag=null;canvas.classList.remove('dragging');wakePointer();}});
       canvas.addEventListener('pointerleave',()=>{if(!pointers.size)renderer.hover=null;});
-      canvas.addEventListener('wheel',event=>{event.preventDefault();const p=pointerPosition(event);zoom(Math.exp(-A.clamp(event.deltaY,-120,120)*.0017),renderer.hit(p.x,p.y));},{passive:false});
+      canvas.addEventListener('wheel',event=>{event.preventDefault();zoom(Math.exp(-A.clamp(event.deltaY,-120,120)*.0017));},{passive:false});
       canvas.addEventListener('dblclick',event=>{if(event.button!==0||clickGestures<2)return;clickGestures=0;const p=pointerPosition(event),id=renderer.hit(p.x,p.y);if(id)focusBody(id);});
       window.addEventListener('keydown',event=>{
         if(disposed)return;
@@ -442,7 +442,7 @@
       window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.15',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.16',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       materials.load();materialStatus();
       if(!document.hidden)raf=requestAnimationFrame(frame);

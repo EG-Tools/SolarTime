@@ -1,4 +1,4 @@
-/* Solar Time v0.15 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.16 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -209,9 +209,12 @@
       if(!Renderer.validCamera(state)||!Number.isFinite(mono)||!Number.isFinite(duration))return false;
       if((state.focus==='moon'&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       if(duration<=0)return this.restoreCamera(state);
-      this.stopAutoRotate(mono);this.advanceCamera(mono);
-      const from=this.cameraSnapshot(),to={...state},bridge=from.focus!==to.focus&&from.zoom>1&&to.zoom>1;
-      this.cameraTween={from,to,start:mono,duration:duration*(bridge?1.4:1),bridge,input};
+      this.stopAutoRotate(mono);this.advanceCamera(mono);this.pendingAutoRotation=null;
+      const from=this.cameraSnapshot(),to={...state};
+      // Focus changes no longer dive through zoom=1. The tracked world-space
+      // anchor is blended separately in draw(), so the camera follows one
+      // continuous path instead of making a visible midpoint step.
+      this.cameraTween={from,to,start:mono,duration,input};
       this.cameraChangeAt=mono;this.dirty=true;return true;
     }
     // All UI camera commands use animateCamera: one owner, one rAF, no timers.
@@ -232,10 +235,10 @@
       if(!Number.isFinite(value))return false;
       const to=this.cameraInputState(mono);to.zoom=clamp(value,VIEW.minZoom,VIEW.maxZoom);
       if(to.zoom<=1)to.focus=null;
-      else if(!to.focus){
-        const candidate=focusId||this.selected||'sun';
-        to.focus=[A.SUN,...this.getBodies(),...(this.options.moon?[A.MOON]:[])].some(b=>b.id===candidate)?candidate:'sun';
-      }
+      // Wheel / +/- zoom must not silently create a tracking target. A target is
+      // attached only by an explicit focus command; otherwise overview zoom keeps
+      // the scene's true centre and cannot inherit a hidden pivot.
+      if(!to.focus)to.focus=null;
       return this.smoothCamera(to,mono,150);
     }
     focusState(id,mono=performance.now()) {
@@ -244,7 +247,10 @@
       this.advanceCamera(mono);this.advanceAutoRotate(mono);
       const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
       const t=clamp((radius-baseRadius)/(Math.min(this.w,this.h)*VIEW.detailFillRadius-baseRadius),0,1);
-      return {...this.cameraSnapshot(),focus:id,zoom:clamp((1+t*(Math.sqrt(VIEW.detailZoom)-1))**2,6,VIEW.detailZoom)};
+      // Tracking is always viewport-centred. A previous middle-button pan is a
+      // scene navigation offset, not part of a planet-follow camera preset.
+      return {...this.cameraSnapshot(),focus:id,panX:0,panY:0,
+        zoom:clamp((1+t*(Math.sqrt(VIEW.detailZoom)-1))**2,6,VIEW.detailZoom)};
     }
     animateFocus(id,mono=performance.now(),duration=1100) {
       const to=this.focusState(id,mono);return !!to&&this.animateCamera(to,mono,duration);
@@ -254,6 +260,10 @@
       if(!to||!body||![latitude,longitude,ms].every(Number.isFinite))return false;
       const n=A.surfaceDirection(body,latitude,longitude,ms);
       to.azimuth=A.wrap(Math.atan2(-n.x,-n.y));to.elevation=Math.asin(clamp(n.z,-1,1));
+      // Feature views are inspection shots rather than whole-planet portraits.
+      // Earth reaches roughly 200% of the viewport height, making Korea readable
+      // while keeping one final wheel step available up to the 256x hard limit.
+      if(id==='earth')to.zoom=Math.max(to.zoom,224);
       return this.animateCamera(to,mono,duration);
     }
     animateHome(mono=performance.now(),duration=1100) {
@@ -265,29 +275,44 @@
       const delta=A.wrap(to.azimuth-from.azimuth+Math.PI)-Math.PI;
       const state={azimuth:A.wrap(from.azimuth+delta*p),elevation:mix(from.elevation,to.elevation,p),
         panX:mix(from.panX,to.panX,p),panY:mix(from.panY,to.panY,p),
-        // Returning home retains the old tracking frame until zoom reaches 1.
-        focus:from.zoom>1&&to.zoom<=1?from.focus:to.focus,
+        // The visible tracking anchor itself is cross-blended in draw(). Keep the
+        // destination focus here so surface detail can prepare before arrival.
+        focus:to.focus,
         zoom:Math.exp(mix(Math.log(from.zoom),Math.log(to.zoom),p))};
-      if(move.bridge){
-        state.focus=t<.5?from.focus:to.focus;
-        state.zoom=t<.5?Math.exp(mix(Math.log(from.zoom),0,ease(t*2))):Math.exp(mix(0,Math.log(to.zoom),ease(t*2-1)));
-      }
-      if(state.zoom<=1)state.focus=null;
+      if(state.zoom<=1&&to.focus===null)state.focus=null;
       this.camera=t>=1?{...to}:state;
-      if(t>=1)this.cameraTween=null;
+      if(t>=1){
+        this.cameraTween=null;
+        const pending=this.pendingAutoRotation;this.pendingAutoRotation=null;
+        if(pending)this.beginAutoRotation(pending.direction,mono,pending.generation);
+      }
       this.cameraChangeAt=mono;this.dirty=true;return true;
     }
     cancelCameraTween(mono=performance.now()) {
       if(this.cameraTween){this.advanceCamera(mono);this.cameraTween=null;}
     }
-    get autoRotateDirection() {return this.autoRotation?.direction||0;}
+    get autoRotateDirection() {return this.autoRotation?.direction||this.pendingAutoRotation?.direction||0;}
+    beginAutoRotation(direction,mono,generation=(this.rotationGeneration||0)+1) {
+      this.autoRotation={direction,azimuth:this.camera.azimuth,mono,generation};
+      this.rotationGeneration=generation;this.cameraChangeAt=-Infinity;this.dirty=true;return true;
+    }
     setAutoRotate(direction,mono=performance.now()) {
       if(![-1,0,1].includes(direction)||!Number.isFinite(mono))return false;
-      this.cancelCameraTween(mono);this.advanceAutoRotate(mono);
-      this.autoRotation=direction?{direction,azimuth:this.camera.azimuth,mono,generation:(this.rotationGeneration||0)+1}:null;
-      if(this.autoRotation)this.rotationGeneration=this.autoRotation.generation;
-      // This is deliberate slow observation, not an active-drag low-resolution preview.
-      this.cameraChangeAt=-Infinity;this.dirty=true;return true;
+      const current=this.autoRotateDirection;
+      if(!direction||current===direction){
+        this.pendingAutoRotation=null;this.cancelCameraTween(mono);this.advanceAutoRotate(mono);this.autoRotation=null;this.dirty=true;return true;
+      }
+      this.cancelCameraTween(mono);this.advanceAutoRotate(mono);this.autoRotation=null;
+      const generation=(this.rotationGeneration||0)+1;
+      // A panned scene has an off-centre pivot. Re-centre first, then rotate;
+      // otherwise yaw looks like unwanted zoom because the orbit radius changes.
+      if(Math.abs(this.camera.panX)>.0001||Math.abs(this.camera.panY)>.0001){
+        const to={...this.cameraSnapshot(),panX:0,panY:0};
+        if(this.animateCamera(to,mono,420)){
+          this.pendingAutoRotation={direction,generation};return true;
+        }
+      }
+      return this.beginAutoRotation(direction,mono,generation);
     }
     advanceAutoRotate(mono=performance.now()) {
       const motion=this.autoRotation;if(!motion||!Number.isFinite(mono))return false;
@@ -297,9 +322,9 @@
       this.camera.azimuth=angle;this.dirty=true;return true;
     }
     stopAutoRotate(mono=performance.now()) {
-      if(this.autoRotation){this.advanceAutoRotate(mono);this.autoRotation=null;}
+      this.pendingAutoRotation=null;if(this.autoRotation){this.advanceAutoRotate(mono);this.autoRotation=null;}
     }
-    cancelCameraMotion(mono=performance.now()) {this.cancelCameraTween(mono);this.stopAutoRotate(mono);}
+    cancelCameraMotion(mono=performance.now()) {this.pendingAutoRotation=null;this.cancelCameraTween(mono);this.stopAutoRotate(mono);}
     resetCamera() {this.cameraTween=null;this.autoRotation=null;this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};this.dirty=true;}
     projectOrbit(path) {
       const {azimuth:a,elevation:e}=this.camera,lens=this.lensStretch;
@@ -543,12 +568,22 @@
         const world={x:earth.world.x+local.x,y:earth.world.y+local.y,z:earth.world.z+local.z};
         bodies.push({body:A.MOON,world,r});
       }
-      // One snapshot owns positions and tracking: the target cannot drift out of frame.
-      const target=bodies.find(p=>p.body.id===this.camera.focus);
-      if(target) {
-        const v=this.view(target.world),weight=ease((this.camera.zoom-1)/1.8);
-        this.cx=this.centerX-v.x*this.scale*weight;this.cy=this.centerY-v.y*this.scale*weight;
-      } else {this.cx=this.homeCx;this.cy=this.homeCy;}
+      // Blend the tracked world-space anchor itself. This removes the old
+      // zoom-derived snap in the middle of a focus transition and also gives a
+      // continuous path when changing from one tracked body to another.
+      const move=this.cameraTween&&!this.cameraTween.input?this.cameraTween:null;
+      if(move){
+        const raw=clamp((mono-move.start)/move.duration,0,1),blend=ease(raw);
+        const from=move.from.focus?bodies.find(p=>p.body.id===move.from.focus):null;
+        const to=move.to.focus?bodies.find(p=>p.body.id===move.to.focus):null;
+        const a=from?this.view(from.world):{x:0,y:0},b=to?this.view(to.world):{x:0,y:0};
+        this.cx=this.centerX-mix(a.x,b.x,blend)*this.scale;
+        this.cy=this.centerY-mix(a.y,b.y,blend)*this.scale;
+      }else{
+        const target=bodies.find(p=>p.body.id===this.camera.focus);
+        if(target){const v=this.view(target.world);this.cx=this.centerX-v.x*this.scale;this.cy=this.centerY-v.y*this.scale;}
+        else{this.cx=this.homeCx;this.cy=this.homeCy;}
+      }
       for(const body of bodies)body.screen=this.project(body.world);
       if(this.options.orbits) {
         for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id);

@@ -1,0 +1,8 @@
+Solar Time v0.16 verification
+- Syntax: src/renderer.js PASS
+- Syntax: src/app.js PASS
+- Syntax: tools/build.cjs PASS
+- v016 camera regressions: 6/6 PASS
+- updated camera regressions: 14/14 PASS
+- updated build regressions: 3/3 PASS
+Note: build regression in the changed-files workspace used a test-only placeholder for src/sky.js because unchanged repository files are intentionally absent from this package.
