@@ -1,4 +1,4 @@
-/* Solar Time v0.21 compact UI overlay */
+/* Solar Time v0.22 compact UI overlay */
 .clock-face,body.zen .clock-face{top:56px}
 .playback-caption{justify-content:flex-end}
 .playback-bar{gap:7px;padding-left:8px;padding-right:8px}
@@ -26,9 +26,14 @@
 /* v0.20: date controls removed; playback card is intentionally narrower. */
 
 
-/* v0.21: zen mode must not alter the clock block. */
+/* v0.22: zen mode must not alter the clock block. */
 :root{--clock-font:"Aptos Display","Segoe UI Light","Segoe UI",Arial,sans-serif}
 .wall-clock{font-family:var(--clock-font)}
 body.zen .clock-face .eyebrow{color:#8d918f}
 .scene-status{top:214px}
 @media(min-width:1800px){.scene-status{top:248px}}
+/* v0.22: keep the clock geometry identical in normal/zen and give the colon breathing room. */
+.wall-clock{font-family:var(--clock-font);font-variant-numeric:tabular-nums lining-nums}
+.wall-clock .colon{margin-left:10px;margin-right:10px}
+body.zen #timezone-button{display:inline-block!important;visibility:visible!important;opacity:1!important}
+@media(max-width:760px){.wall-clock .colon{margin-left:6px;margin-right:6px}}

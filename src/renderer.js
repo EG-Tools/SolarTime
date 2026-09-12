@@ -1,4 +1,4 @@
-/* Solar Time v0.18 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.19 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -439,8 +439,10 @@
       ctx.putImageData(image,0,0);return canvas;
     }
     corona(c,x,y,r,seconds) {
+      // v0.19: activity is a true visibility toggle, not merely an animation freeze.
+      if(!this.options.activity)return;
       // Decorative shine only: physics and solar surface rotation keep their own time.
-      const t=this.options.activity?seconds*24:0;
+      const t=seconds*24;
       const detail=r*this.dpr>128&&this.options.quality!=='low'?768:384;
       if(!this.coronaTexture||this.coronaTexture.width<detail)this.coronaTexture=this.makeCoronaTexture(detail);
       c.save();c.translate(x,y);c.globalCompositeOperation='screen';
@@ -610,7 +612,8 @@
       }
       bodies.sort((a,b)=>a.screen.z-b.screen.z);
       this.hitTargets=[];
-      this.resume();
+      // Surface/sky resume is handled once on visibility/pageshow. Avoid doing
+      // resume()+pump() in the 60 fps draw hot path.
       // A corona that crosses the viewport does NOT make the hidden solar disk visible.
       const surfaceBodies=bodies.filter(p=>this.visible(p.screen,p.r+2));
       surfaceBodies.sort((a,b)=>Number(b.body.id===this.camera.focus)-Number(a.body.id===this.camera.focus));

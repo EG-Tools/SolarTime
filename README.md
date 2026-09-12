@@ -1,10 +1,17 @@
 # Solar Time
 
-**Life User • Solar Time v0.21 • Lyrikey@Naver.com**
+**Life User • Solar Time v0.22 • Lyrikey@Naver.com**
 
 실제 기기 시각으로 움직이는 감상용 태양계 시계입니다. 관측·항법용 정밀 천문력이 아닙니다.
 
-## v0.21 변경
+## v0.22 변경
+- 감상 모드에서도 시계 날짜줄의 `SEOUL`/`UTC` 표기를 동일한 요소로 유지합니다.
+- 시계의 `:` 좌우 간격을 넓혀 `17 : 03`처럼 읽히도록 조정했습니다.
+- 시계 숫자 폰트 선택을 Windows 계열 시스템 폰트 15종으로 확대했습니다. 설치되지 않은 폰트는 다음 fallback 폰트를 사용합니다.
+- 중복되어 있던 감상 모드용 시간대 표시 DOM과 갱신 코드를 제거했습니다.
+- 매 프레임 호출되던 surface/sky resume 처리를 탭 복귀 시 1회만 실행하도록 정리했습니다.
+
+## v0.22 변경
 
 - 날짜 선택 버튼과 날짜 모달을 제거해 하단 재생 카드를 더 작게 정리했습니다.
 - 날짜 선택과 연결된 이벤트·키보드 분기·DOM 참조를 함께 삭제했습니다.
@@ -16,7 +23,7 @@
 
 GitHub Pages는 루트 `index.html`을 사용합니다. 변경 ZIP을 기존 SolarTime 프로젝트 루트에 같은 경로로 덮어쓰고 GitHub에 올리면 됩니다. 웹 버전은 별도 빌드가 필요 없습니다.
 
-단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.21.html`을 사용합니다.
+단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.22.html`을 사용합니다.
 
 ## 조작
 
@@ -31,7 +38,7 @@ GitHub Pages는 루트 `index.html`을 사용합니다. 변경 ZIP을 기존 Sol
 기존 재질 출처와 이용 조건은 `assets/CREDITS.md`를 따릅니다. 현재 우주 배경은 사용자가 제공한 4096×2048 WebP를 유지합니다.
 
 
-## v0.21
+## v0.22
 - 감상 모드에서 실제 시계 레이아웃 고정
 - 시계 숫자 폰트 선택
 - 시뮬레이션 상태 표시 상향
