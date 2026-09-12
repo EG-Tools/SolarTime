@@ -1,8 +1,16 @@
 # Solar Time
 
-**Life User • Solar Time v0.23 • Lyrikey@Naver.com**
+**Life User • Solar Time v0.24 • Lyrikey@Naver.com**
 
 실제 기기 시각으로 움직이는 감상용 태양계 시계입니다. 관측·항법용 정밀 천문력이 아닙니다.
+
+## v0.24 변경
+
+- 행성 표면의 GPU 렌더링과 카메라 변환을 정리해 카메라 회전 시 행성이 빌보드처럼 따라 도는 문제를 수정했습니다.
+- 행성 본체와 고리가 같은 축 프레임을 사용하도록 통합하고 각 행성의 축 기울기를 천문 기준값으로 정리했습니다.
+- 태양 코로나·홍염 표현과 고배속 표면 갱신 성능을 개선했습니다.
+- 숫자 시간은 화면 중앙을 유지하고 AM/PM 표시는 오른쪽에 독립 배치했습니다.
+- 배포용 `dist`는 최신 단일 HTML만 유지합니다.
 
 ## v0.23 변경
 - 감상 모드에서도 시계 날짜줄의 `SEOUL`/`UTC` 표기를 동일한 요소로 유지합니다.
@@ -23,7 +31,7 @@
 
 GitHub Pages는 루트 `index.html`을 사용합니다. 변경 ZIP을 기존 SolarTime 프로젝트 루트에 같은 경로로 덮어쓰고 GitHub에 올리면 됩니다. 웹 버전은 별도 빌드가 필요 없습니다.
 
-단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.23.html`을 사용합니다.
+단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.24.html`을 사용합니다.
 
 ## 조작
 

@@ -1,4 +1,4 @@
-/* Solar Time v0.23 compact UI overlay */
+/* Solar Time v0.24 compact UI overlay */
 .clock-face,body.zen .clock-face{top:56px}
 .playback-caption{justify-content:flex-end}
 .playback-bar{gap:7px;padding-left:8px;padding-right:8px}
@@ -39,5 +39,6 @@ body.zen #timezone-button{display:inline-block!important;visibility:visible!impo
 @media(max-width:760px){.wall-clock .colon{margin-left:6px;margin-right:6px}}
 
 /* v0.23: compact AM/PM marker for optional 12-hour clock. */
-.wall-clock .ampm{font-family:"Segoe UI",Arial,sans-serif;font-size:.16em;font-weight:400;letter-spacing:1.4px;color:#8f9aa7;margin-left:12px;vertical-align:.35em}
+.wall-clock{display:inline-block;position:relative}
+.wall-clock .ampm{position:absolute;left:100%;top:50%;transform:translateY(-80%);font-family:"Segoe UI",Arial,sans-serif;font-size:.16em;font-weight:400;letter-spacing:1.4px;color:#8f9aa7;margin-left:12px}
 @media(max-width:760px){.wall-clock .ampm{margin-left:8px}}

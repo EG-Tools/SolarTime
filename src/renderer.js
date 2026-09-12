@@ -1,4 +1,4 @@
-/* Solar Time v0.23 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.24 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -20,10 +20,13 @@
     constructor(background,canvas) {
       this.bg=background;this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:true});
       if(!this.ctx)throw new Error('Canvas 2D is unavailable.');
+      this.gpu=null;this.gpuError=null;
+      const gpuCanvas=typeof document==='object'&&typeof document.getElementById==='function'?document.getElementById('planet-layer'):null;
+      if(gpuCanvas&&window.SolarSurface?.DirectRenderer){try{this.gpu=new window.SolarSurface.DirectRenderer(gpuCanvas);}catch(error){this.gpuError=error.message;}}
       this.options={orbits:true,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
       this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};
       this.cameraTween=null;this.autoRotation=null;this.rotationGeneration=0;
-      this.surface=new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
+      this.surface=this.gpu||new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
       this.labelStates=new Map();this.lastLabelMono=null;this.labelWidths=new Map();
       this.orbitCache=new WeakMap();this.frameCache=new Map();this.starSprites=new Map();
       this.stats={orbitProjections:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
@@ -41,6 +44,7 @@
       this.lensStretch=clamp(this.w/this.h,1,1.72);
       this.canvas.width=Math.round(this.w*this.dpr);this.canvas.height=Math.round(this.h*this.dpr);
       this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
+      this.gpu?.resize(this.w,this.h,this.dpr);
       this.sky.resize(this.w,this.h,this.dpr);this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate(false);this.clearLabels();
     }
     starGlow(c,x,y,r,alpha) {
@@ -70,8 +74,9 @@
       }
       return this.basis;
     }
-    // Orthographic direction transform. Body normals and rings MUST NOT use the
-    // anamorphic orbital-distance stretch: their shared frame stays orthonormal.
+    // Orthographic direction transform shared by orbit geometry, planet
+    // materials, rings and markers. This keeps every sphere in the same 3D
+    // camera space instead of making its material behave like a billboard.
     viewDirection(p) {
       const {ca,sa,ce,se}=this.cameraBasis();
       const x=p.x*ca-p.y*sa,y=p.x*sa+p.y*ca;
@@ -393,8 +398,11 @@
       // Stable detail while dragging and on tab return. No flat->256->4096
       // ladder: decode the chosen image once and reuse it across camera angles.
       const nativeWidth=window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth;
-      const textureWidth=Math.min(nativeWidth,focused?SURFACE.detailWidth:1024);
-      const vectors=this.bodyFrame(body),frame=Object.fromEntries(Object.entries(vectors).map(([k,v])=>[k,[v.x,v.y,v.z]]));
+      const textureTarget=this.gpu?([128,256,512,1024,2048,4096].find(n=>n>=diam*4)||4096):(focused?SURFACE.detailWidth:1024);
+      const textureWidth=Math.min(nativeWidth,focused?textureTarget:Math.min(1024,textureTarget));
+      // One parent body frame owns every visual child (surface, rings, markers).
+      // There is intentionally no independently rotatable ring transform.
+      const vectors=this.bodyFrame(body),frame=vectors.gpu||(vectors.gpu=Object.fromEntries(Object.entries(vectors).filter(([k])=>k!=='gpu').map(([k,v])=>[k,new Float32Array([v.x,v.y,v.z])])));
       // A heliocentric Earth solve is needed only for Earth/Moon lighting.
       let physical;
       if(body.id==='sun')physical={x:0,y:0,z:0};
@@ -407,7 +415,7 @@
       const len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
       const activity=false; // No surface distortion or erupting loops: physical spin + shine only.
       const spin=A.rotationAt(body,ms);
-      const geometry=[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,this.camera.azimuth,this.camera.elevation,A.rotationPoleTilt(body),Number(activity)].join(':');
+      const geometry=[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,'camera-3d',A.rotationPoleTilt(body),this.camera.azimuth.toFixed(5),this.camera.elevation.toFixed(5),Number(activity)].join(':');
       const viewState={yaw:this.camera.azimuth,pitch:this.camera.elevation,limit:this.autoRotation?Math.PI/120:Math.PI/36,
         key:[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,A.rotationPoleTilt(body),this.autoRotation?.generation||0].join(':')};
       return {id:body.id,diam,textureWidth,frame,geometry,viewState,phase:spin/TAU,
@@ -419,17 +427,16 @@
       if(this.autoRotation)this.autoRotation.mono=null; // Resume at the same view, never catch up a hidden tab.
       this.surface?.pause();this.sky?.pause?.();
     }
-    resume() {if(!this.surface)this.surface=new window.SolarSurface.Service();this.surface.resume();this.sky?.resume?.();}
+    resume() {if(!this.surface)this.surface=this.gpu||new window.SolarSurface.Service();this.surface.resume();this.sky?.resume?.();}
     dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets=[];this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.labelWidths.clear();this.orbitCache=new WeakMap();this.sky?.dispose();}
     makeCoronaTexture(size=384) {
-      // One bounded, reusable corona asset. No per-frame pixel noise, downloads or timers.
+      // Exact public-site corona texture for the non-WebGL compatibility path.
       const extent=3.3,canvas=document.createElement('canvas');canvas.width=canvas.height=size;
       const ctx=canvas.getContext('2d'),image=ctx.createImageData(size,size),out=image.data;
       for(let y=0;y<size;y++)for(let x=0;x<size;x++) {
         const px=((x+.5)/size*2-1)*extent,py=((y+.5)/size*2-1)*extent,d=Math.hypot(px,py);
         if(d<.98||d>extent)continue;
         const a=Math.atan2(py,px),ca=Math.cos(a),sa=Math.sin(a);
-        // Circular noise has no longitude seam. Streamers taper instead of ending abruptly.
         const field=fbm(ca*5+21,sa*5+37),fine=noise(ca*43+px*.7,sa*43+py*.7);
         const filament=Math.pow(clamp(field*.7+fine*.3,0,1),3);
         const reach=.20+Math.pow(field,2)*1.55,falloff=Math.exp(-(d-1)/reach);
@@ -439,14 +446,18 @@
       }
       ctx.putImageData(image,0,0);return canvas;
     }
-    corona(c,x,y,r,seconds) {
+    corona(c,x,y,r,seconds,maskDisk=false) {
       // v0.19: activity is a true visibility toggle, not merely an animation freeze.
       if(!this.options.activity)return;
-      // Decorative shine only: physics and solar surface rotation keep their own time.
+      // Public SolarTime timing and layer blend values.
       const t=seconds*24;
       const detail=r*this.dpr>128&&this.options.quality!=='low'?768:384;
       if(!this.coronaTexture||this.coronaTexture.width<detail)this.coronaTexture=this.makeCoronaTexture(detail);
-      c.save();c.translate(x,y);c.globalCompositeOperation='screen';
+      c.save();c.translate(x,y);
+      // The direct-GPU Sun is on the layer below this Canvas. Keep the public
+      // effect around its limb without painting the halo over the solar disk.
+      if(maskDisk){c.beginPath();c.rect(-r*5.1,-r*5.1,r*10.2,r*10.2);c.arc(0,0,r*.99,0,TAU,true);c.clip('evenodd');}
+      c.globalCompositeOperation='screen';
       const halo=c.createRadialGradient(0,0,r*.92,0,0,r*5.1);
       halo.addColorStop(0,'rgba(255,167,64,.25)');halo.addColorStop(.17,'rgba(216,102,25,.095)');
       halo.addColorStop(.5,'rgba(156,64,13,.026)');halo.addColorStop(1,'rgba(110,40,5,0)');
@@ -458,10 +469,10 @@
       }
       c.restore();
     }
-    rings(c,b,p,r,front) {
-      // Equatorial ring plane uses the SAME local-to-view frame as the surface.
+    rings(c,b,p,r,front,frame=this.bodyFrame(b)) {
+      // Rings are a visual child of the planet and consume its parent frame.
       // Split by actual view-space depth, not screen top/bottom or a fixed ellipse.
-      const sat=b.id==='saturn',{u,v}=this.bodyFrame(b),nearStart=Math.atan2(v.z,u.z)-Math.PI/2;
+      const sat=b.id==='saturn',{u,v}=frame,nearStart=Math.atan2(v.z,u.z)-Math.PI/2;
       const start=nearStart+(front?0:Math.PI);
       c.save();c.transform(u.x,u.y,v.x,v.y,p.x,p.y);
       const inner=sat?1.28:1.58,outer=sat?2.26:1.94,steps=sat?116:18;
@@ -475,8 +486,9 @@
       c.restore();
     }
     drawBody(c,b,world,screen,r,ms,t) {
+      const frame=this.bodyFrame(b);
       if(b.id==='sun')this.corona(c,screen.x,screen.y,r,t);
-      if(b.id==='saturn'||b.id==='uranus')this.rings(c,b,screen,r,false);
+      if(b.id==='saturn'||b.id==='uranus')this.rings(c,b,screen,r,false,frame);
       if(b.id==='earth') {
         const g=c.createRadialGradient(screen.x,screen.y,r*.99,screen.x,screen.y,r*1.035);g.addColorStop(0,'rgba(73,145,218,.12)');g.addColorStop(1,'rgba(74,155,219,0)');c.fillStyle=g;c.beginPath();c.arc(screen.x,screen.y,r*1.035,0,TAU);c.fill();
       }
@@ -486,7 +498,12 @@
         // First-ever material load has no fake flat-colour planet. During
         // camera changes/visibility pauses the last complete image is retained.
       }
-      if(b.id==='saturn'||b.id==='uranus')this.rings(c,b,screen,r,true);
+      if(b.id==='saturn'||b.id==='uranus')this.rings(c,b,screen,r,true,frame);
+      if(this.selected===b.id||this.hover===b.id) {
+        c.strokeStyle=this.selected===b.id?'rgba(225,203,155,.7)':'rgba(210,226,244,.4)';c.lineWidth=.8;c.beginPath();c.arc(screen.x,screen.y,r+5,0,TAU);c.stroke();
+      }
+    }
+    drawBodyOverlay(c,b,screen,r) {
       if(this.selected===b.id||this.hover===b.id) {
         c.strokeStyle=this.selected===b.id?'rgba(225,203,155,.7)':'rgba(210,226,244,.4)';c.lineWidth=.8;c.beginPath();c.arc(screen.x,screen.y,r+5,0,TAU);c.stroke();
       }
@@ -599,16 +616,16 @@
         else{this.cx=this.homeCx;this.cy=this.homeCy;}
       }
       for(const body of bodies)body.screen=this.project(body.world);
+      const direct=!!this.gpu&&this.gpu.begin();
       if(this.options.orbits) {
-        for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id);
+        if(direct){
+          for(const path of this.paths){const item=this.projectOrbit(path),selected=this.selected===path.body.id;
+            this.gpu.orbit(item.xyz,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],selected?.64:.22);}
+        }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id);
         if(this.options.moon) {
           const el=A.moonElements(ms);
-          c.strokeStyle='rgba(115,155,189,.26)';c.lineWidth=.65;c.beginPath();
-          for(let i=0;i<=90;i++) {
-            const p=A.pointOnOrbit(el,i/90*TAU,lunarRadius),s=this.project({x:earth.world.x+p.x,y:earth.world.y+p.y,z:earth.world.z+p.z});
-            i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);
-          }
-          c.stroke();
+          if(direct){const xyz=new Float32Array(91*3);for(let i=0;i<=90;i++){const p=A.pointOnOrbit(el,i/90*TAU,lunarRadius),v=this.view({x:earth.world.x+p.x,y:earth.world.y+p.y,z:earth.world.z+p.z});xyz[i*3]=v.x;xyz[i*3+1]=v.y;xyz[i*3+2]=v.z;}this.gpu.orbit(xyz,this.scale,this.cx,this.cy,[.45,.61,.74],.26);}
+          else if(!this.gpu){c.strokeStyle='rgba(115,155,189,.26)';c.lineWidth=.65;c.beginPath();for(let i=0;i<=90;i++){const p=A.pointOnOrbit(el,i/90*TAU,lunarRadius),s=this.project({x:earth.world.x+p.x,y:earth.world.y+p.y,z:earth.world.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();}
         }
       }
       bodies.sort((a,b)=>a.screen.z-b.screen.z);
@@ -627,18 +644,30 @@
       // worker batch completed. Use a stable producer cadence instead. Large/focus
       // bodies still refresh at ~30 fps in accelerated time while real-time motion
       // uses a lighter cadence. Camera motion gets an immediate-enough 40 ms path.
-      const realDt=Number.isFinite(this.lastSurfaceMono)?Math.max(1,mono-this.lastSurfaceMono):16.7;
-      const simDt=Number.isFinite(this.lastSurfaceSimMs)?Math.abs(ms-this.lastSurfaceSimMs):0;
-      const simRate=simDt/realDt, moving=!!this.cameraTween||!!this.autoRotation;
-      const surfaceInterval=moving?40:simRate>1000?34:90;
-      if(mono-this.lastSurfaceSubmit>=surfaceInterval){
-        this.lastSurfaceSubmit=mono;this.lastSurfaceSimMs=ms;this.lastSurfaceMono=mono;
-        this.surface.update(surfaceBodies.map(p=>this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)),mono);
+      let directJobs=null;
+      if(direct){
+        directJobs=new Map(surfaceBodies.map(p=>[p.body.id,this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)]));
+        for(const p of bodies){const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;if(!this.visible(p.screen,p.r*extent+16))continue;
+          const job=directJobs.get(p.body.id);if(job)this.gpu.planet(job,p.body,p.screen,p.r,seconds,false);
+        }
+        this.gpu.end();
+      }else if(!this.gpu){
+        const realDt=Number.isFinite(this.lastSurfaceMono)?Math.max(1,mono-this.lastSurfaceMono):16.7;
+        const simDt=Number.isFinite(this.lastSurfaceSimMs)?Math.abs(ms-this.lastSurfaceSimMs):0;
+        const simRate=simDt/realDt, moving=!!this.cameraTween||!!this.autoRotation;
+        const surfaceInterval=moving?40:simRate>1000?34:90;
+        if(mono-this.lastSurfaceSubmit>=surfaceInterval){
+          this.lastSurfaceSubmit=mono;this.lastSurfaceSimMs=ms;this.lastSurfaceMono=mono;
+          this.surface.update(surfaceBodies.map(p=>this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)),mono);
+        }
       }
       for(const p of bodies) {
         const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;
         if(!this.visible(p.screen,p.r*extent+16))continue;
-        this.drawBody(c,p.body,p.world,p.screen,p.r,ms,seconds);
+        if(this.gpu){
+          if(p.body.id==='sun'&&this.options.activity)this.corona(c,p.screen.x,p.screen.y,p.r,seconds,true);
+          this.drawBodyOverlay(c,p.body,p.screen,p.r);
+        }else this.drawBody(c,p.body,p.world,p.screen,p.r,ms,seconds);
         this.hitTargets.push({id:p.body.id,x:p.screen.x,y:p.screen.y,r:Math.max(p.r+6,11),z:p.screen.z});
       }
       if(this.camera.focus==='earth'&&earth.r>65){

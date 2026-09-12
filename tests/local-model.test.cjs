@@ -7,10 +7,20 @@ test('Offline boot calibrates every body at current device time in under five se
  for(const b of A.BODIES){const p=A.positionAt(b,t,true);assert.ok(Number.isFinite(p.x+p.y+p.z));}
  assert.ok(performance.now()-start<5000);assert.equal(status.epoch,t);assert.equal(status.source,'local');assert.equal(status.networkRequired,false);
 });
-test('All stored tilt/period inputs have at most two decimals in degrees / seconds, not degrees per frame',()=>{
- for(const b of all){close(b.spinSeconds*100,Math.round(b.spinSeconds*100),1e-4);assert.notEqual(b.spinSeconds,0);close(b.tilt*100,Math.round(b.tilt*100),1e-9);
+test('Stored axial tilts preserve NASA precision and periods use seconds, not degrees per frame',()=>{
+ for(const b of all){close(b.spinSeconds*100,Math.round(b.spinSeconds*100),1e-4);assert.notEqual(b.spinSeconds,0);close(b.tilt*1000,Math.round(b.tilt*1000),1e-9);
  if(b.periodSeconds)close(b.periodSeconds*100,Math.round(b.periodSeconds*100),1e-4);}
  close(A.BODIES[2].spinSeconds,86164.10,1e-9);
+});
+test('Planet obliquities and rendered J2000 pole vectors match NASA/NSSDCA data',()=>{
+ assert.deepEqual(A.BODIES.map(b=>b.tilt),[.034,177.36,23.439,25.19,3.13,26.73,97.77,28.32,119.51]);
+ for(const b of A.BODIES){
+  const p=A.bodyAxes(b).pole,I=b.base[2]*A.DEG,O=b.base[5]*A.DEG;
+  const orbitPole={x:Math.sin(O)*Math.sin(I),y:-Math.cos(O)*Math.sin(I),z:Math.cos(I)};
+  const cosine=Math.sign(b.spin)*(p.x*orbitPole.x+p.y*orbitPole.y+p.z*orbitPole.z);
+  const rendered=Math.acos(Math.max(-1,Math.min(1,cosine)))/A.DEG;
+  assert.ok(Math.abs(rendered-b.tilt)<.11,`${b.id}: ${rendered} != ${b.tilt}`);
+ }
 });
 test('References are reused throughout playback; no orbital-element rebuild on each frame',()=>{
  const t=Date.UTC(2026,8,11);A.calibrateAt(t);const before=A.modelStatus();

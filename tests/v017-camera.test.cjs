@@ -7,4 +7,4 @@ test('pan range is forty percent',()=>{const s=read('src/renderer.js');assert.ma
 test('focus transitions use a continuous source-to-destination anchor',()=>{const s=read('src/renderer.js');assert.match(s,/anchor=\{x:mix\(a\.x,b\.x,p\)/);assert.doesNotMatch(s,/targetStartScreen/);});
 test('manual camera controls are immediate again',()=>{const s=read('src/app.js');assert.match(s,/renderer\.setPan\(/);assert.match(s,/renderer\.setOrbitView\(/);assert.match(s,/renderer\.setZoom\(/);});
 test('playback ranges and single mode button',()=>{const s=read('src/app.js'),h=read('index.html');assert.match(s,/hour:\{min:1,max:1440,step:1/);assert.match(s,/day:\{min:1,max:365,step:1/);assert.match(s,/year:\{min:1,max:20,step:1/);assert.match(h,/id="speed-mode-button"/);assert.doesNotMatch(h,/speed-range/);assert.doesNotMatch(h,/playback-hint/);});
-test('app exposes a current release version',()=>assert.match(read('src/app.js'),/version:'0\.23'/));
+test('app exposes a current release version',()=>assert.match(read('src/app.js'),/version:'0\.24'/));

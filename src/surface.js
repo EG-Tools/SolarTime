@@ -257,5 +257,208 @@ class SurfaceService{
   suspend(){this.invalidate(true);this.worker?.terminate();this.worker=null;clearTimeout(this.timer);this.timer=null;this.inflight=false;this.batch=null;this.sync?.clear();}
   dispose(){this.suspend();this.disposed=true;}
 }
-root.SolarSurface={kernel:surfaceKernel,Service:SurfaceService};if(typeof module==='object'&&module.exports)module.exports=root.SolarSurface;
+
+// Direct GPU scene renderer. Planet textures stay resident in WebGL and every
+// frame changes only geometry, rotation and lighting uniforms. No per-planet
+// canvas, ImageBitmap transfer or producer queue exists on this path.
+const DIRECT_QUAD_VERTEX=`attribute vec2 a;
+  uniform vec2 center,viewport;uniform float radius;varying vec2 p;
+  void main(){p=a;vec2 q=center+a*radius;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);}`;
+const DIRECT_PLANET_FRAGMENT=`precision highp float;
+  varying vec2 p;uniform sampler2D colorMap,bumpMap,cloudsMap;
+  uniform vec3 axisU,axisV,pole,light;uniform float phase,kind,hasBump,diameter,texel;
+  const float PI=3.141592653589793;
+  vec3 world(vec3 q){return axisU*q.x+axisV*q.y+pole*q.z;}
+  void main(){
+    float rr=dot(p,p);if(rr>=1.)discard;
+    // p is already in screen/view coordinates (top is negative Y). Flipping Y
+    // again here made the surface interpret the shared body frame differently
+    // from its child rings, producing camera-following rotation while dragging.
+    vec3 n=vec3(p.x,p.y,sqrt(1.-rr));
+    vec3 local=vec3(dot(n,axisU),dot(n,axisV),dot(n,pole));
+    float angle=atan(local.y,local.x),latitude=asin(clamp(local.z,-1.,1.));
+    vec2 uv=vec2((angle+PI)/(2.*PI)-phase,.5-latitude/PI);
+    vec3 base=texture2D(colorMap,uv).rgb,normal=n;
+    if(hasBump>.5){
+      float dx=texture2D(bumpMap,uv+vec2(texel,0.)).r-texture2D(bumpMap,uv-vec2(texel,0.)).r;
+      float dy=texture2D(bumpMap,uv+vec2(0.,texel*2.)).r-texture2D(bumpMap,uv-vec2(0.,texel*2.)).r;
+      vec3 east=world(vec3(-sin(angle),cos(angle),0.));
+      vec3 north=world(vec3(-sin(latitude)*cos(angle),-sin(latitude)*sin(angle),cos(latitude)));
+      normal=normalize(n-east*dx*7.+north*dy*7.);
+    }
+    float mu=dot(normal,light),day=max(mu,0.);vec3 col=base*(.115+day*.98);
+    if(kind==1.){
+      float cloud=texture2D(cloudsMap,uv).r*.50;
+      col=mix(col,vec3(.94,.965,1.)*(.14+day*.93),cloud);
+      float ocean=smoothstep(.035,.14,base.b-base.r)*step(base.r,base.b)*step(base.g,base.b);
+      vec3 halfdir=normalize(light+vec3(0.,0.,1.));
+      col+=vec3(.63,.76,.85)*pow(max(0.,dot(n,halfdir)),70.)*day*ocean*.38;
+      float rim=pow(1.-n.z,4.)*(.05+.8*day);col+=vec3(.075,.36,.72)*rim;
+      col=mix(col,vec3(.065,.16,.32),pow(1.-n.z,6.)*.17);
+    }else if(kind==2.)col=base*(.70+.30*pow(n.z,.5));
+    else if(kind==3.)col+=vec3(.18,.26,.33)*pow(1.-n.z,5.)*day*.16;
+    float alpha=clamp((1.-sqrt(rr))*diameter,0.,1.);gl_FragColor=vec4(col,alpha);
+  }`;
+const DIRECT_LINE_VERTEX=`attribute vec3 a;uniform vec2 center,viewport;uniform float scale;
+  void main(){vec2 q=center+a.xy*scale;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);}`;
+const DIRECT_COLOR_FRAGMENT=`precision mediump float;uniform vec4 color;void main(){gl_FragColor=color;}`;
+const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,axisV;uniform float radius,outer;uniform vec2 depthAxis;
+  varying vec2 local;varying float depth;
+  void main(){local=a*outer;depth=dot(local,depthAxis);vec2 q=center+(axisU*local.x+axisV*local.y)*radius;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);}`;
+const DIRECT_RING_FRAGMENT=`precision highp float;varying vec2 local;varying float depth;
+  uniform float inner,outer,front,saturn,pixel;uniform vec3 ringColor;
+  void main(){float r=length(local);if(r<inner||r>outer||(front>.5&&depth<0.)||(front<.5&&depth>=0.))discard;
+    float f=(r-inner)/(outer-inner);if(saturn>.5&&f>.56&&f<.62)discard;
+    float edge=max(pixel,.002),alpha=smoothstep(inner,inner+edge,r)*(1.-smoothstep(outer-edge,outer,r));
+    alpha*=saturn>.5?(.19+.48*pow(sin(f*75.),2.))*(f>.85?.6:1.):.22;
+    gl_FragColor=vec4(ringColor,alpha);}`;
+function directCompile(gl,type,source){
+  const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
+  if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){const message=gl.getShaderInfoLog(shader)||'GPU shader compilation failed';gl.deleteShader(shader);throw Error(message);}
+  return shader;
+}
+function directProgram(gl,vertex,fragment,uniforms){
+  const vs=directCompile(gl,gl.VERTEX_SHADER,vertex),fs=directCompile(gl,gl.FRAGMENT_SHADER,fragment),program=gl.createProgram();
+  gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);gl.deleteShader(vs);gl.deleteShader(fs);
+  if(!gl.getProgramParameter(program,gl.LINK_STATUS)){const message=gl.getProgramInfoLog(program)||'GPU program link failed';gl.deleteProgram(program);throw Error(message);}
+  return {program,a:gl.getAttribLocation(program,'a'),u:Object.fromEntries(uniforms.map(name=>[name,gl.getUniformLocation(program,name)]))};
+}
+function directBlob(url){
+  const comma=url.indexOf(','),meta=url.slice(0,comma),raw=atob(url.slice(comma+1)),bytes=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+  return new Blob([bytes],{type:(meta.match(/^data:([^;]+)/)||[])[1]||'image/webp'});
+}
+function directPower(value){return Math.max(128,Math.min(4096,2**Math.round(Math.log2(Math.max(128,value)))));}
+class DirectRenderer{
+  constructor(canvas){
+    if(!canvas)throw Error('Direct GPU canvas is missing.');
+    this.canvas=canvas;this.gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false,antialias:true,preserveDrawingBuffer:false});
+    if(!this.gl)throw Error('WebGL is required for the direct planet renderer.');
+    this.disposed=false;this.paused=false;this.generation=0;this.textureToken=0;this.width=1;this.height=1;this.dpr=1;
+    this.textures=new Map();this.frames=new Map();this.desired=new Map();this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
+    this.stats={backend:'gpu-direct',accepted:0,discarded:0,drawCalls:0,frames:0,texturesLoaded:0,texturePixels:0,kernel:{backend:'gpu-direct'}};
+    this.contextLost=false;this.onLost=event=>{event.preventDefault();this.contextLost=true;this.generation++;this.loadQueue=[];this.pendingCount=0;this.stats.contextLost=true;};
+    this.onRestored=()=>{this.contextLost=false;this.textures.clear();this.frames.clear();this.desired.clear();this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.setup();};
+    canvas.addEventListener('webglcontextlost',this.onLost,false);canvas.addEventListener('webglcontextrestored',this.onRestored,false);
+    this.setup();
+  }
+  setup(){
+    const g=this.gl;
+    this.maxTextureSize=Math.min(4096,2**Math.floor(Math.log2(g.getParameter(g.MAX_TEXTURE_SIZE))));
+    this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
+    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel']);
+    this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','scale','color']);
+    this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor']);
+    this.quad=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.quad);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
+    this.lines=g.createBuffer();
+    this.black=g.createTexture();g.bindTexture(g.TEXTURE_2D,this.black);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,1,1,0,g.RGBA,g.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
+    g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
+    g.enable(g.BLEND);g.blendFunc(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA);g.disable(g.DEPTH_TEST);g.clearColor(0,0,0,0);
+  }
+  resize(width,height,dpr=1){
+    this.width=Math.max(1,width);this.height=Math.max(1,height);
+    this.dpr=Math.max(.25,Math.min(Math.max(1,dpr),this.viewportLimit[0]/this.width,this.viewportLimit[1]/this.height));this.stats.pixelRatio=this.dpr;
+    const w=Math.round(this.width*this.dpr),h=Math.round(this.height*this.dpr);
+    if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}
+    this.gl.viewport(0,0,w,h);
+  }
+  get inflight(){return this.pendingCount>0;}
+  begin(){
+    if(this.disposed||this.paused||this.contextLost)return false;
+    const g=this.gl;g.viewport(0,0,this.canvas.width,this.canvas.height);g.clear(g.COLOR_BUFFER_BIT);g.blendFunc(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA);
+    this.stats.frames++;this.stats.drawCalls=0;this.desired.clear();return true;
+  }
+  bind(program,buffer=this.quad,size=2){
+    const g=this.gl;g.useProgram(program.program);g.bindBuffer(g.ARRAY_BUFFER,buffer);g.enableVertexAttribArray(program.a);g.vertexAttribPointer(program.a,size,g.FLOAT,false,0,0);
+  }
+  viewport(program){const g=this.gl;g.uniform2f(program.u.viewport,this.width,this.height);}
+  queueTexture(task){this.loadQueue.push(task);this.pendingCount++;this.pumpTextureQueue();}
+  pumpTextureQueue(){
+    if(this.disposed||this.contextLost)return;
+    while(this.activeLoads<2&&this.loadQueue.length){
+      const task=this.loadQueue.shift(),record=this.textures.get(task.name);
+      if(task.generation!==this.generation||!record||record.token!==task.token||record.source!==task.source){if(task.generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);continue;}
+      this.activeLoads++;this.loadTexture(task.name,task.source,task.target,task.token,task.generation).finally(()=>{this.activeLoads=Math.max(0,this.activeLoads-1);this.pumpTextureQueue();});
+    }
+  }
+  async loadTexture(name,source,target,token,generation){
+    let bitmap,canvas,texture;
+    try{
+      const requested=this.textures.get(name);if(!requested||requested.token!==token||requested.source!==source||generation!==this.generation)return;
+      bitmap=await createImageBitmap(directBlob(source));if(this.disposed||generation!==this.generation)return;
+      const natural=2**Math.floor(Math.log2(Math.max(2,bitmap.width))),width=Math.max(2,Math.min(target,natural)),height=width/2;
+      canvas=typeof OffscreenCanvas==='function'?new OffscreenCanvas(width,height):document.createElement('canvas');canvas.width=width;canvas.height=height;
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0,width,height);bitmap.close();bitmap=null;
+      // Read only the two narrow antimeridian strips. A 4096px detail texture no
+      // longer allocates another full 32 MB ImageData merely to repair its seam.
+      const band=Math.max(2,Math.min(32,Math.round(width*.012))),leftStrip=ctx.getImageData(0,0,band,height),rightStrip=ctx.getImageData(width-band,0,band,height);
+      for(let y=0;y<height;y++)for(let x=0;x<band;x++){
+        const t=1-x/(band-1),weight=t*t*(3-2*t),a=(y*band+x)*4,b=(y*band+band-1-x)*4;
+        for(let k=0;k<4;k++){const left=leftStrip.data[a+k],right=rightStrip.data[b+k],middle=(left+right)*.5;leftStrip.data[a+k]=left+(middle-left)*weight;rightStrip.data[b+k]=right+(middle-right)*weight;}
+      }
+      ctx.putImageData(leftStrip,0,0);ctx.putImageData(rightStrip,width-band,0);
+      if(this.disposed||generation!==this.generation)return;
+      const g=this.gl;texture=g.createTexture();g.bindTexture(g.TEXTURE_2D,texture);g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);
+      g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,canvas);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
+      // Explicit screen-size texture tiers provide LOD without the longitude
+      // derivative seam that implicit mip selection creates on a sphere.
+      g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
+      const record=this.textures.get(name);if(!record||record.token!==token||record.source!==source){g.deleteTexture(texture);texture=null;this.stats.discarded++;return;}
+      if(record.texture){g.deleteTexture(record.texture);this.stats.texturePixels-=record.width*record.height;}
+      Object.assign(record,{texture,width,height,pending:false,error:null,retryAt:0});texture=null;this.stats.accepted++;this.stats.texturesLoaded++;this.stats.texturePixels+=width*height;
+    }catch(error){const record=this.textures.get(name);if(record&&record.token===token){record.pending=false;record.error=error.message;record.retryAt=Date.now()+30000;this.stats.error=error.message;}}
+    finally{bitmap?.close?.();if(generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);}
+  }
+  texture(name,target){
+    const source=root.SolarAssets?.materials?.[name];if(!source)return null;
+    target=directPower(Math.min(target,this.maxTextureSize));let record=this.textures.get(name);
+    const sourceChanged=!record||record.source!==source,upgrade=!record?.texture||record.width<target,downgrade=record?.texture&&record.width>target*2,retryReady=sourceChanged||!record?.retryAt||Date.now()>=record.retryAt;
+    if(retryReady&&(sourceChanged||upgrade||downgrade)&&(!record?.pending||record.pendingTarget!==target||record.source!==source)){
+      const old=record?.texture||null,token=++this.textureToken,generation=this.generation;
+      record={source,texture:old,width:record?.width||0,height:record?.height||0,pending:true,pendingTarget:target,token};
+      this.textures.set(name,record);this.queueTexture({name,source,target,token,generation});
+    }
+    return record?.texture?record:null;
+  }
+  orbit(xyz,scale,centerX,centerY,color,alpha){
+    if(!xyz?.length)return;const g=this.gl,p=this.line,data=xyz instanceof Float32Array?xyz:new Float32Array(xyz);
+    this.bind(p,this.lines,3);g.bufferData(g.ARRAY_BUFFER,data,g.STREAM_DRAW);this.viewport(p);g.uniform2f(p.u.center,centerX,centerY);g.uniform1f(p.u.scale,scale);g.uniform4f(p.u.color,color[0],color[1],color[2],alpha);
+    g.drawArrays(g.LINE_STRIP,0,data.length/3);this.stats.drawCalls++;
+  }
+  rings(body,frame,screen,radius,front){
+    const saturn=body.id==='saturn',inner=saturn?1.28:1.58,outer=saturn?2.26:1.94,g=this.gl,p=this.ring;
+    this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform2f(p.u.axisU,frame.u[0],frame.u[1]);g.uniform2f(p.u.axisV,frame.v[0],frame.v[1]);g.uniform2f(p.u.depthAxis,frame.u[2],frame.v[2]);
+    g.uniform1f(p.u.radius,radius);g.uniform1f(p.u.inner,inner);g.uniform1f(p.u.outer,outer);g.uniform1f(p.u.front,front?1:0);g.uniform1f(p.u.saturn,saturn?1:0);g.uniform1f(p.u.pixel,1/Math.max(radius,1));
+    g.uniform3f(p.u.ringColor,saturn?.88:.59,saturn?.75:.76,saturn?.55:.76);g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
+  }
+  planet(job,body,screen,radius,time,activity){
+    this.desired.set(job.id,job);const color=this.texture(job.id,job.textureWidth);if(!color)return false;
+    const bump=root.SolarAssets?.materials?.[job.id+'-relief']?this.texture(job.id+'-relief',job.textureWidth):null;
+    const clouds=job.id==='earth'?this.texture('clouds',Math.min(2048,job.textureWidth)):null;
+    // Rings are children of this body: the surface and both ring halves share
+    // exactly one parent transform and cannot drift into separate orientations.
+    const frame=job.frame;
+    if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,false);
+    const g=this.gl,p=this.planetProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius);g.uniform3fv(p.u.axisU,frame.u);g.uniform3fv(p.u.axisV,frame.v);g.uniform3fv(p.u.pole,frame.pole);g.uniform3fv(p.u.light,job.light);
+    g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:['jupiter','saturn','venus','uranus','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);
+    for(const [unit,texture,uniform] of [[0,color.texture,p.u.colorMap],[1,bump?.texture||color.texture,p.u.bumpMap],[2,clouds?.texture||this.black,p.u.cloudsMap]]){g.activeTexture(g.TEXTURE0+unit);g.bindTexture(g.TEXTURE_2D,texture);g.uniform1i(uniform,unit);}
+    g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
+    if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,true);
+    this.frames.set(job.id,{job,image:{width:Math.round(radius*2*this.dpr),height:Math.round(radius*2*this.dpr),gpu:true}});return true;
+  }
+  end(){for(const id of this.frames.keys())if(!this.desired.has(id))this.frames.delete(id);}
+  get(id){return this.frames.get(id)?.image;}
+  invalidate(){this.generation++;this.loadQueue=[];this.pendingCount=0;for(const record of this.textures.values())record.pending=false;}
+  pause(){this.paused=true;}
+  resume(){this.paused=false;this.pumpTextureQueue();}
+  suspend(){this.pause();}
+  dispose(){
+    if(this.disposed)return;this.disposed=true;this.generation++;this.loadQueue=[];this.pendingCount=0;const g=this.gl;
+    for(const record of this.textures.values())if(record.texture)g.deleteTexture(record.texture);
+    for(const p of [this.planetProgram,this.line,this.ring])g.deleteProgram(p.program);
+    g.deleteTexture(this.black);g.deleteBuffer(this.quad);g.deleteBuffer(this.lines);this.textures.clear();this.frames.clear();this.desired.clear();
+    this.canvas.removeEventListener('webglcontextlost',this.onLost);this.canvas.removeEventListener('webglcontextrestored',this.onRestored);
+  }
+}
+root.SolarSurface={kernel:surfaceKernel,Service:SurfaceService,DirectRenderer,effectRevision:'corona-r20'};if(typeof module==='object'&&module.exports)module.exports=root.SolarSurface;
 })(typeof window==='object'?window:globalThis);

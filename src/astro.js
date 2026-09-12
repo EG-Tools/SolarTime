@@ -15,8 +15,25 @@
   const DAY = 86400000, TAU = Math.PI * 2, DEG = Math.PI / 180;
   const J2000 = Date.UTC(2000, 0, 1, 12), MIN_TIME = Date.UTC(1800, 0, 1), MAX_TIME = Date.UTC(2999, 11, 31, 23, 59, 59);
   const round2 = value => Math.round(value*100)/100;
+  const round3 = value => Math.round(value*1000)/1000;
   const wrap = (v, m = TAU) => ((v % m) + m) % m;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const J2000_OBLIQUITY=23.4392911*DEG;
+  // NASA/NSSDCA J2000 rotational north poles (equatorial RA/Dec, degrees).
+  // Pluto's fact sheet specifies the positive pole; the signed retrograde
+  // period below uses its antipodal conventional north pole exactly once.
+  const ROTATION_POLES=Object.freeze({
+    sun:Object.freeze({ra:286.13,dec:63.87}),
+    mercury:Object.freeze({ra:281.010,dec:61.414}),
+    venus:Object.freeze({ra:272.76,dec:67.16}),
+    earth:Object.freeze({ra:0,dec:90}),
+    mars:Object.freeze({ra:317.681,dec:52.887}),
+    jupiter:Object.freeze({ra:268.057,dec:64.495}),
+    saturn:Object.freeze({ra:40.589,dec:83.537}),
+    uranus:Object.freeze({ra:257.311,dec:-15.175}),
+    neptune:Object.freeze({ra:299.3337,dec:42.9504}),
+    pluto:Object.freeze({ra:132.99,dec:-6.16,positive:true})
+  });
   // Signed sidereal rotation periods in Earth days, not solar-day lengths.
   // Saturn: Cassini ring-seismology representative period (NASA, 2019).
   // Uranus: Hubble auroral period (NASA, 2025). See README.md for sources.
@@ -45,7 +62,7 @@
     ['neptune','해왕성','NEPTUNE',625,16,'#5389ef',60189,.67125,28.32,
       [30.06952752,.00895439,1.77005520,304.22289287,46.68158724,131.78635853],
       [.00006447,.00000818,.00022400,218.46515314,.01009938,-.00606302],[-.00041348,.68346318,-.10162547,7.67025]],
-    ['pluto','명왕성','PLUTO',718,5,'#c8ada0',90560,-6.38723,119.61,
+    ['pluto','명왕성','PLUTO',718,5,'#c8ada0',90560,-6.38723,119.51,
       [39.482,.2488,17.14,238.929,224.069,110.304],
       [0,0,0,360*36525/90560,0,0]]
   ];
@@ -63,7 +80,7 @@
   const BODIES = defs.map(([id,ko,en,orbit,size,color,period,spin,tilt,base,rates,correction]) =>
     Object.freeze({id,ko,en,orbit,size,color,period:round2(period*86400)/86400,
       periodSeconds:round2(period*86400),spin:round2(spin*86400)/86400,spinSeconds:round2(spin*86400),
-      referenceSpinDays:spin,tilt:round2(tilt),base:Object.freeze(base),rates:Object.freeze(rates),
+      referenceSpinDays:spin,tilt:round3(tilt),base:Object.freeze(base),rates:Object.freeze(rates),
       correction:correction&&Object.freeze(correction),description:descriptions[id]}));
   const SUN = Object.freeze({id:'sun',ko:'태양',en:'SUN',size:28,color:'#ffb753',spin:25.38,spinSeconds:2192832,referenceSpinDays:25.38,tilt:7.25,
     description:'태양계의 중심. 표면의 입상 조직과 부드러운 샤인은 감상을 위한 시각 효과입니다.'});
@@ -110,13 +127,30 @@
     // pole here, otherwise tilt > 90 degrees would reverse the direction twice.
     return (body.spin<0?180-body.tilt:body.tilt)*DEG;
   }
+  function equatorialPole(spec,retrograde=false){
+    const ra=spec.ra*DEG,dec=spec.dec*DEG,cd=Math.cos(dec);
+    let x=cd*Math.cos(ra),yEq=cd*Math.sin(ra),zEq=Math.sin(dec);
+    let y=Math.cos(J2000_OBLIQUITY)*yEq+Math.sin(J2000_OBLIQUITY)*zEq;
+    let z=-Math.sin(J2000_OBLIQUITY)*yEq+Math.cos(J2000_OBLIQUITY)*zEq;
+    if(spec.positive&&retrograde){x=-x;y=-y;z=-z;}
+    const n=Math.hypot(x,y,z)||1;return {x:x/n,y:y/n,z:z/n};
+  }
   // Greenwich sidereal rotation and existing orbital sunlight are sufficient for
   // a day/night indication. No weather, terrain/refraction or eclipse calculation.
   function bodyAxes(body){
     if(axesCache.has(body.id))return axesCache.get(body.id);
-    const tilt=body.id==='earth'?-body.tilt*DEG:rotationPoleTilt(body),node=body.id==='saturn'?90*DEG:body.id==='uranus'?25*DEG:0;
-    const c=Math.cos(node),s=Math.sin(node),ct=Math.cos(tilt),st=Math.sin(tilt);
-    const axes=Object.freeze({u:Object.freeze({x:c,y:s,z:0}),v:Object.freeze({x:-s*ct,y:c*ct,z:st}),pole:Object.freeze({x:s*st,y:-c*st,z:ct})});
+    const spec=ROTATION_POLES[body.id];let pole,u,v;
+    if(spec){
+      pole=equatorialPole(spec,body.spin<0);const h=Math.hypot(pole.x,pole.y);
+      u=h>1e-12?{x:pole.y/h,y:-pole.x/h,z:0}:{x:1,y:0,z:0};
+      v={x:pole.y*u.z-pole.z*u.y,y:pole.z*u.x-pole.x*u.z,z:pole.x*u.y-pole.y*u.x};
+    }else{
+      // The Moon keeps its compact mean-orbit presentation; its pole has
+      // periodic terms that are outside this illustrative lunar model.
+      const tilt=rotationPoleTilt(body),ct=Math.cos(tilt),st=Math.sin(tilt);
+      u={x:1,y:0,z:0};v={x:0,y:ct,z:st};pole={x:0,y:-st,z:ct};
+    }
+    const axes=Object.freeze({u:Object.freeze(u),v:Object.freeze(v),pole:Object.freeze(pole)});
     axesCache.set(body.id,axes);return axes;
   }
   function surfaceDirection(body,latitude,longitude,ms){
