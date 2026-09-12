@@ -115,3 +115,41 @@ test('Per-body surface signatures cannot alias another planets frame',()=>{
  const a=r.surfaceJob(j,{},16,ms,0,100),b=r.surfaceJob(s,{},16,ms,0,100);
  assert.ok(a.geometry.startsWith('jupiter:'));assert.ok(b.geometry.startsWith('saturn:'));
 });
+
+test('Preset animation interpolates every camera component and finishes exactly',()=>{
+ const r=renderer();r.focusBody('earth');r.setZoom(10);const from=r.cameraSnapshot();
+ const to={...from,azimuth:3.2,elevation:-.7,zoom:32,panX:.18,panY:-.16};
+ assert.equal(r.animateCamera(to,0,1000),true);assert.deepEqual({...r.camera},{...from});
+ r.advanceCamera(500);near(r.camera.zoom,Math.sqrt(from.zoom*to.zoom));near(r.camera.panX,.09);
+ assert.notDeepEqual({...r.camera},to);r.advanceCamera(1000);assert.deepEqual({...r.camera},{...to});assert.equal(r.cameraTween,null);
+});
+test('Camera angles use the shorter wraparound path at 0/360 degrees',()=>{
+ const r=renderer();r.setOrbitView(359*A.DEG,.4);const to={...r.cameraSnapshot(),azimuth:A.DEG};
+ r.animateCamera(to,0,1000);r.advanceCamera(500);near(Math.min(r.camera.azimuth,A.TAU-r.camera.azimuth),0);
+ r.advanceCamera(1000);near(r.camera.azimuth,A.DEG);
+});
+test('Different tracking targets switch at unit zoom with no position or radius jump',()=>{
+ const r=renderer(),ms=Date.UTC(2026,8,12);r.focusBody('moon');r.setZoom(18);const moon=r.cameraSnapshot();
+ r.focusBody('jupiter');r.setZoom(35);const to=r.cameraSnapshot();r.restoreCamera(moon);r.animateCamera(to,0,1000);
+ r.draw(ms,0,699.99);const before=r.projected.map(p=>({id:p.body.id,x:p.screen.x,y:p.screen.y,r:p.r}));
+ assert.equal(r.camera.focus,'moon');r.draw(ms,0,700);near(r.camera.zoom,1);assert.equal(r.camera.focus,null);assert.ok(R.validCamera(r.cameraSnapshot()));
+ r.draw(ms,0,700.01);for(const p of r.projected){const q=before.find(q=>q.id===p.body.id);assert.ok(Math.hypot(p.screen.x-q.x,p.screen.y-q.y)<.01);assert.ok(Math.abs(p.r-q.r)<.01);}
+ r.advanceCamera(1400);assert.deepEqual({...r.camera},{...to});
+});
+test('Repeated shortcut retargets from current pose instead of returning to previous start',()=>{
+ const r=renderer(),base=r.cameraSnapshot(),one={...base,azimuth:2,elevation:-.6},two={...base,azimuth:3,elevation:.2};
+ r.animateCamera(one,0,1000);r.advanceCamera(400);const middle=r.cameraSnapshot();r.animateCamera(two,400,1000);
+ assert.deepEqual({...r.camera},{...middle});r.advanceCamera(1400);assert.deepEqual({...r.camera},two);
+});
+test('Manual camera control and reset cancel a running preset animation',()=>{
+ const r=renderer(),to={...r.cameraSnapshot(),azimuth:3,elevation:-.6};
+ r.animateCamera(to,0,1000);r.setPan(.1,.1);assert.equal(r.cameraTween,null);near(r.camera.panX,.1);
+ r.animateCamera(to,0,1000);r.setOrbitView(1,.1);assert.equal(r.cameraTween,null);near(r.camera.azimuth,1);
+ r.animateCamera(to,0,1000);r.setZoom(7);assert.equal(r.cameraTween,null);near(r.camera.zoom,7);
+ r.animateCamera(to,0,1000);r.resetCamera();assert.equal(r.cameraTween,null);near(r.camera.zoom,1);
+});
+test('Reduced-motion zero-duration path restores exactly and invalid presets do not mutate',()=>{
+ const r=renderer(),to={...r.cameraSnapshot(),azimuth:2};
+ assert.equal(r.animateCamera(to,0,0),true);assert.deepEqual({...r.camera},{...to});
+ assert.equal(r.animateCamera({...to,panY:.5}),false);assert.deepEqual({...r.camera},{...to});
+});

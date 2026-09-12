@@ -8,7 +8,7 @@ import json, os
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
-report = {'version':'0.10','mode':'synthetic fetch fixtures; no live source downloads',
+report = {'version':'0.11','mode':'synthetic fetch fixtures; no live source downloads',
           'checks':[], 'limitations':['Public image server connectivity/CORS and hardware WebGL are not tested.','IDB persistence is not tested in the opaque injected document; cache records are supplied at the owner boundary.']}
 
 def check(name, ok, detail=None):
@@ -45,8 +45,8 @@ with sync_playwright() as p:
     page.on('pageerror', lambda e:errors.append(str(e)))
     page.on('request',lambda r:network.append(r.url) if r.url.startswith(('https:','http:')) else None)
     page.evaluate(PRELUDE)
-    page.set_content((ROOT/'dist/Solar-Time_v0.10.html').read_text(),wait_until='load')
-    page.wait_for_function('window.SolarTime?.version==="0.10"',timeout=15000)
+    page.set_content((ROOT/'dist/Solar-Time_v0.11.html').read_text(),wait_until='load')
+    page.wait_for_function('window.SolarTime?.version==="0.11"',timeout=15000)
     page.wait_for_function('SolarTime.materials.state.status==="ready"',timeout=20000)
     result=page.evaluate('''()=>({state:SolarTime.materials.state,info:SolarAssets.materialInfo,revision:SolarAssets.materialRevision,calls:fixture.calls,maxActive:fixture.maxActive,
      relief:Object.keys(SolarAssets.materials).filter(x=>x.endsWith('-relief')),earthUnchanged:!SolarAssets.materialInfo.earth,
@@ -97,5 +97,5 @@ with sync_playwright() as p:
     isolated.close();ctx.close();browser.close()
 
 report['passed']=all(x['passed'] for x in report['checks']);report['check_count']=len(report['checks'])
-(ROOT/'docs/materials-browser-v0.10.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+(ROOT/'docs/materials-browser-v0.11.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
 print(json.dumps(report,ensure_ascii=False,indent=2))

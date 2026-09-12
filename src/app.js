@@ -1,4 +1,4 @@
-/* Solar Time v0.10 — clock, interaction and accessible UI. */
+/* Solar Time v0.11 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -43,8 +43,8 @@
       }
       cameraUi();
       const PRESETS_KEY='solar-time.camera-presets.v1';
-      let cameraPresets=[null,null,null],deleteTarget=null,presetStorageAvailable=true;
-      const presetDialog=$('preset-delete-dialog');
+      let cameraPresets=[null,null,null],presetAction=null,presetStorageAvailable=true;
+      const presetDialog=$('preset-dialog');
       try {
         const saved=JSON.parse(localStorage.getItem(PRESETS_KEY)||'null');
         if(saved?.schema===1&&Array.isArray(saved.slots))cameraPresets=cameraPresets.map((_,i)=>
@@ -53,8 +53,8 @@
       function presetUi() {
         cameraPresets.forEach((value,i)=>{
           const b=$('camera-preset-'+(i+1));b.classList.toggle('saved',!!value);b.dataset.saved=String(!!value);
-          b.title=`${i+1}번 시점 ${value?'다시 저장':'저장'} · 불러오기: 숫자 ${i+1} · 우클릭: 삭제`;
-          b.setAttribute('aria-label',`${i+1}번 시점 ${value?'저장됨. 클릭하면 현재 시점으로 덮어쓰기':'비어 있음. 클릭하면 현재 시점 저장'}. 숫자 ${i+1}로 불러오기.`);
+          b.title=`${i+1}번 카메라 · 클릭: 저장 확인 · 숫자 ${i+1}: 부드럽게 이동 · 우클릭: 삭제 확인`;
+          b.setAttribute('aria-label',`${i+1}번 카메라 ${value?'저장됨':'비어 있음'}. 클릭하면 저장 확인. 숫자 ${i+1}로 불러오기.`);
         });
       }
       function writePresets() {
@@ -62,47 +62,53 @@
         catch(_){presetStorageAvailable=false;}
         presetUi();
       }
-      function savePreset(index) {
-        cameraPresets[index]=renderer.cameraSnapshot();writePresets();
-        toast(`${index+1}번 시점을 저장했습니다. 숫자 ${index+1}로 불러옵니다.`+(presetStorageAvailable?'':' 현재 창에서만 유지됩니다.'));
-      }
       function recallPreset(index) {
         const value=cameraPresets[index];
         if(!value){toast(`${index+1}번은 비어 있습니다. 숫자 버튼을 눌러 먼저 저장하세요.`);return;}
-        if(!renderer.restoreCamera(value)){toast('저장된 천체의 표시를 켠 뒤 다시 불러오세요.');return;}
-        cameraUi();persist();
+        if(!renderer.animateCamera(value,performance.now(),reduced?0:1100)){toast('저장된 천체의 표시를 켠 뒤 다시 불러오세요.');return;}
+        cameraUi();
+        // Persist only after the single renderer-owned transition has completed.
+        if(!renderer.cameraTween)persist();
       }
       function closePresetDialog(restoreFocus=true) {
-        const target=deleteTarget;deleteTarget=null;
+        const action=presetAction;presetAction=null;
         if(presetDialog.open)presetDialog.close();
-        if(restoreFocus&&target&&!zen)$('camera-preset-'+(target.index+1)).focus({preventScroll:true});
+        if(restoreFocus&&action&&!zen)$('camera-preset-'+(action.index+1)).focus({preventScroll:true});
       }
-      function openPresetDelete(index,event) {
+      function openPresetDialog(index,event,mode='save') {
         event.preventDefault();const value=cameraPresets[index];
-        if(!value){toast(`${index+1}번에는 저장된 시점이 없습니다.`);return;}
-        closePresetDialog(false);deleteTarget={index,value};
-        $('preset-delete-title').textContent=`${index+1}번 저장 시점을 삭제할까요?`;
+        if(mode==='delete'&&!value){toast(`${index+1}번에는 저장된 시점이 없습니다.`);return;}
+        closePresetDialog(false);renderer.cancelCameraTween(performance.now());
+        presetAction={index,mode,previous:value,snapshot:renderer.cameraSnapshot()};
+        $('preset-title').textContent=`${index+1}번 카메라`;
+        $('preset-note').textContent=mode==='delete'?'저장된 카메라를 삭제할까요?':value?'현재 시점으로 덮어쓸까요?':'현재 시점을 저장할까요?';
+        $('preset-confirm').textContent=mode==='delete'?'삭제':'저장';presetDialog.dataset.mode=mode;
         presetDialog.showModal();
         const button=$('camera-preset-'+(index+1)).getBoundingClientRect();
-        const x=event.clientX||button.left,y=event.clientY||button.bottom,box=presetDialog.getBoundingClientRect();
+        const keyboard=!event.clientX&&!event.clientY;
+        const x=keyboard?button.left:event.clientX,y=keyboard?button.bottom:event.clientY;
+        const box=presetDialog.getBoundingClientRect();
         presetDialog.style.left=Math.max(8,Math.min(x+8,innerWidth-box.width-8))+'px';
         presetDialog.style.top=Math.max(8,Math.min(y+8,innerHeight-box.height-8))+'px';
-        $('preset-delete-cancel').focus({preventScroll:true});
+        $('preset-cancel').focus({preventScroll:true});
       }
       for(let i=0;i<3;i++) {
-        const b=$('camera-preset-'+(i+1));b.addEventListener('click',()=>savePreset(i));
-        b.addEventListener('contextmenu',event=>openPresetDelete(i,event));
+        const b=$('camera-preset-'+(i+1));b.addEventListener('click',event=>openPresetDialog(i,event));
+        b.addEventListener('contextmenu',event=>openPresetDialog(i,event,'delete'));
       }
-      $('preset-delete-cancel').addEventListener('click',()=>closePresetDialog());
-      $('preset-delete-confirm').addEventListener('click',()=>{
-        const target=deleteTarget;
-        if(target&&cameraPresets[target.index]===target.value){cameraPresets[target.index]=null;writePresets();}
+      $('preset-cancel').addEventListener('click',()=>closePresetDialog());
+      $('preset-confirm').addEventListener('click',()=>{
+        const action=presetAction;
+        if(action&&cameraPresets[action.index]===action.previous){
+          cameraPresets[action.index]=action.mode==='delete'?null:action.snapshot;writePresets();
+          if(action.mode==='save')toast(`${action.index+1}번 카메라를 저장했습니다.`+(presetStorageAvailable?'':' 현재 창에서만 유지됩니다.'));
+        }
         closePresetDialog();
       });
       presetDialog.addEventListener('cancel',event=>{event.preventDefault();closePresetDialog();});
       presetDialog.addEventListener('click',event=>{
-        if(event.target!==presetDialog)return;const r=presetDialog.getBoundingClientRect();
-        if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)closePresetDialog();
+        if(event.target!==presetDialog)return;const box=presetDialog.getBoundingClientRect();
+        if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)closePresetDialog();
       });
       window.addEventListener('resize',()=>closePresetDialog(false),{passive:true});
       presetUi();
@@ -250,6 +256,7 @@
       function pointerPosition(event) {const r=canvas.getBoundingClientRect();return {x:event.clientX-r.left,y:event.clientY-r.top};}
       canvas.addEventListener('pointerdown',event=>{
         if(event.pointerType==='mouse'&&event.button!==0&&event.button!==1)return;
+        renderer.cancelCameraTween(performance.now());
         const pan=event.pointerType==='mouse'&&event.button===1;
         if(pan)event.preventDefault();
         const p=pointerPosition(event);pointers.set(event.pointerId,p);canvas.setPointerCapture(event.pointerId);
@@ -329,7 +336,9 @@
         const wall=Date.now(),ms=clock.value(mono,wall);
         if(!clock.paused&&!clock.live&&ms>=A.MAX_TIME){clock.anchorMs=A.MAX_TIME;clock.anchorMono=mono;clock.paused=true;toast('2999년 끝에 도달해 정지했습니다. 실제 시간으로 돌아갈 수 있습니다.');}
         try {
+          const wasTransitioning=!!renderer.cameraTween;
           renderer.draw(ms,effectTime,mono);
+          if(wasTransitioning&&!renderer.cameraTween)persist();
           if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);}
         } catch(error){disposed=true;renderer.dispose();materials.dispose();cancelAnimationFrame(raf);clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);fatal(error);}
       }
@@ -340,7 +349,7 @@
       window.addEventListener('pagehide',()=>{closePresetDialog(false);materials.cancel();renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.10',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.11',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       materials.load();materialStatus();
       if(!document.hidden)raf=requestAnimationFrame(frame);

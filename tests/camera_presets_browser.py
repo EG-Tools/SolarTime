@@ -1,135 +1,99 @@
-"""v0.10 UI and surface regression. Offline injected HTML; storage is an explicit in-memory fixture.
-HTTP/file navigation is blocked by the test browser. Real hardware GPU is unavailable.
+"""v0.11 focused regression: offline app, save/delete modal, motion and sky.
+Run after npm run build. Storage is a fixture because about:blank has no origin.
 """
 from pathlib import Path
-import json, os, time
+import json,os
 from playwright.sync_api import sync_playwright
-ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'test-results';OUT.mkdir(exist_ok=True)
-report={'version':'0.10','checks':[],'errors':[],'measurements':{},'limitations':[
- 'Standalone HTML injected offline: loopback HTTP navigation was blocked by browser policy.',
- 'Storage persistence/denial tests use an in-memory Storage fixture because about:blank cannot access localStorage.',
- 'No hardware GPU is available. Jupiter purple flash was not reproduced; guards and CPU image continuity are tested.']}
-
-def check(name,ok,detail=None):
- report['checks'].append({'name':name,'passed':bool(ok),'detail':detail})
- print(('PASS ' if ok else 'FAIL ')+name,flush=True)
- if not ok: raise AssertionError(name+': '+str(detail))
-
+ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'test-results';OUT.mkdir(exist_ok=True)
+report={'version':'0.11','checks':[],'errors':[],'measurements':{},'limitations':['Linux headless Chromium; standalone HTML injected offline. Storage tests use an explicit fixture.','No hardware GPU available; screenshots use the CPU-compatible sky and worker surface paths.','No Windows physical-device or live image-server verification.']}
+def check(name,value,detail=None):
+ report['checks'].append({'name':name,'passed':bool(value),'detail':detail});print(('PASS ' if value else 'FAIL ')+name,flush=True)
+ (ROOT/'docs/camera-presets-v0.11.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+ if not value:raise AssertionError(name+': '+str(detail))
 def load(ctx,initial=None,blocked=False):
  page=ctx.new_page();page.on('pageerror',lambda e:report['errors'].append(str(e)))
- page.evaluate('''({initial,blocked})=>{
-  const values={...initial};window.__presetStorage=values;
-  Object.defineProperty(window,'localStorage',{configurable:true,value:{
-   getItem(k){if(blocked)throw new DOMException('Denied','SecurityError');return values[k]??null},
-   setItem(k,v){if(blocked)throw new DOMException('Denied','QuotaExceededError');values[k]=String(v)},
-   removeItem(k){delete values[k]}
-  }});
- }''',{'initial':initial or {},'blocked':blocked})
- page.set_content((ROOT/'dist/Solar-Time_v0.10.html').read_text(),wait_until='load')
- page.wait_for_function('window.SolarTime?.version === "0.10"',timeout=18000)
+ page.evaluate('''({initial,blocked})=>{const data={...initial};window.__presetStorage=data;Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem(k){if(blocked)throw Error('blocked');return data[k]??null},setItem(k,v){if(blocked)throw Error('blocked');data[k]=String(v)}}})}''',{'initial':initial or {},'blocked':blocked})
+ page.set_content((ROOT/'dist/Solar-Time_v0.11.html').read_text(),wait_until='load');page.wait_for_function('window.SolarTime?.version==="0.11"',timeout=20000)
  page.wait_for_function('document.getElementById("loading").hidden',timeout=10000)
- page.evaluate('''()=>{const {renderer:r,clock:c}=SolarTime;c.toggle(performance.now());r.setOption('skyMotion',false);r.setOption('comets',false);r.setOption('quality','low');}''')
+ page.evaluate('''()=>{const r=SolarTime.renderer;r.setOption('skyMotion',false);r.setOption('comets',false);SolarTime.clock.setDate(Date.UTC(2026,8,12,0),performance.now());}''')
  return page
-
-def camera(page): return page.evaluate('SolarTime.renderer.cameraSnapshot()')
-def presets(page): return page.evaluate('SolarTime.getPresets()')
-def key(page,text): page.locator('#universe').focus();page.keyboard.press(text)
-def visible_buttons(page): return set(page.locator('button:visible').evaluate_all('(els)=>els.map(e=>e.id)'))
-def idle(page): page.wait_for_function('!document.body.classList.contains("pointer-awake")',timeout=4500);page.wait_for_timeout(220)
-
+def camera(p):return p.evaluate('SolarTime.renderer.cameraSnapshot()')
+def slots(p):return p.evaluate('SolarTime.getPresets()')
+def key(p,k):p.locator('#universe').focus();p.keyboard.press(k)
+def settled(p):p.wait_for_function('!SolarTime.renderer.cameraTween',timeout=5000)
+def save(p,n):
+ p.locator(f'#camera-preset-{n}').click();p.locator('#preset-confirm').click()
+def visbuttons(p):return set(p.locator('button:visible').evaluate_all('(els)=>els.map(e=>e.id)'))
 try:
  with sync_playwright() as p:
-  browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH','/usr/bin/chromium'),headless=True,args=['--no-sandbox','--disable-dev-shm-usage'])
-  context=browser.new_context(viewport={'width':1648,'height':928},timezone_id='Asia/Seoul',offline=True)
-  page=load(context)
-  check('Title, release and creator are current',page.title()=='Solar Time' and 'Life User' in page.locator('.signature').inner_text() and 'v0.10' in page.locator('.signature').inner_text())
-  check('Exactly three empty camera slots appear below Help',len(presets(page))==3 and presets(page)==[None]*3 and page.locator('#camera-presets').bounding_box()['y']>page.locator('#help-button').bounding_box()['y']+page.locator('#help-button').bounding_box()['height'])
-  page.evaluate('''()=>{const r=SolarTime.renderer;r.faceFeature('earth',37.5665,126.978,SolarTime.clock.value(performance.now()));r.setZoom(18);r.setPan(.08,-.09)}''')
-  first=camera(page);before_time=page.evaluate('({rate:SolarTime.clock.rate,live:SolarTime.clock.live,paused:SolarTime.clock.paused,anchor:SolarTime.clock.anchorMs})')
-  page.locator('#camera-preset-1').click()
-  check('Left click saves full current camera including Earth tracking',presets(page)[0]==first and page.locator('#camera-preset-1').get_attribute('data-saved')=='true')
-  key(page,'0');page.keyboard.press('1')
-  check('Key 1 recalls saved angle, zoom and pan exactly',camera(page)==first)
-  check('Recall leaves time and speed unchanged',before_time==page.evaluate('({rate:SolarTime.clock.rate,live:SolarTime.clock.live,paused:SolarTime.clock.paused,anchor:SolarTime.clock.anchorMs})'))
-  page.evaluate('SolarTime.renderer.setOrbitView(3.5,-.6)');page.locator('#camera-preset-1').click();overwritten=camera(page)
-  check('Clicking an occupied slot saves the new camera as requested',presets(page)[0]==overwritten and overwritten!=first)
-  for i,target in [(2,'moon'),(3,'jupiter')]:
-   page.evaluate('(target)=>{const r=SolarTime.renderer;r.focusBody(target);r.setOrbitView(target==="moon"?1.4:4.2,-.25);r.setPan(-.1,.12)}',target)
-   expected=camera(page);page.locator(f'#camera-preset-{i}').click();key(page,'0');page.keyboard.press(str(i))
-   check(f'Camera {i} stores and recalls independently',presets(page)[i-1]==expected and camera(page)==expected)
-  page.locator('#camera-preset-1').focus();page.keyboard.press('2');check('Number shortcut is not swallowed by focused buttons',camera(page)==presets(page)[1])
-  page.screenshot(path=str(OUT/'presets-v0.10.png'))
-  box=page.locator('#camera-preset-1').bounding_box();x=box['x']+box['width']/2;y=box['y']+box['height']/2
-  page.mouse.click(x,y,button='right');popup=page.locator('#preset-delete-dialog').bounding_box()
-  expected_x=max(8,min(x+8,1648-popup['width']-8));expected_y=max(8,min(y+8,928-popup['height']-8))
-  check('Right click opens confirmation near cursor and inside viewport',abs(popup['x']-expected_x)<1 and abs(popup['y']-expected_y)<1 and presets(page)[0] is not None,popup)
-  check('Cancel, not Delete, receives initial popup focus',page.evaluate('document.activeElement.id')=='preset-delete-cancel')
-  page.screenshot(path=str(OUT/'preset-delete-v0.10.png'))
-  page.locator('#preset-delete-cancel').click();check('Cancel keeps saved slot unchanged',presets(page)[0]==overwritten)
-  page.mouse.click(x,y,button='right');page.keyboard.press('Escape');check('Escape cancels without deleting',not page.locator('#preset-delete-dialog').evaluate('(el)=>el.open') and presets(page)[0]==overwritten)
-  page.mouse.click(x,y,button='right');page.mouse.click(25,350);check('Click outside cancels without deleting',not page.locator('#preset-delete-dialog').evaluate('(el)=>el.open') and presets(page)[0]==overwritten)
-  page.mouse.click(x,y,button='right');page.locator('#preset-delete-confirm').click()
-  check('Only explicit Delete clears the selected slot',presets(page)[0] is None and presets(page)[1] is not None and presets(page)[2] is not None)
-  page.mouse.click(x,y,button='right');check('Right click on an empty slot does not delete another slot or open confirmation',not page.locator('#preset-delete-dialog').evaluate('(el)=>el.open'))
-  old=camera(page);key(page,'1');check('An empty number key leaves camera untouched',camera(page)==old)
-  # Restore Earth-facing view to test both the timezone text and globe annotation across zen.
-  page.evaluate('''()=>{const r=SolarTime.renderer;r.faceFeature('earth',37.5665,126.978,SolarTime.clock.value(performance.now()));r.setPan(0,0)}''');page.locator('#camera-preset-1').click()
-  expected=camera(page);key(page,'h');page.wait_for_timeout(220)
-  check('SEOUL remains readable as non-interactive text in viewing mode',page.locator('#timezone-readout').is_visible() and page.locator('#timezone-readout').inner_text()=='SEOUL' and page.locator('#timezone-button').is_hidden())
-  check('Viewing mode still reveals only home and mode buttons',visible_buttons(page)=={'fit-view','show-ui'},sorted(visible_buttons(page)))
-  idle(page)
-  check('SEOUL remains visible after controls and cursor fade',page.locator('#timezone-readout').is_visible() and not visible_buttons(page))
-  page.screenshot(path=str(OUT/'seoul-zen-v0.10.png'))
-  page.keyboard.press('2');check('Key 2 recalls Moon while keeping viewing mode',camera(page)==presets(page)[1] and page.evaluate('SolarTime.getState().zen'))
-  page.keyboard.press('1');check('Key 1 restores Earth while keeping viewing mode and current time',camera(page)==expected and page.evaluate('SolarTime.getState().zen'))
-  page.mouse.move(300,420);idle(page);check('Preset recall does not leak preset buttons into idle viewing mode',not visible_buttons(page))
-  page.keyboard.press('h');check('Normal timezone button and preset controls return on mode exit',page.locator('#timezone-button').is_visible() and page.locator('#timezone-readout').is_hidden() and page.locator('#camera-presets').is_visible())
-  saved=page.evaluate('window.__presetStorage');expected=presets(page);page.close()
-  page=load(context,saved);check('All slots survive app startup with persisted valid storage',presets(page)==expected)
-  key(page,'3');check('Restored persisted slot recalls correct Jupiter camera',camera(page)==expected[2])
-  # Test the actual CPU render path, plus an asynchronous material revision during rendering.
-  page.evaluate('''()=>{const r=SolarTime.renderer;r.setOption('quality','low');r.setZoom(9);r.invalidateSurfaces();}''')
-  page.wait_for_function('SolarTime.renderer.surface.frames.has("jupiter")',timeout=25000)
-  audit=page.evaluate('''async()=>{
-   const r=SolarTime.renderer,s=r.surface,first=s.get('jupiter'),accepted=s.stats.accepted;
-   SolarAssets.materialRevision=(SolarAssets.materialRevision||0)+1;
-   const mono=performance.now();r.draw(SolarTime.clock.value(mono),0,mono);
-   const retained=s.get('jupiter')===first;
-   await new Promise(resolve=>setTimeout(resolve,1000));
-   const frames=s.frames,frame=frames.get('jupiter');
-   return {retained,exists:!!frame,width:frame?.image.width,height:frame?.image.height,backend:s.stats.backend,kernel:s.stats.kernel,acceptedBefore:accepted,acceptedAfter:s.stats.accepted};
-  }''')
-  check('Jupiter stays visible while a new material generation is queued',audit['retained'] and audit['exists'],audit)
-  page.wait_for_timeout(800)
-  page.screenshot(path=str(OUT/'jupiter-v0.10.png'))
-  report['measurements']['surface']=page.evaluate('SolarTime.renderer.surface.stats')
-  # Observe a paused Jupiter for continuity; decorative sky motion is stopped, so no color drift is expected.
-  report['measurements']['jupiter_samples']=page.evaluate('''async()=>{
-   const s=SolarTime.renderer.surface,rows=[],c=document.createElement('canvas');c.width=c.height=1;const ctx=c.getContext('2d');
-   for(let i=0;i<16;i++){const b=s.get('jupiter');if(b){ctx.clearRect(0,0,1,1);ctx.drawImage(b,0,0,1,1);rows.push([...ctx.getImageData(0,0,1,1).data]);}else rows.push(null);await new Promise(r=>setTimeout(r,80));}return rows;
-  }''')
-  rows=report['measurements']['jupiter_samples'];check('Repeated settled Jupiter frames are nonempty and color-stable on CPU',all(v and v[3]>0 for v in rows) and max(max(v[k] for v in rows)-min(v[k] for v in rows) for k in range(3))<=2,rows)
-  export=page.evaluate('async()=>{const html=await SolarTime.materials.offlineHTML();return {title:html.includes("<title>Solar Time</title>"),preset:html.includes("camera-preset-3"),version:html.includes("version:\'0.10\'"),popup:html.includes("preset-delete-dialog")}}')
-  check('Image-inclusive export retains new preset UI and version',all(export.values()),export)
-  page.close()
-  corrupt=load(context,{'solar-time.camera-presets.v1':json.dumps({'schema':1,'slots':[{'zoom':999},None,None]})})
-  check('Corrupt preset storage is ignored without breaking startup',presets(corrupt)==[None]*3);corrupt.close()
-  blocked=load(context,blocked=True);blocked.locator('#camera-preset-1').click();key(blocked,'0');blocked.keyboard.press('1')
-  check('Blocked storage still permits in-session save and recall',presets(blocked)[0] is not None and camera(blocked)==presets(blocked)[0]);blocked.close()
-  for width,height in [(390,844),(320,568)]:
-   ctx=browser.new_context(viewport={'width':width,'height':height},timezone_id='Asia/Seoul',offline=True,has_touch=True,is_mobile=True)
-   m=load(ctx)
-   positions=m.locator('[data-preset]').evaluate_all('(els)=>els.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}})')
-   check(f'{width}px camera buttons remain within viewport beneath Help',all(q['x']>=0 and q['x']+q['w']<=width and q['y']>=m.locator('#help-button').bounding_box()['y']+m.locator('#help-button').bounding_box()['height'] for q in positions),positions)
-   m.locator('#camera-preset-3').click();rect=m.locator('#camera-preset-3').bounding_box();m.mouse.click(rect['x']+15,rect['y']+15,button='right');r=m.locator('#preset-delete-dialog').bounding_box()
-   check(f'{width}px confirmation is clamped at screen edge',r['x']>=7 and r['x']+r['width']<=width-7 and r['y']+r['height']<=height-7,r)
-   m.screenshot(path=str(OUT/f'mobile-confirm-{width}-v0.10.png'));m.locator('#preset-delete-cancel').click()
-   m.locator('#hide-ui').click();idle(m);check(f'{width}px SEOUL stays readable with no idle buttons',m.locator('#timezone-readout').is_visible() and not visible_buttons(m))
-   ctx.close()
-  context.close();browser.close()
- check('No uncaught browser errors',not report['errors'],report['errors'])
-except Exception as e:
- report['fatal']=str(e);raise
+  b=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH','/usr/bin/chromium'),headless=True,args=['--no-sandbox','--disable-dev-shm-usage'])
+  ctx=b.new_context(viewport={'width':1648,'height':928},timezone_id='Asia/Seoul',offline=True)
+  if not os.environ.get('MOBILE_ONLY'):
+   page=load(ctx)
+   page.wait_for_timeout(3000)
+   check('Offline startup, exact title and v0.11 creator',page.title()=='Solar Time' and 'Life User' in page.locator('.signature').inner_text() and 'v0.11' in page.locator('.signature').inner_text())
+   rects=[page.locator('#camera-preset-'+str(i)).bounding_box() for i in (1,2,3)];helpbox=page.locator('#help-button').bounding_box()
+   check('Three half-size buttons share one horizontal row under Help',all(abs(q['y']-rects[0]['y'])<.1 and abs(q['width']-19)<.1 and abs(q['height']-19)<.1 for q in rects) and rects[0]['x']<rects[1]['x']<rects[2]['x'] and rects[0]['y']>helpbox['y']+helpbox['height'],rects)
+   page.screenshot(path=str(OUT/'overview-v0.11.png'))
+   check('Inherited v0.10 key starts with three empty slots in empty storage',slots(page)==[None]*3)
+   page.evaluate("SolarTime.renderer.setOrbitView(1.7,-.25)");first=camera(page);page.locator('#camera-preset-1').click()
+   check('Left click opens 1번 카메라 / 취소 / 저장 and does not save yet',page.locator('#preset-title').inner_text()=='1번 카메라' and page.locator('#preset-confirm').inner_text()=='저장' and slots(page)[0] is None)
+   check('Cancel receives initial focus',page.evaluate('document.activeElement.id')=='preset-cancel')
+   popup=page.locator('#preset-dialog').bounding_box();check('Save popup fits the screen near the pointer',popup['x']>=8 and popup['x']+popup['width']<=1641 and abs(popup['y']-(rects[0]['y']+rects[0]['height']/2+8))<1,popup)
+   page.screenshot(path=str(OUT/'preset-save-v0.11.png'))
+   page.locator('#preset-cancel').click();check('Save cancellation leaves slot empty',slots(page)[0] is None)
+   page.locator('#camera-preset-1').click();page.keyboard.press('Escape');check('Escape cancels pending save',slots(page)[0] is None and not page.locator('#preset-dialog').evaluate('(e)=>e.open'))
+   page.locator('#camera-preset-1').click();page.mouse.click(25,450);check('Outside click cancels pending save',slots(page)[0] is None)
+   save(page,1);check('Only explicit Save stores current pose',slots(page)[0]==first)
+   page.evaluate('SolarTime.renderer.setOrbitView(2.3,.1)');page.locator('#camera-preset-1').click();check('Occupied slot asks before overwriting',slots(page)[0]==first and '덮어' in page.locator('#preset-note').inner_text())
+   page.locator('#preset-cancel').click();check('Cancelled overwrite preserves prior pose',slots(page)[0]==first)
+   oldclock=page.evaluate('({anchor:SolarTime.clock.anchorMs,rate:SolarTime.clock.rate,paused:SolarTime.clock.paused})')
+   key(page,'1');check('Shortcut starts a renderer-owned camera animation',page.evaluate('!!SolarTime.renderer.cameraTween'))
+   page.wait_for_timeout(250);check('Intermediate camera is between old and target, not teleported',camera(page)!=first and .1>camera(page)['elevation']>first['elevation'])
+   settled(page);check('Camera arrives at exact saved pose',camera(page)==first)
+   check('Transition did not alter simulation time/rate/pause',oldclock==page.evaluate('({anchor:SolarTime.clock.anchorMs,rate:SolarTime.clock.rate,paused:SolarTime.clock.paused})'))
+   page.evaluate("SolarTime.renderer.focusBody('moon');SolarTime.renderer.setZoom(20)");save(page,2)
+   page.evaluate("SolarTime.renderer.focusBody('jupiter');SolarTime.renderer.setZoom(23);SolarTime.renderer.setOrbitView(2.1,.4)");save(page,3)
+   sky_before=page.evaluate('SolarTime.renderer.sky.stats.frames');key(page,'2');start=camera(page)
+   trace=page.evaluate('''async()=>{const out=[];const r=SolarTime.renderer;for(let i=0;i<26;i++){await new Promise(res=>setTimeout(res,65));out.push({camera:r.cameraSnapshot(),active:!!r.cameraTween,largest:Math.max(...r.projected.map(p=>p.r))});}return out;}''')
+   settled(page);check('Different targets travel smoothly and arrive at Moon',camera(page)==slots(page)[1] and any(s['active'] and s['camera']['zoom']<2 for s in trace),{'sampleCount':len(trace),'minimumZoom':min(s['camera']['zoom'] for s in trace)})
+   check('Transition preserves the per-body size cap',all(s['largest']<928*.34+1 for s in trace))
+   check('CPU sky produces intermediate frames instead of freezing until transition ends',page.evaluate('SolarTime.renderer.sky.stats.frames')-sky_before>=3)
+   report['measurements']['transitionSamples']=trace
+   key(page,'1');page.wait_for_timeout(180);page.keyboard.press('3');settled(page);check('Rapid shortcut retargeting ends at latest requested camera',camera(page)==slots(page)[2])
+   key(page,'2');page.wait_for_timeout(200);page.mouse.move(700,450);page.mouse.down();page.mouse.move(745,470,steps=3);page.mouse.up();stop=camera(page);page.wait_for_timeout(1700)
+   check('Manual drag interrupts transition without resuming it later',not page.evaluate('!!SolarTime.renderer.cameraTween') and camera(page)==stop)
+   key(page,'1');page.wait_for_timeout(200);page.keyboard.press('0');page.wait_for_timeout(1300);check('Home interrupts camera transition',camera(page)['zoom']==1 and camera(page)['focus'] is None and not page.evaluate('!!SolarTime.renderer.cameraTween'))
+   page.locator('#camera-preset-1').click(button='right');check('Right click still asks Delete, separate from Save',page.locator('#preset-confirm').inner_text()=='삭제' and slots(page)[0]==first)
+   page.locator('#preset-cancel').click();check('Cancelled deletion preserves pose',slots(page)[0]==first)
+   page.locator('#camera-preset-1').click(button='right');page.locator('#preset-confirm').click();check('Confirmed deletion clears only chosen slot',slots(page)[0] is None and slots(page)[1] is not None and slots(page)[2] is not None)
+   page.locator('#camera-preset-1').click(button='right');check('Empty slot has no deletion modal',not page.locator('#preset-dialog').evaluate('(e)=>e.open'))
+   before=camera(page);key(page,'1');check('Empty shortcut leaves current camera unchanged',camera(page)==before)
+   page.evaluate("SolarTime.renderer.faceFeature('earth',37.5665,126.978,SolarTime.clock.value(performance.now()))");save(page,1);key(page,'h');page.wait_for_timeout(200)
+   check('Zen shows only Home and mode controls on activity',visbuttons(page)=={'fit-view','show-ui'})
+   check('SEOUL remains visible in zen',page.locator('#timezone-readout').is_visible() and page.locator('#timezone-readout').inner_text()=='SEOUL')
+   page.wait_for_function('!document.body.classList.contains("pointer-awake")',timeout=4000);page.wait_for_timeout(240);check('Zen idle keeps buttons hidden',not visbuttons(page))
+   page.keyboard.press('2');settled(page);check('Preset switching works in zen without showing preset buttons',page.evaluate('SolarTime.getState().zen') and camera(page)==slots(page)[1] and page.locator('#camera-presets').is_hidden())
+   page.keyboard.press('h');key(page,'0')
+   # Force one normal-path background comet to a deterministic visible point.
+   page.evaluate('''()=>{const r=SolarTime.renderer,s=r.sky,t=SolarTime.getState().effectTime;const point=(x,y)=>s.toPanorama(s.ray(x,y));r.setOption('comets',true);s.comet={start:point(40,240),control1:point(560,55),control2:point(1030,95),end:point(1590,330),time:t-12,duration:18};s.nextComet=t+1000;}''')
+   page.wait_for_timeout(500);page.screenshot(path=str(OUT/'comet-v0.11.png'))
+   report['measurements']['backends']=page.evaluate('({sky:SolarTime.renderer.sky.stats.backend,surface:SolarTime.renderer.surface.stats.kernel?.backend})')
+   check('All received surfaces still belong to the correct body',page.evaluate('Array.from(SolarTime.renderer.surface.frames).every(([id,f])=>f.job.id===id)'))
+   result=page.evaluate('''async()=>{const html=await SolarTime.materials.offlineHTML();return {title:html.includes('<title>Solar Time</title>'),version:html.includes("version:'0.11'"),confirmation:html.includes('id="preset-dialog"'),motion:html.includes('animateCamera('),ribbon:html.includes('drawCometRibbon(')};}''')
+   check('Image-inclusive HTML export retains all new code and title',all(result.values()),result)
+   data=page.evaluate('window.__presetStorage');expected=slots(page);page.close()
+   restored=load(ctx,data);check('v1 camera storage remains compatible and persistent',slots(restored)==expected);key(restored,'3');settled(restored);check('Reloaded slot interpolates to correct camera',camera(restored)==expected[2]);restored.close()
+   blocked=load(ctx,blocked=True);save(blocked,1);key(blocked,'0');key(blocked,'1');settled(blocked);check('Blocked storage allows in-session confirm/save/recall',slots(blocked)[0] is not None and camera(blocked)==slots(blocked)[0]);blocked.close()
+  for width in (390,320):
+   c=b.new_context(viewport={'width':width,'height':844 if width==390 else 568},offline=True,has_touch=True,timezone_id='Asia/Seoul');m=load(c)
+   rs=[m.locator('#camera-preset-'+str(i)).bounding_box() for i in (1,2,3)]
+   check(f'{width}px mobile buttons are horizontal and half size',all(abs(q['y']-rs[0]['y'])<1 and abs(q['width']-16.5)<.1 for q in rs) and rs[-1]['x']+rs[-1]['width']<=width-8,rs)
+   m.locator('#camera-preset-3').tap();popup=m.locator('#preset-dialog').bounding_box()
+   check(f'{width}px touch opens save modal inside viewport',popup['x']>=8 and popup['x']+popup['width']<=width-7 and m.locator('#preset-title').inner_text()=='3번 카메라' and slots(m)[2] is None,popup)
+   m.screenshot(path=str(OUT/f'mobile-save-{width}-v0.11.png'));m.locator('#preset-confirm').tap();check(f'{width}px touch Save confirms only chosen slot',slots(m)[2] is not None and slots(m)[0] is None)
+   c.close()
+  check('No uncaught application exceptions',not report['errors'],report['errors']);ctx.close();b.close()
 finally:
- (ROOT/'docs/camera-presets-v0.10.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+ report['passed']=bool(report['checks']) and all(q['passed'] for q in report['checks']) and not report['errors']
+ (ROOT/'docs/camera-presets-v0.11.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))

@@ -65,7 +65,7 @@
     <p class="settings-note">주기는 초 단위 소수점 2자리로 저장합니다.<br>실행할 때 기기 시각으로 로컬 보정합니다.<br>인터넷 없이 동작하며 설정은 이 기기에 저장됩니다.</p>
     <p id="photo-status" class="photo-status" role="status">공개 텍스처 확인 중 · 연결 전에는 내장 이미지를 표시합니다.</p>
     <div class="material-actions"><button id="photo-retry" class="text-button">사진 다시 받기</button><button id="photo-export" class="text-button">이미지 포함 HTML 저장</button></div>
-    <p class="settings-credit">Life User / Solar Time v0.10 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
+    <p class="settings-credit">Life User / Solar Time v0.11 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
   </aside>
 
   <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보">
@@ -112,17 +112,17 @@
   </section>
 
   <footer class="footer ui">
-    <span class="signature">Life User <span>/</span> v0.10 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
+    <span class="signature">Life User <span>/</span> v0.11 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택"></nav>
     <button id="hide-ui" class="minimal-button" title="감상 모드 · H"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg><span>감상 모드</span></button>
   </footer>
   <p class="scale-note ui">크기·거리 축척 조정<span>·</span>평균 궤도 근사<span>·</span><span id="spin-mode-note">자전·공전 시간 연동</span></p>
   <div id="toast" class="toast" role="status" hidden></div>
 
-  <dialog id="preset-delete-dialog" class="preset-delete-dialog" aria-labelledby="preset-delete-title" aria-describedby="preset-delete-note">
-    <h2 id="preset-delete-title">저장된 시점을 삭제할까요?</h2>
-    <p id="preset-delete-note">삭제하면 이 번호에 다시 저장할 수 있습니다.</p>
-    <div class="preset-delete-actions"><button type="button" id="preset-delete-cancel" autofocus>취소</button><button type="button" id="preset-delete-confirm">삭제</button></div>
+  <dialog id="preset-dialog" class="preset-dialog" aria-labelledby="preset-title" aria-describedby="preset-note">
+    <h2 id="preset-title">1번 카메라</h2>
+    <p id="preset-note">현재 시점을 저장할까요?</p>
+    <div class="preset-actions"><button type="button" id="preset-cancel" autofocus>취소</button><button type="button" id="preset-confirm">저장</button></div>
   </dialog>
 
   <dialog id="help-dialog" class="modal">
@@ -157,7 +157,7 @@
     <p>추적 중인 천체 이름과 전체 보기 카드는 표시하지 않습니다. <b>H</b> 또는 <b>Esc</b>로 감상 모드를 종료하고 <b>0</b>으로 기본 시점에 복귀합니다. 터치 기기에서는 한 번 터치하면 두 조작 버튼이 나타나며, 세 손가락으로 터치해 바로 종료할 수도 있습니다.</p>
     <p class="help-interaction">좌클릭 드래그 회전<span>·</span>가운데 버튼 드래그 상하좌우 이동 ±20%<span>·</span>휠 확대 · 최대 64×<span>·</span>천체 더블클릭 · 추적</p>
     <h3>카메라 시점 1 · 2 · 3</h3>
-    <p>사용 방법 버튼 아래의 숫자를 마우스로 누르면 <strong>현재 각도·확대·이동·추적 대상</strong>이 해당 번호에 저장됩니다. 이미 저장된 번호를 다시 누르면 현재 시점으로 덮어씁니다. <strong>키보드 1·2·3</strong>으로 저장한 시점을 불러옵니다. 감상 모드에서도 사용할 수 있으며 날짜와 재생 속도는 바뀌지 않습니다.</p>
+    <p>사용 방법 버튼 아래의 작은 숫자 버튼을 누르면 <strong>1번 카메라 · 취소/저장</strong> 형식의 확인창이 마우스 위치에 열립니다. 저장을 눌러야 <strong>현재 각도·확대·이동·추적 대상</strong>을 저장하며, 취소·Esc·창 밖 클릭은 기존 값을 유지합니다. <strong>키보드 1·2·3</strong>은 저장한 시점으로 부드럽게 이동합니다. 다른 천체 사이에서는 전체 구도를 거쳐 이동하며, 드래그·휠·0 키를 사용하면 이동을 즉시 제어할 수 있습니다. 감상 모드에서도 사용할 수 있으며 날짜와 재생 속도는 바뀌지 않습니다.</p>
     <p>저장된 번호를 우클릭하면 마우스 위치에 삭제 확인창이 나타납니다. <strong>삭제</strong>를 한 번 더 눌러야 지워집니다. 취소·Esc·창 밖 클릭은 저장 내용을 유지합니다. 시점은 이 브라우저에 저장되며, 저장이 차단된 환경에서는 현재 창을 닫을 때까지만 유지됩니다.</p>
     <h3>단축키</h3>
     <div class="shortcuts"><span><kbd>Space</kbd> 일시정지</span><span><kbd>R</kbd> 실제 시간</span><span><kbd>F</kbd> 전체 화면</span><span><kbd>H</kbd> 감상 모드</span><span><kbd>0</kbd> 기본 시점</span><span><kbd>1 · 2 · 3</kbd> 저장한 시점 불러오기</span><span><kbd>Esc</kbd> 패널 닫기</span></div>

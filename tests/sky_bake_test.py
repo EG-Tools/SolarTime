@@ -43,10 +43,14 @@ class SkyBakeTest(unittest.TestCase):
  def test_decoded_north_south_poles_are_single_colours(self):
   with Image.open(ROOT/'assets/universe.webp') as image:a=np.asarray(image.convert('RGB'))
   self.assertTrue(np.all(a[0]==a[0,0]));self.assertTrue(np.all(a[-1]==a[-1,0]))
- def test_galaxy_radial_support_is_zero_outside_no_rectangular_crop(self):
-  rho=np.array([0,1.35,1.6,2,2.3,3])
-  taper=1-module.smoothstep((rho-1.35)/.65)
-  np.testing.assert_array_equal(taper[-3:],0)
-  self.assertEqual(taper[0],1);self.assertGreater(taper[2],0)
+ def test_reference_stamps_are_transparent_at_every_crop_edge(self):
+  for name in ('galaxy-reference.webp','dust-reference.webp'):
+   with Image.open(ROOT/'assets/sky'/name) as image:a=np.asarray(image.convert('RGBA'))[:,:,3]
+   for edge in (a[0],a[-1],a[:,0],a[:,-1]):self.assertTrue(np.all(edge==0),name)
+ def test_decoded_meridian_has_no_exceptional_column_jump(self):
+  with Image.open(ROOT/'assets/universe.webp') as image:a=np.asarray(image.convert('RGB')).astype(float)
+  seam=np.abs(a[:,0]-a[:,-1]).mean()
+  local=np.abs(np.diff(a,axis=1)).mean()
+  self.assertLess(seam,local*2.5+.5)
 
 if __name__=='__main__':unittest.main(verbosity=2)

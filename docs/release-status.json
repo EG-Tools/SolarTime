@@ -1,7 +1,7 @@
 {
-  "version": "0.09",
-  "local_package": true,
+  "version": "0.11",
+  "packaged": true,
   "repository_changed": false,
-  "new_branch": false,
-  "deployed": false
+  "deployed": false,
+  "verification": "release-verification-v0.11.json"
 }

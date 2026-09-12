@@ -1,24 +1,16 @@
-# Solar Time v0.10 verification
+# Solar Time v0.11 검증
 
-## Changes
-- Persistent static timezone readout in viewing mode; no invisible button hit target.
-- Three camera bookmarks anchored beneath Help, storing angle, zoom, pan and focus. Left click saves/overwrites; number keys recall; clock and playback remain untouched.
-- Right-click deletion dialog at the pointer, clamped to the viewport. Cancel receives focus; Delete requires explicit confirmation. Escape/outside click cancel.
-- Per-body render-job identity and image-size validation, atomic replacement of healthy frames, correlated stale error handling, GPU context-loss detection and CPU recovery. No astronomy, texture asset or shader-material styling changes.
+단위 테스트 104개, 배경 생성·경계 테스트 8개, 브라우저 확인 항목 47개를 통과했습니다.
 
-## Results
-- 95 Node tests passed.
-- 73 Chromium checks passed (38 camera/popup/timezone/surface checks plus 35 existing viewing-mode regressions).
-- Offline startup, desktop and 390/320px touch layouts, popup cancellation/deletion, keyboard recall, disabled body validation, save/reload fixture, denied storage, generated HTML export, image-generation continuity, old idle controls and all 11 tracking choices are covered.
-- Settled paused Jupiter image samples remained nonempty and color-stable in the CPU path.
+- 빈/저장된 카메라의 취소·저장·삭제, Esc·바깥 클릭, 마우스 주변 팝업 배치.
+- 데스크톱 1648×928, 터치 크기 390×844 및 320×568에서 가로 배치와 절반 크기 확인.
+- 단축키 중간 프레임, 최종 좌표 일치, 반복 입력, 수동 조작 중단, 다른 추적 대상의 중간 줌 연결.
+- 기존 카메라 저장 형식, 저장 차단 시 동작, 감상 모드의 SEOUL과 유휴 버튼 숨김, HTML 재저장.
+- 혜성 꼬리의 연속 폴리곤·그라데이션, 배경 구면 반복·극점·참조 조각 경계의 0 알파.
+- CPU 호환 배경이 이동 중에도 중간 프레임을 표시하고 정지 후 512 픽셀 래스터로 복귀.
 
-## Limitations
-- Browser HTTP/file navigation was blocked by policy; standalone HTML was injected offline.
-- localStorage persistence/denial cases use an explicit in-memory Storage fixture, not a successful direct-file browser-storage test.
-- No hardware GPU was available. GPU-loss safety checks are unit/source tests, not a real GPU device test. The user's specific purple flash was not reproduced; no confirmed elimination of that symptom on their GPU is claimed.
-- Physical Windows, physical touch devices and current external texture-server responses were not tested.
+검증 환경은 Linux headless Chromium, 오프라인 HTML 주입입니다. 저장소 지속성은 테스트용 메모리 어댑터를 사용했습니다. 실기기 GPU와 Windows 직접 실행은 검증하지 않았습니다.
 
-## Source preservation and publication
-All texture/baked assets and astronomy remain byte-identical to the supplied v0.09 ZIP. The changed-only ZIP lists its baseline and checksums. No GitHub changes or deployment were requested/performed for this revision.
+한 번에 실행한 UI 검사는 200초 실행 제한에 걸려 데스크톱 36개 검사를 완료한 뒤 중단됐습니다. 남은 모바일 범위를 별도 실행해 7개를 완료했고, 최종 배경 수정은 4개 집중 검사로 확인했습니다. 중복된 부분 검사 결과는 합계에 넣지 않았습니다. 상세 기록은 `release-verification-v0.11.json`에 있습니다.
 
-Reports: `unit-results-v0.10.txt`, `camera-presets-v0.10.json`, `viewing-controls-v0.10.json`, `release-verification-v0.10.json`.
+GitHub·공개 사이트 배포는 수행하지 않았습니다. 앱의 행성 재질 파일, 천문 계산, 표면 셰이더 파일 해시는 v0.10과 동일합니다.

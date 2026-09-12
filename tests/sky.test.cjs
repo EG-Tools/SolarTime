@@ -38,3 +38,23 @@ test('GPU retains repeat-S / clamp-T / linear filtering and guards the polar ata
  const source=fs.readFileSync(require.resolve('../src/sky.js'),'utf8');
  for(const fragment of ['g.TEXTURE_WRAP_S,g.REPEAT','g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE','g.TEXTURE_MIN_FILTER,g.LINEAR','g.TEXTURE_MAG_FILTER,g.LINEAR','length(q.xy)>0.0000001'])assert.ok(source.includes(fragment));
 });
+
+test('Comet ribbon is filled continuously, never round-capped segment strokes',()=>{
+ const calls={fill:0,strokes:0,move:0,line:0,closed:0,stops:0};
+ const c={save(){},restore(){},setLineDash(a){assert.equal(a.length,0)},createLinearGradient(){return {addColorStop(){calls.stops++}}},
+ beginPath(){},moveTo(){calls.move++},lineTo(){calls.line++},closePath(){calls.closed++},fill(){calls.fill++},stroke(){calls.strokes++}};
+ const points=Array.from({length:97},(_,i)=>({x:i*2,y:30+Math.sin(i/96*Math.PI)*22}));
+ Sky.drawCometRibbon(c,points,.7);assert.equal(calls.fill,5);assert.equal(calls.closed,5);assert.equal(calls.move,5);
+ assert.equal(calls.strokes,0);assert.equal(calls.line,5*(97*2-1));assert.equal(calls.stops,20);
+});
+test('Comet trail uses the same curved path as its head with dense ordered samples',()=>{
+ const path={start:{x:-1,y:0,z:2},control1:{x:-.5,y:1,z:2},control2:{x:.5,y:1,z:2},end:{x:1,y:0,z:2}};
+ const project=p=>({x:p.x*500,y:p.y*500});const points=Sky.cometTail(path,.6,project),head=project(Sky.cometPoint(path,.6));
+ assert.equal(points.length,97);near([points.at(-1).x,points.at(-1).y],[head.x,head.y]);
+ for(let i=1;i<points.length;i++)assert.ok(Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y)<2);
+});
+test('Comet tail discards hidden prefixes without joining across an invisible horizon',()=>{
+ const path={start:{x:-1,y:0,z:2},control1:{x:-.5,y:1,z:2},control2:{x:.5,y:1,z:2},end:{x:1,y:0,z:2}};
+ assert.doesNotThrow(()=>Sky.drawCometRibbon({},[],1));
+ assert.equal(Sky.cometTail(path,.4,()=>null).length,0);
+});

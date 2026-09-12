@@ -1,4 +1,4 @@
-# Solar Time v0.08 — image sources and licenses
+# Solar Time v0.11 — image sources and licenses
 
 ## Already embedded in this package
 
@@ -8,7 +8,7 @@ https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation-593
 
 **Fallback maps, clouds, relief and sky:** artistic procedural material assets authored for Solar Time. These are not scientific mosaics or an accurate star catalogue. In v0.07 the diffuse low-frequency component of the existing 360-degree sky is attenuated by 62%; small star details remain. Original fallbacks remain visible until an optional public replacement is received.
 
-No original third-party photograph or font file from a reference screenshot is redistributed here. The user-provided Saturn view is a visual reference, not a spherical texture copied from an unknown license source.
+No font file or third-party stock Saturn photograph from a reference screenshot is redistributed here. The user-provided Saturn view is a visual reference, not a spherical texture copied from an unknown license source.
 
 ## Optional replacement maps fetched by the application
 
@@ -47,3 +47,9 @@ The downloaded-map catalogue does not replace the existing Earth, Sun or Pluto a
 ## v0.08 sky seam correction
 
 The artistic sky alone was rebaked from periodic 3D fields. Diffuse haze stays attenuated by 62%, galaxies use uncropped radial support, and the poles collapse smoothly. The map is stored losslessly to preserve its edge samples. No planetary asset or third-party photo was changed. Regeneration owner: `tools/bake_sky.py`.
+
+## v0.11 reference-style background
+
+The project owner supplied the original AI-generated Solar System illustration and asked to match the circled space-background areas. Two small regions from the original **unannotated** image were isolated as masked sky references: `assets/sky/dust-reference.webp` and `assets/sky/galaxy-reference.webp`. They contain no names, planet disks, orbit lines or drawn annotation circles. They are the user's supplied artwork, not NASA observation products or images downloaded from a third-party stock site.
+
+These fragments are feathered into a lossless 4096×2048 artistic panorama using spherical tangent-plane projection alongside procedural stars and a dusty stellar band. Every fragment is fully transparent at its crop boundary. The panorama is not a measured all-sky atlas. Individual planetary textures and their existing attribution are unchanged.

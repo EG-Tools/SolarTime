@@ -1,10 +1,11 @@
-/* Solar Time v0.10 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.11 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A;
   function random(seed) { return function() { let t=seed+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
   const mix=(a,b,t)=>a+(b-a)*t;
+  const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
   const VIEW=Object.freeze({minZoom:.6,maxZoom:64,lowerBy:.05,minPanY:-.2,maxPanY:.2,minPanX:-.2,maxPanX:.2,minElevation:-Math.PI/2,maxElevation:Math.PI/2,fillRadius:.34});
   const SURFACE=Object.freeze({baseWidth:256,detailWidth:4096,maxRaster:1024,lowRaster:384,previewRaster:192});
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
@@ -20,6 +21,7 @@
       if(!this.ctx)throw new Error('Canvas 2D is unavailable.');
       this.options={orbits:true,labels:true,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
       this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};
+      this.cameraTween=null;
       this.surface=new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
       this.labelStates=new Map();this.lastLabelMono=null;
       this.selected=null;this.hover=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
@@ -56,18 +58,20 @@
     }
     setOrbitView(azimuth,elevation) {
       if(!Number.isFinite(azimuth)||!Number.isFinite(elevation))return;
+      this.cancelCameraTween();
       this.camera.azimuth=A.wrap(azimuth);
       this.camera.elevation=clamp(elevation,VIEW.minElevation,VIEW.maxElevation);
       this.cameraChangeAt=performance.now();this.dirty=true;
     }
     setPanY(value) {
       if(!Number.isFinite(value))return;
+      this.cancelCameraTween();
       // Screen-height fractions: independent of zoom, target, angle or resolution.
       this.camera.panY=clamp(value,VIEW.minPanY,VIEW.maxPanY);this.dirty=true;
     }
     setPan(x,y=this.camera.panY) {
       if(!Number.isFinite(x)||!Number.isFinite(y))return;
-      this.camera.panX=clamp(x,VIEW.minPanX,VIEW.maxPanX);this.setPanY(y);
+      this.cancelCameraTween();this.camera.panX=clamp(x,VIEW.minPanX,VIEW.maxPanX);this.setPanY(y);
     }
     faceFeature(id,latitude,longitude,ms) {
       const body=[A.SUN,...this.getBodies(),A.MOON].find(b=>b.id===id);if(!body)return;
@@ -124,6 +128,7 @@
     }
     setZoom(value,focusId=null) {
       if(!Number.isFinite(value))return;
+      this.cancelCameraTween();
       this.camera.zoom=clamp(value,VIEW.minZoom,VIEW.maxZoom);this.cameraChangeAt=performance.now();
       if(this.camera.zoom<=1)this.camera.focus=null;
       else if(!this.camera.focus) {
@@ -137,7 +142,7 @@
       if(!body)return;
       const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.14;
       const t=clamp((radius-baseRadius)/(this.focusRadius()-baseRadius),0,1);
-      this.camera.focus=id;
+      this.cancelCameraTween();this.camera.focus=id;
       this.setZoom(clamp((1+t*(Math.sqrt(VIEW.maxZoom)-1))**2,6,VIEW.maxZoom));
     }
     get zoomLimits() {return VIEW;}
@@ -156,12 +161,44 @@
     restoreCamera(state) {
       if(!Renderer.validCamera(state))return false;
       if((state.focus==='moon'&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
+      this.cameraTween=null;
       // Commit one camera transaction. Time, selected body and display toggles are not preset data.
       this.camera={azimuth:state.azimuth,elevation:state.elevation,zoom:state.zoom,
         focus:state.focus,panX:state.panX,panY:state.panY};
       this.cameraChangeAt=performance.now();this.dirty=true;this.clearLabels();this.invalidateSurfaces();return true;
     }
-    resetCamera() {this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};this.dirty=true;}
+    // One monotonic-time transition owner, not a second requestAnimationFrame loop.
+    // Different tracked bodies travel through overview zoom: focus switches only
+    // at zoom=1 where both its position weight and its extra size are exactly zero.
+    animateCamera(state,mono=performance.now(),duration=1100) {
+      if(!Renderer.validCamera(state)||!Number.isFinite(mono)||!Number.isFinite(duration))return false;
+      if((state.focus==='moon'&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
+      if(duration<=0)return this.restoreCamera(state);
+      this.advanceCamera(mono);
+      const from=this.cameraSnapshot(),to={...state},bridge=from.focus!==to.focus;
+      this.cameraTween={from,to,start:mono,duration:duration*(bridge?1.4:1),bridge};
+      this.cameraChangeAt=mono;this.dirty=true;return true;
+    }
+    advanceCamera(mono=performance.now()) {
+      const move=this.cameraTween;if(!move)return false;
+      const t=clamp((mono-move.start)/move.duration,0,1),p=ease(t),{from,to}=move;
+      const delta=A.wrap(to.azimuth-from.azimuth+Math.PI)-Math.PI;
+      const state={azimuth:A.wrap(from.azimuth+delta*p),elevation:mix(from.elevation,to.elevation,p),
+        panX:mix(from.panX,to.panX,p),panY:mix(from.panY,to.panY,p),focus:to.focus,
+        zoom:Math.exp(mix(Math.log(from.zoom),Math.log(to.zoom),p))};
+      if(move.bridge){
+        state.focus=t<.5?from.focus:to.focus;
+        state.zoom=t<.5?Math.exp(mix(Math.log(from.zoom),0,ease(t*2))):Math.exp(mix(0,Math.log(to.zoom),ease(t*2-1)));
+      }
+      if(state.zoom<=1)state.focus=null;
+      this.camera=t>=1?{...to}:state;
+      if(t>=1)this.cameraTween=null;
+      this.cameraChangeAt=mono;this.dirty=true;return true;
+    }
+    cancelCameraTween(mono=performance.now()) {
+      if(this.cameraTween){this.advanceCamera(mono);this.cameraTween=null;}
+    }
+    resetCamera() {this.cameraTween=null;this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};this.dirty=true;}
     orbit(c,path,highlight) {
       const rgb=path.body.id==='earth'?'110,174,212':path.body.id==='pluto'?'155,140,127':'138,151,168';
       c.lineWidth=highlight?1.25:.72;
@@ -195,7 +232,7 @@
         light:[lightVector.x/len,lightVector.y/len,lightVector.z/len],activity,seconds:activity?seconds:0};
     }
     invalidateSurfaces() {this.surface?.invalidate();}
-    suspend() {this.surface?.dispose();this.surface=null;}
+    suspend() {this.cancelCameraTween();this.surface?.dispose();this.surface=null;}
     resume() {if(!this.surface)this.surface=new window.SolarSurface.Service();}
     dispose() {this.suspend();this.clearLabels();this.hitTargets=[];this.coronaTexture=null;this.sky?.dispose();}
     makeCoronaTexture(size=384) {
@@ -336,6 +373,7 @@
       if('letterSpacing' in c)c.letterSpacing='0px';
     }
     draw(ms,seconds,mono=performance.now()) {
+      this.advanceCamera(mono);
       const c=this.ctx;this.frameCount++;c.clearRect(0,0,this.w,this.h);
       if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
       this.sky.draw(seconds,this.camera,this.options);
@@ -354,7 +392,8 @@
       // One snapshot owns positions and tracking: the target cannot drift out of frame.
       const target=bodies.find(p=>p.body.id===this.camera.focus);
       if(target) {
-        const v=this.view(target.world);this.cx=this.centerX-v.x*this.scale;this.cy=this.centerY-v.y*this.scale;
+        const v=this.view(target.world),weight=ease((this.camera.zoom-1)/1.8);
+        this.cx=this.centerX-v.x*this.scale*weight;this.cy=this.centerY-v.y*this.scale*weight;
       } else {this.cx=this.homeCx;this.cy=this.homeCy;}
       for(const body of bodies)body.screen=this.project(body.world);
       if(this.options.orbits) {

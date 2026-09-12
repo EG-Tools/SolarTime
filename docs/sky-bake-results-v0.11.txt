@@ -1,0 +1,13 @@
+test_decoded_meridian_has_no_exceptional_column_jump (__main__.SkyBakeTest.test_decoded_meridian_has_no_exceptional_column_jump) ... ok
+test_decoded_north_south_poles_are_single_colours (__main__.SkyBakeTest.test_decoded_north_south_poles_are_single_colours) ... ok
+test_encoded_map_is_lossless_and_power_of_two (__main__.SkyBakeTest.test_encoded_map_is_lossless_and_power_of_two) ... ok
+test_periodic_lattice_interpolates_across_each_axis (__main__.SkyBakeTest.test_periodic_lattice_interpolates_across_each_axis) ... ok
+test_periodic_volume_repeats_after_40_samples_not_39 (__main__.SkyBakeTest.test_periodic_volume_repeats_after_40_samples_not_39) ... ok
+test_reference_stamps_are_transparent_at_every_crop_edge (__main__.SkyBakeTest.test_reference_stamps_are_transparent_at_every_crop_edge) ... ok
+test_reproduces_old_internal_cut_and_removes_it (__main__.SkyBakeTest.test_reproduces_old_internal_cut_and_removes_it) ... ok
+test_sphere_closes_at_every_meridian_and_both_poles (__main__.SkyBakeTest.test_sphere_closes_at_every_meridian_and_both_poles) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 2.880s
+
+OK

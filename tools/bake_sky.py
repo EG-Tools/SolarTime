@@ -42,18 +42,27 @@ def bake(output, width=4096):
     def field(scale, offset=0):
         return volume_sample(grid, [nz*scale + 19 + offset, ny*scale + 19, nx*scale + 19])
 
-    normal = np.array([.12,.31,.943], np.float32)
+    # Orient the dusty stellar band across a great circle, not a flat fog stripe.
+    def sky_ray(x,y):
+        a,e=np.deg2rad(25),np.deg2rad(45)
+        right=np.array([np.cos(a),-np.sin(a),0.])
+        down=np.array([-np.sin(a)*np.sin(e),-np.cos(a)*np.sin(e),-np.cos(e)])
+        forward=np.array([-np.sin(a)*np.cos(e),-np.cos(a)*np.cos(e),np.sin(e)])
+        f=np.tan(np.deg2rad(38));q=right*((x*2-1)*1648/928*f)+down*((y*2-1)*f)-forward
+        q/=np.linalg.norm(q);return np.array([q[0],q[1]*.866025403784-q[2]*.5,q[1]*.5+q[2]*.866025403784])
+    normal = np.cross(sky_ray(.06,.48),sky_ray(.88,.06)).astype(np.float32)
     normal /= np.linalg.norm(normal)
     latitude = np.arcsin(np.clip(nx*normal[0] + ny*normal[1] + nz*normal[2], -1, 1))
-    cloud = field(5)*.45 + field(14)*.32 + field(39)*.17 + field(116)*.06
-    band = np.exp(-(latitude/.14)**2) * (.25 + cloud**2*2.2)
-    dust = np.exp(-((latitude + .006 + (field(9)-.5)*.095)/.055)**2) * np.clip((field(18)-.24)*1.5, 0, .91)
+    cloud = field(5)*.28 + field(14)*.28 + field(39)*.24 + field(116)*.14 + field(270)*.06
+    band = np.exp(-(latitude/.13)**2) * np.clip((cloud-.28)*2.6,0,1.4)**1.6
+    dust = np.exp(-((latitude + .008 + (field(9)-.5)*.12)/.041)**2) * np.clip((field(24)-.12)*1.8, 0, .96)
+    dust = np.maximum(dust, np.exp(-((latitude-.048+(field(17)-.5)*.05)/.012)**2)*.62)
     # A circular, not cut-off, longitude envelope. No hidden -pi/+pi seam.
-    core = np.exp((np.cos(lon-.1)-1) * (2/.75**2)) * .9 + .35
+    core = .6 + np.exp((np.cos(lon-.1)-1) * (2/.75**2)) * .6
     light = band*(1-dust)*core
     rgb = np.empty((height,width,3), np.float32)
     rgb[:] = [1,2,5]
-    for channel, strength in enumerate([91,97,118]):
+    for channel, strength in enumerate([83,88,111]):
         rgb[:,:,channel] += light*strength
     neb = np.clip(field(9,6)-.60,0,.4) * np.exp(-(latitude/.33)**2) * 38
     rgb[:,:,0] += neb*.9
@@ -80,24 +89,39 @@ def bake(output, width=4096):
                 draw.ellipse((px-1,y-1,px+1,y+1), fill=color)
     rgb = np.asarray(image).astype(np.float32)
 
-    # Radial galaxy support: sample the entire rotated shape and fade smoothly
-    # to zero before its bounding rectangle. Never paste a cropped rectangle.
-    ratio = width/4096
-    for cx,cy,scale,angle in [(720,865,80,.5),(3110,1350,107,-.6),(2360,415,61,.9),(1170,1510,48,-.2)]:
-        cx,cy,scale = cx*ratio,cy*ratio,scale*ratio
-        radius = int(np.ceil(scale*2))+2
-        xs = np.arange(int(cx)-radius,int(cx)+radius+1)
-        ys = np.arange(max(0,int(cy)-radius),min(height,int(cy)+radius+1))
-        xx,yy = np.meshgrid(xs+.5-cx,ys+.5-cy)
-        c,s = np.cos(angle),np.sin(angle)
-        u,v = (xx*c+yy*s)/scale,(-xx*s+yy*c)/(scale*.40)
-        rho = np.hypot(u,v)
-        phi = np.arctan2(v,u)
-        arms = (.5+.5*np.cos(phi*2-rho*10+1))**4
-        taper = 1-smoothstep((rho-1.35)/.65)
-        spiral = (np.exp(-rho*2)*(.16+.58*arms)+np.exp(-rho*rho*48)*1.2)*taper
-        for channel,strength in enumerate([128,132,154]):
-            rgb[np.ix_(ys,xs % width,[channel])] += spiral[:,:,None]*strength
+    # Reference-derived photographic detail is baked onto tangent planes on the
+    # sphere. Support fades before all image edges and is tested in 3D, so neither
+    # the longitude seam nor a rectangular sprite boundary can be visible.
+    def stamp(name,center,half_width,angle=0,gain=1):
+        tex=np.asarray(Image.open(ROOT/'assets/sky'/name).convert('RGBA')).astype(np.float32)/255
+        th,tw=tex.shape[:2];q=np.asarray(center,dtype=np.float32);q/=np.linalg.norm(q)
+        east=np.cross(np.array([0,0,1],np.float32),q);east/=np.linalg.norm(east)
+        north=np.cross(q,east);c,s=np.cos(angle),np.sin(angle)
+        u=east*c+north*s;v=east*s-north*c
+        denom=nx*q[0]+ny*q[1]+nz*q[2]
+        threshold=np.cos(half_width*1.6)
+        ys,xs=np.nonzero(denom>threshold)
+        d=denom[ys,xs];scale=np.tan(half_width)
+        xx=(nx[ys,xs]*u[0]+ny[ys,xs]*u[1]+nz[ys,xs]*u[2])/d/scale
+        yy=(nx[ys,xs]*v[0]+ny[ys,xs]*v[1]+nz[ys,xs]*v[2])/d/(scale*th/tw)
+        inside=(np.abs(xx)<1)&(np.abs(yy)<1)
+        ys,xs,xx,yy=ys[inside],xs[inside],xx[inside],yy[inside]
+        coords=[(yy+1)*.5*(th-1),(xx+1)*.5*(tw-1)]
+        alpha=map_coordinates(tex[:,:,3],coords,order=1,mode='constant',cval=0)
+        for channel in range(3):
+            source=map_coordinates(tex[:,:,channel],coords,order=1,mode='constant',cval=0)*255
+            # Keep the dark fissures of the reference instead of washing them out.
+            existing=rgb[ys,xs,channel]
+            rgb[ys,xs,channel]=existing*(1-alpha*.65)+np.maximum(0,source-2)*alpha*gain
+
+    # A few detailed cloud knots within a mostly dark, sparse 360-degree sky.
+    for x,y,span,angle,gain in [(.21,.38,.41,-.20,1.05),(.73,.115,.37,-.28,1.12)]:
+        stamp('dust-reference.webp',sky_ray(x,y),span,angle,gain)
+    for lon0,lat0,span,angle in [(2.6,.22,.36,.2),(-1.3,-.18,.42,-.3)]:
+        stamp('dust-reference.webp',[np.cos(lat0)*np.cos(lon0),np.cos(lat0)*np.sin(lon0),np.sin(lat0)],span,angle,.84)
+    stamp('galaxy-reference.webp',sky_ray(.845,.79),.205,.12,1.42)
+    stamp('galaxy-reference.webp',sky_ray(.105,.155),.115,-.5,1.03)
+    stamp('galaxy-reference.webp',[-.3,-.81,.5],.16,.45,1.15)
 
     # A pole is one direction, not thousands of different longitude samples.
     # Collapse only the last two degrees of the map smoothly to the row mean.

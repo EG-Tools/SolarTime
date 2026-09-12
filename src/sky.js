@@ -17,6 +17,46 @@ function cometPoint(path,t){
  const q={};for(const a of ['x','y','z'])q[a]=u*u*u*path.start[a]+3*u*u*f*path.control1[a]+3*u*f*f*path.control2[a]+f*f*f*path.end[a];
  const n=Math.hypot(q.x,q.y,q.z)||1;return {x:q.x/n,y:q.y/n,z:q.z/n};
 }
+// A tail is a single feathered ribbon, never individually round-capped dashes.
+function cometTail(path,t,project,samples=96){
+ const points=[];const start=Math.max(0,t-.115);
+ for(let i=0;i<=samples;i++){
+  const point=project(cometPoint(path,start+(t-start)*i/samples));
+  if(!point){points.length=0;continue;}
+  const previous=points[points.length-1];
+  if(!previous||Math.hypot(point.x-previous.x,point.y-previous.y)>.03)points.push(point);
+ }
+ return points;
+}
+function drawCometRibbon(ctx,points,opacity=1){
+ if(points.length<2)return;
+ const first=points[0],last=points[points.length-1],count=points.length;
+ const length=points.slice(1).reduce((n,p,i)=>n+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);
+ if(length<.1)return;
+ const normals=points.map((point,i)=>{
+  const a=points[Math.max(0,i-1)],b=points[Math.min(count-1,i+1)],d=Math.hypot(b.x-a.x,b.y-a.y)||1;
+  return {x:-(b.y-a.y)/d,y:(b.x-a.x)/d};
+ });
+ ctx.save();ctx.globalCompositeOperation='screen';ctx.setLineDash([]);
+ // Nested, continuous ribbons supply soft transverse edges without a heavy blur.
+ for(const [width,alpha] of [[5.2,.035],[3.6,.055],[2.3,.08],[1.25,.13],[.48,.21]]){
+  const gradient=ctx.createLinearGradient(first.x,first.y,last.x,last.y);
+  gradient.addColorStop(0,'rgba(143,178,208,0)');
+  gradient.addColorStop(.28,`rgba(149,184,212,${alpha*.15*opacity})`);
+  gradient.addColorStop(.72,`rgba(176,209,232,${alpha*.64*opacity})`);
+  gradient.addColorStop(1,`rgba(229,240,249,${alpha*opacity})`);
+  ctx.fillStyle=gradient;ctx.beginPath();
+  for(let side=0;side<2;side++)for(let j=0;j<count;j++){
+   const i=side?count-1-j:j,f=i/(count-1),p=points[i],n=normals[i];
+   const envelope=Math.sin(Math.PI*Math.pow(f,.65))*.78+.12*f;
+   const offset=width*envelope*(side?-1:1);
+   const x=p.x+n.x*offset,y=p.y+n.y*offset;
+   if(!side&&!j)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  }
+  ctx.closePath();ctx.fill();
+ }
+ ctx.restore();
+}
 function rand(seed){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
 function shader(g,type,source){const s=g.createShader(type);g.shaderSource(s,source);g.compileShader(s);if(!g.getShaderParameter(s,g.COMPILE_STATUS))throw Error(g.getShaderInfoLog(s));return s;}
 function rotate(p,angle,axis){const c=Math.cos(angle),s=Math.sin(angle);return axis==='z'?{x:p.x*c-p.y*s,y:p.x*s+p.y*c,z:p.z}:{x:p.x,y:p.y*c-p.z*s,z:p.y*s+p.z*c};}
@@ -57,7 +97,11 @@ class Sky{
   this.camera=camera;this.axesNow=this.axes(camera);if(!this.ready||this.disposed)return;
   const key=[this.offset,camera.azimuth,camera.elevation,this.w,this.h].join(':');
   if(!this.gl){
-    this.softwareDesired={key,geometry:[camera.azimuth,camera.elevation,this.w,this.h].join(':'),axes:this.axesNow,offset:this.offset,w:this.w,h:this.h};
+    const now=performance.now(),angleKey=[camera.azimuth,camera.elevation].join(':');
+    if(this.lastCameraKey!==angleKey)this.cameraMotionAt=now;this.lastCameraKey=angleKey;
+    this.softwareDesired={key:key+':'+(now-this.cameraMotionAt<180?'320':'512'),geometry:[camera.azimuth,camera.elevation,this.w,this.h].join(':'),
+      revision:(this.softwareRevision=(this.softwareRevision||0)+1),azimuth:camera.azimuth,elevation:camera.elevation,
+      moving:now-this.cameraMotionAt<180,axes:this.axesNow,offset:this.offset,w:this.w,h:this.h};
     this.softwarePump();return;
   }
   if(key===this.lastKey)return;this.lastKey=key;
@@ -69,10 +113,11 @@ class Sky{
   if(this.disposed||this.softwareBusy||!this.ctx||!this.pixels||!this.softwareDesired)return;
   const request=this.softwareDesired;
   if(request.key===this.lastKey)return;
-  const delay=Math.max(0,160-(performance.now()-(this.lastSoftware||-Infinity)));
+  const delay=Math.max(0,(request.moving?45:160)-(performance.now()-(this.lastSoftware||-Infinity)));
   if(delay>0){if(!this.softwareTimer)this.softwareTimer=setTimeout(()=>{this.softwareTimer=null;this.softwarePump();},delay);return;}
   this.softwareBusy=true;this.lastSoftware=performance.now();
-  const sw=512,sh=Math.max(1,Math.round(sw*request.h/request.w));
+  const sw=request.moving?320:512,sh=Math.max(1,Math.round(sw*request.h/request.w));
+  request.started=performance.now();
   if(!this.softwareCanvas)this.softwareCanvas=document.createElement('canvas');
   const canvas=this.softwareCanvas;
   if(canvas.width!==sw||canvas.height!==sh){canvas.width=sw;canvas.height=sh;this.softwareImage=canvas.getContext('2d').createImageData(sw,sh);}
@@ -98,7 +143,16 @@ class Sky{
       }
       if(performance.now()-start>5&&row<sh){this.softwareTimer=setTimeout(chunk,0);return;}
     }
-    if(this.softwareDesired?.geometry===request.geometry){canvas.getContext('2d').putImageData(image,0,0);this.ctx.drawImage(canvas,0,0,this.canvas.width,this.canvas.height);this.lastKey=request.key;this.stats.frames++;}
+    const latest=this.softwareDesired;
+    const angle=latest?Math.abs(Math.atan2(Math.sin(latest.azimuth-request.azimuth),Math.cos(latest.azimuth-request.azimuth)))+Math.abs(latest.elevation-request.elevation):Infinity;
+    // Software presentation permits a bounded older pose, but never regresses to
+    // an older completed job or a resized/disposed owner. Exact-pose-only commit
+    // starved every frame during a smooth camera move and then snapped at its end.
+    if(latest&&latest.w===request.w&&latest.h===request.h&&request.revision>(this.softwareCommitted||0)&&
+      (latest.geometry===request.geometry||(angle<.7&&performance.now()-request.started<300))){
+      canvas.getContext('2d').putImageData(image,0,0);this.ctx.drawImage(canvas,0,0,this.canvas.width,this.canvas.height);
+      this.lastKey=request.key;this.softwareCommitted=request.revision;this.stats.frames++;
+    }
     this.softwareBusy=false;this.softwarePump();
   };
   this.softwareTimer=setTimeout(chunk,0);
@@ -123,19 +177,14 @@ class Sky{
    this.nextComet=seconds+50+this.random()*100;
   }
   if(!this.comet)return;const k=this.comet,t=(seconds-k.time)/k.duration;if(t>=1){this.comet=null;return;}if(t<0)return;
-  // World-space cubic arc; both coma and dust tail follow the same continuous path.
-  const at=f=>this.project(cometPoint(k,f)),head=at(t);if(!head)return;
-  const life=Math.sin(t*Math.PI)**.7;ctx.save();ctx.globalAlpha=life*.58;ctx.lineCap='round';
-  let previous=at(t-.10);
-  for(let i=1;i<=24;i++){
-   const f=i/24,p=at(t-.10+.10*f);
-   if(previous&&p){ctx.beginPath();ctx.moveTo(previous.x,previous.y);ctx.lineTo(p.x,p.y);ctx.strokeStyle=`rgba(149,191,226,${f*f*.42})`;ctx.lineWidth=1.4+(1-f)*3;ctx.stroke();
-    ctx.strokeStyle=`rgba(218,234,245,${f*f*.45})`;ctx.lineWidth=.7;ctx.stroke();}
-   previous=p;
-  }
-  glow(ctx,head.x,head.y,.90,.56);ctx.restore();
+  // World-space cubic arc with a fully continuous, feathered dust ribbon.
+  const head=this.project(cometPoint(k,t));if(!head)return;
+  const life=Math.sin(t*Math.PI)**.7;
+  drawCometRibbon(ctx,cometTail(k,t,p=>this.project(p)),life*.9);
+  ctx.save();ctx.globalAlpha=life*.7;glow(ctx,head.x,head.y,.90,.56);ctx.restore();
+
  }
  dispose(){this.disposed=true;clearTimeout(this.softwareTimer);this.softwareTimer=null;this.softwareDesired=null;this.softwareImage=null;this.softwareCanvas=null;this.abort.abort();if(this.gl){this.gl.deleteTexture(this.texture);this.gl.deleteBuffer(this.buffer);this.gl.deleteProgram(this.program);this.gl.getExtension('WEBGL_lose_context')?.loseContext();}this.image=null;this.pixels=null;this.comet=null;}
 }
-Sky.cometPoint=cometPoint;Sky.samplePanorama=samplePanorama;root.SolarSky=Sky;
+Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometRibbon;Sky.samplePanorama=samplePanorama;root.SolarSky=Sky;
 })(window);
