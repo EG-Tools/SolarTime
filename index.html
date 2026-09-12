@@ -60,7 +60,7 @@
     <p class="settings-note">주기는 초 단위 소수점 2자리로 저장합니다.<br>실행할 때 기기 시각으로 로컬 보정합니다.<br>인터넷 없이 동작하며 설정은 이 기기에 저장됩니다.</p>
     <p id="photo-status" class="photo-status" role="status">공개 텍스처 확인 중 · 연결 전에는 내장 이미지를 표시합니다.</p>
     <div class="material-actions"><button id="photo-retry" class="text-button">사진 다시 받기</button><button id="photo-export" class="text-button">이미지 포함 HTML 저장</button></div>
-    <p class="settings-credit">Life User / Solar Time v0.13 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
+    <p class="settings-credit">Life User / Solar Time v0.15 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
   </aside>
 
   <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보">
@@ -118,7 +118,7 @@
   </section>
 
   <footer class="footer ui">
-    <span class="signature">Life User <span>/</span> v0.13 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
+    <span class="signature">Life User <span>/</span> v0.15 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택"></nav>
   </footer>
   <p class="scale-note ui">크기·거리 축척 조정<span>·</span>평균 궤도 근사<span>·</span><span id="spin-mode-note">자전·공전 시간 연동</span></p>
@@ -137,6 +137,11 @@
     <h3>실제 시간과 배속</h3>
     <p>실제 공전은 매우 느립니다. <b>1일 / 초</b>를 누르면 1초에 하루만큼 움직입니다. <b>1년 / 초</b>에서는 바깥 행성의 움직임도 보입니다. 모든 행성에 같은 시간 배율을 적용하므로 상대적인 공전 속도는 유지됩니다.</p>
     <p>일시정지는 공전과 자전, 별·태양 효과를 멈춥니다. 실제 시간 모드에서 재개하면 현재 시각으로 다시 맞춥니다. 날짜를 선택하면 해당 시각에서 일시정지합니다.</p>
+    <h3>v0.15 · 부드러운 카메라와 ESC</h3>
+    <p>천체 추적·한국 보기·기본 시점·저장 시점은 같은 부드러운 전환을 사용합니다. 휠·확대 버튼·각도·드래그도 짧게 보간하고, 이동 중 새로운 명령은 현재 보이는 위치에서 이어집니다.</p>
+    <p>1·2·3(숫자패드 포함)은 감상 모드, 전체 화면, 버튼 포커스, 열린 팝업에서도 저장 시점을 불러옵니다. 입력란에서는 숫자 입력도 그대로 허용합니다. Ctrl·Alt·Meta 조합은 브라우저에 남깁니다. 숨겨진 달·명왕성 시점은 해당 천체를 다시 표시합니다.</p>
+    <p><strong>ESC는 감상 모드 → 전체 화면 → 팝업·패널 순서</strong>로 한 번에 하나만 해제합니다. 전체 화면+감상 모드에서는 첫 ESC로 감상 모드만 해제하고 두 번째로 전체 화면을 종료합니다. F는 전체 화면만 켜고 끕니다.</p>
+    <p>두 단계 ESC는 브라우저의 키보드 잠금 지원·허용이 필요합니다. 권한이 없으면 브라우저가 전체 화면 종료를 우선할 수 있습니다. ESC를 길게 누르는 브라우저의 강제 탈출 기능은 유지됩니다. F11이나 운영체제 창 최대화는 앱의 F 전체 화면과 별개입니다.</p>
     <h3>확대 관찰</h3>
     <p>드래그와 각도 설정으로 위쪽 90°부터 아래쪽 −90°까지 관찰합니다. 휠·+/−·두 손가락으로 최대 256배까지 확대합니다. 더블클릭은 이전보다 큰 크기로 추적을 시작합니다. 추가 확대는 최대 256배까지 가능하며, 추적 대상의 최대 지름은 화면 짧은 변의 220%입니다. 기존 저장 시점의 64배 이하 크기는 그대로 유지됩니다. 천체를 더블클릭하거나 천체 정보의 «가까이 보기»를 누르면 해당 천체를 중심에 두고 따라갑니다. 0 또는 기본 시점 버튼으로 전체 태양계 구도로 돌아옵니다. 기본 구도는 v0.03보다 화면 높이의 5%만큼 위로 올렸습니다. 마우스 가운데 버튼을 누르고 드래그하면 기본 위치에서 상하좌우 각각 화면의 20%까지 상하좌우 이동합니다. 0 또는 기본 시점 버튼으로 이동량도 초기화합니다. 행성 표시는 거리 축척과 별개로 확대됩니다.</p>
     <p>천체 이름은 기본적으로 각 천체 아래에 고정됩니다. 설정에서 «이름 겹침 자동 정리»를 켰을 때만 겹침을 피해 부드럽게 이동합니다. 달의 표시 궤도는 지구 크기와 분리하여 이전 버전보다 약 33% 줄였습니다.</p>
@@ -169,7 +174,7 @@
     <p>감상 모드에서는 마우스 이동·클릭·터치 시 동일한 오른쪽 조작부 전체와 모드 전환 아이콘을 표시합니다. 약 1.8초 동안 조작하지 않으면 다시 숨깁니다. 자동 회전 중에도 숨김은 유지하며, 카메라 저장·삭제 확인창을 띄운 동안에는 조작부가 사라지지 않습니다.</p>
     <p>시계의 초 표시는 기본 OFF입니다. 화면 설정의 «시계 초 표시»를 켜면 초 숫자와 구분자가 함께 표시됩니다. 숫자 표시 여부는 행성 시간 계산에 영향을 주지 않습니다.</p>
     <h3>단축키</h3>
-    <div class="shortcuts"><span><kbd>Space</kbd> 일시정지</span><span><kbd>R</kbd> 실제 시간</span><span><kbd>F</kbd> 전체 화면</span><span><kbd>H</kbd> 감상 모드</span><span><kbd>0</kbd> 기본 시점</span><span><kbd>1 · 2 · 3</kbd> 저장한 시점 불러오기</span><span><kbd>Esc</kbd> 패널 닫기</span></div>
+    <div class="shortcuts"><span><kbd>Space</kbd> 일시정지</span><span><kbd>R</kbd> 실제 시간</span><span><kbd>F</kbd> 전체 화면</span><span><kbd>H</kbd> 감상 모드</span><span><kbd>0</kbd> 기본 시점</span><span><kbd>1 · 2 · 3</kbd> 저장한 시점 불러오기</span><span><kbd>Esc</kbd> 감상 → 전체 화면 → 패널 해제</span></div>
     <p class="modal-note">외부 라이브러리·계정 없이 실행됩니다. 내장 재질은 오프라인으로 동작하며, 공개 사진의 최초 수신에는 인터넷 연결이 필요합니다. 지구의 Blue Marble 이미지는 과거 위성 자료이며, 구름·별빛·혜성은 실시간 관측 데이터가 아닙니다.</p>
   </dialog>
 
@@ -187,12 +192,13 @@
   <div id="loading" class="loading"><div class="loading-orbit"></div><span>작은 우주를 펼치는 중</span></div>
   <div id="fatal-error" class="fatal-error" role="alert" hidden><h2>화면을 시작하지 못했습니다.</h2><p id="fatal-message"></p><p>최신 Edge 또는 Chrome에서 다시 열어 주세요.</p></div>
   <noscript><div class="fatal-error">태양계 시계를 실행하려면 브라우저의 JavaScript를 켜 주세요.</div></noscript>
-  <script id="solar-assets" src="src/assets.js"></script>
-  <script src="src/materials.js"></script>
-  <script src="src/astro.js"></script>
-  <script src="src/surface.js"></script>
-  <script src="src/sky.js"></script>
-  <script src="src/renderer.js"></script>
-  <script src="src/app.js"></script>
+  <script id="solar-assets" src="src/assets.js?v=0.15"></script>
+  <script src="src/sky-asset.js?v=0.15"></script>
+  <script src="src/materials.js?v=0.15"></script>
+  <script src="src/astro.js?v=0.15"></script>
+  <script src="src/surface.js?v=0.15"></script>
+  <script src="src/sky.js?v=0.15"></script>
+  <script src="src/renderer.js?v=0.15"></script>
+  <script src="src/app.js?v=0.15"></script>
 </body>
 </html>

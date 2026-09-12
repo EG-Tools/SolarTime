@@ -1,4 +1,4 @@
-/* Solar Time v0.13 — clock, interaction and accessible UI. */
+/* Solar Time v0.15 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -37,7 +37,8 @@
       const zoneLabel=()=>timezone==='utc'?'UTC':Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replaceAll('_',' ').toUpperCase();
       function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,showSeconds,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
       function cameraUi() {
-        const deg=Math.round(renderer.camera.elevation/A.DEG),zoom=renderer.camera.zoom,limits=renderer.zoomLimits;
+        const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
+        const deg=Math.round(controlState.elevation/A.DEG),zoom=controlState.zoom,limits=renderer.zoomLimits;
         $('elevation').min=-90;$('elevation').max=90;
         $('elevation').value=deg;$('elevation-value').textContent=deg+'°';
         $('zoom-value').textContent=zoom.toFixed(1)+'×';
@@ -72,7 +73,9 @@
       function recallPreset(index) {
         const value=cameraPresets[index];
         if(!value){toast(`${index+1}번은 비어 있습니다. 숫자 버튼을 눌러 먼저 저장하세요.`);return;}
-        if(!renderer.animateCamera(value,performance.now(),reduced?0:1100)){toast('저장된 천체의 표시를 켠 뒤 다시 불러오세요.');return;}
+        cancelGesture();
+        for(const id of ['moon','pluto'])if(value.focus===id&&!renderer.options[id]){renderer.setOption(id,true);$(validKeys[id]).checked=true;navVisibility();}
+        if(!renderer.animateCamera(value,performance.now(),1100)){toast('저장된 천체의 표시를 켠 뒤 다시 불러오세요.');return;}
         cameraUi();
         // Persist only after the single renderer-owned transition has completed.
         if(!renderer.cameraTween)persist();
@@ -116,7 +119,7 @@
         }
         closePresetDialog();
       });
-      presetDialog.addEventListener('cancel',event=>{event.preventDefault();closePresetDialog();});
+      presetDialog.addEventListener('cancel',event=>{event.preventDefault();handleEscape();});
       presetDialog.addEventListener('click',event=>{
         if(event.target!==presetDialog)return;const box=presetDialog.getBoundingClientRect();
         if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)closePresetDialog();
@@ -204,26 +207,72 @@
       for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if((key==='pluto'||key==='moon')&&!$(id).checked&&renderer.selected===key)closeBody();navVisibility();persist();});
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
       $('quality').addEventListener('change',()=>{renderer.setOption('quality',$('quality').value);persist();});
-      $('elevation').addEventListener('input',()=>{renderer.setOrbitView(renderer.camera.azimuth,Number($('elevation').value)*A.DEG);cameraUi();persist();});
-      function reset() {renderer.resetCamera();cameraUi();persist();}
+      $('elevation').addEventListener('input',()=>{renderer.smoothCamera({elevation:Number($('elevation').value)*A.DEG});cameraUi();});
+      function reset() {cancelGesture();renderer.animateHome();cameraUi();}
       $('reset-view').addEventListener('click',reset);$('fit-view').addEventListener('click',reset);
-      function zoom(factor,target=null) {renderer.setZoom(renderer.camera.zoom*factor,target);cameraUi();}
+      function zoom(factor,target=null) {const mono=performance.now();renderer.smoothZoom(renderer.cameraInputState(mono).zoom*factor,target,mono);cameraUi();}
       function focusBody(id) {
         if(!id)return;
-        renderer.focusBody(id);cameraUi();
+        cancelGesture();renderer.animateFocus(id);cameraUi();
       }
       $('focus-body').addEventListener('click',()=>focusBody(renderer.selected));
-      $('feature-view').addEventListener('click',()=>{const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;renderer.faceFeature(id,id==='earth'?37.5665:-22,id==='earth'?126.978:(window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70),clock.value(performance.now()));cameraUi();});
+      $('feature-view').addEventListener('click',()=>{const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;cancelGesture();renderer.animateFeature(id,id==='earth'?37.5665:-22,id==='earth'?126.978:(window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70),clock.value(performance.now()));cameraUi();});
       $('zoom-in').addEventListener('click',()=>zoom(1.2));$('zoom-out').addEventListener('click',()=>zoom(1/1.2));
       for(const [id,direction] of [['rotate-left',-1],['rotate-right',1]])$(id).addEventListener('click',()=>{
         renderer.setAutoRotate(renderer.autoRotateDirection===direction?0:direction,performance.now());cameraUi();
       });
+      let fullscreenBusy=false,keyboardEpoch=0,escapeLock='inactive';
+      function unlockEscape() {
+        keyboardEpoch++;escapeLock='inactive';
+        try{navigator.keyboard?.unlock?.();}catch(_){/* Already released by the browser. */}
+      }
+      async function lockEscape() {
+        if(!document.fullscreenElement||disposed)return;
+        const ticket=++keyboardEpoch;
+        if(!navigator.keyboard?.lock){escapeLock='unsupported';return;}
+        escapeLock='pending';
+        try {
+          // Capture ESC only, never Ctrl/Alt/OS shortcuts. Long ESC is still a browser escape hatch.
+          await navigator.keyboard.lock(['Escape']);
+          if(ticket!==keyboardEpoch){if(disposed||!document.fullscreenElement){try{navigator.keyboard?.unlock?.();}catch(_){}}return;}
+          if(disposed||!document.fullscreenElement){unlockEscape();return;}
+          escapeLock='locked';
+        } catch(_) {
+          if(ticket!==keyboardEpoch)return;
+          escapeLock='denied';
+          toast('ESC 순차 해제에는 키보드 권한이 필요합니다. 권한이 없으면 브라우저가 전체 화면을 먼저 종료할 수 있습니다.');
+        }
+      }
+      async function exitFullscreen() {
+        if(!document.fullscreenElement||fullscreenBusy)return;
+        fullscreenBusy=true;
+        try{await document.exitFullscreen();}
+        catch(_){toast('전체 화면을 종료하지 못했습니다. ESC를 길게 누르세요.');}
+        finally{fullscreenBusy=false;if(!document.fullscreenElement)unlockEscape();}
+      }
       async function fullscreen() {
-        try {if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('이 브라우저는 전체 화면을 지원하지 않습니다.');}
-        catch(_){toast('전체 화면을 열지 못했습니다. 브라우저의 F11 키를 사용하세요.');}
+        if(document.fullscreenElement)return exitFullscreen();
+        if(fullscreenBusy)return;
+        if(!document.documentElement.requestFullscreen){toast('이 브라우저는 전체 화면을 지원하지 않습니다.');return;}
+        fullscreenBusy=true;
+        try{await document.documentElement.requestFullscreen();}
+        catch(_){toast('전체 화면을 열지 못했습니다. 브라우저의 전체 화면 권한을 확인하세요.');}
+        finally{fullscreenBusy=false;}
       }
       $('fullscreen-button').addEventListener('click',fullscreen);
-      document.addEventListener('fullscreenchange',()=>{$('fullscreen-button').setAttribute('aria-label',document.fullscreenElement?'전체 화면 종료':'전체 화면');renderer.resize();});
+      document.addEventListener('fullscreenchange',()=>{
+        $('fullscreen-button').setAttribute('aria-label',document.fullscreenElement?'전체 화면 종료':'전체 화면');
+        if(document.fullscreenElement)lockEscape();else unlockEscape();
+        renderer.resize();
+      });
+      function handleEscape() {
+        // Exactly one state change per key press. Never toggle into fullscreen here.
+        if(zen){setZen(false);return;}
+        if(document.fullscreenElement){exitFullscreen();return;}
+        if(presetDialog.open){closePresetDialog();return;}
+        for(const id of ['date-dialog','help-dialog'])if($(id).open){$(id).close();return;}
+        settings(false);closeBody();
+      }
       // A single idle owner controls the cursor, complete toolbar and hit/tab targets.
       const viewControls=$('view-controls'),idleDelay=1800;
       function showAwake(value) {
@@ -267,8 +316,14 @@
         catch(_){$('date-error').hidden=false;$('date-error').textContent='1800년부터 2999년 사이의 유효한 날짜를 선택해 주세요.';}
       });
       for(const dialog of [$('help-dialog'),$('date-dialog')])dialog.addEventListener('click',event=>{if(event.target!==dialog)return;const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();});
+      for(const id of ['help-dialog','date-dialog'])$(id).addEventListener('cancel',event=>{event.preventDefault();handleEscape();});
       const canvas=$('universe'),pointers=new Map();
       let drag=null,pinchDistance=0,pinchZoom=1,pinched=false,clickGestures=0;
+      function cancelGesture() {
+        const ids=[...pointers.keys()];pointers.clear();drag=null;pinched=false;clickGestures=0;pinchDistance=0;
+        for(const id of ids)if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
+        canvas.classList.remove('dragging');canvas.style.cursor='grab';
+      }
       function pointerPosition(event) {const r=canvas.getBoundingClientRect();return {x:event.clientX-r.left,y:event.clientY-r.top};}
       canvas.addEventListener('pointerdown',event=>{
         if(event.pointerType==='mouse'&&event.button!==0&&event.button!==1)return;
@@ -277,7 +332,7 @@
         const pan=event.pointerType==='mouse'&&event.button===1;
         if(pan)event.preventDefault();
         const p=pointerPosition(event);pointers.set(event.pointerId,p);canvas.setPointerCapture(event.pointerId);
-        if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,mode:pan?'pan':'orbit',moved:false};pinched=false;}
+        if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,startAzimuth:renderer.camera.azimuth,startElevation:renderer.camera.elevation,mode:pan?'pan':'orbit',moved:false};pinched=false;}
         if(zen&&pointers.size===3){setZen(false);pinched=true;if(drag)drag.moved=true;return;}
         if(pointers.size===2){clickGestures=0;const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchZoom=renderer.camera.zoom;pinched=true;}
       });
@@ -286,14 +341,14 @@
         if(!pointers.has(event.pointerId)) {renderer.hover=zen?null:renderer.hit(p.x,p.y);canvas.style.cursor=renderer.hover?'pointer':'grab';return;}
         pointers.set(event.pointerId,p);
         if(pointers.size>=2) {
-          const [a,b]=[...pointers.values()];if(pinchDistance>0){renderer.setZoom(pinchZoom*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance,renderer.hit((a.x+b.x)/2,(a.y+b.y)/2));cameraUi();}if(drag)drag.moved=true;return;
+          const [a,b]=[...pointers.values()];if(pinchDistance>0){renderer.smoothZoom(pinchZoom*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance,renderer.hit((a.x+b.x)/2,(a.y+b.y)/2));cameraUi();}if(drag)drag.moved=true;return;
         }
         if(!drag)return;
         const dx=p.x-drag.x,dy=p.y-drag.y;
         if(Math.hypot(p.x-drag.startX,p.y-drag.startY)>4)drag.moved=true;
         if(drag.moved&&!pinched){
-          if(drag.mode==='pan')renderer.setPan(drag.startPanX+(p.x-drag.startX)/renderer.w,drag.startPanY+(p.y-drag.startY)/renderer.h);
-          else renderer.setOrbitView(renderer.camera.azimuth+dx*.004,renderer.camera.elevation+dy*.003);
+          if(drag.mode==='pan')renderer.smoothCamera({panX:drag.startPanX+(p.x-drag.startX)/renderer.w,panY:drag.startPanY+(p.y-drag.startY)/renderer.h});
+          else renderer.smoothCamera({azimuth:drag.startAzimuth+(p.x-drag.startX)*.004,elevation:drag.startElevation+(p.y-drag.startY)*.003});
           cameraUi();canvas.classList.add('dragging');canvas.style.cursor=drag.mode==='pan'?'move':'grabbing';
         }
         drag.x=p.x;drag.y=p.y;
@@ -316,23 +371,44 @@
       canvas.addEventListener('pointerleave',()=>{if(!pointers.size)renderer.hover=null;});
       canvas.addEventListener('wheel',event=>{event.preventDefault();const p=pointerPosition(event);zoom(Math.exp(-A.clamp(event.deltaY,-120,120)*.0017),renderer.hit(p.x,p.y));},{passive:false});
       canvas.addEventListener('dblclick',event=>{if(event.button!==0||clickGestures<2)return;clickGestures=0;const p=pointerPosition(event),id=renderer.hit(p.x,p.y);if(id)focusBody(id);});
-      document.addEventListener('keydown',event=>{
-        if(presetDialog.open)return; // Native modal Esc cancels deletion without exiting viewing mode.
-        if(event.key==='Escape'){if(!$('help-dialog').open&&!$('date-dialog').open){settings(false);closeBody();if(zen)setZen(false);}return;}
-        if(event.repeat||event.ctrlKey||event.metaKey||event.altKey||$('help-dialog').open||$('date-dialog').open||event.target.closest?.('input,select,textarea,[contenteditable=true]'))return;
-        const key=event.key.toLowerCase();
-        if(/^[123]$/.test(key)){event.preventDefault();recallPreset(Number(key)-1);return;}
-        if(zen&&(key==='h'||key==='0')){event.preventDefault();if(key==='h')setZen(false);else reset();return;}
-        if(event.target.closest?.('button,a'))return;
-        if(key===' '){event.preventDefault();pause();}
-        else if(key==='r')now();else if(key==='f')fullscreen();else if(key==='h')setZen(!zen);else if(key==='0')reset();
-        else if(key==='+'||key==='=')zoom(1.15);else if(key==='-')zoom(1/1.15);
-        else if(event.target===canvas&&['arrowleft','arrowright','arrowup','arrowdown'].includes(key)) {
-          event.preventDefault();if(key==='arrowleft')renderer.camera.azimuth-=.08;if(key==='arrowright')renderer.camera.azimuth+=.08;
-          if(key==='arrowup')renderer.camera.elevation+=3*A.DEG;if(key==='arrowdown')renderer.camera.elevation-=3*A.DEG;
-          renderer.setOrbitView(renderer.camera.azimuth,renderer.camera.elevation);cameraUi();persist();
+      window.addEventListener('keydown',event=>{
+        if(disposed)return;
+        if(event.key==='Escape'||event.code==='Escape'){
+          event.preventDefault();event.stopImmediatePropagation();
+          if(!event.repeat)handleEscape();return;
         }
-      });
+        // Do not take OS/browser shortcut combinations or interrupt an IME composition.
+        if(event.ctrlKey||event.metaKey||event.altKey||event.isComposing)return;
+        const physical=event.code||'',key=/^Key[A-Z]$/.test(physical)?physical.slice(3).toLowerCase():event.key.toLowerCase();
+        const digit=/^(?:Digit|Numpad)[123]$/.test(physical)?physical.slice(-1):/^[123]$/.test(key)?key:null;
+        const editing=!!event.target.closest?.('input,select,textarea,[contenteditable]:not([contenteditable="false"])');
+        if(digit){
+          // Always recall while the app has focus, including open dialogs/fields.
+          // In a field, keep native numeric entry too; do not discard a date being edited.
+          if(!editing)event.preventDefault();event.stopPropagation();
+          if(!event.repeat){if(presetDialog.open)closePresetDialog(false);recallPreset(Number(digit)-1);wakePointer();}
+          return;
+        }
+        if(event.repeat||editing)return;
+        if(key==='f'||key==='h'||key==='0'){
+          event.preventDefault();event.stopPropagation();
+          if(key==='f')fullscreen();else if(key==='h'){
+            for(const id of ['help-dialog','date-dialog'])if($(id).open)$(id).close();
+            setZen(!zen);
+          }else reset();return;
+        }
+        if(presetDialog.open||$('help-dialog').open||$('date-dialog').open||event.target.closest?.('button,a'))return;
+        if(key===' '){event.preventDefault();pause();}
+        else if(key==='r')now();
+        else if(key==='+'||key==='='){event.preventDefault();zoom(1.15);}
+        else if(key==='-'){event.preventDefault();zoom(1/1.15);}
+        else if(event.target===canvas&&['arrowleft','arrowright','arrowup','arrowdown'].includes(key)) {
+          event.preventDefault();const to=renderer.cameraInputState();
+          if(key==='arrowleft')to.azimuth-=.08;if(key==='arrowright')to.azimuth+=.08;
+          if(key==='arrowup')to.elevation+=3*A.DEG;if(key==='arrowdown')to.elevation-=3*A.DEG;
+          renderer.smoothCamera(to);cameraUi();
+        }
+      },{capture:true});
       function materialStatus(){
         if(disposed)return;const s=materials.state;
         $('photo-status').textContent=`공개 이미지 ${s.loaded}/${s.total} · ${s.status==='loading'?'수신 중 · 화면은 계속 재생':s.loaded===s.total?'전체 수신 완료':s.loaded?'미수신 천체는 내장 이미지':'내장 이미지 표시 · 연결 또는 CORS 제한'}`;
@@ -363,10 +439,10 @@
         if(document.hidden){closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
         else if(!raf&&!disposed){lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
       });
-      window.addEventListener('pagehide',event=>{closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
+      window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.13',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.15',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       materials.load();materialStatus();
       if(!document.hidden)raf=requestAnimationFrame(frame);

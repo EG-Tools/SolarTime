@@ -1,0 +1,106 @@
+{
+  "version": "0.15",
+  "scope": "actual app/renderer/materials/sky with explicit test astronomy, surface, storage and CSS adapters; offline about:blank",
+  "escMockedPermissionCases": true,
+  "checks": [
+    {
+      "name": "v0.15 starts and the new 4096 sky is used without repacking old assets",
+      "pass": true
+    },
+    {
+      "name": "close-up starts an animation, not a jump",
+      "pass": true
+    },
+    {
+      "name": "home button also starts the common transition",
+      "pass": true
+    },
+    {
+      "name": "preset 1 works with button focus",
+      "pass": true
+    },
+    {
+      "name": "preset 2 works with button focus",
+      "pass": true
+    },
+    {
+      "name": "preset 3 works with button focus",
+      "pass": true
+    },
+    {
+      "name": "preset works with help modal open",
+      "pass": true
+    },
+    {
+      "name": "normal ESC closes a modal without entering fullscreen",
+      "pass": true
+    },
+    {
+      "name": "preset works with date input focused and does not close the form",
+      "pass": true
+    },
+    {
+      "name": "recalling a hidden Moon re-enables its display",
+      "pass": true
+    },
+    {
+      "name": "preset works from the preset menu and cancels the pending menu action",
+      "pass": true
+    },
+    {
+      "name": "H enters viewing mode with button focus",
+      "pass": true
+    },
+    {
+      "name": "presets still work after viewing-mode controls become inert",
+      "pass": true
+    },
+    {
+      "name": "F enters fullscreen while in viewing mode",
+      "pass": true
+    },
+    {
+      "name": "first ESC leaves viewing mode only",
+      "pass": true
+    },
+    {
+      "name": "second ESC exits fullscreen once",
+      "pass": true
+    },
+    {
+      "name": "ESC outside both modes never re-enters fullscreen",
+      "pass": true
+    },
+    {
+      "name": "F twice shares the same exit owner",
+      "pass": true
+    },
+    {
+      "name": "held-key repeats do not consume the next ESC stage",
+      "pass": true
+    },
+    {
+      "name": "only ESC is requested for keyboard lock and unlock runs on exit",
+      "pass": true
+    },
+    {
+      "name": "renderer remains live without a fatal error",
+      "pass": true
+    },
+    {
+      "name": "denied keyboard permission does not break fullscreen rendering",
+      "pass": true
+    },
+    {
+      "name": "F still exits after keyboard permission denial",
+      "pass": true
+    },
+    {
+      "name": "native Chromium Fullscreen API toggles off via F",
+      "pass": true
+    }
+  ],
+  "nativeFullscreenEntered": true,
+  "nativeKeyboardLockStatus": "inactive",
+  "passed": 24
+}

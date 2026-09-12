@@ -1,4 +1,4 @@
-/* Solar Time v0.13: one owner for optional public image maps and their local cache.
+/* Solar Time v0.15: one owner for optional public image maps and their local cache.
  * The scene and all astronomy start from embedded assets without waiting for I/O.
  * Only catalogued, creditable public images are requested; no credentials are sent.
  */
@@ -106,6 +106,7 @@ class Materials {
   const d=new DOMParser().parseFromString(this.pristine,'text/html');
   for(const element of d.querySelectorAll('script[src],link[rel="stylesheet"]')){
    if(element.id==='solar-assets')continue;
+   if(/(?:^|\/)sky-asset\.js(?:\?|$)/.test(element.getAttribute('src')||'')){element.remove();continue;}
    const url=new URL(element.getAttribute('src')||element.getAttribute('href'),location.href);
    if(url.origin!==location.origin||!['file:','https:','http:'].includes(url.protocol))throw Error('Unexpected code origin');
    const ctl=new AbortController();this.controllers.add(ctl);const timer=setTimeout(()=>ctl.abort(),8000);
@@ -119,7 +120,7 @@ class Materials {
  }
  download(){if(this.exporting)return this.exporting;this.exporting=(async()=>{
   const html=await this.offlineHTML();if(this.disposed)return;
-  const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='SolarTime_v0.13_photos.html';a.click();
+  const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='SolarTime_v'+(root.SolarTime?.version||'0.15')+'_photos.html';a.click();
   const timer=setTimeout(()=>{URL.revokeObjectURL(url);this.objectURLs.delete(url);},30000);this.objectURLs.set(url,timer);
  })().finally(()=>{this.exporting=null;});return this.exporting;}
  cancel(){this.generation++;for(const ctl of this.controllers)ctl.abort();this.controllers.clear();}

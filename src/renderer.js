@@ -1,4 +1,4 @@
-/* Solar Time v0.14 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.15 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -205,21 +205,68 @@
     // One monotonic-time transition owner, not a second requestAnimationFrame loop.
     // Different tracked bodies travel through overview zoom: focus switches only
     // at zoom=1 where both its position weight and its extra size are exactly zero.
-    animateCamera(state,mono=performance.now(),duration=1100) {
+    animateCamera(state,mono=performance.now(),duration=1100,input=false) {
       if(!Renderer.validCamera(state)||!Number.isFinite(mono)||!Number.isFinite(duration))return false;
       if((state.focus==='moon'&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       if(duration<=0)return this.restoreCamera(state);
       this.stopAutoRotate(mono);this.advanceCamera(mono);
-      const from=this.cameraSnapshot(),to={...state},bridge=from.focus!==to.focus;
-      this.cameraTween={from,to,start:mono,duration:duration*(bridge?1.4:1),bridge};
+      const from=this.cameraSnapshot(),to={...state},bridge=from.focus!==to.focus&&from.zoom>1&&to.zoom>1;
+      this.cameraTween={from,to,start:mono,duration:duration*(bridge?1.4:1),bridge,input};
       this.cameraChangeAt=mono;this.dirty=true;return true;
+    }
+    // All UI camera commands use animateCamera: one owner, one rAF, no timers.
+    // The old immediate setters remain for startup/model setup and integrations.
+    cameraInputState(mono=performance.now()) {
+      if(this.cameraTween?.input)return {...this.cameraTween.to};
+      this.advanceCamera(mono);this.advanceAutoRotate(mono);return this.cameraSnapshot();
+    }
+    smoothCamera(patch,mono=performance.now(),duration=130) {
+      const to={...this.cameraInputState(mono),...patch};
+      if(![to.azimuth,to.elevation,to.zoom,to.panX,to.panY].every(Number.isFinite))return false;
+      to.azimuth=A.wrap(to.azimuth);to.elevation=clamp(to.elevation,VIEW.minElevation,VIEW.maxElevation);
+      to.panX=clamp(to.panX,VIEW.minPanX,VIEW.maxPanX);to.panY=clamp(to.panY,VIEW.minPanY,VIEW.maxPanY);
+      to.zoom=clamp(to.zoom,VIEW.minZoom,VIEW.maxZoom);if(to.zoom<=1)to.focus=null;
+      return this.animateCamera(to,mono,duration,true);
+    }
+    smoothZoom(value,focusId=null,mono=performance.now()) {
+      if(!Number.isFinite(value))return false;
+      const to=this.cameraInputState(mono);to.zoom=clamp(value,VIEW.minZoom,VIEW.maxZoom);
+      if(to.zoom<=1)to.focus=null;
+      else if(!to.focus){
+        const candidate=focusId||this.selected||'sun';
+        to.focus=[A.SUN,...this.getBodies(),...(this.options.moon?[A.MOON]:[])].some(b=>b.id===candidate)?candidate:'sun';
+      }
+      return this.smoothCamera(to,mono,150);
+    }
+    focusState(id,mono=performance.now()) {
+      const body=[A.SUN,...this.getBodies(),...(this.options.moon?[A.MOON]:[])].find(b=>b.id===id);
+      if(!body)return null;
+      this.advanceCamera(mono);this.advanceAutoRotate(mono);
+      const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
+      const t=clamp((radius-baseRadius)/(Math.min(this.w,this.h)*VIEW.detailFillRadius-baseRadius),0,1);
+      return {...this.cameraSnapshot(),focus:id,zoom:clamp((1+t*(Math.sqrt(VIEW.detailZoom)-1))**2,6,VIEW.detailZoom)};
+    }
+    animateFocus(id,mono=performance.now(),duration=1100) {
+      const to=this.focusState(id,mono);return !!to&&this.animateCamera(to,mono,duration);
+    }
+    animateFeature(id,latitude,longitude,ms,mono=performance.now(),duration=1100) {
+      const to=this.focusState(id,mono),body=[A.SUN,...this.getBodies(),A.MOON].find(b=>b.id===id);
+      if(!to||!body||![latitude,longitude,ms].every(Number.isFinite))return false;
+      const n=A.surfaceDirection(body,latitude,longitude,ms);
+      to.azimuth=A.wrap(Math.atan2(-n.x,-n.y));to.elevation=Math.asin(clamp(n.z,-1,1));
+      return this.animateCamera(to,mono,duration);
+    }
+    animateHome(mono=performance.now(),duration=1100) {
+      return this.animateCamera({azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0},mono,duration);
     }
     advanceCamera(mono=performance.now()) {
       const move=this.cameraTween;if(!move)return false;
-      const t=clamp((mono-move.start)/move.duration,0,1),p=ease(t),{from,to}=move;
+      const t=clamp((mono-move.start)/move.duration,0,1),p=move.input?1-(1-t)**3:ease(t),{from,to}=move;
       const delta=A.wrap(to.azimuth-from.azimuth+Math.PI)-Math.PI;
       const state={azimuth:A.wrap(from.azimuth+delta*p),elevation:mix(from.elevation,to.elevation,p),
-        panX:mix(from.panX,to.panX,p),panY:mix(from.panY,to.panY,p),focus:to.focus,
+        panX:mix(from.panX,to.panX,p),panY:mix(from.panY,to.panY,p),
+        // Returning home retains the old tracking frame until zoom reaches 1.
+        focus:from.zoom>1&&to.zoom<=1?from.focus:to.focus,
         zoom:Math.exp(mix(Math.log(from.zoom),Math.log(to.zoom),p))};
       if(move.bridge){
         state.focus=t<.5?from.focus:to.focus;
