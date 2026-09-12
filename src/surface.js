@@ -1,4 +1,4 @@
-/* Solar Time v0.10. One bounded producer of analytic spherical surfaces.
+/* Solar Time v0.13. One bounded producer of analytic spherical surfaces.
    GPU/CPU are explicit adapters of the same job and material coordinates.
    All body positions, axes and physical rotation come from SolarAstro. */
 (function(root){
@@ -9,6 +9,25 @@ function surfaceKernel(){
   const setAssets=value=>{if(value)assets=value;};
   function blob(url){const [meta,data]=url.split(','),raw=atob(data),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return new Blob([bytes],{type:meta.split(':')[1].split(';')[0]});}
   function makeCanvas(n){const c=typeof OffscreenCanvas==='function'?new OffscreenCanvas(n,n):document.createElement('canvas');c.width=c.height=n;return c;}
+  // One material-boundary repair shared by GPU/CPU, embedded and downloaded
+  // maps. Only a narrow antimeridian strip changes; Korea/the visible continents
+  // keep their original coordinates. Colour, relief and clouds share this path.
+  function stitchLongitude(data,w,h){
+    const band=Math.max(2,Math.min(64,Math.round(w*.015)));
+    for(let y=0;y<h;y++)for(let x=0;x<band;x++){
+      const t=1-x/(band-1),weight=t*t*(3-2*t),a=(y*w+x)*4,b=(y*w+w-1-x)*4;
+      for(let k=0;k<4;k++){
+        const left=data[a+k],right=data[b+k],middle=(left+right)*.5;
+        data[a+k]=left+(middle-left)*weight;data[b+k]=right+(middle-right)*weight;
+      }
+    }
+    return data;
+  }
+  function materialCanvas(bitmap,w,h){
+    const c=makeCanvas(w);c.height=h;const ctx=c.getContext('2d');ctx.drawImage(bitmap,0,0,w,h);
+    const im=ctx.getImageData(0,0,w,h);stitchLongitude(im.data,w,h);ctx.putImageData(im,0,0);
+    return {canvas:c,image:im};
+  }
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const error=gl.getShaderInfoLog(s);gl.deleteShader(s);throw Error(error);}return s;}
   const vertex=`attribute vec2 a; varying vec2 p; void main(){p=a;gl_Position=vec4(a,0.,1.);}`;
   const fragment=`precision highp float;
@@ -68,15 +87,18 @@ function surfaceKernel(){
       const key=id+':'+width;let t=this.textures.get(key);if(t&&t.source!==source){if(this.gl)this.gl.deleteTexture(t.handle);this.textures.delete(key);t=null;}if(t){this.textures.delete(key);this.textures.set(key,t);return t;}
       const bitmap=await createImageBitmap(blob(source),{resizeWidth:width,resizeHeight:width/2,resizeQuality:'high'});
       if(this.disposed){bitmap.close();throw Error('Surface disposed');}
+      const prepared=materialCanvas(bitmap,width,width/2);bitmap.close();
       if(this.gl){
-        const g=this.gl,handle=g.createTexture();g.bindTexture(g.TEXTURE_2D,handle);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,bitmap);
-        g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR_MIPMAP_LINEAR);g.generateMipmap(g.TEXTURE_2D);
-        const ext=g.getExtension('EXT_texture_filter_anisotropic');if(ext)g.texParameterf(g.TEXTURE_2D,ext.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(8,g.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+        const g=this.gl,handle=g.createTexture();g.bindTexture(g.TEXTURE_2D,handle);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,prepared.canvas);
+        g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
+        // atan/fract crosses longitude 0/1. Implicit mip derivatives there
+        // selected a very blurred mip strip; bilinear base-level sampling avoids it.
+        g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
         t={handle,width,height:width/2};
       }else{
-        const c=makeCanvas(width);c.height=width/2;const ctx=c.getContext('2d');ctx.drawImage(bitmap,0,0,width,width/2);t={width,height:width/2,data:ctx.getImageData(0,0,width,width/2).data};
+        t={width,height:width/2,data:prepared.image.data};
       }
-      bitmap.close();t.source=source;this.textures.set(key,t);this.stats.texturesBuilt++;
+      t.source=source;this.textures.set(key,t);this.stats.texturesBuilt++;
       // Bounded by pixels, not the number of times a body was visited.
       while(this.texturePixels>4096*2048*4&&this.textures.size>3){const oldest=this.textures.keys().next().value;const old=this.textures.get(oldest);if(this.gl)this.gl.deleteTexture(old.handle);this.textures.delete(oldest);}
       return t;
@@ -122,7 +144,7 @@ function surfaceKernel(){
         let sliceStart=performance.now();
         for(let m=0;m<map.length;m+=7){
           const i=map[m],nx=map[m+1],ny=map[m+2],nz=map[m+3],u=(map[m+4]-phase+2)%1,v=map[m+5];
-          const tx=u*w,ty=clamp(v*h,0,h-1),x0=Math.floor(tx),y0=Math.floor(ty),fx=tx-x0,fy=ty-y0,x1=(x0+1)%w,y1=Math.min(h-1,y0+1);
+          const tx=u*w-.5,ty=clamp(v*h-.5,0,h-1),ix=Math.floor(tx),y0=Math.floor(ty),fx=tx-ix,fy=ty-y0,x0=(ix+w)%w,x1=(x0+1)%w,y1=Math.min(h-1,y0+1);
           const a=(y0*w+x0)*4,b=(y0*w+x1)*4,c=(y1*w+x0)*4,d=(y1*w+x1)*4;
           const wa=(1-fx)*(1-fy),wb=fx*(1-fy),wc=(1-fx)*fy,wd=fx*fy;
           const day=Math.max(0,nx*light[0]+ny*light[1]+nz*light[2]);
@@ -144,12 +166,12 @@ function surfaceKernel(){
     }
     clear(){this.disposed=true;if(this.gl){for(const t of this.textures.values())this.gl.deleteTexture(t.handle);this.gl.deleteBuffer(this.buffer);this.gl.deleteProgram(this.program);this.gl.getExtension('WEBGL_lose_context')?.loseContext();}this.textures.clear();this.cpuMaps.clear();this.mapPixels=0;}
   }
-  return {Engine,setAssets};
+  return {Engine,setAssets,stitchLongitude};
 }
 class SurfaceService{
   constructor({worker=true}={}){
     this.frames=new Map();this.desired=new Map();this.pending=null;this.inflight=false;this.disposed=false;
-    this.epoch=0;this.revision=0;this.worker=null;this.sync=null;this.timer=null;this.assetsSent=false;this.batch=null;
+    this.epoch=0;this.revision=0;this.worker=null;this.sync=null;this.timer=null;this.assetsSent=false;this.batch=null;this.paused=false;
     this.stats={backend:'compatibility',submitted:0,accepted:0,discarded:0,workerMs:0,mapPixels:0,texturePixels:0};
     if(worker&&typeof Worker==='function'&&typeof OffscreenCanvas==='function'){
       let url;try{
@@ -161,20 +183,22 @@ class SurfaceService{
   }
   createSync(){this.sync?.clear();const kernel=surfaceKernel();kernel.setAssets(root.SolarAssets?.materials||{});this.sync=new kernel.Engine({gpu:!this.forceCPU});}
   fallback(){if(this.disposed)return;this.epoch++;this.revision++;this.worker?.terminate();this.worker=null;this.inflight=false;this.batch=null;this.forceCPU=true;this.createSync();this.stats.backend='compatibility';this.pump();}
-  update(jobs,mono){if(this.disposed)return;const assetRevision=root.SolarAssets?.materialRevision||0;if(this.assetRevision!==assetRevision){this.assetRevision=assetRevision;this.assetsSent=false;this.invalidate(false);if(this.sync)this.createSync();}this.desired=new Map(jobs.map(j=>[j.id,j]));for(const [id,e] of this.frames)if(!this.desired.has(id)){e.image.close?.();this.frames.delete(id);}this.pending={jobs,mono};this.pump();}
+  update(jobs,mono){if(this.disposed||this.paused)return;const assetRevision=root.SolarAssets?.materialRevision||0;if(this.assetRevision!==assetRevision){this.assetRevision=assetRevision;this.assetsSent=false;this.invalidate(false);if(this.sync)this.createSync();}this.desired=new Map(jobs.map(j=>[j.id,j]));for(const [id,e] of this.frames)if(!this.desired.has(id)){e.image.close?.();this.frames.delete(id);}this.pending={jobs,mono};this.pump();}
   compatibleView(current,job) {
     if(!current||!job||current.id!==job.id)return false;
     if(current.geometry===job.geometry)return true;
-    // Continuously changing yaw must not starve an otherwise valid in-flight image.
-    // Only the same slow-orbit session and identical material/quality/elevation may lag.
-    // Manual camera changes and different bodies still require exact geometry.
-    const a=current.autoView,b=job.autoView;
-    if(!a||!b||typeof a.key!=='string'||a.key!==b.key||!Number.isFinite(a.yaw)||!Number.isFinite(b.yaw))return false;
-    return Math.abs(Math.atan2(Math.sin(a.yaw-b.yaw),Math.cos(a.yaw-b.yaw)))<=Math.PI/120; // 1.5 degrees
+    // The same full-detail result contract handles manual and automatic
+    // camera motion. Only a bounded same-body/material/quality view may lag.
+    const a=current.viewState,b=job.viewState;
+    if(!a||!b||typeof a.key!=='string'||a.key!==b.key||
+       ![a.yaw,a.pitch,b.yaw,b.pitch,a.limit,b.limit].every(Number.isFinite))return false;
+    const angle=Math.hypot(Math.atan2(Math.sin(a.yaw-b.yaw),Math.cos(a.yaw-b.yaw)),a.pitch-b.pitch);
+    return angle<=Math.max(0,Math.min(a.limit,b.limit,Math.PI/36));
   }
+
   needs(job,mono){const old=this.frames.get(job.id);if(!old||old.epoch!==this.epoch||old.job.geometry!==job.geometry)return true;if(job.phase===old.job.phase&&job.seconds===old.job.seconds&&job.light.every((v,i)=>v===old.job.light[i]))return false;const turn=Math.abs(job.phase-old.job.phase);return mono-old.mono>=120||Math.min(turn,1-turn)*Math.PI*job.diam>.18;}
   pump(){
-    if(this.disposed||this.inflight||!this.pending)return;const {mono}=this.pending;let jobs=this.pending.jobs.filter(j=>this.needs(j,mono));this.pending=null;if(!jobs.length)return;
+    if(this.disposed||this.paused||this.inflight||!this.pending)return;const {mono}=this.pending;let jobs=this.pending.jobs.filter(j=>this.needs(j,mono));this.pending=null;if(!jobs.length)return;
     this.inflight=true;this.stats.submitted++;const revision=++this.revision,epoch=this.epoch;jobs=jobs.map(job=>({...job,requestedMono:mono}));
     this.batch={revision,epoch,jobs:new Map(jobs.map(job=>[job.id,job]))};
     if(this.worker){this.worker.postMessage({jobs,revision,epoch,assets:this.assetsSent?undefined:root.SolarAssets?.materials});this.assetsSent=true;}
@@ -223,6 +247,13 @@ class SurfaceService{
   }
   get(id){return this.frames.get(id)?.image;}
   invalidate(clear=false){this.epoch++;this.pending=null;if(clear){for(const e of this.frames.values())e.image.close?.();this.frames.clear();}this.desired.clear();}
+  pause(){
+    if(this.disposed||this.paused)return;
+    this.paused=true;this.invalidate(false);
+    // Keep complete visible frames and decoded materials. At most the current
+    // bounded batch finishes; stale completions cannot publish while hidden.
+  }
+  resume(){if(this.disposed)return;this.paused=false;this.pump();}
   suspend(){this.invalidate(true);this.worker?.terminate();this.worker=null;clearTimeout(this.timer);this.timer=null;this.inflight=false;this.batch=null;this.sync?.clear();}
   dispose(){this.suspend();this.disposed=true;}
 }

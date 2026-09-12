@@ -1,4 +1,4 @@
-/* Solar Time v0.12 — clock, interaction and accessible UI. */
+/* Solar Time v0.13 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -14,16 +14,17 @@
       const calibrationMs=performance.now()-calibrationStarted;
       const renderer=new window.SolarRenderer($('starfield'),$('universe'));
       const clock=new A.SimulationClock(Date.now(),performance.now());
-      let timezone='local',zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
+      let timezone='local',showSeconds=false,zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
       const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       renderer.options.twinkle=!reduced;renderer.options.activity=!reduced;renderer.options.skyMotion=!reduced;renderer.options.comets=!reduced;
-      const validKeys={orbits:'show-orbits',labels:'show-labels',twinkle:'show-twinkle',activity:'show-activity',pluto:'show-pluto',moon:'show-moon',skyMotion:'sky-motion',comets:'show-comets'};
+      const validKeys={orbits:'show-orbits',labels:'show-labels',avoidLabels:'avoid-labels',twinkle:'show-twinkle',activity:'show-activity',pluto:'show-pluto',moon:'show-moon',skyMotion:'sky-motion',comets:'show-comets'};
       try {
         const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
         if(saved&&typeof saved==='object') {
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
           if(saved.quality==='low'||saved.quality==='auto')renderer.options.quality=saved.quality;
           if(saved.timezone==='utc')timezone='utc';
+          if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
           if(Number.isFinite(saved.elevation))renderer.setOrbitView(renderer.camera.azimuth,saved.elevation*A.DEG);
           if(Number.isFinite(saved.panY))renderer.setPanY(saved.panY);
           if(Number.isFinite(saved.panX))renderer.setPan(saved.panX);
@@ -32,8 +33,9 @@
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
       $('quality').value=renderer.options.quality;
+      $('show-seconds').checked=showSeconds;$('seconds-group').hidden=!showSeconds;
       const zoneLabel=()=>timezone==='utc'?'UTC':Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replaceAll('_',' ').toUpperCase();
-      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
+      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,showSeconds,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
       function cameraUi() {
         const deg=Math.round(renderer.camera.elevation/A.DEG),zoom=renderer.camera.zoom,limits=renderer.zoomLimits;
         $('elevation').min=-90;$('elevation').max=90;
@@ -58,8 +60,8 @@
       function presetUi() {
         cameraPresets.forEach((value,i)=>{
           const b=$('camera-preset-'+(i+1));b.classList.toggle('saved',!!value);b.dataset.saved=String(!!value);
-          b.title=`${i+1}번 카메라 · 클릭: 저장 확인 · 숫자 ${i+1}: 부드럽게 이동 · 우클릭: 삭제 확인`;
-          b.setAttribute('aria-label',`${i+1}번 카메라 ${value?'저장됨':'비어 있음'}. 클릭하면 저장 확인. 숫자 ${i+1}로 불러오기.`);
+          b.title=`${i+1}번 카메라 · 좌·우클릭: 적용/저장/삭제/취소 · 숫자 ${i+1}: 부드럽게 이동`;
+          b.setAttribute('aria-label',`${i+1}번 카메라 ${value?'저장됨':'비어 있음'}. 좌·우클릭으로 카메라 메뉴 열기. 숫자 ${i+1}로 불러오기.`);
         });
       }
       function writePresets() {
@@ -81,14 +83,13 @@
         if(restoreFocus&&action)$('camera-preset-'+(action.index+1)).focus({preventScroll:true});
         if(action&&zen)wakePointer();
       }
-      function openPresetDialog(index,event,mode='save') {
+      function openPresetDialog(index,event) {
         event.preventDefault();const value=cameraPresets[index];
-        if(mode==='delete'&&!value){toast(`${index+1}번에는 저장된 시점이 없습니다.`);return;}
         closePresetDialog(false);renderer.cancelCameraMotion(performance.now());cameraUi();
-        presetAction={index,mode,previous:value,snapshot:renderer.cameraSnapshot()};
+        presetAction={index,previous:value,snapshot:renderer.cameraSnapshot()};
         $('preset-title').textContent=`${index+1}번 카메라`;
-        $('preset-note').textContent=mode==='delete'?'저장된 카메라를 삭제할까요?':value?'현재 시점으로 덮어쓸까요?':'현재 시점을 저장할까요?';
-        $('preset-confirm').textContent=mode==='delete'?'삭제':'저장';presetDialog.dataset.mode=mode;
+        $('preset-note').textContent=value?'저장된 시점을 적용하거나 현재 시점으로 덮어씁니다.':'비어 있는 카메라입니다. 저장을 누르면 현재 시점을 보관합니다.';
+        $('preset-apply').disabled=!value;$('preset-delete').disabled=!value;
         presetDialog.showModal();
         const button=$('camera-preset-'+(index+1)).getBoundingClientRect();
         const keyboard=!event.clientX&&!event.clientY;
@@ -100,14 +101,18 @@
       }
       for(let i=0;i<3;i++) {
         const b=$('camera-preset-'+(i+1));b.addEventListener('click',event=>openPresetDialog(i,event));
-        b.addEventListener('contextmenu',event=>openPresetDialog(i,event,'delete'));
+        b.addEventListener('contextmenu',event=>openPresetDialog(i,event));
       }
       $('preset-cancel').addEventListener('click',()=>closePresetDialog());
-      $('preset-confirm').addEventListener('click',()=>{
+      $('preset-apply').addEventListener('click',()=>{
+        const action=presetAction;if(!action||!cameraPresets[action.index])return;
+        closePresetDialog();recallPreset(action.index);
+      });
+      for(const kind of ['save','delete'])$('preset-'+kind).addEventListener('click',()=>{
         const action=presetAction;
         if(action&&cameraPresets[action.index]===action.previous){
-          cameraPresets[action.index]=action.mode==='delete'?null:action.snapshot;writePresets();
-          if(action.mode==='save')toast(`${action.index+1}번 카메라를 저장했습니다.`+(presetStorageAvailable?'':' 현재 창에서만 유지됩니다.'));
+          cameraPresets[action.index]=kind==='delete'?null:action.snapshot;writePresets();
+          toast(`${action.index+1}번 카메라를 ${kind==='delete'?'삭제':'저장'}했습니다.`+(presetStorageAvailable?'':' 현재 창에서만 유지됩니다.'));
         }
         closePresetDialog();
       });
@@ -124,9 +129,9 @@
       function dateParts(ms) {const d=new Date(ms),p=timezone==='utc'?'getUTC':'get';return {y:d[p+'FullYear'](),mo:d[p+'Month']()+1,d:d[p+'Date'](),h:d[p+'Hours'](),mi:d[p+'Minutes'](),s:d[p+'Seconds']()};}
       function compactDate(ms) {const d=dateParts(ms);return `${d.y}.${two(d.mo)}.${two(d.d)}  ${two(d.h)}:${two(d.mi)}`;}
       function updateWall(wall) {
-        const p=dateParts(wall),key=[p.y,p.mo,p.d,p.h,p.mi,p.s,timezone].join('-');if(key===lastWallKey)return;lastWallKey=key;
+        const p=dateParts(wall),key=[p.y,p.mo,p.d,p.h,p.mi,showSeconds?p.s:0,timezone,showSeconds].join('-');if(key===lastWallKey)return;lastWallKey=key;
         $('hours').textContent=two(p.h);$('minutes').textContent=two(p.mi);$('seconds').textContent=two(p.s);
-        $('wall-clock').dateTime=new Date(wall).toISOString();$('wall-clock').setAttribute('aria-label',`실제 기기 시각 ${p.h}시 ${p.mi}분 ${p.s}초`);
+        $('wall-clock').dateTime=new Date(wall).toISOString();$('wall-clock').setAttribute('aria-label',`실제 기기 시각 ${p.h}시 ${p.mi}분${showSeconds?' '+p.s+'초':''}`);
         $('wall-date').textContent=dateFormatter.format(new Date(wall));$('timezone-button').textContent=zoneLabel();$('timezone-readout').textContent=zoneLabel();
         $('timezone-button').setAttribute('aria-label',`${timezone==='utc'?'UTC':'현지 시간'} 표시 중. 눌러서 시간대 전환`);
       }
@@ -197,6 +202,7 @@
       function settings(open) {const next=open===undefined?$('settings-panel').hidden:open;$('settings-panel').hidden=!next;$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
       for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if((key==='pluto'||key==='moon')&&!$(id).checked&&renderer.selected===key)closeBody();navVisibility();persist();});
+      $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
       $('quality').addEventListener('change',()=>{renderer.setOption('quality',$('quality').value);persist();});
       $('elevation').addEventListener('input',()=>{renderer.setOrbitView(renderer.camera.azimuth,Number($('elevation').value)*A.DEG);cameraUi();persist();});
       function reset() {renderer.resetCamera();cameraUi();persist();}
@@ -239,14 +245,15 @@
         awakeTimer=setTimeout(()=>{awakeTimer=undefined;showAwake(false);},idleDelay);
       }
       function setZen(value) {
-        closePresetDialog(false);zen=value;clearAwake();document.body.classList.toggle('zen',zen);$('show-ui').hidden=!zen;
+        closePresetDialog(false);zen=value;clearAwake();document.body.classList.toggle('zen',zen);
+        $('zen-toggle').setAttribute('aria-pressed',String(zen));$('zen-toggle').setAttribute('aria-label',zen?'감상 모드 끄기':'감상 모드 켜기');$('zen-toggle').title=(zen?'일반 모드':'감상 모드')+' · H';
         $('timezone-button').hidden=zen;$('timezone-readout').hidden=!zen;
         for(const el of document.querySelectorAll('.ui,#timezone-button'))el.inert=zen;
         renderer.hover=null;
         if(zen){closeBody();settings(false);clearTimeout(toastTimer);$('toast').hidden=true;$('universe').focus({preventScroll:true});wakePointer();}
-        else $('hide-ui').focus({preventScroll:true});
+        else {$('zen-toggle').focus({preventScroll:true});viewControls.inert=false;viewControls.setAttribute('aria-hidden','false');}
       }
-      $('hide-ui').addEventListener('click',()=>setZen(true));$('show-ui').addEventListener('click',()=>setZen(false));
+      $('zen-toggle').addEventListener('click',()=>setZen(!zen));
       for(const event of ['pointermove','pointerdown','pointerup','pointercancel','wheel','keydown','focusin'])document.addEventListener(event,wakePointer,{passive:true});
       $('help-button').addEventListener('click',()=>{$('help-dialog').showModal();});
       $('date-button').addEventListener('click',()=>{
@@ -356,10 +363,10 @@
         if(document.hidden){closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
         else if(!raf&&!disposed){lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
       });
-      window.addEventListener('pagehide',()=>{closePresetDialog(false);materials.cancel();renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
+      window.addEventListener('pagehide',event=>{closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.12',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.13',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       materials.load();materialStatus();
       if(!document.hidden)raf=requestAnimationFrame(frame);

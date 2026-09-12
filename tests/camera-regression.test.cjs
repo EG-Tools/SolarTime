@@ -9,7 +9,7 @@ function renderer(w=1648,h=928){
  const r=Object.create(R.prototype);
  Object.assign(r,{w,h,dpr:1,lensStretch:Math.min(w/h,1.72),options:{moon:true,pluto:true,orbits:false,labels:false,quality:'low'},
   camera:{azimuth:25*A.DEG,elevation:45*A.DEG,zoom:1,focus:null,panX:0,panY:0},
-  ctx:{clearRect(){}},sky:{draw(){},decorate(){},dispose(){}},surface:{get(){},update(){},invalidate(){}},
+  ctx:{clearRect(){}},sky:{draw(){},decorate(){},dispose(){}},surface:{get(){},update(){},invalidate(){},pause(){},resume(){},dispose(){}},
   labelStates:new Map(),lastLabelMono:null,frameCount:0,dirty:true});
  r.drawBody=()=>{};return r;
 }
@@ -91,7 +91,7 @@ test('Saved camera is an independent snapshot with angle, zoom, pan and tracking
 test('Camera presets reject malformed/out-of-range values without a partial camera change',()=>{
  const r=renderer(),valid=r.cameraSnapshot(),before={...r.camera};
  const invalid=[null,{},[],{...valid,azimuth:NaN},{...valid,elevation:Infinity},
-  {...valid,elevation:2},{...valid,azimuth:-1},{...valid,zoom:100},{...valid,panX:.21},
+  {...valid,elevation:2},{...valid,azimuth:-1},{...valid,zoom:257},{...valid,panX:.21},
   {...valid,panY:-.21},{...valid,focus:'bogus'},{...valid,zoom:'2'},{...valid,focus:'earth'}];
  for(const value of invalid){assert.equal(R.validCamera(value),false);assert.equal(r.restoreCamera(value),false);assert.deepEqual({...r.camera},before);}
 });
@@ -213,6 +213,6 @@ test('Invalid automatic-motion arguments do not change the camera or active dire
 test('Continuous observation retains the focused high-resolution surface request',()=>{
  const r=renderer();r.options.quality='auto';r.surface.get=()=>true;r.focusBody('moon');r.setZoom(64);r.setAutoRotate(1,0);r.advanceAutoRotate(100);
  const ms=Date.UTC(2026,8,12),j=r.surfaceJob(A.MOON,{},400,ms,0,100);
- assert.equal(j.diam,1024);assert.ok(j.autoView);assert.ok(j.autoView.key.includes('moon'));assert.equal(j.phase,A.rotationAt(A.MOON,ms)/A.TAU);
- r.setAutoRotate(0,100);assert.equal(r.surfaceJob(A.MOON,{},400,ms,0,100).autoView,null);
+ assert.equal(j.diam,1024);assert.ok(j.viewState);assert.ok(j.viewState.key.includes('moon'));assert.equal(j.phase,A.rotationAt(A.MOON,ms)/A.TAU);
+ r.setAutoRotate(0,100);assert.equal(r.surfaceJob(A.MOON,{},400,ms,0,100).viewState.limit,Math.PI/36);
 });

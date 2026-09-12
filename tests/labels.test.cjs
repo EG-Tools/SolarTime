@@ -9,7 +9,7 @@ vm.runInNewContext(fs.readFileSync(require.resolve('../src/renderer.js'),'utf8')
 const Renderer=sandbox.window.SolarRenderer;
 function harness() {
   const r=Object.create(Renderer.prototype);
-  Object.assign(r,{w:1000,h:800,labelStates:new Map(),lastLabelMono:null,hitTargets:[],selected:null});
+  Object.assign(r,{w:1000,h:800,options:{avoidLabels:true},labelStates:new Map(),lastLabelMono:null,hitTargets:[],selected:null});
   const c={letterSpacing:'',measureText:t=>({width:t.length*7}),beginPath(){},moveTo(){},lineTo(){},stroke(){},fillText(t,x,y){this.drawn.push({t,x,y});},drawn:[]};
   return {r,c,step(bodies,t){r.hitTargets=[];c.drawn=[];r.labels(c,bodies,t);return r.hitTargets.map(b=>({...b}));}};
 }

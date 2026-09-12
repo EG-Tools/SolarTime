@@ -33,6 +33,6 @@ test('Viewing mode exposes the single complete toolbar only while awake',()=>{
  const html=fs.readFileSync(require.resolve('../index.html'),'utf8'),app=fs.readFileSync(require.resolve('../src/app.js'),'utf8');
  assert.ok(!html.includes('id="focus-reset"'));assert.ok(!app.includes("$('focus-reset')"));
  assert.equal((html.match(/id="fit-view"/g)||[]).length,1);
- assert.equal((html.match(/id="show-ui"/g)||[]).length,1);
+ assert.equal((html.match(/id="zen-toggle"/g)||[]).length,1);
  assert.ok(app.includes('viewControls.inert=zen&&!awake'));
 });

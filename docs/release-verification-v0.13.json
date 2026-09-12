@@ -1,0 +1,766 @@
+{
+  "version": "0.13",
+  "base_version": "0.12",
+  "unit_tests": {
+    "passed": 123,
+    "failed": 0
+  },
+  "browser_checks": {
+    "passed": 58,
+    "failed": 0,
+    "checks": [
+      {
+        "name": "Starts v0.13 offline with correct title",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Seconds and label avoidance default OFF",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Clock accessible time excludes seconds by default",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "One same-size mode toggle after right rotation; footer mode button removed",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Footer planet navigation stays screen centered",
+        "passed": true,
+        "detail": {
+          "x": 581.140625,
+          "y": 878,
+          "width": 485.703125,
+          "height": 25
+        },
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Left-click opens Apply Save Delete Cancel in order",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Empty slot disables apply and delete only",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Right-click opens the exact same menu for an empty slot",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Cancel does not write an empty preset",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Save writes camera angle, zoom, focus and both pan axes",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Saved slot enables apply and delete",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Apply initiates smooth transition instead of an immediate jump",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Apply arrives exactly at saved camera",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Number shortcut retains same smooth recall",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Esc cancels without deleting a saved camera",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Explicit delete affects only selected slot",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Enabling seconds shows both separator and digits",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Avoidance option drives the renderer and persisted settings",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Turning seconds OFF hides whole group without changing simulation rate",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Toolbar toggle enters zen and reflects pressed state",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Zen idle hides toolbar and cursor, keeps Seoul readout",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Mouse movement reveals same complete toolbar",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Unified popup remains awake and usable in zen",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Same toggle exits zen; normal toolbar not inert",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "Saved display options and camera slots load on next startup",
+        "passed": true,
+        "detail": null,
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "No uncaught page errors",
+        "passed": true,
+        "detail": [],
+        "section": "ui",
+        "mode": "bundle"
+      },
+      {
+        "name": "First detailed Earth result requests 4096 texture and bounded raster directly",
+        "passed": true,
+        "detail": null,
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "Hiding tab retains last textured Earth and owner",
+        "passed": true,
+        "detail": null,
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "Hidden tab submits no new surface jobs",
+        "passed": true,
+        "detail": null,
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "Tab return has a complete existing texture before any new frame",
+        "passed": true,
+        "detail": null,
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "Decoded maps are reused across tab return",
+        "passed": true,
+        "detail": null,
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "Camera drag frame never requests low-detail preview",
+        "passed": true,
+        "detail": null,
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "Camera settles at exact new pose with high detail",
+        "passed": true,
+        "detail": null,
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "Korea close-up can exceed viewport while preserving 1024 output cap",
+        "passed": true,
+        "detail": 2041.6,
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "Small Moon receives the same extended zoom, not a global scale multiplier",
+        "passed": true,
+        "detail": null,
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "Every embedded planet, cloud and relief map has matching left/right pixels",
+        "passed": true,
+        "detail": [
+          {
+            "id": "clouds",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "earth",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "jupiter",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "mars-relief",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "mars",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "mercury-relief",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "mercury",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "moon-relief",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "moon",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "neptune",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "pluto-relief",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "pluto",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "saturn",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "sun",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "uranus",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          },
+          {
+            "id": "venus",
+            "width": 1024,
+            "maxEdgeDifference": 0
+          }
+        ],
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "No uncaught page errors",
+        "passed": true,
+        "detail": [],
+        "section": "graphics",
+        "mode": "bundle"
+      },
+      {
+        "name": "320x568: toolbar fits without clipping",
+        "passed": true,
+        "detail": [
+          {
+            "id": "zoom-in",
+            "x": 279,
+            "y": 103.5,
+            "w": 29,
+            "h": 29
+          },
+          {
+            "id": "zoom-out",
+            "x": 279,
+            "y": 135.5,
+            "w": 29,
+            "h": 29
+          },
+          {
+            "id": "fit-view",
+            "x": 279,
+            "y": 185.5,
+            "w": 29,
+            "h": 29
+          },
+          {
+            "id": "camera-preset-1",
+            "x": 280,
+            "y": 220.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "camera-preset-2",
+            "x": 280,
+            "y": 249.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "camera-preset-3",
+            "x": 280,
+            "y": 278.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "rotate-left",
+            "x": 279,
+            "y": 311.5,
+            "w": 29,
+            "h": 29
+          },
+          {
+            "id": "rotate-right",
+            "x": 279,
+            "y": 343.5,
+            "w": 29,
+            "h": 29
+          },
+          {
+            "id": "zen-toggle",
+            "x": 279,
+            "y": 379.5,
+            "w": 29,
+            "h": 29
+          }
+        ],
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "320x568: toolbar buttons are not covered by playback or other UI",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "320x568: four-action popup clamped at cursor inside screen",
+        "passed": true,
+        "detail": {
+          "x": 26,
+          "y": 242,
+          "width": 286,
+          "height": 152.875
+        },
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "320x568: four popup actions are visible",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "320x568: mode toggle works and Seoul stays visible",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "320x568: seconds and settings remain accessible",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "No uncaught page errors",
+        "passed": true,
+        "detail": [],
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "390x844: toolbar fits without clipping",
+        "passed": true,
+        "detail": [
+          {
+            "id": "zoom-in",
+            "x": 349,
+            "y": 269.5,
+            "w": 29,
+            "h": 29
+          },
+          {
+            "id": "zoom-out",
+            "x": 349,
+            "y": 301.5,
+            "w": 29,
+            "h": 29
+          },
+          {
+            "id": "fit-view",
+            "x": 349,
+            "y": 351.5,
+            "w": 29,
+            "h": 29
+          },
+          {
+            "id": "camera-preset-1",
+            "x": 350,
+            "y": 386.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "camera-preset-2",
+            "x": 350,
+            "y": 415.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "camera-preset-3",
+            "x": 350,
+            "y": 444.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "rotate-left",
+            "x": 349,
+            "y": 477.5,
+            "w": 29,
+            "h": 29
+          },
+          {
+            "id": "rotate-right",
+            "x": 349,
+            "y": 509.5,
+            "w": 29,
+            "h": 29
+          },
+          {
+            "id": "zen-toggle",
+            "x": 349,
+            "y": 545.5,
+            "w": 29,
+            "h": 29
+          }
+        ],
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "390x844: toolbar buttons are not covered by playback or other UI",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "390x844: four-action popup clamped at cursor inside screen",
+        "passed": true,
+        "detail": {
+          "x": 96,
+          "y": 408,
+          "width": 286,
+          "height": 152.875
+        },
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "390x844: four popup actions are visible",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "390x844: mode toggle works and Seoul stays visible",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "390x844: seconds and settings remain accessible",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "No uncaught page errors",
+        "passed": true,
+        "detail": [],
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "844x390: toolbar fits without clipping",
+        "passed": true,
+        "detail": [
+          {
+            "id": "zoom-in",
+            "x": 790.5,
+            "y": 67.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "zoom-out",
+            "x": 790.5,
+            "y": 95.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "fit-view",
+            "x": 790.5,
+            "y": 135.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "camera-preset-1",
+            "x": 792.5,
+            "y": 164.5,
+            "w": 23,
+            "h": 23
+          },
+          {
+            "id": "camera-preset-2",
+            "x": 792.5,
+            "y": 187.5,
+            "w": 23,
+            "h": 23
+          },
+          {
+            "id": "camera-preset-3",
+            "x": 792.5,
+            "y": 210.5,
+            "w": 23,
+            "h": 23
+          },
+          {
+            "id": "rotate-left",
+            "x": 790.5,
+            "y": 235.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "rotate-right",
+            "x": 790.5,
+            "y": 263.5,
+            "w": 27,
+            "h": 27
+          },
+          {
+            "id": "zen-toggle",
+            "x": 790.5,
+            "y": 295.5,
+            "w": 27,
+            "h": 27
+          }
+        ],
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "844x390: toolbar buttons are not covered by playback or other UI",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "844x390: four-action popup clamped at cursor inside screen",
+        "passed": true,
+        "detail": {
+          "x": 550,
+          "y": 184,
+          "width": 286,
+          "height": 152.875
+        },
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "844x390: four popup actions are visible",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "844x390: mode toggle works and Seoul stays visible",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "844x390: seconds and settings remain accessible",
+        "passed": true,
+        "detail": null,
+        "section": "mobile",
+        "mode": "source"
+      },
+      {
+        "name": "No uncaught page errors",
+        "passed": true,
+        "detail": [],
+        "section": "mobile",
+        "mode": "source"
+      }
+    ]
+  },
+  "environment": {
+    "platform": "Linux headless Chromium",
+    "browser": "144.0.7559.96",
+    "renderer": "worker with CPU compatibility; WebGL unavailable",
+    "execution": "final standalone bundle for desktop UI/render lifecycle, source-injected HTML for responsive checks",
+    "storage": "explicit in-memory test adapter"
+  },
+  "surface_metrics": {
+    "browser": "144.0.7559.96",
+    "surfaceBackend": {
+      "backend": "worker",
+      "submitted": 6,
+      "accepted": 10,
+      "discarded": 9,
+      "workerMs": 451.9000000000233,
+      "mapPixels": 1196032,
+      "texturePixels": 33554432,
+      "kernel": {
+        "renders": 19,
+        "texturesBuilt": 20,
+        "mapsBuilt": 16,
+        "backend": "cpu",
+        "fallback": "WebGL unavailable"
+      }
+    }
+  },
+  "limitations": [
+    "Localhost navigation returned ERR_BLOCKED_BY_ADMINISTRATOR; tests used Playwright set_content.",
+    "Hardware GPU shader rendering and Windows double-click execution not verified.",
+    "Tab visibility was tested by injecting visibility state/events, not native Chrome tab/compositor switching.",
+    "Native-origin storage persistence and current external texture servers not tested. No new public images downloaded."
+  ],
+  "implementation": {
+    "popup_actions": [
+      "적용",
+      "저장",
+      "삭제",
+      "취소"
+    ],
+    "unified_mode_toggle": "#zen-toggle",
+    "maximum_zoom": 256,
+    "legacy_64x_presets_unchanged": true,
+    "max_focus_diameter_short_edge_ratio": 2.2,
+    "double_click_initial_diameter_short_edge_ratio": 0.5,
+    "gpu_output_cap": 1024,
+    "cpu_output_cap": 768,
+    "show_seconds_default": false,
+    "avoid_labels_default": false,
+    "background_and_texture_assets_unchanged": true,
+    "visibility_pause_preserves_frames_and_texture_cache": true
+  },
+  "repository_changed": false,
+  "deployed": false
+}

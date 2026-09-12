@@ -1,0 +1,120 @@
+{
+  "version": "0.13",
+  "section": "mobile",
+  "mode": "source",
+  "checks": [
+    {
+      "name": "844x390: toolbar fits without clipping",
+      "passed": true,
+      "detail": [
+        {
+          "id": "zoom-in",
+          "x": 790.5,
+          "y": 67.5,
+          "w": 27,
+          "h": 27
+        },
+        {
+          "id": "zoom-out",
+          "x": 790.5,
+          "y": 95.5,
+          "w": 27,
+          "h": 27
+        },
+        {
+          "id": "fit-view",
+          "x": 790.5,
+          "y": 135.5,
+          "w": 27,
+          "h": 27
+        },
+        {
+          "id": "camera-preset-1",
+          "x": 792.5,
+          "y": 164.5,
+          "w": 23,
+          "h": 23
+        },
+        {
+          "id": "camera-preset-2",
+          "x": 792.5,
+          "y": 187.5,
+          "w": 23,
+          "h": 23
+        },
+        {
+          "id": "camera-preset-3",
+          "x": 792.5,
+          "y": 210.5,
+          "w": 23,
+          "h": 23
+        },
+        {
+          "id": "rotate-left",
+          "x": 790.5,
+          "y": 235.5,
+          "w": 27,
+          "h": 27
+        },
+        {
+          "id": "rotate-right",
+          "x": 790.5,
+          "y": 263.5,
+          "w": 27,
+          "h": 27
+        },
+        {
+          "id": "zen-toggle",
+          "x": 790.5,
+          "y": 295.5,
+          "w": 27,
+          "h": 27
+        }
+      ]
+    },
+    {
+      "name": "844x390: toolbar buttons are not covered by playback or other UI",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "844x390: four-action popup clamped at cursor inside screen",
+      "passed": true,
+      "detail": {
+        "x": 550,
+        "y": 184,
+        "width": 286,
+        "height": 152.875
+      }
+    },
+    {
+      "name": "844x390: four popup actions are visible",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "844x390: mode toggle works and Seoul stays visible",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "844x390: seconds and settings remain accessible",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "No uncaught page errors",
+      "passed": true,
+      "detail": []
+    }
+  ],
+  "errors": [],
+  "measurements": {
+    "browser": "144.0.7559.96"
+  },
+  "limitations": [
+    "Offline HTML injection; localhost navigation returned ERR_BLOCKED_BY_ADMINISTRATOR.",
+    "LocalStorage uses a test adapter on the opaque document origin.",
+    "Hardware GPU and actual Windows launch are not verified."
+  ]
+}

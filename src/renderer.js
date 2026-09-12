@@ -1,4 +1,4 @@
-/* Solar Time v0.12 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.13 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -6,8 +6,8 @@
   function random(seed) { return function() { let t=seed+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
   const mix=(a,b,t)=>a+(b-a)*t;
   const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
-  const VIEW=Object.freeze({minZoom:.6,maxZoom:64,lowerBy:.05,minPanY:-.2,maxPanY:.2,minPanX:-.2,maxPanX:.2,minElevation:-Math.PI/2,maxElevation:Math.PI/2,fillRadius:.34});
-  const SURFACE=Object.freeze({baseWidth:256,detailWidth:4096,maxRaster:1024,lowRaster:384,previewRaster:192});
+  const VIEW=Object.freeze({minZoom:.6,maxZoom:256,detailZoom:64,lowerBy:.05,minPanY:-.2,maxPanY:.2,minPanX:-.2,maxPanX:.2,minElevation:-Math.PI/2,maxElevation:Math.PI/2,fillRadius:1.10,detailFillRadius:.34});
+  const SURFACE=Object.freeze({detailWidth:4096,maxRaster:1024,lowRaster:384});
   const AUTO_ROTATE_SPEED=2*DEG; // radians per real second; independent of orbital time
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
   function noise(x,y) {
@@ -20,7 +20,7 @@
     constructor(background,canvas) {
       this.bg=background;this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:true});
       if(!this.ctx)throw new Error('Canvas 2D is unavailable.');
-      this.options={orbits:true,labels:true,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
+      this.options={orbits:true,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
       this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};
       this.cameraTween=null;this.autoRotation=null;this.rotationGeneration=0;
       this.surface=new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
@@ -36,7 +36,7 @@
       this.lensStretch=clamp(this.w/this.h,1,1.72);
       this.canvas.width=Math.round(this.w*this.dpr);this.canvas.height=Math.round(this.h*this.dpr);
       this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
-      this.sky.resize(this.w,this.h,this.dpr);this.dirty=true;this.surface?.invalidate(true);this.clearLabels();
+      this.sky.resize(this.w,this.h,this.dpr);this.dirty=true;this.surface?.invalidate(false);this.clearLabels();
     }
     starGlow(c,x,y,r,alpha) {
       const g=c.createRadialGradient(x,y,0,x,y,r*6);
@@ -84,16 +84,22 @@
     bodyScaleAtZoom() {
       // Scene magnification depends ONLY on viewport and zoom. A small tracking
       // target must never divide the scale used by every other planet or the Sun.
-      return this.baseBodyScale()*Math.sqrt(this.camera.zoom);
+      return this.baseBodyScale()*Math.sqrt(Math.min(this.camera.zoom,VIEW.detailZoom));
     }
     bodyRadiusAtZoom(body) {
       const zoom=this.camera.zoom;
       if(body.id!==this.camera.focus||zoom<=1)return body.size*this.bodyScaleAtZoom();
-      // The requested common screen-filling endpoint belongs to the target alone.
-      // A continuous interpolation preserves both its overview size and max zoom.
-      const t=(Math.sqrt(zoom)-1)/(Math.sqrt(VIEW.maxZoom)-1);
-      return mix(body.size*this.baseBodyScale(),this.focusRadius(),t);
+      // Keep all pre-v0.13 bookmarks (<=64x) identical. Extra zoom belongs
+      // only to the tracked body, never to every other planet in the scene.
+      const oldMax=Math.min(this.w,this.h)*VIEW.detailFillRadius;
+      if(zoom<=VIEW.detailZoom){
+        const t=(Math.sqrt(zoom)-1)/(Math.sqrt(VIEW.detailZoom)-1);
+        return mix(body.size*this.baseBodyScale(),oldMax,t);
+      }
+      const t=(Math.sqrt(zoom)-Math.sqrt(VIEW.detailZoom))/(Math.sqrt(VIEW.maxZoom)-Math.sqrt(VIEW.detailZoom));
+      return mix(oldMax,this.focusRadius(),t);
     }
+
     moonOrbitRadius(earthRadius,moonRadius) {
       // A close-up may enlarge Earth or Moon independently. Keep only their local
       // illustrative clearance, using the existing orbit/body ratio, not a second
@@ -124,7 +130,7 @@
     }
     setOption(key,value) {
       this.options[key]=value;this.dirty=true;if(key==='quality')this.resize();
-      if(key==='labels'&&!value)this.clearLabels();
+      if((key==='labels'&&!value)||key==='avoidLabels')this.clearLabels();
       if((key==='moon'||key==='pluto')&&!value&&this.camera.focus===key)this.resetCamera();
     }
     setZoom(value,focusId=null) {
@@ -141,10 +147,10 @@
     focusBody(id) {
       const body=[A.SUN,...this.getBodies(),...(this.options.moon?[A.MOON]:[])].find(b=>b.id===id);
       if(!body)return;
-      const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.14;
-      const t=clamp((radius-baseRadius)/(this.focusRadius()-baseRadius),0,1);
+      const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
+      const t=clamp((radius-baseRadius)/(Math.min(this.w,this.h)*VIEW.detailFillRadius-baseRadius),0,1);
       this.cancelCameraMotion();this.camera.focus=id;
-      this.setZoom(clamp((1+t*(Math.sqrt(VIEW.maxZoom)-1))**2,6,VIEW.maxZoom));
+      this.setZoom(clamp((1+t*(Math.sqrt(VIEW.detailZoom)-1))**2,6,VIEW.detailZoom));
     }
     get zoomLimits() {return VIEW;}
     visible(p,r=0) {return p.x+r>=0&&p.x-r<=this.w&&p.y+r>=0&&p.y-r<=this.h;}
@@ -234,13 +240,14 @@
     }
     // All bodies submit to the same bounded surface owner; no CPU pixel loop here.
     surfaceJob(body,world,r,ms,seconds,mono) {
-      const focused=body.id===this.camera.focus,moving=mono-this.cameraChangeAt<120;
-      const maximum=this.options.quality==='low'?SURFACE.lowRaster:focused?SURFACE.maxRaster:SURFACE.previewRaster;
+      const focused=body.id===this.camera.focus;
+      const maximum=this.options.quality==='low'?SURFACE.lowRaster:focused?SURFACE.maxRaster:384;
       const wanted=Math.min(maximum,Math.max(32,r*2*this.dpr));
-      const tier=[32,64,128,192,256,384,512,768,1024].find(n=>n>=wanted)||1024;
-      const diam=moving?Math.min(tier,SURFACE.previewRaster):tier;
-      // A quick first sample makes the body visible before the detailed map is built.
-      const textureWidth=focused&&!moving&&this.surface.get(body.id)?Math.min(SURFACE.detailWidth,window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth):SURFACE.baseWidth;
+      const diam=[32,64,128,192,256,384,512,768,1024].find(n=>n>=wanted)||1024;
+      // Stable detail while dragging and on tab return. No flat->256->4096
+      // ladder: decode the chosen image once and reuse it across camera angles.
+      const nativeWidth=window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth;
+      const textureWidth=Math.min(nativeWidth,focused?SURFACE.detailWidth:1024);
       const vectors=this.bodyFrame(body),frame=Object.fromEntries(Object.entries(vectors).map(([k,v])=>[k,[v.x,v.y,v.z]]));
       const earth=A.positionAt(A.BODIES.find(b=>b.id==='earth'),ms);
       const physical=body.id==='moon'?(()=>{const m=A.moonAt(ms,.0025696);return {x:earth.x+m.x,y:earth.y+m.y,z:earth.z+m.z};})():body.id==='sun'?{x:0,y:0,z:0}:A.positionAt(body,ms);
@@ -249,19 +256,19 @@
       const activity=false; // No surface distortion or erupting loops: physical spin + shine only.
       const spin=A.rotationAt(body,ms);
       const geometry=[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,this.camera.azimuth,this.camera.elevation,A.rotationPoleTilt(body),Number(activity)].join(':');
-      const autoView=this.autoRotation?{yaw:this.camera.azimuth,
-        key:[this.autoRotation.generation,body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,this.camera.elevation,A.rotationPoleTilt(body),Number(activity)].join(':')}:null;
-      return {id:body.id,diam,textureWidth,frame,geometry,autoView,phase:spin/TAU,
+      const viewState={yaw:this.camera.azimuth,pitch:this.camera.elevation,limit:this.autoRotation?Math.PI/120:Math.PI/36,
+        key:[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,A.rotationPoleTilt(body),this.autoRotation?.generation||0].join(':')};
+      return {id:body.id,diam,textureWidth,frame,geometry,viewState,phase:spin/TAU,
         light:[lightVector.x/len,lightVector.y/len,lightVector.z/len],activity,seconds:activity?seconds:0};
     }
     invalidateSurfaces() {this.surface?.invalidate();}
     suspend() {
       const mono=performance.now();this.cancelCameraTween(mono);this.advanceAutoRotate(mono);
       if(this.autoRotation)this.autoRotation.mono=null; // Resume at the same view, never catch up a hidden tab.
-      this.surface?.dispose();this.surface=null;
+      this.surface?.pause();
     }
-    resume() {if(!this.surface)this.surface=new window.SolarSurface.Service();}
-    dispose() {this.suspend();this.autoRotation=null;this.clearLabels();this.hitTargets=[];this.coronaTexture=null;this.sky?.dispose();}
+    resume() {if(!this.surface)this.surface=new window.SolarSurface.Service();this.surface.resume();}
+    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets=[];this.coronaTexture=null;this.sky?.dispose();}
     makeCoronaTexture(size=384) {
       // One bounded, reusable corona asset. No per-frame pixel noise, downloads or timers.
       const extent=3.3,canvas=document.createElement('canvas');canvas.width=canvas.height=size;
@@ -322,7 +329,8 @@
       if(this.visible(screen,r+2)) {
         const img=this.surface.get(b.id);
         if(img)c.drawImage(img,screen.x-r,screen.y-r,r*2,r*2);
-        else {c.fillStyle=b.color||'#9b917f';c.beginPath();c.arc(screen.x,screen.y,r,0,TAU);c.fill();}
+        // First-ever material load has no fake flat-colour planet. During
+        // camera changes/visibility pauses the last complete image is retained.
       }
       if(b.id==='saturn'||b.id==='uranus')this.rings(c,b,screen,r,true);
       if(this.selected===b.id||this.hover===b.id) {
@@ -336,7 +344,8 @@
       if(this.lastLabelMono!==null&&mono<this.lastLabelMono)this.clearLabels();
       const dt=this.lastLabelMono===null?0:clamp((mono-this.lastLabelMono)/1000,0,.05);
       this.lastLabelMono=mono;
-      const alpha=1-Math.exp(-dt/LABEL.response),reserved=[],active=new Set();
+      const avoid=!!this.options?.avoidLabels;
+      const alpha=avoid?1-Math.exp(-dt/LABEL.response):1,reserved=[],active=new Set();
       const byId=new Map(bodies.map(p=>[p.body.id,p]));
       const ordered=[A.SUN,...A.BODIES,A.MOON].map(b=>byId.get(b.id)).filter(Boolean);
       const overlap=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*
@@ -352,22 +361,23 @@
         const candidates=offsets.map(([dx,dy],slot)=>({slot,
           x:clamp(s.x+dx-w/2,8,Math.max(8,this.w-w-8)),
           y:clamp(s.y+dy,8,Math.max(8,this.h-h-8)),w,h}));
-        const obstacles=bodies.filter(p=>p!==item).map(p=>({
+        const obstacles=(avoid?bodies:[]).filter(p=>p!==item).map(p=>({
           x:p.screen.x-p.r-LABEL.padding,y:p.screen.y-p.r-LABEL.padding,
           w:p.r*2+LABEL.padding*2,h:p.r*2+LABEL.padding*2}));
-        for(const q of candidates) {
+        if(!avoid){candidates[0].x=s.x-w/2;candidates[0].y=s.y+r+gap;}
+        for(const q of (avoid?candidates:[])) {
           q.score=q.slot*7;
           for(const obstacle of [...reserved,...obstacles]) {
             q.score+=overlap(q,obstacle)/Math.max(1,Math.min(w*h,obstacle.w*obstacle.h))*1000;
           }
         }
-        const best=candidates.reduce((a,b)=>a.score<=b.score?a:b);
+        const best=avoid?candidates.reduce((a,b)=>a.score<=b.score?a:b):candidates[0];
         let state=this.labelStates.get(b.id);
         if(!state) {
           state={slot:best.slot,dx:best.x+w/2-s.x,dy:best.y-s.y,
             switchedAt:mono-LABEL.dwell,pending:null,pendingSince:mono};
           this.labelStates.set(b.id,state);
-        } else {
+        } else if(!avoid) {state.slot=0;state.pending=null;} else {
           const current=candidates[state.slot];
           // A small or one-frame overlap must not flip a label to the other side.
           if(best.slot!==state.slot&&current.score-best.score>LABEL.margin) {

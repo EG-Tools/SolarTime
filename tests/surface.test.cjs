@@ -32,9 +32,9 @@ test('Both source and offline build load surface before renderer; release identi
  const root=require('node:path').join(__dirname,'..'),read=p=>fs.readFileSync(require('node:path').join(root,p),'utf8');
  const html=read('index.html'),build=read('tools/build.cjs'),app=read('src/app.js');
  assert.ok(html.indexOf('src/surface.js')<html.indexOf('src/renderer.js'));assert.match(build,/'assets','materials','astro','surface','sky','renderer','app'/);
- assert.ok(html.includes('Life User <span>/</span> v0.12'));
- assert.match(app,/version:'0\.12'/);assert.equal(JSON.parse(read('package.json')).version,'0.0.12');
- assert.ok(!html.includes('EG TOOLS'));assert.ok(html.includes('Life User / Solar Time v0.12 /')); // Historical release comparisons are allowed in help.
+ assert.ok(html.includes('Life User <span>/</span> v0.13'));
+ assert.match(app,/version:'0\.13'/);assert.equal(JSON.parse(read('package.json')).version,'0.0.13');
+ assert.ok(!html.includes('EG TOOLS'));assert.ok(html.includes('Life User / Solar Time v0.13 /')); // Historical release comparisons are allowed in help.
 });
 
 test('Material revision changes keep the last good planet frame until its replacement is ready',()=>{
@@ -70,22 +70,22 @@ test('GPU loss guard does not return a corrupted or transparent surface as succe
 });
 
 test('Slow automatic yaw accepts a completed intermediate surface within 1.5 degrees',()=>{
- const s=owner();const start={...job(),autoView:{key:'session:moon:texture:quality:elevation',yaw:0}};
+ const s=owner();const start={...job(),viewState:{key:'session:moon:texture:quality:elevation',yaw:0,pitch:0,limit:Math.PI/120}};
  s.update([start],0);const batch=s.worker.sent[0],bitmap=image();
- s.update([{...start,geometry:'new-yaw',autoView:{...start.autoView,yaw:.01}}],200);
+ s.update([{...start,geometry:'new-yaw',viewState:{...start.viewState,yaw:.01}}],200);
  s.receive({kind:'frame',revision:batch.revision,epoch:batch.epoch,job:batch.jobs[0],bitmap});
  assert.equal(s.get('moon'),bitmap);assert.equal(bitmap.closed,false);s.dispose();
 });
 
 test('Automatic-yaw tolerance never mixes planets, materials, sessions or manual camera movement',()=>{
- const s=owner(),a={...job(),autoView:{key:'session:moon:texture:quality:elevation',yaw:0}};
+ const s=owner(),a={...job(),viewState:{key:'session:moon:texture:quality:elevation',yaw:0,pitch:0,limit:Math.PI/120}};
  for(const b of [
   {...a,id:'jupiter',geometry:'other'},
-  {...a,geometry:'other',autoView:{key:'different-session',yaw:.001}},
-  {...a,geometry:'other',autoView:{key:'different-texture',yaw:.001}},
-  {...a,geometry:'other',autoView:{...a.autoView,yaw:.04}},
-  {...a,geometry:'other',autoView:{...a.autoView,yaw:NaN}},
-  {...a,geometry:'other',autoView:null}])assert.equal(s.compatibleView(b,a),false);
- const wrapped={...a,geometry:'near-wrap',autoView:{...a.autoView,yaw:Math.PI*2-.005}};
+  {...a,geometry:'other',viewState:{key:'different-session',yaw:.001}},
+  {...a,geometry:'other',viewState:{key:'different-texture',yaw:.001}},
+  {...a,geometry:'other',viewState:{...a.viewState,yaw:.04}},
+  {...a,geometry:'other',viewState:{...a.viewState,yaw:NaN}},
+  {...a,geometry:'other',viewState:null}])assert.equal(s.compatibleView(b,a),false);
+ const wrapped={...a,geometry:'near-wrap',viewState:{...a.viewState,yaw:Math.PI*2-.005}};
  assert.equal(s.compatibleView(wrapped,a),true);s.dispose();
 });
