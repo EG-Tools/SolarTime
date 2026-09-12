@@ -1,0 +1,13 @@
+{
+  "version": "0.14",
+  "size": [
+    4096,
+    2048
+  ],
+  "bytes": 1113268,
+  "lossless": true,
+  "singleColourPoles": true,
+  "rectangularStamps": 0,
+  "seamMeanByteDifference": 0.5625,
+  "adjacentMeanByteDifference": 0.47149852462352465
+}

@@ -1,4 +1,4 @@
-/* Solar Time v0.13 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.14 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -24,14 +24,18 @@
       this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};
       this.cameraTween=null;this.autoRotation=null;this.rotationGeneration=0;
       this.surface=new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
-      this.labelStates=new Map();this.lastLabelMono=null;
+      this.labelStates=new Map();this.lastLabelMono=null;this.labelWidths=new Map();
+      this.orbitCache=new WeakMap();this.frameCache=new Map();this.starSprites=new Map();
+      this.stats={orbitProjections:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
       this.selected=null;this.hover=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
       this.sky=new window.SolarSky(background);
       this.resize();
     }
     resize() {
-      const box=this.canvas.getBoundingClientRect();this.w=Math.max(1,box.width);this.h=Math.max(1,box.height);
-      this.dpr=Math.min(window.devicePixelRatio||1,this.options.quality==='low'?1:2);
+      const box=this.canvas.getBoundingClientRect(),w=Math.max(1,box.width),h=Math.max(1,box.height);
+      const dpr=Math.min(window.devicePixelRatio||1,this.options.quality==='low'?1:2);
+      if(w===this.w&&h===this.h&&dpr===this.dpr)return;
+      this.w=w;this.h=h;this.dpr=dpr;this.starSprites?.clear();this.labelWidths?.clear();
       // Anamorphic presentation: widen projected orbital positions, keep planet icons round.
       this.lensStretch=clamp(this.w/this.h,1,1.72);
       this.canvas.width=Math.round(this.w*this.dpr);this.canvas.height=Math.round(this.h*this.dpr);
@@ -39,23 +43,47 @@
       this.sky.resize(this.w,this.h,this.dpr);this.dirty=true;this.surface?.invalidate(false);this.clearLabels();
     }
     starGlow(c,x,y,r,alpha) {
-      const g=c.createRadialGradient(x,y,0,x,y,r*6);
-      g.addColorStop(0,`rgba(207,226,255,${alpha})`);g.addColorStop(.15,`rgba(151,195,249,${alpha*.55})`);g.addColorStop(1,'rgba(112,161,226,0)');
-      c.fillStyle=g;c.fillRect(x-r*6,y-r*6,r*12,r*12);
-      c.strokeStyle=`rgba(213,228,252,${alpha*.6})`;c.lineWidth=.5;c.beginPath();c.moveTo(x-r*4,y);c.lineTo(x+r*4,y);c.moveTo(x,y-r*4);c.lineTo(x,y+r*4);c.stroke();
-      c.fillStyle=`rgba(247,250,255,${alpha})`;c.beginPath();c.arc(x,y,r*.6,0,TAU);c.fill();
+      if(!(r>0)||!(alpha>0))return;
+      // One normalized sprite per DPR, not a new gradient/path for each star.
+      const ratio=this.dpr||1,key=ratio;
+      let sprite=this.starSprites.get(key);
+      if(!sprite){
+        const n=Math.ceil(64*ratio),canvas=document.createElement('canvas');canvas.width=canvas.height=n;
+        const g=canvas.getContext('2d'),radius=n/12,center=n/2;
+        const halo=g.createRadialGradient(center,center,0,center,center,n/2);
+        halo.addColorStop(0,'rgba(207,226,255,1)');halo.addColorStop(.15,'rgba(151,195,249,.55)');halo.addColorStop(1,'rgba(112,161,226,0)');
+        g.fillStyle=halo;g.fillRect(0,0,n,n);g.strokeStyle='rgba(213,228,252,.6)';
+        g.lineWidth=radius*.5;g.beginPath();g.moveTo(center-radius*4,center);g.lineTo(center+radius*4,center);
+        g.moveTo(center,center-radius*4);g.lineTo(center,center+radius*4);g.stroke();
+        g.fillStyle='rgba(247,250,255,1)';g.beginPath();g.arc(center,center,radius*.6,0,TAU);g.fill();
+        sprite=canvas;this.starSprites.set(key,sprite);this.stats.starSprites++;
+      }
+      const previous=c.globalAlpha;c.globalAlpha=previous*clamp(alpha,0,1);
+      c.drawImage(sprite,x-r*6,y-r*6,r*12,r*12);c.globalAlpha=previous;
+    }
+    cameraBasis() {
+      const {azimuth:a,elevation:e}=this.camera;
+      if(!this.basis||this.basis.a!==a||this.basis.e!==e){
+        this.basis={a,e,ca:Math.cos(a),sa:Math.sin(a),ce:Math.cos(e),se:Math.sin(e)};
+        this.frameCache?.clear();
+      }
+      return this.basis;
     }
     // Orthographic direction transform. Body normals and rings MUST NOT use the
     // anamorphic orbital-distance stretch: their shared frame stays orthonormal.
     viewDirection(p) {
-      const {azimuth:a,elevation:e}=this.camera,ca=Math.cos(a),sa=Math.sin(a),ce=Math.cos(e),se=Math.sin(e);
+      const {ca,sa,ce,se}=this.cameraBasis();
       const x=p.x*ca-p.y*sa,y=p.x*sa+p.y*ca;
       return {x,y:-(y*se+p.z*ce),z:-y*ce+p.z*se};
     }
     view(p) {const v=this.viewDirection(p);v.x*=this.lensStretch;return v;}
     bodyFrame(body) {
-      const frame=A.bodyAxes(body);
-      return Object.fromEntries(Object.entries(frame).map(([key,n])=>[key,this.viewDirection(n)]));
+      this.cameraBasis();
+      // Pole tilt is part of the key; a changed body model cannot reuse an old frame.
+      const tilt=A.rotationPoleTilt(body);let cached=this.frameCache?.get(body.id);
+      if(cached&&cached.body===body&&cached.tilt===tilt)return cached.frame;
+      const axes=A.bodyAxes(body),frame={u:this.viewDirection(axes.u),v:this.viewDirection(axes.v),pole:this.viewDirection(axes.pole)};
+      (this.frameCache||(this.frameCache=new Map())).set(body.id,{body,tilt,frame});return frame;
     }
     setOrbitView(azimuth,elevation) {
       if(!Number.isFinite(azimuth)||!Number.isFinite(elevation))return;
@@ -110,12 +138,12 @@
         (earthRadius+moonRadius)*clearance)/this.scale;
     }
     project(p) { const v=this.view(p);return {x:this.cx+v.x*this.scale,y:this.cy+v.y*this.scale,z:v.z}; }
-    getBodies() { return this.options.pluto?A.BODIES:A.BODIES.filter(b=>b.id!=='pluto'); }
+    getBodies() { return this.options.pluto?A.BODIES:(this.bodiesWithoutPluto||(this.bodiesWithoutPluto=A.BODIES.filter(b=>b.id!=='pluto'))); }
     rebuild(ms) {
       const pathKey=A.modelYear(ms)+':'+this.options.pluto;
       if(this.pathKey!==pathKey){this.paths=this.getBodies().map(body=>({body,points:A.orbitAt(body,ms,360)}));this.pathKey=pathKey;}
       let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
-      for(const p of this.paths)for(const v of p.points) {const q=this.view(v);minX=Math.min(minX,q.x);maxX=Math.max(maxX,q.x);minY=Math.min(minY,q.y);maxY=Math.max(maxY,q.y);}
+      for(const p of this.paths){const v=this.projectOrbit(p);minX=Math.min(minX,v.minX);maxX=Math.max(maxX,v.maxX);minY=Math.min(minY,v.minY);maxY=Math.max(maxY,v.maxY);}
       const mobile=this.w<680,compact=this.h<630;
       const left=mobile?24:58,right=this.w-(mobile?24:58),top=compact?100:mobile?192:190,bottom=this.h-(compact?105:mobile?195:190);
       const baseY=(top+bottom)/2+this.h*VIEW.lowerBy;
@@ -226,17 +254,51 @@
     }
     cancelCameraMotion(mono=performance.now()) {this.cancelCameraTween(mono);this.stopAutoRotate(mono);}
     resetCamera() {this.cameraTween=null;this.autoRotation=null;this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};this.dirty=true;}
-    orbit(c,path,highlight) {
-      const rgb=path.body.id==='earth'?'110,174,212':path.body.id==='pluto'?'155,140,127':'138,151,168';
-      c.lineWidth=highlight?1.25:.72;
-      if(path.body.id==='pluto')c.setLineDash([2,5]);
-      // Draw each hemisphere separately to keep distant arcs restrained.
-      for(let pass=0;pass<2;pass++) {
-        c.strokeStyle=`rgba(${rgb},${highlight?.64:pass?.32:.17})`;c.beginPath();let active=false;
-        for(const p of path.points) {const q=this.project(p),front=q.z>=0;if(front===(pass===1)){active?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y);active=true;}else {if(active)c.lineTo(q.x,q.y);active=false;}}
-        c.stroke();
+    projectOrbit(path) {
+      const {azimuth:a,elevation:e}=this.camera,lens=this.lensStretch;
+      const cache=this.orbitCache||(this.orbitCache=new WeakMap());let item=cache.get(path);
+      if(item&&item.a===a&&item.e===e&&item.lens===lens&&item.source===path.points)return item;
+      const xyz=new Float64Array(path.points.length*3);
+      let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+      for(let i=0;i<path.points.length;i++){
+        const q=this.view(path.points[i]);xyz[i*3]=q.x;xyz[i*3+1]=q.y;xyz[i*3+2]=q.z;
+        minX=Math.min(minX,q.x);maxX=Math.max(maxX,q.x);minY=Math.min(minY,q.y);maxY=Math.max(maxY,q.y);
       }
-      c.setLineDash([]);
+      item={a,e,lens,source:path.points,xyz,minX,maxX,minY,maxY,scale:NaN,passes:null};cache.set(path,item);
+      if(this.stats)this.stats.orbitProjections+=path.points.length;return item;
+    }
+    orbit(c,path,highlight) {
+      const item=this.projectOrbit(path),xyz=item.xyz,scale=this.scale;
+      const rgb=path.body.id==='earth'?'110,174,212':path.body.id==='pluto'?'155,140,127':'138,151,168';
+      c.lineWidth=highlight?1.25:.72;if(path.body.id==='pluto')c.setLineDash([2,5]);
+      // Translate cached screen-unit paths when tracking. Stroke widths stay in
+      // CSS pixels; zoom never scales line width or the Pluto dash pattern.
+      const cached=typeof Path2D==='function';
+      if(cached&&(!item.passes||item.scale!==scale)){
+        item.passes=[new Path2D(),new Path2D()];item.scale=scale;
+        for(let pass=0;pass<2;pass++){
+          const p=item.passes[pass];let active=false;
+          for(let i=0;i<xyz.length;i+=3){
+            const x=xyz[i]*scale,y=xyz[i+1]*scale,front=xyz[i+2]>=0;
+            if(front===(pass===1)){active?p.lineTo(x,y):p.moveTo(x,y);active=true;}
+            else{if(active)p.lineTo(x,y);active=false;}
+          }
+        }
+        if(this.stats)this.stats.orbitPaths+=2;
+      }
+      c.save();c.translate(this.cx,this.cy);
+      for(let pass=0;pass<2;pass++){
+        c.strokeStyle=`rgba(${rgb},${highlight?.64:pass?.32:.17})`;
+        if(cached)c.stroke(item.passes[pass]);
+        else{
+          c.beginPath();let active=false;
+          for(let i=0;i<xyz.length;i+=3){const x=xyz[i]*scale,y=xyz[i+1]*scale,front=xyz[i+2]>=0;
+            if(front===(pass===1)){active?c.lineTo(x,y):c.moveTo(x,y);active=true;}
+            else{if(active)c.lineTo(x,y);active=false;}}
+          c.stroke();
+        }
+      }
+      c.restore();c.setLineDash([]);
     }
     // All bodies submit to the same bounded surface owner; no CPU pixel loop here.
     surfaceJob(body,world,r,ms,seconds,mono) {
@@ -249,8 +311,14 @@
       const nativeWidth=window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth;
       const textureWidth=Math.min(nativeWidth,focused?SURFACE.detailWidth:1024);
       const vectors=this.bodyFrame(body),frame=Object.fromEntries(Object.entries(vectors).map(([k,v])=>[k,[v.x,v.y,v.z]]));
-      const earth=A.positionAt(A.BODIES.find(b=>b.id==='earth'),ms);
-      const physical=body.id==='moon'?(()=>{const m=A.moonAt(ms,.0025696);return {x:earth.x+m.x,y:earth.y+m.y,z:earth.z+m.z};})():body.id==='sun'?{x:0,y:0,z:0}:A.positionAt(body,ms);
+      // A heliocentric Earth solve is needed only for Earth/Moon lighting.
+      let physical;
+      if(body.id==='sun')physical={x:0,y:0,z:0};
+      else if(body.id==='moon'||body.id==='earth'){
+        if(!this.earthPhysical||this.earthPhysical.ms!==ms||this.earthPhysical.model!==this.pathYear){const earth=A.BODIES.find(b=>b.id==='earth');this.earthPhysical={ms,model:this.pathYear,value:A.positionAt(earth,ms)};}
+        physical=this.earthPhysical.value;
+        if(body.id==='moon'){const m=A.moonAt(ms,.0025696);physical={x:physical.x+m.x,y:physical.y+m.y,z:physical.z+m.z};}
+      }else physical=A.positionAt(body,ms);
       const lightVector=this.viewDirection({x:-physical.x,y:-physical.y,z:-physical.z});
       const len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
       const activity=false; // No surface distortion or erupting loops: physical spin + shine only.
@@ -265,10 +333,10 @@
     suspend() {
       const mono=performance.now();this.cancelCameraTween(mono);this.advanceAutoRotate(mono);
       if(this.autoRotation)this.autoRotation.mono=null; // Resume at the same view, never catch up a hidden tab.
-      this.surface?.pause();
+      this.surface?.pause();this.sky?.pause?.();
     }
-    resume() {if(!this.surface)this.surface=new window.SolarSurface.Service();this.surface.resume();}
-    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets=[];this.coronaTexture=null;this.sky?.dispose();}
+    resume() {if(!this.surface)this.surface=new window.SolarSurface.Service();this.surface.resume();this.sky?.resume?.();}
+    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets=[];this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.labelWidths.clear();this.orbitCache=new WeakMap();this.sky?.dispose();}
     makeCoronaTexture(size=384) {
       // One bounded, reusable corona asset. No per-frame pixel noise, downloads or timers.
       const extent=3.3,canvas=document.createElement('canvas');canvas.width=canvas.height=size;
@@ -356,8 +424,10 @@
         const font=moon?8:this.w<680?9:10,h=font+10;
         c.font=`500 ${font}px "Segoe UI", Arial, sans-serif`;
         if('letterSpacing' in c)c.letterSpacing=moon?'1px':'1.65px';
-        const w=c.measureText(b.en).width+10,gap=moon?7:b.id==='saturn'?13:9;
-        const offsets=[[0,r+gap],[0,-r-h-gap],[r+w/2+gap,-h/2],[-r-w/2-gap,-h/2],[0,r+gap+h+4]];
+        const widths=this.labelWidths||(this.labelWidths=new Map()),metricKey=font+':'+moon+':'+b.en;
+        let w=widths.get(metricKey);if(w===undefined){w=c.measureText(b.en).width+10;widths.set(metricKey,w);}
+        const gap=moon?7:b.id==='saturn'?13:9;
+        const offsets=avoid?[[0,r+gap],[0,-r-h-gap],[r+w/2+gap,-h/2],[-r-w/2-gap,-h/2],[0,r+gap+h+4]]:[[0,r+gap]];
         const candidates=offsets.map(([dx,dy],slot)=>({slot,
           x:clamp(s.x+dx-w/2,8,Math.max(8,this.w-w-8)),
           y:clamp(s.y+dy,8,Math.max(8,this.h-h-8)),w,h}));
@@ -414,7 +484,7 @@
       const c=this.ctx;this.frameCount++;c.clearRect(0,0,this.w,this.h);
       if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
       this.sky.draw(seconds,this.camera,this.options);
-      this.sky.decorate(c,seconds,this.options,this.starGlow.bind(this));
+      this.sky.decorate(c,seconds,this.options,this.boundStarGlow);
       const bodies=this.getBodies().map(body=>{const world=A.positionAt(body,ms,true);return {body,world,r:this.bodyRadiusAtZoom(body)};});
       bodies.push({body:A.SUN,world:{x:0,y:0,z:0},r:this.bodyRadiusAtZoom(A.SUN)});
       const earth=bodies.find(p=>p.body.id==='earth');

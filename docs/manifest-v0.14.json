@@ -1,0 +1,157 @@
+{
+  "version": "0.14",
+  "repository": "EG-Tools/SolarTime",
+  "baseCommit": "67234aa88a971fb7a0ec87434f9d4e37dcfc752c",
+  "baseVersion": "0.13",
+  "distribution": "changed-files only; requires existing v0.13 source or standalone HTML",
+  "gitHubWritten": false,
+  "newStandaloneHTMLIncluded": false,
+  "offlineUpdaterIncluded": true,
+  "tests": {
+    "nodeNewTestsPassed": 15,
+    "skyBrowserChecksPassed": 20,
+    "updaterBrowserChecksPassed": 8,
+    "fullLegacyAppRegressionRun": false,
+    "hardwareFPSMeasured": false
+  },
+  "files": [
+    {
+      "path": "SolarTime_Update_v0.14.html",
+      "status": "added",
+      "bytes": 1547535,
+      "sha256": "03b5b6d753471caec7a72077da1c03ef5df45925ef4a7c085bae1e84132b575b"
+    },
+    {
+      "path": "UPDATE_v0.14_KO.md",
+      "status": "added",
+      "bytes": 8265,
+      "sha256": "a306ed941481cf764ce4d60e5821471e8622a835670732488ecd46d7e0387448"
+    },
+    {
+      "path": "assets/universe.webp",
+      "status": "modified",
+      "bytes": 1113268,
+      "sha256": "6dfbe4e07abbbbcb85287e4a71f535d37e8b753f2751cef78e0ec31756edc237",
+      "original": {
+        "gitBlob": "84e1e1417957c6e4ad7347dd8bd7e86cd0482807",
+        "bytes": 2048536
+      }
+    },
+    {
+      "path": "docs/browser-verification-v0.14.json",
+      "status": "added",
+      "bytes": 2212,
+      "sha256": "814328a2994c3641acd06a224a2c208d4a10cf70947371e7688b9db9ea7d7075"
+    },
+    {
+      "path": "docs/sky-v0.14-browser.png",
+      "status": "added",
+      "bytes": 236578,
+      "sha256": "eeadb09178613d6a96849f0e04a3bfb0f1b799d1b89d51d0ebb55b9180b476b5"
+    },
+    {
+      "path": "docs/sky-validation-v0.14.json",
+      "status": "added",
+      "bytes": 244,
+      "sha256": "52757ecff5f4094f23a70add006a5ccb4869fdc134951ab59b8798d582066132"
+    },
+    {
+      "path": "docs/unit-verification-v0.14.txt",
+      "status": "added",
+      "bytes": 3277,
+      "sha256": "78cd8df20040b286b32629974dacb9509c390b5bd31cd8d007d3da8e8edea18f"
+    },
+    {
+      "path": "docs/updater-verification-v0.14.json",
+      "status": "added",
+      "bytes": 428,
+      "sha256": "5d91db68c04a0daab3392150950d28db137a57d40a126d8993873db9e159b023"
+    },
+    {
+      "path": "package.json",
+      "status": "modified",
+      "bytes": 373,
+      "sha256": "7b7c516c6cc3b3e9fbcfd894a1493296c0ebe44bf7f35cc12124b38f9dfe147a",
+      "original": {
+        "gitBlob": "4bda743117af85f36d844a29ab88c1fc05f5ea99",
+        "bytes": 319
+      }
+    },
+    {
+      "path": "src/renderer.js",
+      "status": "modified",
+      "bytes": 34840,
+      "sha256": "88f94b43c7481dd098430b281e0e14611eda3c9d3f57ffa33ad72f5e867b480d",
+      "original": {
+        "gitBlob": "65d1e66115049ef8b9f3f40dabb8c774c711cfe4",
+        "bytes": 30636
+      }
+    },
+    {
+      "path": "src/sky.js",
+      "status": "modified",
+      "bytes": 20552,
+      "sha256": "851945ecbd0309c811cf20e74c43867830ac2a072c327964a48fd572c166467e",
+      "original": {
+        "gitBlob": "57ca0a8f6f8c708efc0b41b3a06a00a0c665c0f6",
+        "bytes": 15060
+      }
+    },
+    {
+      "path": "tests/v014-renderer.test.cjs",
+      "status": "added",
+      "bytes": 7242,
+      "sha256": "36300c03f054680f2d58ff1d802ec7bd385d8662898d2b9cdf3ae1e35d3d047f"
+    },
+    {
+      "path": "tests/v014-upgrade.test.cjs",
+      "status": "added",
+      "bytes": 5230,
+      "sha256": "601e1758c8f3ebaf58c6c7299e298adb336bb073ef340adb42bbd326a6b2e7f5"
+    },
+    {
+      "path": "tests/v014_sky_browser.py",
+      "status": "added",
+      "bytes": 6748,
+      "sha256": "bbf4267f90dd760f701b9ecce91ec5858e26158392570e49f5fa8179e0ca0a97"
+    },
+    {
+      "path": "tests/v014_upgrade_browser.py",
+      "status": "added",
+      "bytes": 3474,
+      "sha256": "735f0e090f207990f794125676ed7b08bb3ab68dd977451db1adde9f00593c78"
+    },
+    {
+      "path": "tools/bake_sky.py",
+      "status": "modified",
+      "bytes": 8129,
+      "sha256": "4b93bfb8c8669a51f46ae0a66ab12af3087dee3574f7d494b469acd500c36b52",
+      "original": {
+        "gitBlob": "1e5a8553c0943c25f52a142ba4461dad05975426",
+        "bytes": 7769
+      }
+    },
+    {
+      "path": "tools/build-update.cjs",
+      "status": "added",
+      "bytes": 4663,
+      "sha256": "b1b38552877558c52e230e95fbbfab59d6c87bec386de62e802421accee71b22"
+    },
+    {
+      "path": "tools/build.cjs",
+      "status": "modified",
+      "bytes": 2918,
+      "sha256": "bd80064648153ca06815d7ab810c58ab5264c7d662af6f1a03a0616c4fc193d3",
+      "original": {
+        "gitBlob": "889e6528551c6e18423e8ccdd7b9d3c01c4c95a9",
+        "bytes": 961
+      }
+    },
+    {
+      "path": "tools/upgrade-core.js",
+      "status": "added",
+      "bytes": 2921,
+      "sha256": "09780f67d94712b58fd6c4af88457203dcb2ba0710698864e03ed555f537c45f"
+    }
+  ]
+}
