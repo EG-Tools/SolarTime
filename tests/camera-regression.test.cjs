@@ -1,14 +1,15 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const A=require('../src/astro.js');
-const sandbox={window:{SolarAstro:A},performance:{now:()=>0}};
+let testMono=0;
+const sandbox={window:{SolarAstro:A},performance:{now:()=>testMono}};
 vm.runInNewContext(fs.readFileSync(require.resolve('../src/renderer.js'),'utf8'),sandbox);
 const R=sandbox.window.SolarRenderer,all=[A.SUN,...A.BODIES,A.MOON],near=(x,y)=>assert.ok(Math.abs(x-y)<1e-8,`${x} != ${y}`);
 function renderer(w=1648,h=928){
  const r=Object.create(R.prototype);
  Object.assign(r,{w,h,dpr:1,lensStretch:Math.min(w/h,1.72),options:{moon:true,pluto:true,orbits:false,labels:false,quality:'low'},
   camera:{azimuth:25*A.DEG,elevation:45*A.DEG,zoom:1,focus:null,panX:0,panY:0},
-  ctx:{clearRect(){}},sky:{draw(){},decorate(){}},surface:{get(){},update(){},invalidate(){}},
+  ctx:{clearRect(){}},sky:{draw(){},decorate(){},dispose(){}},surface:{get(){},update(){},invalidate(){}},
   labelStates:new Map(),lastLabelMono:null,frameCount:0,dirty:true});
  r.drawBody=()=>{};return r;
 }
@@ -152,4 +153,66 @@ test('Reduced-motion zero-duration path restores exactly and invalid presets do 
  const r=renderer(),to={...r.cameraSnapshot(),azimuth:2};
  assert.equal(r.animateCamera(to,0,0),true);assert.deepEqual({...r.camera},{...to});
  assert.equal(r.animateCamera({...to,panY:.5}),false);assert.deepEqual({...r.camera},{...to});
+});
+
+test('Automatic left/right yaw starts at the current view and preserves all other camera fields',()=>{
+ const r=renderer();r.setOrbitView(2,.7);r.setPan(.1,-.1);r.focusBody('moon');r.setZoom(20);
+ const before=r.cameraSnapshot();assert.equal(r.setAutoRotate(-1,100),true);
+ assert.deepEqual({...r.camera},{...before});r.advanceAutoRotate(1100);near(r.camera.azimuth,2-2*A.DEG);
+ for(const key of ['elevation','zoom','focus','panX','panY'])assert.equal(r.camera[key],before[key]);
+ const middle=r.cameraSnapshot();r.setAutoRotate(1,1100);assert.deepEqual({...r.camera},{...middle});
+ r.advanceAutoRotate(2100);near(r.camera.azimuth,before.azimuth);
+ r.setAutoRotate(0,2100);const stopped=r.cameraSnapshot();r.advanceAutoRotate(7100);
+ assert.deepEqual({...r.camera},{...stopped});assert.equal(r.autoRotateDirection,0);
+});
+
+test('Automatic yaw is elapsed-time based, invariant across frame rates and many wraparounds',()=>{
+ const values=[];
+ for(const fps of [24,30,60,144]){const r=renderer();r.setAutoRotate(1,0);for(let i=1;i<=fps*10;i++)r.advanceAutoRotate(i*1000/fps);values.push(r.camera.azimuth);}
+ values.forEach(v=>near(v,values[0]));
+ const r=renderer();r.setOrbitView(359*A.DEG,.4);r.setAutoRotate(1,0);r.advanceAutoRotate(2000);near(r.camera.azimuth,3*A.DEG);
+ r.advanceAutoRotate(1000*180*50+2000);near(r.camera.azimuth,3*A.DEG);assert.ok(R.validCamera(r.cameraSnapshot()));
+});
+
+test('Drawing paused and high-speed simulations gives the same camera rotation',()=>{
+ const r=renderer(),s=renderer(),ms=Date.UTC(2026,8,12);
+ r.setAutoRotate(-1,0);s.setAutoRotate(-1,0);
+ for(let i=0;i<10;i++){r.draw(ms,0,i*100);s.draw(ms+i*86400000,i*10000,i*100);}
+ near(r.camera.azimuth,s.camera.azimuth);near(r.camera.elevation,s.camera.elevation);
+});
+
+test('Manual view edits, zoom, home and preset transitions supersede automatic yaw',()=>{
+ for(const edit of [r=>r.setOrbitView(1,.2),r=>r.setZoom(3),r=>r.setPan(.1,.1),r=>r.setPanY(-.1),r=>r.focusBody('moon'),r=>r.resetCamera()]){
+  const r=renderer();r.setAutoRotate(-1,0);edit(r);assert.equal(r.autoRotateDirection,0);
+ }
+ const r=renderer(),home=r.cameraSnapshot();r.setAutoRotate(1,0);r.advanceAutoRotate(500);
+ r.animateCamera(home,500,1000);assert.equal(r.autoRotateDirection,0);assert.ok(r.cameraTween);
+ r.setAutoRotate(-1,750);assert.equal(r.cameraTween,null);assert.equal(r.autoRotateDirection,-1);
+ assert.ok(R.validCamera(r.cameraSnapshot()));r.restoreCamera(home);assert.equal(r.autoRotateDirection,0);
+});
+
+test('Camera snapshots do not persist automatic motion and old v1 bookmarks still restore',()=>{
+ const r=renderer();r.setAutoRotate(1,0);r.advanceAutoRotate(4000);const saved=r.cameraSnapshot();
+ assert.deepEqual(Object.keys(saved).sort(),['azimuth','elevation','focus','panX','panY','zoom']);
+ assert.ok(R.validCamera(saved));r.resetCamera();r.restoreCamera(saved);assert.equal(r.autoRotateDirection,0);near(r.camera.azimuth,saved.azimuth);
+});
+
+test('Tab suspension preserves direction but never catches up invisible rotation',()=>{
+ const r=renderer();r.surface.dispose=()=>{};r.setAutoRotate(-1,0);r.advanceAutoRotate(200);
+ testMono=200;r.suspend();testMono=0;const atPause=r.cameraSnapshot();assert.equal(r.autoRotateDirection,-1);
+ r.advanceAutoRotate(500000);assert.deepEqual({...r.camera},{...atPause});r.advanceAutoRotate(501000);near(r.camera.azimuth,A.wrap(atPause.azimuth-2*A.DEG));
+ r.dispose();assert.equal(r.autoRotateDirection,0);
+});
+
+test('Invalid automatic-motion arguments do not change the camera or active direction',()=>{
+ const r=renderer();r.setAutoRotate(-1,0);const before=r.cameraSnapshot();
+ for(const d of [null,'1',2,NaN,Infinity])assert.equal(r.setAutoRotate(d,100),false);
+ assert.equal(r.setAutoRotate(1,NaN),false);assert.deepEqual({...r.camera},{...before});assert.equal(r.autoRotateDirection,-1);
+});
+
+test('Continuous observation retains the focused high-resolution surface request',()=>{
+ const r=renderer();r.options.quality='auto';r.surface.get=()=>true;r.focusBody('moon');r.setZoom(64);r.setAutoRotate(1,0);r.advanceAutoRotate(100);
+ const ms=Date.UTC(2026,8,12),j=r.surfaceJob(A.MOON,{},400,ms,0,100);
+ assert.equal(j.diam,1024);assert.ok(j.autoView);assert.ok(j.autoView.key.includes('moon'));assert.equal(j.phase,A.rotationAt(A.MOON,ms)/A.TAU);
+ r.setAutoRotate(0,100);assert.equal(r.surfaceJob(A.MOON,{},400,ms,0,100).autoView,null);
 });

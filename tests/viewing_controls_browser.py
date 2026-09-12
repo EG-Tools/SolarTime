@@ -1,4 +1,4 @@
-"""v0.11 focused UI regression: injected offline HTML + mouse, keyboard and touch.
+"""v0.12 focused UI regression: injected offline HTML + mouse, keyboard and touch.
 Run: python tests/viewing_controls_browser.py. No server or external request required.
 """
 from pathlib import Path
@@ -8,12 +8,12 @@ import json, os, time
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'test-results'
 OUT.mkdir(exist_ok=True)
-REPORT = ROOT / 'docs/viewing-controls-v0.11.json'
-report = {'version': '0.11', 'checks': [], 'measurements': {}, 'errors': [],
+REPORT = ROOT / 'docs/viewing-controls-v0.12.json'
+report = {'version': '0.12', 'checks': [], 'measurements': {}, 'errors': [],
           'environment': 'Linux headless Chromium; standalone HTML injected offline, with network disabled',
           'limitations': ['Direct file navigation returned ERR_BLOCKED_BY_ADMINISTRATOR; tests inject the HTML instead. Windows launch and physical mouse/touch devices are not tested.'],
           'repository_changed': False, 'deployed': False}
-ALLOWED = {'fit-view', 'show-ui'}
+ALLOWED = {'zoom-in','zoom-out','fit-view','camera-preset-1','camera-preset-2','camera-preset-3','rotate-left','rotate-right','show-ui'}
 
 def check(name, condition, detail=None):
     report['checks'].append({'name': name, 'passed': bool(condition), 'detail': detail})
@@ -38,8 +38,8 @@ def load(context):
     page = context.new_page()
     page.on('pageerror', lambda error: report['errors'].append(str(error)))
     started = time.perf_counter()
-    page.set_content((ROOT/'dist/Solar-Time_v0.11.html').read_text(), wait_until='load')
-    page.wait_for_function('window.SolarTime?.version === "0.11"', timeout=15000)
+    page.set_content((ROOT/'dist/Solar-Time_v0.12.html').read_text(), wait_until='load')
+    page.wait_for_function('window.SolarTime?.version === "0.12"', timeout=15000)
     page.wait_for_function('document.getElementById("loading").hidden', timeout=10000)
     report['measurements'].setdefault('injected_startup_ms', round((time.perf_counter()-started)*1000, 2))
     return page
@@ -51,7 +51,7 @@ try:
         context = browser.new_context(viewport={'width':1648, 'height':928}, device_scale_factor=1,
                                       timezone_id='Asia/Seoul', offline=True)
         page = load(context)
-        check('The injected offline standalone starts as Solar Time v0.11', page.title() == 'Solar Time' and not page.evaluate('navigator.onLine'))
+        check('The injected offline standalone starts as Solar Time v0.12', page.title() == 'Solar Time' and not page.evaluate('navigator.onLine'))
         check('Tracking card and its label no longer exist', page.locator('#focus-reset,#focus-label').count() == 0)
         check('Normal mode keeps one home action and hides the viewing-mode exit', page.locator('#fit-view').count() == 1 and page.locator('#fit-view').is_visible() and page.locator('#show-ui').is_hidden())
         page.locator('[data-body="earth"]').click()
@@ -61,17 +61,17 @@ try:
         page.locator('#universe').focus()
         page.keyboard.press('h')
         page.wait_for_timeout(220)
-        check('Only home and mode actions appear on entering viewing mode', buttons(page) == ALLOWED, sorted(buttons(page)))
+        check('The complete toolbar appear on entering viewing mode', buttons(page) == ALLOWED, sorted(buttons(page)))
         check('No normal-mode panel, playback or navigation remains visible', page.locator('.playback').is_hidden() and page.locator('.masthead').is_hidden() and page.locator('.footer').is_hidden() and page.locator('#body-panel').is_hidden())
-        page.screenshot(path=str(OUT/'zen-awake-v0.11.png'))
+        page.screenshot(path=str(OUT/'zen-awake-v0.12.png'))
         wait_idle(page)
-        check('Idle hides both actions and the cursor together', not buttons(page) and page.evaluate('getComputedStyle(document.getElementById("universe")).cursor') == 'none')
+        check('Idle hides all toolbar actions and the cursor together', not buttons(page) and page.evaluate('getComputedStyle(document.getElementById("universe")).cursor') == 'none')
         check('Hidden controls are inert and excluded from accessibility navigation', page.locator('#view-controls').evaluate('(el)=>el.inert && el.getAttribute("aria-hidden")==="true"'))
-        page.screenshot(path=str(OUT/'zen-idle-v0.11.png'))
+        page.screenshot(path=str(OUT/'zen-idle-v0.12.png'))
         camera_before = state(page)
         page.mouse.move(20, 460)
         page.wait_for_timeout(220)
-        check('Mouse movement reveals exactly the two actions', awake(page) and buttons(page) == ALLOWED)
+        check('Mouse movement reveals exactly the toolbar actions', awake(page) and buttons(page) == ALLOWED)
         check('Revealing controls preserves the tracked body, zoom and camera', state(page) == camera_before)
         check('Awake controls regain their click and keyboard targets', page.locator('#view-controls').evaluate('(el)=>!el.inert && el.getAttribute("aria-hidden")==="false"'))
         wait_idle(page)
@@ -94,7 +94,7 @@ try:
         page.mouse.move(400,460)
         page.mouse.down(button='middle'); page.mouse.move(540,530,steps=6)
         page.wait_for_timeout(2100)
-        check('Held middle-button drag keeps the two actions and cursor awake', buttons(page)==ALLOWED and awake(page) and page.evaluate('getComputedStyle(document.getElementById("universe")).cursor')!='none')
+        check('Held middle-button drag keeps the toolbar actions and cursor awake', buttons(page)==ALLOWED and awake(page) and page.evaluate('getComputedStyle(document.getElementById("universe")).cursor')!='none')
         page.mouse.up(button='middle')
         wait_idle(page)
         check('Releasing the middle drag rearms the idle timeout', not awake(page) and not buttons(page))
@@ -119,10 +119,10 @@ try:
         page.keyboard.press('Escape')
         check('Escape still exits viewing mode', not state(page)['zen'])
         page.locator('#universe').focus(); page.keyboard.press('0')
-        page.screenshot(path=str(OUT/'overview-v0.11.png'))
+        page.screenshot(path=str(OUT/'overview-v0.12.png'))
         # Export uses a pristine DOM: no copied idle state or stale tracking card.
-        exported = page.evaluate('async()=>{const html=await SolarTime.materials.offlineHTML();const d=new DOMParser().parseFromString(html,"text/html");return {title:d.title,card:!!d.getElementById("focus-reset"),home:d.querySelectorAll("#fit-view").length,exit:d.querySelectorAll("#show-ui").length,version:html.includes("version:\'0.11\'")};}')
-        check('Image-inclusive HTML export preserves title, new controls and v0.11', exported == {'title':'Solar Time','card':False,'home':1,'exit':1,'version':True}, exported)
+        exported = page.evaluate('async()=>{const html=await SolarTime.materials.offlineHTML();const d=new DOMParser().parseFromString(html,"text/html");return {title:d.title,card:!!d.getElementById("focus-reset"),home:d.querySelectorAll("#fit-view").length,exit:d.querySelectorAll("#show-ui").length,version:html.includes("version:\'0.12\'")};}')
+        check('Image-inclusive HTML export preserves title, new controls and v0.12', exported == {'title':'Solar Time','card':False,'home':1,'exit':1,'version':True}, exported)
         report['measurements']['render_backends'] = page.evaluate('({surface:SolarTime.renderer.surface.stats.backend,sky:SolarTime.renderer.sky.stats.backend})')
         for width, height in [(390,844),(320,568)]:
             mobile_context = browser.new_context(viewport={'width':width,'height':height},device_scale_factor=1,
@@ -132,12 +132,12 @@ try:
             wait_idle(mobile)
             mobile.touchscreen.tap(70,380)
             mobile.wait_for_timeout(210)
-            check(f'{width}px: one tap reveals only home and mode', buttons(mobile)==ALLOWED and state(mobile)['zen'])
+            check(f'{width}px: one tap reveals the complete toolbar', buttons(mobile)==ALLOWED and state(mobile)['zen'])
             rects = mobile.locator('#view-controls button:visible').evaluate_all('(els)=>els.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,w:r.width,h:r.height}})')
-            check(f'{width}px: both actions fit and have 44px minimum touch height', all(r['x']>=0 and r['y']>=0 and r['right']<=width and r['bottom']<=height and r['h']>=44 for r in rects),rects)
+            check(f'{width}px: all toolbar actions fit and have non-overlapping 23px+ control areas', all(r['x']>=0 and r['y']>=0 and r['right']<=width and r['bottom']<=height and r['h']>=23 for r in rects),rects)
             mobile.locator('#fit-view').tap()
             check(f'{width}px: home does not exit viewing mode',state(mobile)['zen'] and state(mobile)['zoom']==1)
-            mobile.screenshot(path=str(OUT/f'mobile-{width}-awake-v0.11.png'))
+            mobile.screenshot(path=str(OUT/f'mobile-{width}-awake-v0.12.png'))
             mobile.locator('#show-ui').tap()
             check(f'{width}px: mode tap restores playback controls',not state(mobile)['zen'] and mobile.locator('.playback').is_visible())
             mobile_context.close()

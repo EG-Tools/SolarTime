@@ -1,4 +1,4 @@
-/* Solar Time v0.11 — clock, interaction and accessible UI. */
+/* Solar Time v0.12 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -40,6 +40,11 @@
         $('elevation').value=deg;$('elevation-value').textContent=deg+'°';
         $('zoom-value').textContent=zoom.toFixed(1)+'×';
         $('zoom-in').disabled=zoom>=limits.maxZoom;$('zoom-out').disabled=zoom<=limits.minZoom;
+        for(const [id,direction,label] of [['rotate-left',-1,'좌회전'],['rotate-right',1,'우회전']]){
+          const active=renderer.autoRotateDirection===direction,b=$(id);
+          b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-label',label+(active?' 정지':' 시작'));
+          b.title=label+(active?' 중 · 누르면 정지':' · 초당 2°');
+        }
       }
       cameraUi();
       const PRESETS_KEY='solar-time.camera-presets.v1';
@@ -73,12 +78,13 @@
       function closePresetDialog(restoreFocus=true) {
         const action=presetAction;presetAction=null;
         if(presetDialog.open)presetDialog.close();
-        if(restoreFocus&&action&&!zen)$('camera-preset-'+(action.index+1)).focus({preventScroll:true});
+        if(restoreFocus&&action)$('camera-preset-'+(action.index+1)).focus({preventScroll:true});
+        if(action&&zen)wakePointer();
       }
       function openPresetDialog(index,event,mode='save') {
         event.preventDefault();const value=cameraPresets[index];
         if(mode==='delete'&&!value){toast(`${index+1}번에는 저장된 시점이 없습니다.`);return;}
-        closePresetDialog(false);renderer.cancelCameraTween(performance.now());
+        closePresetDialog(false);renderer.cancelCameraMotion(performance.now());cameraUi();
         presetAction={index,mode,previous:value,snapshot:renderer.cameraSnapshot()};
         $('preset-title').textContent=`${index+1}번 카메라`;
         $('preset-note').textContent=mode==='delete'?'저장된 카메라를 삭제할까요?':value?'현재 시점으로 덮어쓸까요?':'현재 시점을 저장할까요?';
@@ -90,7 +96,7 @@
         const box=presetDialog.getBoundingClientRect();
         presetDialog.style.left=Math.max(8,Math.min(x+8,innerWidth-box.width-8))+'px';
         presetDialog.style.top=Math.max(8,Math.min(y+8,innerHeight-box.height-8))+'px';
-        $('preset-cancel').focus({preventScroll:true});
+        $('preset-cancel').focus({preventScroll:true});wakePointer();
       }
       for(let i=0;i<3;i++) {
         const b=$('camera-preset-'+(i+1));b.addEventListener('click',event=>openPresetDialog(i,event));
@@ -203,13 +209,16 @@
       $('focus-body').addEventListener('click',()=>focusBody(renderer.selected));
       $('feature-view').addEventListener('click',()=>{const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;renderer.faceFeature(id,id==='earth'?37.5665:-22,id==='earth'?126.978:(window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70),clock.value(performance.now()));cameraUi();});
       $('zoom-in').addEventListener('click',()=>zoom(1.2));$('zoom-out').addEventListener('click',()=>zoom(1/1.2));
+      for(const [id,direction] of [['rotate-left',-1],['rotate-right',1]])$(id).addEventListener('click',()=>{
+        renderer.setAutoRotate(renderer.autoRotateDirection===direction?0:direction,performance.now());cameraUi();
+      });
       async function fullscreen() {
         try {if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('이 브라우저는 전체 화면을 지원하지 않습니다.');}
         catch(_){toast('전체 화면을 열지 못했습니다. 브라우저의 F11 키를 사용하세요.');}
       }
       $('fullscreen-button').addEventListener('click',fullscreen);
       document.addEventListener('fullscreenchange',()=>{$('fullscreen-button').setAttribute('aria-label',document.fullscreenElement?'전체 화면 종료':'전체 화면');renderer.resize();});
-      // A single idle owner controls the cursor, both actions and their hit/tab targets.
+      // A single idle owner controls the cursor, complete toolbar and hit/tab targets.
       const viewControls=$('view-controls'),idleDelay=1800;
       function showAwake(value) {
         const awake=zen&&value&&!disposed&&!document.hidden;
@@ -226,7 +235,7 @@
         clearTimeout(awakeTimer);awakeTimer=undefined;
         if(!zen||disposed||document.hidden)return;
         showAwake(true);
-        if(pointers.size||event?.buttons)return; // Keep controls awake throughout a held drag/pinch.
+        if(pointers.size||event?.buttons||presetDialog.open)return; // Keep controls awake throughout a held drag/pinch.
         awakeTimer=setTimeout(()=>{awakeTimer=undefined;showAwake(false);},idleDelay);
       }
       function setZen(value) {
@@ -256,6 +265,7 @@
       function pointerPosition(event) {const r=canvas.getBoundingClientRect();return {x:event.clientX-r.left,y:event.clientY-r.top};}
       canvas.addEventListener('pointerdown',event=>{
         if(event.pointerType==='mouse'&&event.button!==0&&event.button!==1)return;
+        // A wake-up click is not a drag: preserve automatic yaw until manual movement begins.
         renderer.cancelCameraTween(performance.now());
         const pan=event.pointerType==='mouse'&&event.button===1;
         if(pan)event.preventDefault();
@@ -349,7 +359,7 @@
       window.addEventListener('pagehide',()=>{closePresetDialog(false);materials.cancel();renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.11',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.12',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       materials.load();materialStatus();
       if(!document.hidden)raf=requestAnimationFrame(frame);

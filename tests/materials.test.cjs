@@ -24,11 +24,12 @@ test('Surface raster is limited to 1024 independently of detailed input maps',()
  assert.ok(renderer.includes('detailWidth:4096,maxRaster:1024'));assert.ok(surface.includes('Math.min(1024,job.diam)'));
  assert.ok(renderer.includes('materialRevision'));assert.ok(surface.includes('t.source!==source'));
 });
-test('Viewing mode exposes only the shared home and mode actions while awake',()=>{
+test('Viewing mode exposes the single complete toolbar only while awake',()=>{
  const css=fs.readFileSync(require.resolve('../styles.css'),'utf8');
  assert.ok(css.includes('body.zen button'));
- assert.ok(css.includes('body.zen.pointer-awake #fit-view,body.zen.pointer-awake #show-ui'));
- assert.ok(css.includes('body.zen #view-controls>:not(#fit-view):not(#show-ui){display:none!important}'));
+ assert.ok(css.includes('body.zen.pointer-awake #view-controls button'));
+ assert.ok(css.includes('body.zen #preset-dialog[open] button'));
+ assert.ok(!css.includes('#view-controls>:not(#fit-view):not(#show-ui)'));
  const html=fs.readFileSync(require.resolve('../index.html'),'utf8'),app=fs.readFileSync(require.resolve('../src/app.js'),'utf8');
  assert.ok(!html.includes('id="focus-reset"'));assert.ok(!app.includes("$('focus-reset')"));
  assert.equal((html.match(/id="fit-view"/g)||[]).length,1);

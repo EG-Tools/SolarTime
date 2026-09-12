@@ -1,4 +1,4 @@
-/* Solar Time v0.11 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.12 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -8,6 +8,7 @@
   const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
   const VIEW=Object.freeze({minZoom:.6,maxZoom:64,lowerBy:.05,minPanY:-.2,maxPanY:.2,minPanX:-.2,maxPanX:.2,minElevation:-Math.PI/2,maxElevation:Math.PI/2,fillRadius:.34});
   const SURFACE=Object.freeze({baseWidth:256,detailWidth:4096,maxRaster:1024,lowRaster:384,previewRaster:192});
+  const AUTO_ROTATE_SPEED=2*DEG; // radians per real second; independent of orbital time
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
   function noise(x,y) {
     const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);
@@ -21,7 +22,7 @@
       if(!this.ctx)throw new Error('Canvas 2D is unavailable.');
       this.options={orbits:true,labels:true,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
       this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};
-      this.cameraTween=null;
+      this.cameraTween=null;this.autoRotation=null;this.rotationGeneration=0;
       this.surface=new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
       this.labelStates=new Map();this.lastLabelMono=null;
       this.selected=null;this.hover=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
@@ -58,20 +59,20 @@
     }
     setOrbitView(azimuth,elevation) {
       if(!Number.isFinite(azimuth)||!Number.isFinite(elevation))return;
-      this.cancelCameraTween();
+      this.cancelCameraMotion();
       this.camera.azimuth=A.wrap(azimuth);
       this.camera.elevation=clamp(elevation,VIEW.minElevation,VIEW.maxElevation);
       this.cameraChangeAt=performance.now();this.dirty=true;
     }
     setPanY(value) {
       if(!Number.isFinite(value))return;
-      this.cancelCameraTween();
+      this.cancelCameraMotion();
       // Screen-height fractions: independent of zoom, target, angle or resolution.
       this.camera.panY=clamp(value,VIEW.minPanY,VIEW.maxPanY);this.dirty=true;
     }
     setPan(x,y=this.camera.panY) {
       if(!Number.isFinite(x)||!Number.isFinite(y))return;
-      this.cancelCameraTween();this.camera.panX=clamp(x,VIEW.minPanX,VIEW.maxPanX);this.setPanY(y);
+      this.cancelCameraMotion();this.camera.panX=clamp(x,VIEW.minPanX,VIEW.maxPanX);this.setPanY(y);
     }
     faceFeature(id,latitude,longitude,ms) {
       const body=[A.SUN,...this.getBodies(),A.MOON].find(b=>b.id===id);if(!body)return;
@@ -128,7 +129,7 @@
     }
     setZoom(value,focusId=null) {
       if(!Number.isFinite(value))return;
-      this.cancelCameraTween();
+      this.cancelCameraMotion();
       this.camera.zoom=clamp(value,VIEW.minZoom,VIEW.maxZoom);this.cameraChangeAt=performance.now();
       if(this.camera.zoom<=1)this.camera.focus=null;
       else if(!this.camera.focus) {
@@ -142,7 +143,7 @@
       if(!body)return;
       const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.14;
       const t=clamp((radius-baseRadius)/(this.focusRadius()-baseRadius),0,1);
-      this.cancelCameraTween();this.camera.focus=id;
+      this.cancelCameraMotion();this.camera.focus=id;
       this.setZoom(clamp((1+t*(Math.sqrt(VIEW.maxZoom)-1))**2,6,VIEW.maxZoom));
     }
     get zoomLimits() {return VIEW;}
@@ -161,7 +162,7 @@
     restoreCamera(state) {
       if(!Renderer.validCamera(state))return false;
       if((state.focus==='moon'&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
-      this.cameraTween=null;
+      this.cameraTween=null;this.autoRotation=null;
       // Commit one camera transaction. Time, selected body and display toggles are not preset data.
       this.camera={azimuth:state.azimuth,elevation:state.elevation,zoom:state.zoom,
         focus:state.focus,panX:state.panX,panY:state.panY};
@@ -174,7 +175,7 @@
       if(!Renderer.validCamera(state)||!Number.isFinite(mono)||!Number.isFinite(duration))return false;
       if((state.focus==='moon'&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       if(duration<=0)return this.restoreCamera(state);
-      this.advanceCamera(mono);
+      this.stopAutoRotate(mono);this.advanceCamera(mono);
       const from=this.cameraSnapshot(),to={...state},bridge=from.focus!==to.focus;
       this.cameraTween={from,to,start:mono,duration:duration*(bridge?1.4:1),bridge};
       this.cameraChangeAt=mono;this.dirty=true;return true;
@@ -198,7 +199,27 @@
     cancelCameraTween(mono=performance.now()) {
       if(this.cameraTween){this.advanceCamera(mono);this.cameraTween=null;}
     }
-    resetCamera() {this.cameraTween=null;this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};this.dirty=true;}
+    get autoRotateDirection() {return this.autoRotation?.direction||0;}
+    setAutoRotate(direction,mono=performance.now()) {
+      if(![-1,0,1].includes(direction)||!Number.isFinite(mono))return false;
+      this.cancelCameraTween(mono);this.advanceAutoRotate(mono);
+      this.autoRotation=direction?{direction,azimuth:this.camera.azimuth,mono,generation:(this.rotationGeneration||0)+1}:null;
+      if(this.autoRotation)this.rotationGeneration=this.autoRotation.generation;
+      // This is deliberate slow observation, not an active-drag low-resolution preview.
+      this.cameraChangeAt=-Infinity;this.dirty=true;return true;
+    }
+    advanceAutoRotate(mono=performance.now()) {
+      const motion=this.autoRotation;if(!motion||!Number.isFinite(mono))return false;
+      if(motion.mono===null){motion.mono=mono;motion.azimuth=this.camera.azimuth;return false;}
+      const angle=A.wrap(motion.azimuth+motion.direction*AUTO_ROTATE_SPEED*Math.max(0,mono-motion.mono)/1000);
+      if(angle===this.camera.azimuth)return false;
+      this.camera.azimuth=angle;this.dirty=true;return true;
+    }
+    stopAutoRotate(mono=performance.now()) {
+      if(this.autoRotation){this.advanceAutoRotate(mono);this.autoRotation=null;}
+    }
+    cancelCameraMotion(mono=performance.now()) {this.cancelCameraTween(mono);this.stopAutoRotate(mono);}
+    resetCamera() {this.cameraTween=null;this.autoRotation=null;this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};this.dirty=true;}
     orbit(c,path,highlight) {
       const rgb=path.body.id==='earth'?'110,174,212':path.body.id==='pluto'?'155,140,127':'138,151,168';
       c.lineWidth=highlight?1.25:.72;
@@ -228,13 +249,19 @@
       const activity=false; // No surface distortion or erupting loops: physical spin + shine only.
       const spin=A.rotationAt(body,ms);
       const geometry=[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,this.camera.azimuth,this.camera.elevation,A.rotationPoleTilt(body),Number(activity)].join(':');
-      return {id:body.id,diam,textureWidth,frame,geometry,phase:spin/TAU,
+      const autoView=this.autoRotation?{yaw:this.camera.azimuth,
+        key:[this.autoRotation.generation,body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,this.camera.elevation,A.rotationPoleTilt(body),Number(activity)].join(':')}:null;
+      return {id:body.id,diam,textureWidth,frame,geometry,autoView,phase:spin/TAU,
         light:[lightVector.x/len,lightVector.y/len,lightVector.z/len],activity,seconds:activity?seconds:0};
     }
     invalidateSurfaces() {this.surface?.invalidate();}
-    suspend() {this.cancelCameraTween();this.surface?.dispose();this.surface=null;}
+    suspend() {
+      const mono=performance.now();this.cancelCameraTween(mono);this.advanceAutoRotate(mono);
+      if(this.autoRotation)this.autoRotation.mono=null; // Resume at the same view, never catch up a hidden tab.
+      this.surface?.dispose();this.surface=null;
+    }
     resume() {if(!this.surface)this.surface=new window.SolarSurface.Service();}
-    dispose() {this.suspend();this.clearLabels();this.hitTargets=[];this.coronaTexture=null;this.sky?.dispose();}
+    dispose() {this.suspend();this.autoRotation=null;this.clearLabels();this.hitTargets=[];this.coronaTexture=null;this.sky?.dispose();}
     makeCoronaTexture(size=384) {
       // One bounded, reusable corona asset. No per-frame pixel noise, downloads or timers.
       const extent=3.3,canvas=document.createElement('canvas');canvas.width=canvas.height=size;
@@ -373,7 +400,7 @@
       if('letterSpacing' in c)c.letterSpacing='0px';
     }
     draw(ms,seconds,mono=performance.now()) {
-      this.advanceCamera(mono);
+      this.advanceCamera(mono);this.advanceAutoRotate(mono);
       const c=this.ctx;this.frameCount++;c.clearRect(0,0,this.w,this.h);
       if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
       this.sky.draw(seconds,this.camera,this.options);

@@ -1,0 +1,978 @@
+{
+  "version": "0.12",
+  "base_version": "0.11",
+  "passed": true,
+  "unit_tests": {
+    "total": 114,
+    "passed": 114,
+    "failed": 0,
+    "log": "docs/unit-results-v0.12.txt"
+  },
+  "browser_checks": {
+    "unique_total": 65,
+    "passed": 65,
+    "failed": 0,
+    "checks": [
+      {
+        "name": "Offline v0.12 starts with Solar Time tab title",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Single toolbar order is +, minus, home, 1, 2, 3, left, right",
+        "passed": true,
+        "detail": [
+          "zoom-in",
+          "zoom-out",
+          "fit-view",
+          "camera-preset-1",
+          "camera-preset-2",
+          "camera-preset-3",
+          "rotate-left",
+          "rotate-right"
+        ],
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Vertical column centered and no buttons overlap",
+        "passed": true,
+        "detail": [
+          {
+            "id": "zoom-in",
+            "x": 1569,
+            "y": 313,
+            "w": 32,
+            "h": 32,
+            "cx": 1585
+          },
+          {
+            "id": "zoom-out",
+            "x": 1569,
+            "y": 350,
+            "w": 32,
+            "h": 32,
+            "cx": 1585
+          },
+          {
+            "id": "fit-view",
+            "x": 1569,
+            "y": 407,
+            "w": 32,
+            "h": 32,
+            "cx": 1585
+          },
+          {
+            "id": "camera-preset-1",
+            "x": 1570.5,
+            "y": 447,
+            "w": 29,
+            "h": 29,
+            "cx": 1585
+          },
+          {
+            "id": "camera-preset-2",
+            "x": 1570.5,
+            "y": 478,
+            "w": 29,
+            "h": 29,
+            "cx": 1585
+          },
+          {
+            "id": "camera-preset-3",
+            "x": 1570.5,
+            "y": 509,
+            "w": 29,
+            "h": 29,
+            "cx": 1585
+          },
+          {
+            "id": "rotate-left",
+            "x": 1569,
+            "y": 546,
+            "w": 32,
+            "h": 32,
+            "cx": 1585
+          },
+          {
+            "id": "rotate-right",
+            "x": 1569,
+            "y": 583,
+            "w": 32,
+            "h": 32,
+            "cx": 1585
+          }
+        ],
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Preset buttons moved, not cloned, and no longer beneath Help",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Home and mode are icon-only with accessible names",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Compact visual preset circles stay 19px",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Left toggle runs at 2 degrees per real second",
+        "passed": true,
+        "detail": -1.9861287486567059,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Automatic yaw preserves elevation, zoom, pan and target",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Direction buttons are mutually exclusive and aria-pressed matches",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Opposite toggle reverses from current pose",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Right yaw uses the same slow speed",
+        "passed": true,
+        "detail": 1.9861287486568813,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Active toggle stops without resetting view",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Orbital rate and pause do not change camera speed",
+        "passed": true,
+        "detail": -1.9954283226296186,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Home stops auto rotation and resets framing",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Zoom takes manual control and stops yaw",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Drag takes manual control and stops yaw",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Close-up rotation preserves focus and zoom",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Continuous yaw receives finished texture frames instead of starving",
+        "passed": true,
+        "detail": {
+          "before": 596,
+          "after": 601
+        },
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Slow orbit does not use low 192px drag preview",
+        "passed": true,
+        "detail": 768,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Saving stops motion and asks Cancel/Save",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Slot stays empty before confirmation",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Saved data stays v1 pose-only without auto-rotation state",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Right click still asks Cancel/Delete",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Cancelled delete retains slot",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Shortcut stops auto yaw and starts smooth transition",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Shortcut reaches the exact stored pose",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Zen wakes the entire same toolbar plus mode icon",
+        "passed": true,
+        "detail": [
+          "camera-preset-1",
+          "camera-preset-2",
+          "camera-preset-3",
+          "fit-view",
+          "rotate-left",
+          "rotate-right",
+          "show-ui",
+          "zoom-in",
+          "zoom-out"
+        ],
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Zen leaves all normal panels hidden and no tracking card",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "SEOUL label remains in zen",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Automatic yaw does not wake idle buttons or cursor",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Idle toolbar is inert and aria-hidden",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-core-v0.12.json"
+      },
+      {
+        "name": "Pointer activity restores every control in zen",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "Zen confirmation remains interactive beyond idle timeout",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "Popup fits inside viewport beside the right toolbar",
+        "passed": true,
+        "detail": {
+          "x": 1370,
+          "y": 480,
+          "width": 270,
+          "height": 138.1875
+        },
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "Saving within zen preserves the mode",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "Confirmed delete clears only its slot",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "Zen zoom works without leaving the mode",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "Icon home resets while remaining in zen",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "Mode exit restores normal toolbar without stale idle timeout",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "Visibility event pauses camera but preserves direction",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "Visibility resume skips invisible elapsed time",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "Exported HTML keeps one toolbar and version v0.12",
+        "passed": true,
+        "detail": {
+          "title": "Solar Time",
+          "version": true,
+          "ids": [
+            "zoom-in",
+            "zoom-out",
+            "fit-view",
+            "camera-preset-1",
+            "camera-preset-2",
+            "camera-preset-3",
+            "rotate-left",
+            "rotate-right",
+            "show-ui"
+          ],
+          "showModeHidden": true,
+          "oldHomeText": false
+        },
+        "source": "orbit-controls-remaining-v0.12.json"
+      },
+      {
+        "name": "No uncaught browser application errors",
+        "passed": true,
+        "detail": [],
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "390x844: normal order/column fits",
+        "passed": true,
+        "detail": [
+          {
+            "id": "zoom-in",
+            "x": 349,
+            "y": 287.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          },
+          {
+            "id": "zoom-out",
+            "x": 349,
+            "y": 319.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          },
+          {
+            "id": "fit-view",
+            "x": 349,
+            "y": 369.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          },
+          {
+            "id": "camera-preset-1",
+            "x": 350,
+            "y": 404.5,
+            "w": 27,
+            "h": 27,
+            "cx": 363.5
+          },
+          {
+            "id": "camera-preset-2",
+            "x": 350,
+            "y": 433.5,
+            "w": 27,
+            "h": 27,
+            "cx": 363.5
+          },
+          {
+            "id": "camera-preset-3",
+            "x": 350,
+            "y": 462.5,
+            "w": 27,
+            "h": 27,
+            "cx": 363.5
+          },
+          {
+            "id": "rotate-left",
+            "x": 349,
+            "y": 495.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          },
+          {
+            "id": "rotate-right",
+            "x": 349,
+            "y": 527.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          }
+        ],
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "390x844: zen column fits without overlap",
+        "passed": true,
+        "detail": [
+          {
+            "id": "zoom-in",
+            "x": 349,
+            "y": 269.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          },
+          {
+            "id": "zoom-out",
+            "x": 349,
+            "y": 301.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          },
+          {
+            "id": "fit-view",
+            "x": 349,
+            "y": 351.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          },
+          {
+            "id": "camera-preset-1",
+            "x": 350,
+            "y": 386.5,
+            "w": 27,
+            "h": 27,
+            "cx": 363.5
+          },
+          {
+            "id": "camera-preset-2",
+            "x": 350,
+            "y": 415.5,
+            "w": 27,
+            "h": 27,
+            "cx": 363.5
+          },
+          {
+            "id": "camera-preset-3",
+            "x": 350,
+            "y": 444.5,
+            "w": 27,
+            "h": 27,
+            "cx": 363.5
+          },
+          {
+            "id": "rotate-left",
+            "x": 349,
+            "y": 477.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          },
+          {
+            "id": "rotate-right",
+            "x": 349,
+            "y": 509.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          },
+          {
+            "id": "show-ui",
+            "x": 349,
+            "y": 545.5,
+            "w": 29,
+            "h": 29,
+            "cx": 363.5
+          }
+        ],
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "390x844: one touch wakes toolbar",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "390x844: orbit toggle handles touch",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "390x844: save in zen handles touch",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "390x844: mode icon exits zen",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "320x568: normal order/column fits",
+        "passed": true,
+        "detail": [
+          {
+            "id": "zoom-in",
+            "x": 279,
+            "y": 149.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          },
+          {
+            "id": "zoom-out",
+            "x": 279,
+            "y": 181.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          },
+          {
+            "id": "fit-view",
+            "x": 279,
+            "y": 231.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          },
+          {
+            "id": "camera-preset-1",
+            "x": 280,
+            "y": 266.5,
+            "w": 27,
+            "h": 27,
+            "cx": 293.5
+          },
+          {
+            "id": "camera-preset-2",
+            "x": 280,
+            "y": 295.5,
+            "w": 27,
+            "h": 27,
+            "cx": 293.5
+          },
+          {
+            "id": "camera-preset-3",
+            "x": 280,
+            "y": 324.5,
+            "w": 27,
+            "h": 27,
+            "cx": 293.5
+          },
+          {
+            "id": "rotate-left",
+            "x": 279,
+            "y": 357.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          },
+          {
+            "id": "rotate-right",
+            "x": 279,
+            "y": 389.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          }
+        ],
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "320x568: zen column fits without overlap",
+        "passed": true,
+        "detail": [
+          {
+            "id": "zoom-in",
+            "x": 279,
+            "y": 131.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          },
+          {
+            "id": "zoom-out",
+            "x": 279,
+            "y": 163.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          },
+          {
+            "id": "fit-view",
+            "x": 279,
+            "y": 213.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          },
+          {
+            "id": "camera-preset-1",
+            "x": 280,
+            "y": 248.5,
+            "w": 27,
+            "h": 27,
+            "cx": 293.5
+          },
+          {
+            "id": "camera-preset-2",
+            "x": 280,
+            "y": 277.5,
+            "w": 27,
+            "h": 27,
+            "cx": 293.5
+          },
+          {
+            "id": "camera-preset-3",
+            "x": 280,
+            "y": 306.5,
+            "w": 27,
+            "h": 27,
+            "cx": 293.5
+          },
+          {
+            "id": "rotate-left",
+            "x": 279,
+            "y": 339.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          },
+          {
+            "id": "rotate-right",
+            "x": 279,
+            "y": 371.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          },
+          {
+            "id": "show-ui",
+            "x": 279,
+            "y": 407.5,
+            "w": 29,
+            "h": 29,
+            "cx": 293.5
+          }
+        ],
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "320x568: one touch wakes toolbar",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "320x568: orbit toggle handles touch",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "320x568: save in zen handles touch",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "320x568: mode icon exits zen",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "844x390: normal order/column fits",
+        "passed": true,
+        "detail": [
+          {
+            "id": "zoom-in",
+            "x": 790.5,
+            "y": 83.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          },
+          {
+            "id": "zoom-out",
+            "x": 790.5,
+            "y": 111.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          },
+          {
+            "id": "fit-view",
+            "x": 790.5,
+            "y": 151.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          },
+          {
+            "id": "camera-preset-1",
+            "x": 792.5,
+            "y": 180.5,
+            "w": 23,
+            "h": 23,
+            "cx": 804
+          },
+          {
+            "id": "camera-preset-2",
+            "x": 792.5,
+            "y": 203.5,
+            "w": 23,
+            "h": 23,
+            "cx": 804
+          },
+          {
+            "id": "camera-preset-3",
+            "x": 792.5,
+            "y": 226.5,
+            "w": 23,
+            "h": 23,
+            "cx": 804
+          },
+          {
+            "id": "rotate-left",
+            "x": 790.5,
+            "y": 251.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          },
+          {
+            "id": "rotate-right",
+            "x": 790.5,
+            "y": 279.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          }
+        ],
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "844x390: zen column fits without overlap",
+        "passed": true,
+        "detail": [
+          {
+            "id": "zoom-in",
+            "x": 790.5,
+            "y": 67.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          },
+          {
+            "id": "zoom-out",
+            "x": 790.5,
+            "y": 95.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          },
+          {
+            "id": "fit-view",
+            "x": 790.5,
+            "y": 135.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          },
+          {
+            "id": "camera-preset-1",
+            "x": 792.5,
+            "y": 164.5,
+            "w": 23,
+            "h": 23,
+            "cx": 804
+          },
+          {
+            "id": "camera-preset-2",
+            "x": 792.5,
+            "y": 187.5,
+            "w": 23,
+            "h": 23,
+            "cx": 804
+          },
+          {
+            "id": "camera-preset-3",
+            "x": 792.5,
+            "y": 210.5,
+            "w": 23,
+            "h": 23,
+            "cx": 804
+          },
+          {
+            "id": "rotate-left",
+            "x": 790.5,
+            "y": 235.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          },
+          {
+            "id": "rotate-right",
+            "x": 790.5,
+            "y": 263.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          },
+          {
+            "id": "show-ui",
+            "x": 790.5,
+            "y": 295.5,
+            "w": 27,
+            "h": 27,
+            "cx": 804
+          }
+        ],
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "844x390: one touch wakes toolbar",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "844x390: orbit toggle handles touch",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "844x390: save in zen handles touch",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "844x390: mode icon exits zen",
+        "passed": true,
+        "detail": null,
+        "source": "orbit-controls-mobile-v0.12.json"
+      },
+      {
+        "name": "A single idle wake-up click preserves automatic yaw",
+        "passed": true,
+        "source": "orbit-wake-v0.12.json"
+      },
+      {
+        "name": "A real drag after waking stops automatic yaw",
+        "passed": true,
+        "source": "orbit-wake-v0.12.json"
+      },
+      {
+        "name": "Latest bundle retains single shared toolbar and exact version",
+        "passed": true,
+        "source": "orbit-wake-v0.12.json"
+      },
+      {
+        "name": "No exceptions in final input boundary checks",
+        "passed": true,
+        "source": "orbit-wake-v0.12.json"
+      }
+    ],
+    "scopes": [
+      {
+        "file": "orbit-controls-core-v0.12.json",
+        "checks": 31
+      },
+      {
+        "file": "orbit-controls-remaining-v0.12.json",
+        "checks": 12
+      },
+      {
+        "file": "orbit-controls-mobile-v0.12.json",
+        "checks": 19
+      },
+      {
+        "file": "orbit-wake-v0.12.json",
+        "checks": 4
+      }
+    ]
+  },
+  "environment": {
+    "browserVersion": "144.0.7559.96",
+    "injectedStartupMs": 9952.4,
+    "leftDegreesPerSecond": -1.9861287486567059,
+    "rightDegreesPerSecond": 1.9861287486568813,
+    "renderBackends": {
+      "surface": "worker",
+      "kernel": {
+        "renders": 626,
+        "texturesBuilt": 18,
+        "mapsBuilt": 613,
+        "backend": "cpu",
+        "fallback": "WebGL unavailable"
+      },
+      "sky": "compatibility"
+    }
+  },
+  "limitations": [
+    "Linux headless Chromium; standalone HTML injected offline. Direct file navigation returned ERR_BLOCKED_BY_ADMINISTRATOR.",
+    "Camera storage uses an explicit in-memory test adapter. Windows launch and physical input are not tested.",
+    "Hardware GPU and live texture downloads are not verified.",
+    "The monolithic browser command timed out after 31 completed checks; remaining desktop, mobile and final input cases were run separately.",
+    "The visibility boundary was exercised by an explicit document.hidden/event fixture."
+  ],
+  "invariants": {
+    "asset_files_unchanged": true,
+    "astronomy_model_unchanged": true,
+    "sky_and_comet_code_unchanged": true,
+    "preset_storage_schema": "solar-time.camera-presets.v1",
+    "no_new_runtime_dependency": true,
+    "physical_time_unchanged": true
+  },
+  "repository_changed": false,
+  "deployed": false
+}

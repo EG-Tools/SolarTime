@@ -20,16 +20,9 @@
       <div><h1>SOLAR TIME</h1><p>A LITTLE CLOSER TO THE COSMOS</p></div>
     </div>
     <div class="top-actions">
-      <div class="camera-presets-anchor">
       <button id="help-button" class="icon-button" aria-label="사용 방법과 계산 기준" title="사용 방법과 계산 기준">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.8 9a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.7-2.2 3.4M12 16v.1"/></svg>
       </button>
-      <div id="camera-presets" class="camera-presets" role="group" aria-label="카메라 시점 저장">
-        <button type="button" id="camera-preset-1" class="icon-button camera-preset" data-preset="1" aria-label="1번 시점 저장">1</button>
-        <button type="button" id="camera-preset-2" class="icon-button camera-preset" data-preset="2" aria-label="2번 시점 저장">2</button>
-        <button type="button" id="camera-preset-3" class="icon-button camera-preset" data-preset="3" aria-label="3번 시점 저장">3</button>
-      </div>
-      </div>
       <button id="settings-button" class="icon-button" aria-label="화면 설정" aria-expanded="false" aria-controls="settings-panel" title="화면 설정">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5"/><circle cx="15" cy="17" r="2.5"/></svg>
       </button>
@@ -65,7 +58,7 @@
     <p class="settings-note">주기는 초 단위 소수점 2자리로 저장합니다.<br>실행할 때 기기 시각으로 로컬 보정합니다.<br>인터넷 없이 동작하며 설정은 이 기기에 저장됩니다.</p>
     <p id="photo-status" class="photo-status" role="status">공개 텍스처 확인 중 · 연결 전에는 내장 이미지를 표시합니다.</p>
     <div class="material-actions"><button id="photo-retry" class="text-button">사진 다시 받기</button><button id="photo-export" class="text-button">이미지 포함 HTML 저장</button></div>
-    <p class="settings-credit">Life User / Solar Time v0.11 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
+    <p class="settings-credit">Life User / Solar Time v0.12 / <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
   </aside>
 
   <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보">
@@ -85,8 +78,19 @@
     <button id="zoom-in" class="icon-button" aria-label="확대" title="확대"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
     <button id="zoom-out" class="icon-button" aria-label="축소" title="축소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
     <output id="zoom-value" aria-label="화면 확대 배율">1.0×</output>
-    <button id="fit-view" class="icon-button" aria-label="기본 시점" title="기본 시점 · 0"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg><span class="zen-label">기본 시점</span></button>
-    <button id="show-ui" class="icon-button" hidden aria-label="일반 모드로 전환" title="일반 모드로 전환 · H"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3zM3 9h18M8 9v10"/></svg><span class="zen-label">모드 전환</span></button>
+    <button id="fit-view" class="icon-button" aria-label="기본 시점" title="기본 시점 · 0"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></button>
+    <div id="camera-presets" class="camera-presets" role="group" aria-label="카메라 시점 저장">
+        <button type="button" id="camera-preset-1" class="icon-button camera-preset" data-preset="1" aria-label="1번 시점 저장">1</button>
+        <button type="button" id="camera-preset-2" class="icon-button camera-preset" data-preset="2" aria-label="2번 시점 저장">2</button>
+        <button type="button" id="camera-preset-3" class="icon-button camera-preset" data-preset="3" aria-label="3번 시점 저장">3</button>
+      </div>
+    <button id="rotate-left" class="icon-button rotate-button" type="button" aria-label="좌회전 시작" aria-pressed="false" title="좌회전 · 다시 누르면 정지">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2.4 8.3M3 10V4m0 6h6"/></svg>
+    </button>
+    <button id="rotate-right" class="icon-button rotate-button" type="button" aria-label="우회전 시작" aria-pressed="false" title="우회전 · 다시 누르면 정지">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path transform="translate(24 0) scale(-1 1)" d="M3 10a9 9 0 1 1 2.4 8.3M3 10V4m0 6h6"/></svg>
+    </button>
+    <button id="show-ui" class="icon-button" hidden aria-label="일반 모드로 전환" title="일반 모드로 전환 · H"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3zM3 9h18M8 9v10"/></svg></button>
   </div>
 
 
@@ -112,7 +116,7 @@
   </section>
 
   <footer class="footer ui">
-    <span class="signature">Life User <span>/</span> v0.11 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
+    <span class="signature">Life User <span>/</span> v0.12 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택"></nav>
     <button id="hide-ui" class="minimal-button" title="감상 모드 · H"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg><span>감상 모드</span></button>
   </footer>
@@ -139,7 +143,7 @@
     <h3>자전과 감상 모드</h3>
     <p>지구의 표시 크기를 기존보다 1.5배 키웠습니다. 자전은 각 천체의 실제 항성 주기를 사용합니다. 지구는 약 23시간 56분 4초에 한 바퀴 돌며, 금성·천왕성·명왕성은 역행 자전합니다. 별도의 감상용 자전 가속은 없습니다. 공전을 배속하면 자전에도 같은 배율을 적용하고, 일시정지·날짜 이동도 함께 반영합니다.</p>
     <p>자전 주기는 대표 측정값을 사용합니다. 가스 행성의 구름은 위도에 따라 다르게 움직일 수 있으며, 태양의 차등 자전은 단일 대표 주기로 단순화했습니다. 지구는 간단한 항성시 계산으로 한국의 낮·밤을 표현합니다. 다른 천체의 기준 경도·자전축 방향·목성의 대적점 경도는 실시간 관측과 맞추지 않은 표현입니다.</p>
-    <p>감상 모드에서는 마우스 이동·클릭 또는 화면 터치로 <b>기본 시점</b>과 <b>모드 전환</b> 두 버튼만 나타납니다. 약 1.8초간 조작하지 않으면 두 버튼과 커서가 다시 숨겨집니다. 드래그 중에는 숨기지 않습니다. 기본 시점은 감상 모드를 유지한 채 전체 태양계로 돌아가고, 모드 전환은 일반 화면을 표시합니다.</p>
+    <p>감상 모드에서는 마우스 이동·클릭 또는 화면 터치로 오른쪽 <b>시점 조작부 전체</b>와 <b>모드 전환 아이콘</b>이 나타납니다. 약 1.8초간 조작하지 않으면 조작부와 커서가 다시 숨겨집니다. 드래그 중에는 숨기지 않습니다. 기본 시점은 감상 모드를 유지한 채 전체 태양계로 돌아가고, 모드 전환은 일반 화면을 표시합니다.</p>
     <h3>로컬 보정과 가벼운 루프</h3>
     <p>자전축 방향은 고정하고, 자전·공전 주기를 초 단위 소수점 둘째 자리로 저장합니다. 기준 시각에서 경과한 시간으로 회전각을 바로 계산하여 프레임 누락에 따라 느려지지 않습니다. 앱을 실행할 때마다 기기 시각으로 기준 위치와 자전 위상을 보정합니다. 실행을 계속하는 동안에는 매년 1월 1일 00:00 UTC에도 기준을 갱신합니다. 계산에는 인터넷이나 서버 응답이 필요하지 않습니다.</p>
     <p>시작 위치는 간단한 근사 궤도 계산입니다. 관측용 위치를 보장하지 않으며 연간 오차를 모든 천체에 대해 «몇 초»라고 보장하지도 않습니다. 높은 배속에서는 빠른 자전이 프레임 사이에 여러 번 돌아 정지·역회전처럼 보일 수 있습니다.</p>
@@ -157,8 +161,11 @@
     <p>추적 중인 천체 이름과 전체 보기 카드는 표시하지 않습니다. <b>H</b> 또는 <b>Esc</b>로 감상 모드를 종료하고 <b>0</b>으로 기본 시점에 복귀합니다. 터치 기기에서는 한 번 터치하면 두 조작 버튼이 나타나며, 세 손가락으로 터치해 바로 종료할 수도 있습니다.</p>
     <p class="help-interaction">좌클릭 드래그 회전<span>·</span>가운데 버튼 드래그 상하좌우 이동 ±20%<span>·</span>휠 확대 · 최대 64×<span>·</span>천체 더블클릭 · 추적</p>
     <h3>카메라 시점 1 · 2 · 3</h3>
-    <p>사용 방법 버튼 아래의 작은 숫자 버튼을 누르면 <strong>1번 카메라 · 취소/저장</strong> 형식의 확인창이 마우스 위치에 열립니다. 저장을 눌러야 <strong>현재 각도·확대·이동·추적 대상</strong>을 저장하며, 취소·Esc·창 밖 클릭은 기존 값을 유지합니다. <strong>키보드 1·2·3</strong>은 저장한 시점으로 부드럽게 이동합니다. 다른 천체 사이에서는 전체 구도를 거쳐 이동하며, 드래그·휠·0 키를 사용하면 이동을 즉시 제어할 수 있습니다. 감상 모드에서도 사용할 수 있으며 날짜와 재생 속도는 바뀌지 않습니다.</p>
+    <p>오른쪽 기본 시점 아이콘 아래의 작은 숫자 버튼을 누르면 <strong>1번 카메라 · 취소/저장</strong> 형식의 확인창이 마우스 위치에 열립니다. 저장을 눌러야 <strong>현재 각도·확대·이동·추적 대상</strong>을 저장하며, 취소·Esc·창 밖 클릭은 기존 값을 유지합니다. <strong>키보드 1·2·3</strong>은 저장한 시점으로 부드럽게 이동합니다. 다른 천체 사이에서는 전체 구도를 거쳐 이동하며, 드래그·휠·0 키를 사용하면 이동을 즉시 제어할 수 있습니다. 감상 모드에서도 사용할 수 있으며 날짜와 재생 속도는 바뀌지 않습니다.</p>
     <p>저장된 번호를 우클릭하면 마우스 위치에 삭제 확인창이 나타납니다. <strong>삭제</strong>를 한 번 더 눌러야 지워집니다. 취소·Esc·창 밖 클릭은 저장 내용을 유지합니다. 시점은 이 브라우저에 저장되며, 저장이 차단된 환경에서는 현재 창을 닫을 때까지만 유지됩니다.</p>
+    <h3>카메라 자동 회전</h3>
+    <p>오른쪽 조작부는 확대 · 축소 · 기본 시점 · 1 · 2 · 3 · 좌회전 · 우회전 순서입니다. 회전 아이콘을 누르면 현재 각도와 확대·이동·추적 대상을 유지하며 초당 2°씩 수평으로 회전합니다. 같은 버튼을 다시 누르면 정지하고, 반대 버튼을 누르면 방향을 바꿉니다. 드래그·휠·기본 시점·번호 시점 불러오기는 자동 회전을 멈춥니다. 공전 배속·일시정지는 카메라 속도를 바꾸지 않습니다.</p>
+    <p>감상 모드에서는 마우스 이동·클릭·터치 시 동일한 오른쪽 조작부 전체와 모드 전환 아이콘을 표시합니다. 약 1.8초 동안 조작하지 않으면 다시 숨깁니다. 자동 회전 중에도 숨김은 유지하며, 카메라 저장·삭제 확인창을 띄운 동안에는 조작부가 사라지지 않습니다.</p>
     <h3>단축키</h3>
     <div class="shortcuts"><span><kbd>Space</kbd> 일시정지</span><span><kbd>R</kbd> 실제 시간</span><span><kbd>F</kbd> 전체 화면</span><span><kbd>H</kbd> 감상 모드</span><span><kbd>0</kbd> 기본 시점</span><span><kbd>1 · 2 · 3</kbd> 저장한 시점 불러오기</span><span><kbd>Esc</kbd> 패널 닫기</span></div>
     <p class="modal-note">외부 라이브러리·계정 없이 실행됩니다. 내장 재질은 오프라인으로 동작하며, 공개 사진의 최초 수신에는 인터넷 연결이 필요합니다. 지구의 Blue Marble 이미지는 과거 위성 자료이며, 구름·별빛·혜성은 실시간 관측 데이터가 아닙니다.</p>

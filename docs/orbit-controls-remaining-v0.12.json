@@ -1,0 +1,100 @@
+{
+  "version": "0.12",
+  "checks": [
+    {
+      "name": "Pointer activity restores every control in zen",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Zen confirmation remains interactive beyond idle timeout",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Popup fits inside viewport beside the right toolbar",
+      "passed": true,
+      "detail": {
+        "x": 1370,
+        "y": 480,
+        "width": 270,
+        "height": 138.1875
+      }
+    },
+    {
+      "name": "Saving within zen preserves the mode",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Confirmed delete clears only its slot",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Zen zoom works without leaving the mode",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Icon home resets while remaining in zen",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Mode exit restores normal toolbar without stale idle timeout",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Visibility event pauses camera but preserves direction",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Visibility resume skips invisible elapsed time",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Exported HTML keeps one toolbar and version v0.12",
+      "passed": true,
+      "detail": {
+        "title": "Solar Time",
+        "version": true,
+        "ids": [
+          "zoom-in",
+          "zoom-out",
+          "fit-view",
+          "camera-preset-1",
+          "camera-preset-2",
+          "camera-preset-3",
+          "rotate-left",
+          "rotate-right",
+          "show-ui"
+        ],
+        "showModeHidden": true,
+        "oldHomeText": false
+      }
+    },
+    {
+      "name": "No uncaught browser application errors",
+      "passed": true,
+      "detail": []
+    }
+  ],
+  "errors": [],
+  "measurements": {
+    "browserVersion": "144.0.7559.96",
+    "injectedStartupMs": 9486.8
+  },
+  "limitations": [
+    "Linux headless Chromium; standalone HTML injected offline. Direct file navigation returned ERR_BLOCKED_BY_ADMINISTRATOR.",
+    "Camera storage uses an explicit in-memory test adapter. Windows launch and physical input are not tested.",
+    "Hardware GPU and live texture downloads are not verified."
+  ],
+  "repository_changed": false,
+  "deployed": false,
+  "checkCount": 12,
+  "passed": true
+}

@@ -162,6 +162,16 @@ class SurfaceService{
   createSync(){this.sync?.clear();const kernel=surfaceKernel();kernel.setAssets(root.SolarAssets?.materials||{});this.sync=new kernel.Engine({gpu:!this.forceCPU});}
   fallback(){if(this.disposed)return;this.epoch++;this.revision++;this.worker?.terminate();this.worker=null;this.inflight=false;this.batch=null;this.forceCPU=true;this.createSync();this.stats.backend='compatibility';this.pump();}
   update(jobs,mono){if(this.disposed)return;const assetRevision=root.SolarAssets?.materialRevision||0;if(this.assetRevision!==assetRevision){this.assetRevision=assetRevision;this.assetsSent=false;this.invalidate(false);if(this.sync)this.createSync();}this.desired=new Map(jobs.map(j=>[j.id,j]));for(const [id,e] of this.frames)if(!this.desired.has(id)){e.image.close?.();this.frames.delete(id);}this.pending={jobs,mono};this.pump();}
+  compatibleView(current,job) {
+    if(!current||!job||current.id!==job.id)return false;
+    if(current.geometry===job.geometry)return true;
+    // Continuously changing yaw must not starve an otherwise valid in-flight image.
+    // Only the same slow-orbit session and identical material/quality/elevation may lag.
+    // Manual camera changes and different bodies still require exact geometry.
+    const a=current.autoView,b=job.autoView;
+    if(!a||!b||typeof a.key!=='string'||a.key!==b.key||!Number.isFinite(a.yaw)||!Number.isFinite(b.yaw))return false;
+    return Math.abs(Math.atan2(Math.sin(a.yaw-b.yaw),Math.cos(a.yaw-b.yaw)))<=Math.PI/120; // 1.5 degrees
+  }
   needs(job,mono){const old=this.frames.get(job.id);if(!old||old.epoch!==this.epoch||old.job.geometry!==job.geometry)return true;if(job.phase===old.job.phase&&job.seconds===old.job.seconds&&job.light.every((v,i)=>v===old.job.light[i]))return false;const turn=Math.abs(job.phase-old.job.phase);return mono-old.mono>=120||Math.min(turn,1-turn)*Math.PI*job.diam>.18;}
   pump(){
     if(this.disposed||this.inflight||!this.pending)return;const {mono}=this.pending;let jobs=this.pending.jobs.filter(j=>this.needs(j,mono));this.pending=null;if(!jobs.length)return;
@@ -175,7 +185,7 @@ class SurfaceService{
         try{
           for(const job of jobs){
             if(this.disposed||revision!==this.revision||epoch!==this.epoch)break;
-            const current=this.desired.get(job.id);if(!current||current.geometry!==job.geometry)continue;
+            const current=this.desired.get(job.id);if(!this.compatibleView(current,job))continue;
             const canvas=await engine.render(job);if(this.disposed)return;
             let image;if(canvas.transferToImageBitmap)image=canvas.transferToImageBitmap();else image=await createImageBitmap(canvas);
             this.receive({kind:'frame',revision,epoch,job,bitmap:image});
@@ -201,7 +211,7 @@ class SurfaceService{
     }
     const requested=this.batch?.jobs.get(msg.job?.id),current=this.desired.get(msg.job?.id),bitmap=msg.bitmap;
     const validImage=bitmap&&Number.isFinite(bitmap.width)&&bitmap.width>0&&bitmap.width===bitmap.height&&bitmap.width<=1024;
-    if(!belongs||msg.epoch!==this.epoch||!requested||!current||current.geometry!==msg.job.geometry||
+    if(!belongs||msg.epoch!==this.epoch||!requested||!this.compatibleView(current,msg.job)||
       requested.geometry!==msg.job.geometry||requested.phase!==msg.job.phase||requested.requestedMono!==msg.job.requestedMono||!validImage){
       bitmap?.close?.();this.stats.discarded++;return;
     }

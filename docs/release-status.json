@@ -1,7 +1,6 @@
 {
-  "version": "0.11",
-  "packaged": true,
+  "version": "0.12",
+  "delivery": "local-html-and-changed-files-zip",
   "repository_changed": false,
-  "deployed": false,
-  "verification": "release-verification-v0.11.json"
+  "deployed": false
 }
