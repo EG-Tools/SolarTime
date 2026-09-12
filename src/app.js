@@ -68,7 +68,7 @@
         const zoom=controlState.zoom,limits=renderer.zoomLimits;
         $('zoom-value').textContent=zoom.toFixed(1)+'×';
         $('zoom-in').disabled=zoom>=limits.maxZoom;$('zoom-out').disabled=zoom<=limits.minZoom;
-        for(const [id,direction,label] of [['rotate-left',-1,'좌회전'],['rotate-right',1,'우회전']]){
+        for(const [id,direction,label] of [['rotate-left',-1,'우회전'],['rotate-right',1,'좌회전']]){
           const active=renderer.autoRotateDirection===direction,b=$(id);
           b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-label',label+(active?' 정지':' 시작'));
           b.title=label+(active?' 중 · 누르면 정지':' · 초당 2°');
