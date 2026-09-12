@@ -6,7 +6,7 @@
   function random(seed) { return function() { let t=seed+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
   const mix=(a,b,t)=>a+(b-a)*t;
   const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
-  const VIEW=Object.freeze({minZoom:.6,maxZoom:256,detailZoom:64,lowerBy:.05,minPanY:-.2,maxPanY:.2,minPanX:-.2,maxPanX:.2,minElevation:-Math.PI/2,maxElevation:Math.PI/2,fillRadius:1.10,detailFillRadius:.34});
+  const VIEW=Object.freeze({minZoom:.6,maxZoom:2048,detailZoom:64,lowerBy:.05,minPanY:-.2,maxPanY:.2,minPanX:-.2,maxPanX:.2,minElevation:-Math.PI/2,maxElevation:Math.PI/2,fillRadius:1.10,detailFillRadius:.34});
   const SURFACE=Object.freeze({detailWidth:4096,maxRaster:1024,lowRaster:384});
   const AUTO_ROTATE_SPEED=2*DEG; // radians per real second; independent of orbital time
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
@@ -108,7 +108,7 @@
       this.focusBody(id);this.setOrbitView(Math.atan2(-n.x,-n.y),Math.asin(clamp(n.z,-1,1)));
     }
     baseBodyScale() {return clamp(Math.min(this.w/1330,this.h/820),.55,1.35);}
-    focusRadius() {return Math.min(this.w,this.h)*VIEW.fillRadius;}
+    focusRadius() {return Math.min(this.w,this.h)*4.5;}
     bodyScaleAtZoom() {
       // Scene magnification depends ONLY on viewport and zoom. A small tracking
       // target must never divide the scale used by every other planet or the Sun.
@@ -142,19 +142,27 @@
     rebuild(ms) {
       const pathKey=A.modelYear(ms)+':'+this.options.pluto;
       if(this.pathKey!==pathKey){this.paths=this.getBodies().map(body=>({body,points:A.orbitAt(body,ms,360)}));this.pathKey=pathKey;}
-      let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
-      for(const p of this.paths){const v=this.projectOrbit(p);minX=Math.min(minX,v.minX);maxX=Math.max(maxX,v.maxX);minY=Math.min(minY,v.minY);maxY=Math.max(maxY,v.maxY);}
       const mobile=this.w<680,compact=this.h<630;
       const left=mobile?24:58,right=this.w-(mobile?24:58),top=compact?100:mobile?192:190,bottom=this.h-(compact?105:mobile?195:190);
-      const baseY=(top+bottom)/2+this.h*VIEW.lowerBy;
-      const fitY=Math.max(80,2*Math.min(baseY-top,bottom-baseY));
-      this.scale=Math.max(.05,Math.min((right-left)/(2*Math.max(Math.abs(minX),Math.abs(maxX))),fitY/(2*Math.max(Math.abs(minY),Math.abs(maxY)))))*this.camera.zoom;
+      const baseY=(top+bottom)/2+this.h*VIEW.lowerBy,fitY=Math.max(80,2*Math.min(baseY-top,bottom-baseY));
+      // Keep the overview scale invariant while orbiting the camera. Previously
+      // every elevation change re-fit the projected ellipse, which felt like an
+      // unwanted zoom-in/zoom-out during a vertical drag or auto rotation.
+      const fitKey=[pathKey,this.w,this.h,this.lensStretch].join(':');
+      if(this.fitKey!==fitKey){
+        const a=25*DEG,e=45*DEG,ca=Math.cos(a),sa=Math.sin(a),ce=Math.cos(e),se=Math.sin(e);
+        let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+        for(const path of this.paths)for(const p of path.points){
+          const x=(p.x*ca-p.y*sa)*this.lensStretch,y=p.x*sa+p.y*ca;
+          const vy=-(y*se+p.z*ce);minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,vy);maxY=Math.max(maxY,vy);
+        }
+        this.fitScale=Math.max(.05,Math.min((right-left)/(2*Math.max(Math.abs(minX),Math.abs(maxX))),fitY/(2*Math.max(Math.abs(minY),Math.abs(maxY)))));
+        this.fitKey=fitKey;
+      }
+      this.scale=this.fitScale*this.camera.zoom;
       this.centerX=(left+right)/2+this.w*(this.camera.panX||0);this.centerY=baseY+this.h*this.camera.panY;
-      // Sun-centred both at home and during zoom: eccentric Pluto cannot offset startup.
-      this.cx=this.centerX;this.homeCx=this.centerX;this.homeCy=this.centerY;
-      this.cy=this.homeCy;
-      this.bodyScale=this.bodyScaleAtZoom();
-      this.lastPathMs=ms;this.pathYear=A.modelYear(ms);this.dirty=false;
+      this.cx=this.centerX;this.homeCx=this.centerX;this.homeCy=this.centerY;this.cy=this.homeCy;
+      this.bodyScale=this.bodyScaleAtZoom();this.lastPathMs=ms;this.pathYear=A.modelYear(ms);this.dirty=false;
     }
     setOption(key,value) {
       this.options[key]=value;this.dirty=true;if(key==='quality')this.resize();
@@ -211,9 +219,9 @@
       if(duration<=0)return this.restoreCamera(state);
       this.stopAutoRotate(mono);this.advanceCamera(mono);this.pendingAutoRotation=null;
       const from=this.cameraSnapshot(),to={...state};
-      // Focus changes no longer dive through zoom=1. The tracked world-space
-      // anchor is blended separately in draw(), so the camera follows one
-      // continuous path instead of making a visible midpoint step.
+      // Every camera command travels directly from the current state to the target.
+      // There is no overview bridge or intermediate framing; only the quintic
+      // ease at the beginning and end softens acceleration/deceleration.
       this.cameraTween={from,to,start:mono,duration,input};
       this.cameraChangeAt=mono;this.dirty=true;return true;
     }
@@ -223,7 +231,7 @@
       if(this.cameraTween?.input)return {...this.cameraTween.to};
       this.advanceCamera(mono);this.advanceAutoRotate(mono);return this.cameraSnapshot();
     }
-    smoothCamera(patch,mono=performance.now(),duration=130) {
+    smoothCamera(patch,mono=performance.now(),duration=90) {
       const to={...this.cameraInputState(mono),...patch};
       if(![to.azimuth,to.elevation,to.zoom,to.panX,to.panY].every(Number.isFinite))return false;
       to.azimuth=A.wrap(to.azimuth);to.elevation=clamp(to.elevation,VIEW.minElevation,VIEW.maxElevation);
@@ -263,7 +271,7 @@
       // Feature views are inspection shots rather than whole-planet portraits.
       // Earth reaches roughly 200% of the viewport height, making Korea readable
       // while keeping one final wheel step available up to the 256x hard limit.
-      if(id==='earth')to.zoom=Math.max(to.zoom,224);
+      if(id==='earth')to.zoom=Math.max(to.zoom,1800);
       return this.animateCamera(to,mono,duration);
     }
     animateHome(mono=performance.now(),duration=1100) {
@@ -271,14 +279,14 @@
     }
     advanceCamera(mono=performance.now()) {
       const move=this.cameraTween;if(!move)return false;
-      const t=clamp((mono-move.start)/move.duration,0,1),p=move.input?1-(1-t)**3:ease(t),{from,to}=move;
+      const t=clamp((mono-move.start)/move.duration,0,1),p=ease(t),{from,to}=move;
       const delta=A.wrap(to.azimuth-from.azimuth+Math.PI)-Math.PI;
       const state={azimuth:A.wrap(from.azimuth+delta*p),elevation:mix(from.elevation,to.elevation,p),
         panX:mix(from.panX,to.panX,p),panY:mix(from.panY,to.panY,p),
         // The visible tracking anchor itself is cross-blended in draw(). Keep the
         // destination focus here so surface detail can prepare before arrival.
         focus:to.focus,
-        zoom:Math.exp(mix(Math.log(from.zoom),Math.log(to.zoom),p))};
+        zoom:mix(from.zoom,to.zoom,p)};
       if(state.zoom<=1&&to.focus===null)state.focus=null;
       this.camera=t>=1?{...to}:state;
       if(t>=1){
@@ -304,14 +312,8 @@
       }
       this.cancelCameraTween(mono);this.advanceAutoRotate(mono);this.autoRotation=null;
       const generation=(this.rotationGeneration||0)+1;
-      // A panned scene has an off-centre pivot. Re-centre first, then rotate;
-      // otherwise yaw looks like unwanted zoom because the orbit radius changes.
-      if(Math.abs(this.camera.panX)>.0001||Math.abs(this.camera.panY)>.0001){
-        const to={...this.cameraSnapshot(),panX:0,panY:0};
-        if(this.animateCamera(to,mono,420)){
-          this.pendingAutoRotation={direction,generation};return true;
-        }
-      }
+      // Rotate around the CURRENT viewport centre. Pan and zoom are preserved;
+      // auto-rotation must never re-centre the user's composition first.
       return this.beginAutoRotation(direction,mono,generation);
     }
     advanceAutoRotate(mono=performance.now()) {
@@ -616,7 +618,7 @@
           const x=earth.screen.x+normal.x*earth.r,y=earth.screen.y+normal.y*earth.r,day=A.siteSun(ms).altitude>=0;
           c.fillStyle=day?'#ffdb92':'#98c9ff';c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=1;
           c.beginPath();c.arc(x,y,3,0,TAU);c.fill();c.beginPath();c.arc(x,y,6,0,TAU);c.stroke();
-          c.font='11px "Segoe UI",sans-serif';c.textAlign='left';c.shadowColor='#000';c.shadowBlur=5;c.fillText('KOREA · '+(day?'DAY':'NIGHT'),x+11,y-9);c.shadowBlur=0;
+          c.font='11px "Segoe UI",sans-serif';c.textAlign='left';c.shadowColor='#000';c.shadowBlur=5;c.fillText('SEOUL · '+(day?'DAY':'NIGHT'),x+11,y-9);c.shadowBlur=0;
         }
       }
       if(this.options.labels)this.labels(c,bodies.filter(p=>this.visible(p.screen,p.r+20)),mono);

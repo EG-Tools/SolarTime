@@ -46,8 +46,8 @@ test('nonfinite input and nonexistent focus leave current camera untouched',()=>
 test('explicit focus clears a previous pan offset so the target lands at viewport centre',()=>{
  const r=fixture();r.camera.panX=.17;r.camera.panY=-.11;assert.ok(r.animateFocus('earth',0));near(r.cameraTween.to.panX,0);near(r.cameraTween.to.panY,0);
 });
-test('auto rotation recentres a panned view before yaw begins',()=>{
- const r=fixture();r.camera.panX=.15;r.camera.panY=.08;assert.ok(r.setAutoRotate(1,0));assert.equal(r.autoRotation,null);assert.equal(r.pendingAutoRotation.direction,1);near(r.cameraTween.to.panX,0);near(r.cameraTween.to.panY,0);r.advanceCamera(420);assert.equal(r.cameraTween,null);assert.equal(r.autoRotation.direction,1);
+test('auto rotation preserves a panned view and begins at the current centre',()=>{
+ const r=fixture();r.camera.panX=.15;r.camera.panY=.08;assert.ok(r.setAutoRotate(1,0));assert.equal(r.cameraTween,null);assert.equal(r.autoRotation.direction,1);near(r.camera.panX,.15);near(r.camera.panY,.08);
 });
 test('numeric preset data schema and old localStorage keys remain compatible',()=>{
  const r=fixture();assert.ok(Renderer.validCamera(r.camera));const app=fs.readFileSync(path.join(root,'src/app.js'),'utf8');assert.match(app,/eg\.solar-time\.v0\.01/);assert.match(app,/solar-time\.camera-presets\.v1/);assert.match(app,/version:'0\.16'/);

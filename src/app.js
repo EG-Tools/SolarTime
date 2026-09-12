@@ -15,6 +15,7 @@
       const renderer=new window.SolarRenderer($('starfield'),$('universe'));
       const clock=new A.SimulationClock(Date.now(),performance.now());
       let timezone='local',showSeconds=false,zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
+      let speedMode='day',speedValues={hour:60,day:1,year:1};
       const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       renderer.options.twinkle=!reduced;renderer.options.activity=!reduced;renderer.options.skyMotion=!reduced;renderer.options.comets=!reduced;
       const validKeys={orbits:'show-orbits',labels:'show-labels',avoidLabels:'avoid-labels',twinkle:'show-twinkle',activity:'show-activity',pluto:'show-pluto',moon:'show-moon',skyMotion:'sky-motion',comets:'show-comets'};
@@ -25,6 +26,12 @@
           if(saved.quality==='low'||saved.quality==='auto')renderer.options.quality=saved.quality;
           if(saved.timezone==='utc')timezone='utc';
           if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
+          if(['hour','day','year'].includes(saved.speedMode))speedMode=saved.speedMode;
+          if(saved.speedValues&&typeof saved.speedValues==='object'){
+            if(Number.isFinite(saved.speedValues.hour))speedValues.hour=A.clamp(Math.round(saved.speedValues.hour),1,2880);
+            if(Number.isFinite(saved.speedValues.day))speedValues.day=A.clamp(Math.round(saved.speedValues.day),1,365);
+            if(Number.isFinite(saved.speedValues.year))speedValues.year=A.clamp(Math.round(saved.speedValues.year),1,10);
+          }
           if(Number.isFinite(saved.elevation))renderer.setOrbitView(renderer.camera.azimuth,saved.elevation*A.DEG);
           if(Number.isFinite(saved.panY))renderer.setPanY(saved.panY);
           if(Number.isFinite(saved.panX))renderer.setPan(saved.panX);
@@ -35,7 +42,7 @@
       $('quality').value=renderer.options.quality;
       $('show-seconds').checked=showSeconds;$('seconds-group').hidden=!showSeconds;
       const zoneLabel=()=>timezone==='utc'?'UTC':Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replaceAll('_',' ').toUpperCase();
-      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,showSeconds,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
+      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,showSeconds,speedMode,speedValues,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
       function cameraUi() {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
         const deg=Math.round(controlState.elevation/A.DEG),zoom=controlState.zoom,limits=renderer.zoomLimits;
@@ -183,22 +190,45 @@
         updateBody(clock.value(performance.now()));
       }
       $('body-close').addEventListener('click',()=>{const id=renderer.selected;closeBody();navButtons.get(id)?.focus({preventScroll:true});});
+      const SPEED_MODES={
+        hour:{min:1,max:2880,step:1,rate:v=>v*60},
+        day:{min:1,max:365,step:1,rate:v=>v*86400},
+        year:{min:1,max:10,step:1,rate:v=>v*31557600}
+      };
+      function speedText(mode=speedMode,value=speedValues[mode]) {
+        value=Math.round(value);
+        if(mode==='hour'){const h=Math.floor(value/60),m=value%60;return h?(m?`${h}시간 ${m}분 / 초`:`${h}시간 / 초`):`${m}분 / 초`;}
+        if(mode==='day')return `${value}일 / 초`;
+        return `${value}년 / 초`;
+      }
+      function speedHint(mode=speedMode){return mode==='hour'?'1분 — 48시간':mode==='day'?'1일 — 365일':'1년 — 10년';}
+      function syncSpeedUi(){
+        const cfg=SPEED_MODES[speedMode],slider=$('speed-slider');
+        slider.min=cfg.min;slider.max=cfg.max;slider.step=cfg.step;slider.value=speedValues[speedMode];
+        slider.setAttribute('aria-valuetext',speedText());$('speed-range').textContent=speedHint();
+        for(const b of document.querySelectorAll('[data-speed-mode]')){const on=b.dataset.speedMode===speedMode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));}
+      }
+      function applySpeed(value=speedValues[speedMode]){
+        const cfg=SPEED_MODES[speedMode],v=A.clamp(Math.round(Number(value)||cfg.min),cfg.min,cfg.max);speedValues[speedMode]=v;
+        renderer.invalidateSurfaces();clock.setRate(cfg.rate(v),performance.now());syncSpeedUi();uiNow();persist();
+      }
       function updateControls(ms) {
         $('pause-button').setAttribute('aria-pressed',String(clock.paused));$('pause-button').setAttribute('aria-label',clock.paused?'공전 재생':'공전 일시정지');
         $('pause-button').title=(clock.paused?'공전 재생':'공전 일시정지')+' · Space';$('pause-icon').toggleAttribute('hidden',clock.paused);$('play-icon').toggleAttribute('hidden',!clock.paused);
         $('live-button').classList.toggle('active',clock.live);$('live-button').setAttribute('aria-pressed',String(clock.live));
-        for(const b of document.querySelectorAll('[data-rate]')) {const active=!clock.live&&Number(b.dataset.rate)===clock.rate;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}
         $('status-dot').classList.toggle('simulated',!clock.live);$('status-dot').classList.toggle('paused',clock.paused);
         $('mode-label').textContent=clock.paused?'PAUSED':clock.live?'LIVE ORBITS':'TIME TRAVEL';
         $('simulation-date').textContent=compactDate(ms);$('simulation-date').dateTime=new Date(ms).toISOString();
-        const ratio=clock.rate===1?'1 ×':clock.rate===86400?'1 DAY / SEC':clock.rate===604800?'7 DAYS / SEC':'1 YEAR / SEC';
-        $('speed-value').textContent=clock.paused?'PAUSED':ratio;
-        $('playback-hint').textContent=clock.paused?'공전 일시정지 · 위 시계는 실제 시간입니다':clock.live?'지금, 이 순간의 태양계':clock.rate===86400?'1초 = 1일 · 목성 약 2.42회 / 초':'고배속 · 자전이 역회전·정지처럼 보일 수 있습니다';
+        $('speed-value').textContent=clock.paused?'PAUSED':clock.live?'1 ×':speedText();
+        $('playback-hint').textContent=clock.paused?'공전 일시정지 · 위 시계는 실제 시간입니다':clock.live?'지금, 이 순간의 태양계':`1초 = ${speedText().replace(' / 초','')}`;
+        if(!clock.live)syncSpeedUi();
       }
       function uiNow() {const mono=performance.now(),wall=Date.now(),ms=clock.value(mono,wall);updateWall(wall);updateControls(ms);updateBody(ms);}
       function now() {A.calibrateAt(Date.now());renderer.invalidateSurfaces();clock.now(performance.now());uiNow();toast('현재 시각의 태양계로 돌아왔습니다.');}
       $('live-button').addEventListener('click',now);
-      for(const button of document.querySelectorAll('[data-rate]'))button.addEventListener('click',()=>{renderer.invalidateSurfaces();clock.setRate(Number(button.dataset.rate),performance.now());uiNow();});
+      for(const button of document.querySelectorAll('[data-speed-mode]'))button.addEventListener('click',()=>{speedMode=button.dataset.speedMode;applySpeed();});
+      $('speed-slider').addEventListener('input',()=>applySpeed($('speed-slider').value));
+      syncSpeedUi();
       function pause() {renderer.invalidateSurfaces();clock.toggle(performance.now());uiNow();}
       $('pause-button').addEventListener('click',pause);
       $('timezone-button').addEventListener('click',()=>{timezone=timezone==='local'?'utc':'local';dateFormatter=realFormat();lastWallKey='';uiNow();persist();});

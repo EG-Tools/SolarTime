@@ -8,6 +8,7 @@
   <title>Solar Time</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23060910'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='12' transform='rotate(-28 32 32)' fill='none' stroke='%23748295' stroke-width='1.4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23efbf76'/%3E%3Ccircle cx='54' cy='20' r='3' fill='%23b6d8ed'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles-v016.css">
 </head>
 <body>
   <canvas id="starfield" aria-hidden="true"></canvas>
@@ -104,11 +105,17 @@
         <svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m9 5 10 7-10 7Z"/></svg>
       </button>
       <span class="bar-divider"></span>
-      <div class="speed-buttons" role="group" aria-label="공전 속도">
-        <button id="live-button" class="speed-button active" aria-pressed="true"><span class="tiny-dot"></span>실제 시간</button>
-        <button class="speed-button" data-rate="86400" aria-pressed="false">1일 <span>/ 초</span></button>
-        <button class="speed-button" data-rate="604800" aria-pressed="false">7일 <span>/ 초</span></button>
-        <button class="speed-button" data-rate="31557600" aria-pressed="false">1년 <span>/ 초</span></button>
+      <button id="live-button" class="speed-button active" aria-pressed="true"><span class="tiny-dot"></span>실제 시간</button>
+      <div class="speed-control" aria-label="공전 속도">
+        <div class="speed-slider-line">
+          <input id="speed-slider" type="range" min="1" max="365" step="1" value="1" aria-label="1초당 진행하는 시간">
+          <span id="speed-range" class="speed-range">1일 — 365일</span>
+        </div>
+        <div class="speed-unit-toggle" role="group" aria-label="속도 단위">
+          <button type="button" data-speed-mode="hour" aria-pressed="false">시간</button>
+          <button type="button" data-speed-mode="day" class="active" aria-pressed="true">일</button>
+          <button type="button" data-speed-mode="year" aria-pressed="false">년</button>
+        </div>
       </div>
       <span class="bar-divider"></span>
       <button id="date-button" class="icon-button" aria-label="시뮬레이션 날짜 선택" title="날짜 선택">
@@ -118,7 +125,7 @@
   </section>
 
   <footer class="footer ui">
-    <span class="signature">Life User <span>/</span> v0.15 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
+    <span class="signature">Life User <span>/</span> v0.16 <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택"></nav>
   </footer>
   <p class="scale-note ui">크기·거리 축척 조정<span>·</span>평균 궤도 근사<span>·</span><span id="spin-mode-note">자전·공전 시간 연동</span></p>
@@ -137,14 +144,14 @@
     <h3>실제 시간과 배속</h3>
     <p>실제 공전은 매우 느립니다. <b>1일 / 초</b>를 누르면 1초에 하루만큼 움직입니다. <b>1년 / 초</b>에서는 바깥 행성의 움직임도 보입니다. 모든 행성에 같은 시간 배율을 적용하므로 상대적인 공전 속도는 유지됩니다.</p>
     <p>일시정지는 공전과 자전, 별·태양 효과를 멈춥니다. 실제 시간 모드에서 재개하면 현재 시각으로 다시 맞춥니다. 날짜를 선택하면 해당 시각에서 일시정지합니다.</p>
-    <h3>v0.16 · 중심 고정 카메라</h3>
-    <p>천체 추적은 이전 팬 위치를 끌고 가지 않고 화면 정중앙으로 부드럽게 수렴합니다. 추적 대상을 바꿀 때도 중간에 줌 1×를 거치지 않고 두 천체의 월드 위치를 직접 블렌딩하여 경로가 끊기지 않습니다. 휠·확대 버튼·각도·드래그도 같은 카메라 소유자에서 이어집니다.</p>
-    <p>휠 확대는 더 이상 숨은 추적 대상을 만들지 않습니다. 좌·우 자동 회전을 시작할 때 화면이 팬되어 있으면 먼저 중앙으로 짧게 복귀한 뒤 회전하므로 확대·축소처럼 보이는 비정상 반경을 제거했습니다. «한국 보기»는 지구를 약 224×까지 확대해 한국을 더 크게 관찰합니다.</p>
-    <p>1·2·3(숫자패드 포함)은 감상 모드, 전체 화면, 버튼 포커스, 열린 팝업에서도 저장 시점을 불러옵니다. 입력란에서는 숫자 입력도 그대로 허용합니다. Ctrl·Alt·Meta 조합은 브라우저에 남깁니다. 숨겨진 달·명왕성 시점은 해당 천체를 다시 표시합니다.</p>
-    <p><strong>ESC는 감상 모드 → 전체 화면 → 팝업·패널 순서</strong>로 한 번에 하나만 해제합니다. 전체 화면+감상 모드에서는 첫 ESC로 감상 모드만 해제하고 두 번째로 전체 화면을 종료합니다. F는 전체 화면만 켜고 끕니다.</p>
-    <p>두 단계 ESC는 브라우저의 키보드 잠금 지원·허용이 필요합니다. 권한이 없으면 브라우저가 전체 화면 종료를 우선할 수 있습니다. ESC를 길게 누르는 브라우저의 강제 탈출 기능은 유지됩니다. F11이나 운영체제 창 최대화는 앱의 F 전체 화면과 별개입니다.</p>
+    <h3>v0.16 · 직접 경로 카메라</h3>
+    <p>모든 카메라 전환은 중간 시점이나 별도의 줌 브리지를 거치지 않고 현재 상태에서 목적 상태까지 최단 방향으로 직접 이동합니다. 시작과 끝에서만 같은 5차 스플라인 이징을 사용해 부드럽게 출발하고 부드럽게 정지합니다.</p>
+    <p>좌·우 자동 회전은 현재 팬 위치와 현재 확대를 그대로 유지한 채 현재 화면 중심을 기준으로 회전합니다. 카메라 각도에 따라 전체 태양계를 다시 맞추지 않으므로 위·아래 드래그나 자동 회전 중 화면이 확대됐다 축소되는 느낌을 제거했습니다.</p>
+    <p>«한국 보기»는 지구를 최대 1800× 수준까지 확대하고 서울 위치를 표시합니다. 수동 확대 상한은 2048×입니다.</p>
+    <p>배속은 시간·일·년 단위 슬라이더로 조절합니다. 시간은 1분~48시간을 1분 단위, 일은 1~365일을 1일 단위, 년은 1~10년을 1년 단위로 1초당 진행량을 지정합니다.</p>
+    <p>1·2·3(숫자패드 포함)은 감상 모드, 전체 화면, 버튼 포커스, 열린 팝업에서도 저장 시점을 불러옵니다. ESC는 감상 모드 → 전체 화면 → 팝업·패널 순서로 한 번에 하나만 해제합니다.</p>
     <h3>확대 관찰</h3>
-    <p>드래그와 각도 설정으로 위쪽 90°부터 아래쪽 −90°까지 관찰합니다. 휠·+/−·두 손가락으로 최대 256배까지 확대합니다. 더블클릭은 이전보다 큰 크기로 추적을 시작합니다. 추가 확대는 최대 256배까지 가능하며, 추적 대상의 최대 지름은 화면 짧은 변의 220%입니다. 기존 저장 시점의 64배 이하 크기는 그대로 유지됩니다. 천체를 더블클릭하거나 천체 정보의 «가까이 보기»를 누르면 해당 천체를 중심에 두고 따라갑니다. 0 또는 기본 시점 버튼으로 전체 태양계 구도로 돌아옵니다. 기본 구도는 v0.03보다 화면 높이의 5%만큼 위로 올렸습니다. 마우스 가운데 버튼을 누르고 드래그하면 기본 위치에서 상하좌우 각각 화면의 20%까지 상하좌우 이동합니다. 0 또는 기본 시점 버튼으로 이동량도 초기화합니다. 행성 표시는 거리 축척과 별개로 확대됩니다.</p>
+    <p>드래그와 각도 설정으로 위쪽 90°부터 아래쪽 −90°까지 관찰합니다. 휠·+/−·두 손가락으로 최대 2048배까지 확대합니다. 더블클릭은 이전보다 큰 크기로 추적을 시작합니다. 추가 확대는 최대 2048배까지 가능하며, 한국 보기에서는 서울 주변을 크게 확인할 수 있습니다. 기존 저장 시점의 64배 이하 크기는 그대로 유지됩니다. 천체를 더블클릭하거나 천체 정보의 «가까이 보기»를 누르면 해당 천체를 중심에 두고 따라갑니다. 0 또는 기본 시점 버튼으로 전체 태양계 구도로 돌아옵니다. 기본 구도는 v0.03보다 화면 높이의 5%만큼 위로 올렸습니다. 마우스 가운데 버튼을 누르고 드래그하면 기본 위치에서 상하좌우 각각 화면의 20%까지 상하좌우 이동합니다. 0 또는 기본 시점 버튼으로 이동량도 초기화합니다. 행성 표시는 거리 축척과 별개로 확대됩니다.</p>
     <p>천체 이름은 기본적으로 각 천체 아래에 고정됩니다. 설정에서 «이름 겹침 자동 정리»를 켰을 때만 겹침을 피해 부드럽게 이동합니다. 달의 표시 궤도는 지구 크기와 분리하여 이전 버전보다 약 33% 줄였습니다.</p>
     <p>태양 주변 샤인의 변화 속도는 v0.06의 4배입니다. 테두리 물결과 튀어 오르는 홍염은 제거했습니다. 태양의 실제 자전, 행성 공전, 별 반짝임은 이 배율의 영향을 받지 않습니다.</p>
     <h3>자전과 감상 모드</h3>
@@ -166,10 +173,10 @@
     <p>태양의 테두리 물결·홍염은 제거하고 샤인만 남겼습니다. 달과 행성은 폴리곤 구가 아닌 픽셀 단위의 구면 셰이더로 그립니다. 한국 보기와 붉은 소용돌이 보기는 카메라만 돌리며 자전 속도를 바꾸지 않습니다. 축척을 조정한 화면에서 달과 태양이 겹치는 것은 실제 일식 판정이 아닙니다.</p>
     <p>지구 영상: NASA Visible Earth / Blue Marble Next Generation (Basemap 배포본, 해상도·색상 조정). 구름은 실시간 기상 자료가 아닙니다. 기타 표면·별·은하 영상: Life User / Solar Time 절차적 재질.</p>
     <p>추적 중인 천체 이름과 전체 보기 카드는 표시하지 않습니다. <b>H</b> 또는 <b>Esc</b>로 감상 모드를 종료하고 <b>0</b>으로 기본 시점에 복귀합니다. 터치 기기에서는 한 번 터치하면 두 조작 버튼이 나타나며, 세 손가락으로 터치해 바로 종료할 수도 있습니다.</p>
-    <p class="help-interaction">좌클릭 드래그 회전<span>·</span>가운데 버튼 드래그 상하좌우 이동 ±20%<span>·</span>휠 확대 · 최대 256×<span>·</span>천체 더블클릭 · 추적</p>
+    <p class="help-interaction">좌클릭 드래그 회전<span>·</span>가운데 버튼 드래그 상하좌우 이동 ±20%<span>·</span>휠 확대 · 최대 2048×<span>·</span>천체 더블클릭 · 추적</p>
     <h3>카메라 시점 1 · 2 · 3</h3>
     <p>오른쪽 기본 시점 아이콘 아래의 숫자를 좌클릭하거나 우클릭하면 동일한 <strong>적용 / 저장 / 삭제 / 취소</strong> 팝업이 마우스 위치에 열립니다. <strong>적용</strong>은 저장된 시점으로 부드럽게 이동하고, <strong>저장</strong>은 현재 각도·확대·이동·추적 대상을 해당 번호에 보관하거나 덮어씁니다. <strong>삭제</strong>는 그 번호만 지웁니다. 빈 번호는 적용·삭제가 비활성화됩니다.</p>
-    <p><strong>키보드 1·2·3</strong>은 저장된 시점을 바로 적용합니다. 다른 천체 사이에서는 전체 구도를 거쳐 부드럽게 이동합니다. 취소·Esc·창 밖 클릭은 저장 내용을 바꾸지 않습니다. 감상 모드에서도 팝업을 사용할 수 있고, 날짜·재생 속도는 그대로 유지됩니다. 시점은 이 브라우저에 저장되며 저장이 차단되면 현재 창에서만 유지됩니다.</p>
+    <p><strong>키보드 1·2·3</strong>은 저장된 시점을 바로 적용합니다. 다른 천체 사이에서도 중간 전체 구도를 거치지 않고 최단 방향으로 직접 이동합니다. 취소·Esc·창 밖 클릭은 저장 내용을 바꾸지 않습니다. 감상 모드에서도 팝업을 사용할 수 있고, 날짜·재생 속도는 그대로 유지됩니다. 시점은 이 브라우저에 저장되며 저장이 차단되면 현재 창에서만 유지됩니다.</p>
     <h3>카메라 자동 회전</h3>
     <p>오른쪽 조작부는 확대 · 축소 · 기본 시점 · 1 · 2 · 3 · 좌회전 · 우회전 · 감상 모드 순서입니다. 회전 아이콘을 누르면 현재 각도와 확대·이동·추적 대상을 유지하며 초당 2°씩 수평으로 회전합니다. 같은 버튼을 다시 누르면 정지하고, 반대 버튼을 누르면 방향을 바꿉니다. 드래그·휠·기본 시점·번호 시점 불러오기는 자동 회전을 멈춥니다. 공전 배속·일시정지는 카메라 속도를 바꾸지 않습니다.</p>
     <p>감상 모드에서는 마우스 이동·클릭·터치 시 동일한 오른쪽 조작부 전체와 모드 전환 아이콘을 표시합니다. 약 1.8초 동안 조작하지 않으면 다시 숨깁니다. 자동 회전 중에도 숨김은 유지하며, 카메라 저장·삭제 확인창을 띄운 동안에는 조작부가 사라지지 않습니다.</p>

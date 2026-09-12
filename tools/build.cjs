@@ -14,10 +14,11 @@ try{
   tags.set(name,matches[0][0]);if(name!=='assets')read('src/'+name+'.js');
  }
  const styles=[...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="styles\.css(?:\?[^"<>]*)?"[^>]*>/g)];
- if(styles.length!==1)throw Error('Expected one styles.css entry');
- const css=read('styles.css');
+ const overlay=[...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="styles-v016\.css(?:\?[^"<>]*)?"[^>]*>/g)];
+ if(styles.length!==1||overlay.length!==1)throw Error('Expected styles.css and styles-v016.css entries');
+ const css=read('styles.css')+'\n'+read('styles-v016.css');
  require('./pack_assets.cjs');
- html=html.replace(styles[0][0],()=>'<style>\n'+css+'\n</style>');
+ html=html.replace(styles[0][0],()=>'<style>\n'+css+'\n</style>').replace(overlay[0][0],'');
  for(const name of names){
   // The packed SolarAssets already contains the new sky. Do not embed it twice.
   if(name==='sky-asset'){html=html.replace(tags.get(name),'');continue;}
