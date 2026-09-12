@@ -1,4 +1,4 @@
-/* Solar Time v0.15: one owner for optional public image maps and their local cache.
+/* Solar Time v0.20: one owner for optional public image maps and their local cache.
  * The scene and all astronomy start from embedded assets without waiting for I/O.
  * Only catalogued, creditable public images are requested; no credentials are sent.
  */
@@ -22,8 +22,7 @@ function valid(row,entry,now=Date.now()){
  return !!row&&row.revision===REV&&row.id===entry.id&&entry.urls.includes(row.url)&&row.width>=1024&&row.width<=4096&&row.height===row.width/2&&typeof row.data==='string'&&row.data.startsWith('data:image/webp;base64,')&&row.data.length<MAX_BYTES&&Number.isFinite(row.created)&&row.created<=now+60000&&now-row.created<MAX_AGE;
 }
 class Materials {
- constructor(){this.disposed=false;this.generation=0;this.pending=null;this.controllers=new Set();this.db=null;this.pristine='';this.exporting=null;this.objectURLs=new Map();this.state={status:'embedded',loaded:0,total:catalog.length,errors:[],cacheAvailable:false};}
- capture(){if(!this.pristine)this.pristine='<!doctype html>\n'+document.documentElement.outerHTML;}
+ constructor(){this.disposed=false;this.generation=0;this.pending=null;this.controllers=new Set();this.db=null;this.state={status:'embedded',loaded:0,total:catalog.length,errors:[],cacheAvailable:false};}
  notify(){this.state.loaded=catalog.filter(e=>root.SolarAssets.materialInfo?.[e.id]?.revision===REV).length;root.dispatchEvent(new CustomEvent('solar-material-status',{detail:{...this.state}}));}
  async database(){
   if(this.db)return this.db;if(!root.indexedDB)return null;
@@ -101,30 +100,8 @@ class Materials {
   })().catch(error=>{if(!this.disposed){this.state.status='fallback';this.state.errors.push({id:'cache',message:error.message});this.notify();}return this.state;}).finally(()=>{this.pending=null;});
   return this.pending;
  }
- async offlineHTML(){
-  if(!this.pristine)throw Error('Original document unavailable');
-  const d=new DOMParser().parseFromString(this.pristine,'text/html');
-  for(const element of d.querySelectorAll('script[src],link[rel="stylesheet"]')){
-   if(element.id==='solar-assets')continue;
-   if(/(?:^|\/)sky-asset\.js(?:\?|$)/.test(element.getAttribute('src')||'')){element.remove();continue;}
-   const url=new URL(element.getAttribute('src')||element.getAttribute('href'),location.href);
-   if(url.origin!==location.origin||!['file:','https:','http:'].includes(url.protocol))throw Error('Unexpected code origin');
-   const ctl=new AbortController();this.controllers.add(ctl);const timer=setTimeout(()=>ctl.abort(),8000);
-   try{const r=await fetch(url,{signal:ctl.signal});if(!r.ok)throw Error('Cannot embed '+url.pathname);const text=await r.text();
-    if(element.tagName==='SCRIPT'){element.removeAttribute('src');element.textContent=text.replace(/<\/script/gi,'<\\/script');}
-    else{const style=d.createElement('style');style.textContent=text;element.replaceWith(style);}
-   }finally{clearTimeout(timer);this.controllers.delete(ctl);}
-  }
-  const node=d.getElementById('solar-assets');if(!node)throw Error('Asset entry point missing');node.removeAttribute('src');node.textContent='window.SolarAssets='+JSON.stringify(root.SolarAssets).replace(/<\/script/gi,'<\\/script')+';';
-  return '<!doctype html>\n'+d.documentElement.outerHTML;
- }
- download(){if(this.exporting)return this.exporting;this.exporting=(async()=>{
-  const html=await this.offlineHTML();if(this.disposed)return;
-  const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='SolarTime_v'+(root.SolarTime?.version||'0.15')+'_photos.html';a.click();
-  const timer=setTimeout(()=>{URL.revokeObjectURL(url);this.objectURLs.delete(url);},30000);this.objectURLs.set(url,timer);
- })().finally(()=>{this.exporting=null;});return this.exporting;}
  cancel(){this.generation++;for(const ctl of this.controllers)ctl.abort();this.controllers.clear();}
- dispose(){this.disposed=true;this.cancel();this.db?.close();this.db=null;for(const [url,timer]of this.objectURLs){clearTimeout(timer);URL.revokeObjectURL(url);}this.objectURLs.clear();}
+ dispose(){this.disposed=true;this.cancel();this.db?.close();this.db=null;}
 }
 root.SolarMaterials={Owner:Materials,catalog,revision:REV,valid};
 if(typeof module==='object'&&module.exports)module.exports=root.SolarMaterials;

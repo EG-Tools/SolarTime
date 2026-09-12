@@ -1,4 +1,4 @@
-/* Solar Time v0.18 — clock, interaction and accessible UI. */
+/* Solar Time v0.20 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -8,7 +8,7 @@
   function fatal(error) { $('loading').hidden=true;$('fatal-error').hidden=false;$('fatal-message').textContent=error instanceof Error?error.message:String(error);console.error(error); }
   function init() {
     try {
-      const materials=new window.SolarMaterials.Owner();materials.capture();
+      const materials=new window.SolarMaterials.Owner();
       const bootWall=Date.now(),calibrationStarted=performance.now();
       A.calibrateAt(bootWall);
       const calibrationMs=performance.now()-calibrationStarted;
@@ -18,12 +18,11 @@
       let speedMode='day',speedValues={hour:60,day:1,year:1};
       const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       renderer.options.twinkle=!reduced;renderer.options.activity=!reduced;renderer.options.skyMotion=!reduced;renderer.options.comets=!reduced;
-      const validKeys={orbits:'show-orbits',labels:'show-labels',avoidLabels:'avoid-labels',twinkle:'show-twinkle',activity:'show-activity',pluto:'show-pluto',moon:'show-moon',skyMotion:'sky-motion',comets:'show-comets'};
+      const validKeys={orbits:'show-orbits',labels:'show-labels',avoidLabels:'avoid-labels',twinkle:'show-twinkle',activity:'show-activity',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
       try {
         const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
         if(saved&&typeof saved==='object') {
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
-          if(saved.quality==='low'||saved.quality==='auto')renderer.options.quality=saved.quality;
           if(saved.timezone==='utc')timezone='utc';
           if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
           if(['hour','day','year'].includes(saved.speedMode))speedMode=saved.speedMode;
@@ -39,15 +38,12 @@
       } catch (_) { /* Private browsing, corrupt JSON and blocked storage must not break the clock. */ }
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
-      $('quality').value=renderer.options.quality;
       $('show-seconds').checked=showSeconds;$('seconds-group').hidden=!showSeconds;
       const zoneLabel=()=>timezone==='utc'?'UTC':Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replaceAll('_',' ').toUpperCase();
       function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,showSeconds,speedMode,speedValues,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
       function cameraUi() {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
-        const deg=Math.round(controlState.elevation/A.DEG),zoom=controlState.zoom,limits=renderer.zoomLimits;
-        $('elevation').min=-90;$('elevation').max=90;
-        $('elevation').value=deg;$('elevation-value').textContent=deg+'°';
+        const zoom=controlState.zoom,limits=renderer.zoomLimits;
         $('zoom-value').textContent=zoom.toFixed(1)+'×';
         $('zoom-in').disabled=zoom>=limits.maxZoom;$('zoom-out').disabled=zoom<=limits.minZoom;
         for(const [id,direction,label] of [['rotate-left',-1,'좌회전'],['rotate-right',1,'우회전']]){
@@ -242,10 +238,8 @@
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
       for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if((key==='pluto'||key==='moon')&&!$(id).checked&&renderer.selected===key)closeBody();navVisibility();persist();});
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
-      $('quality').addEventListener('change',()=>{renderer.setOption('quality',$('quality').value);persist();});
-      $('elevation').addEventListener('input',()=>{renderer.setOrbitView(renderer.camera.azimuth,Number($('elevation').value)*A.DEG);cameraUi();persist();});
       function reset() {cancelGesture();renderer.resetCamera();cameraUi();persist();}
-      $('reset-view').addEventListener('click',reset);$('fit-view').addEventListener('click',reset);
+      $('fit-view').addEventListener('click',reset);
       function zoom(factor) {const mono=performance.now();renderer.smoothZoom(renderer.cameraInputState(mono).zoom*factor,null,mono);cameraUi();}
       function focusBody(id) {
         if(!id)return;
@@ -306,7 +300,7 @@
         if(zen){setZen(false);return;}
         if(document.fullscreenElement){exitFullscreen();return;}
         if(presetDialog.open){closePresetDialog();return;}
-        for(const id of ['date-dialog','help-dialog'])if($(id).open){$(id).close();return;}
+        if($('help-dialog').open){$('help-dialog').close();return;}
         settings(false);closeBody();
       }
       // A single idle owner controls the cursor, complete toolbar and hit/tab targets.
@@ -341,18 +335,9 @@
       $('zen-toggle').addEventListener('click',()=>setZen(!zen));
       for(const event of ['pointermove','pointerdown','pointerup','pointercancel','wheel','keydown','focusin'])document.addEventListener(event,wakePointer,{passive:true});
       $('help-button').addEventListener('click',()=>{$('help-dialog').showModal();});
-      $('date-button').addEventListener('click',()=>{
-        const p=dateParts(clock.value(performance.now()));$('date-input').value=`${p.y}-${two(p.mo)}-${two(p.d)}T${two(p.h)}:${two(p.mi)}`;
-        $('date-timezone').textContent=timezone==='utc'?'UTC':zoneLabel()+' · 현지 시간';$('date-error').hidden=true;$('date-dialog').showModal();
-      });
-      $('date-close').addEventListener('click',()=>$('date-dialog').close());
-      $('date-form').addEventListener('submit',event=>{
-        event.preventDefault();const text=$('date-input').value;
-        try {if(!text)throw new Error('날짜와 시간을 선택해 주세요.');const ms=new Date(text+(timezone==='utc'?'Z':'')).getTime();renderer.invalidateSurfaces();clock.setDate(ms,performance.now());A.calibrateAt(ms);renderer.dirty=true;$('date-dialog').close();uiNow();toast('선택한 순간입니다. 배속 버튼으로 공전을 시작하세요.');}
-        catch(_){$('date-error').hidden=false;$('date-error').textContent='1800년부터 2999년 사이의 유효한 날짜를 선택해 주세요.';}
-      });
-      for(const dialog of [$('help-dialog'),$('date-dialog')])dialog.addEventListener('click',event=>{if(event.target!==dialog)return;const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();});
-      for(const id of ['help-dialog','date-dialog'])$(id).addEventListener('cancel',event=>{event.preventDefault();handleEscape();});
+      const helpDialog=$('help-dialog');
+      helpDialog.addEventListener('click',event=>{if(event.target!==helpDialog)return;const r=helpDialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)helpDialog.close();});
+      helpDialog.addEventListener('cancel',event=>{event.preventDefault();handleEscape();});
       const canvas=$('universe'),pointers=new Map();
       let drag=null,pinchDistance=0,pinchZoom=1,pinched=false,clickGestures=0;
       function cancelGesture() {
@@ -420,7 +405,7 @@
         const editing=!!event.target.closest?.('input,select,textarea,[contenteditable]:not([contenteditable="false"])');
         if(digit){
           // Always recall while the app has focus, including open dialogs/fields.
-          // In a field, keep native numeric entry too; do not discard a date being edited.
+          // In a field, keep native numeric entry; preset recall should not swallow typed digits.
           if(!editing)event.preventDefault();event.stopPropagation();
           if(!event.repeat){if(presetDialog.open)closePresetDialog(false);recallPreset(Number(digit)-1);wakePointer();}
           return;
@@ -429,11 +414,11 @@
         if(key==='f'||key==='h'||key==='0'){
           event.preventDefault();event.stopPropagation();
           if(key==='f')fullscreen();else if(key==='h'){
-            for(const id of ['help-dialog','date-dialog'])if($(id).open)$(id).close();
+            if($('help-dialog').open)$('help-dialog').close();
             setZen(!zen);
           }else reset();return;
         }
-        if(presetDialog.open||$('help-dialog').open||$('date-dialog').open||event.target.closest?.('button,a'))return;
+        if(presetDialog.open||$('help-dialog').open||event.target.closest?.('button,a'))return;
         if(key===' '){event.preventDefault();pause();}
         else if(key==='r')now();
         else if(key==='+'||key==='='){event.preventDefault();zoom(1.15);}
@@ -445,20 +430,13 @@
           renderer.setOrbitView(azimuth,elevation);cameraUi();persist();
         }
       },{capture:true});
-      function materialStatus(){
-        if(disposed)return;const s=materials.state;
-        $('photo-status').textContent=`공개 이미지 ${s.loaded}/${s.total} · ${s.status==='loading'?'수신 중 · 화면은 계속 재생':s.loaded===s.total?'전체 수신 완료':s.loaded?'미수신 천체는 내장 이미지':'내장 이미지 표시 · 연결 또는 CORS 제한'}`;
-        $('photo-retry').disabled=s.status==='loading';
-      }
-      window.addEventListener('solar-material-status',materialStatus);
-      $('photo-retry').addEventListener('click',()=>materials.load());
-      $('photo-export').addEventListener('click',async()=>{const b=$('photo-export');b.disabled=true;try{await materials.download();toast(`공개 이미지 ${materials.state.loaded}/${materials.state.total}를 포함한 파일을 저장했습니다.`);}catch(error){toast('HTML 저장 실패: '+error.message);}finally{b.disabled=false;}});
+      // Optional public planet maps refresh quietly in the background; no management UI is retained.
       let resizeTimer;
       window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>renderer.resize(),70);},{passive:true});
       function frame(mono) {
         if(disposed||document.hidden){raf=0;return;}
         raf=requestAnimationFrame(frame);
-        const fps=renderer.options.quality==='low'?24:window.innerWidth<680?30:60;
+        const fps=window.innerWidth<680?30:60;
         if(mono-lastFrame<1000/fps-.5)return;
         const dt=lastFrame?Math.max(0,(mono-lastFrame)/1000):0;lastFrame=mono;
         if(!clock.paused)effectTime+=dt;
@@ -478,9 +456,9 @@
       window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.18',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.20',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
-      materials.load();materialStatus();
+      materials.load();
       if(!document.hidden)raf=requestAnimationFrame(frame);
     } catch(error){fatal(error);}
   }

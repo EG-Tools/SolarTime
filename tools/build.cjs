@@ -1,11 +1,11 @@
-/* v0.18: the website works as supplied. This optional build makes one offline HTML. */
+/* v0.20: the website works as supplied. This optional build makes one offline HTML. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function atomicWrite(file,text){const tmp=file+'.tmp';try{fs.writeFileSync(tmp,text,'utf8');fs.renameSync(tmp,file);}finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}}
 try{
  const pkg=JSON.parse(read('package.json')),version=pkg.version.split('.').slice(1).join('.');
- if(version!=='0.18')throw Error('This builder requires package version 0.0.18.');
+ if(version!=='0.20')throw Error('This builder requires package version 0.0.20.');
  const names=['assets','sky-asset','materials','astro','surface','sky','renderer','app'];
  const tags=new Map();let html=read('index.html');
  for(const name of names){

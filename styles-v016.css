@@ -1,9 +1,9 @@
-/* Solar Time v0.18 playback slider overlay */
+/* Solar Time v0.20 playback slider overlay */
 .clock-face{top:56px}
 .playback-caption{justify-content:flex-end}
-.playback-bar{gap:8px}
-.speed-control{display:flex;align-items:center;gap:10px;min-width:330px}
-#speed-slider{appearance:none;-webkit-appearance:none;width:270px;height:20px;background:transparent;cursor:pointer;margin:0}
+.playback-bar{gap:7px;padding-left:8px;padding-right:8px}
+.speed-control{display:flex;align-items:center;gap:10px;min-width:292px}
+#speed-slider{appearance:none;-webkit-appearance:none;width:238px;height:20px;background:transparent;cursor:pointer;margin:0}
 #speed-slider::-webkit-slider-runnable-track{height:2px;background:rgba(171,188,212,.28);border-radius:2px}
 #speed-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#e2c58d;margin-top:-5px;box-shadow:0 0 0 3px rgba(226,197,141,.10)}
 #speed-slider::-moz-range-track{height:2px;background:rgba(171,188,212,.28);border:0;border-radius:2px}
@@ -11,10 +11,16 @@
 .speed-mode-button{min-width:42px;padding:7px 9px;border-radius:6px;background:rgba(205,175,121,.12);color:#ead09d;font-size:10px;border:1px solid rgba(171,188,212,.12)}
 .speed-mode-button:hover{background:rgba(205,175,121,.18);color:#f0d8a7}
 @media(min-width:1800px){.clock-face{top:70px}}
-@media(max-width:760px){.speed-control{min-width:220px;gap:7px}#speed-slider{width:170px}.playback-bar{max-width:calc(100vw - 18px)}}
+@media(max-width:760px){.speed-control{min-width:205px;gap:7px}#speed-slider{width:158px}.playback-bar{max-width:calc(100vw - 18px)}}
 
-/* v0.18: compact playback card and explicit live/off state for the unit button. */
+/* v0.20: compact playback card and explicit live/off state for the unit button. */
 .playback{transform:translateX(-50%) scale(.9);transform-origin:50% 100%}
 .speed-mode-button{background:transparent;color:#8b96a5;border-color:rgba(171,188,212,.10)}
 .speed-mode-button.active{background:rgba(205,175,121,.12);color:#ead09d;border-color:rgba(171,188,212,.12)}
 .speed-mode-button:not(.active):hover{background:#ffffff09;color:#c9d1dc}
+
+/* v0.20: align lower-left information to the same column as the product signature. */
+.scale-note{left:38px}
+.signature,.modal-note{font-variant-numeric:tabular-nums}
+
+/* v0.20: date controls removed; playback card is intentionally narrower. */
