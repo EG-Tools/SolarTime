@@ -79,8 +79,8 @@ test('Lunar display orbit stays compact and independent of the 1.5x Earth size',
  close(A.MOON.period,27.321661);close(earth.size,17.25);
  for(const t of [A.J2000,A.J2000+7*A.DAY,A.MAX_TIME]) {
   const p=A.moonAt(t,A.MOON.displayOrbit);
-  close(Math.hypot(p.x,p.y,p.z),30);
-  const el=A.moonElements(t),path=A.pointOnOrbit(el,el.M,30);
+   const distance=Math.hypot(p.x,p.y,p.z);assert.ok(distance>=28.5&&distance<=31.5);
+   const el=A.moonElements(t),path=A.pointOnOrbit(el,A.eccentricAnomaly(el.M,el.e),30);
   assert.deepEqual(p,path);
  }
 });

@@ -4,7 +4,8 @@
  * https://ssd.jpl.nasa.gov/planets/approx_pos.html
  * UTC is used in place of TDB; Earth uses the Earth–Moon barycenter.
  * Pluto is a fixed, illustrative J2000 Kepler orbit, not a JPL ephemeris.
- * Moon is a circular mean sidereal model; no perturbations/eclipses modeled.
+ * Moon and Europa use circular mean sidereal models phase-anchored to JPL
+ * Horizons state vectors at 2026-09-13 00:00 TDB; no perturbations/eclipses.
  */
 (function (root, factory) {
   const api = factory();
@@ -87,13 +88,16 @@
   // Lunar display-orbit radius is in reference-screen units, like body sizes.
   // It is intentionally independent of Earth's display radius (not a physical distance).
   const MOON = Object.freeze({id:'moon',ko:'달',en:'MOON',size:3.9,displayOrbit:30,color:'#d0ced0',period:2360591.51/86400,periodSeconds:2360591.51,spin:2360591.51/86400,spinSeconds:2360591.51,referenceSpinDays:27.321661,tilt:6.68,
-    description:'지구를 약 27.32일에 한 바퀴 도는 유일한 자연 위성. 거리와 크기는 보기 편하게 확대했습니다.'});
+    parent:'earth',description:'지구를 약 27.32일에 한 바퀴 도는 유일한 자연 위성. 현재 시뮬레이션 시각의 공전 위치를 표시하며 거리와 크기는 보기 편하게 확대했습니다.'});
+  const EUROPA = Object.freeze({id:'europa',ko:'유로파',en:'EUROPA',size:3.8,displayOrbit:45,color:'#d8c89c',period:3.551181,periodSeconds:306822.04,spin:3.551181,spinSeconds:306822.04,referenceSpinDays:3.551181,tilt:.1,
+    parent:'jupiter',description:'갈릴레오 위성 중 하나인 얼음 세계. 목성을 약 3.55일에 돌며 현재 시뮬레이션 시각의 공전 위치를 표시합니다.'});
+  const SATELLITES=Object.freeze([MOON,EUROPA]);
   // One local reference owner. A frame does not numerically integrate its predecessor:
   // any timestamp (seek, reopen, sleep, leap year) gives the same phase directly.
   // The saved period is seconds to TWO decimals, never degrees/second rounded to 0.
   // Reference elements are evaluated once at startup/explicit seek, and at a UTC year boundary.
   // No fetch, online status check, remote clock, retry or network timeout is involved.
-  const ALL=[SUN,...BODIES,MOON],axesCache=new Map();
+  const ALL=[SUN,...BODIES,...SATELLITES],axesCache=new Map();
   let annual=null,yearBuilds=0,referenceEvaluations=0;
   function referenceRotation(body,ms) {
     if(body.id==='earth')return wrap((280.46061837+360.98564736629*(ms-J2000)/DAY)*DEG);
@@ -104,8 +108,7 @@
     const year=new Date(ms).getUTCFullYear(),start=Date.UTC(year,0,1),end=Date.UTC(year+1,0,1);
     const orbits=new Map(BODIES.map(body=>{referenceEvaluations++;return [body.id,referenceElementsAt(body,ms)];}));
     const spins=new Map(ALL.map(body=>[body.id,referenceRotation(body,ms)]));
-    const d=(ms-J2000)/DAY,moon={node:wrap((125.045-.0529538083*d)*DEG),lon:wrap((218.3164477+360/MOON.referenceSpinDays*d)*DEG)};
-    annual={year,start,end,epoch:ms,orbits,spins,moon};yearBuilds++;return modelStatus();
+    annual={year,start,end,epoch:ms,orbits,spins};yearBuilds++;return modelStatus();
   }
   function annualState(ms) {
     if(!Number.isFinite(ms))throw new TypeError('A finite timestamp is required.');
@@ -203,13 +206,40 @@
     const el=elementsAt(body,ms);
     return Array.from({length:count+1},(_,i)=>pointOnOrbit(el,TAU*i/count,body.orbit));
   }
-  function moonElements(ms) {
-    const y=annualState(ms),d=(ms-y.epoch)/DAY;
-    // One low-cost nodal drift retains the tilted lunar plane; no perturbation series.
-    const node=wrap(y.moon.node-.0529538083*d*DEG),lon=wrap(y.moon.lon+TAU*wrap((ms-y.epoch)/(MOON.periodSeconds*1000),1));
-    return {a:1,e:0,inc:5.14*DEG,node,omega:0,M:wrap(lon-node)};
+  const SATELLITE_EPOCH=Date.UTC(2026,8,13);
+  // Fixed osculating ellipses from JPL Horizons parent-relative state vectors
+  // at 2026-09-13 00:00 TDB. Long-term tidal recession and perturbations are
+  // intentionally omitted; each timestamp still resolves directly with Kepler.
+  const satelliteStates=Object.freeze({
+    moon:Object.freeze({e:.05,M0:1.478549158145498,
+      peri:Object.freeze({x:-.2212582051236265,y:.9729528378989719,z:.06638962185318163}),
+      pole:Object.freeze({x:-.0465287224982116,y:-.07853137328439469,z:.9958252363706953})}),
+    europa:Object.freeze({e:.01,M0:-.1424497316293192,
+      peri:Object.freeze({x:-.8040980656771407,y:-.5935108906148845,z:-.03422168166246992}),
+      pole:Object.freeze({x:-.020239681604346447,y:-.03020057409227212,z:.9993389217943289})})
+  });
+  function satelliteElements(body,ms){
+    if(!Number.isFinite(ms))throw new TypeError('A finite timestamp is required.');
+    const state=satelliteStates[body.id];if(!state)throw new RangeError('Unknown satellite.');
+    const inc=Math.acos(clamp(state.pole.z,-1,1)),node=wrap(Math.atan2(state.pole.x,-state.pole.y));
+    const sinInc=Math.sin(inc),sinOmega=sinInc>1e-12?state.peri.z/sinInc:0;
+    const cosOmega=state.peri.x*Math.cos(node)+state.peri.y*Math.sin(node),omega=Math.atan2(sinOmega,cosOmega);
+    const M=wrap(state.M0+TAU*wrap((ms-SATELLITE_EPOCH)/(body.periodSeconds*1000),1));
+    return {a:1,e:state.e,inc,node,omega,M};
   }
-  function moonAt(ms, radius=38) { const el=moonElements(ms); return pointOnOrbit(el,el.M,radius); }
+  function moonElements(ms) {return satelliteElements(MOON,ms);}
+  function satelliteAt(body,ms,radius=body.displayOrbit){
+    if(!Number.isFinite(radius))throw new TypeError('A finite radius is required.');
+    const el=satelliteElements(body,ms),E=eccentricAnomaly(el.M,el.e);
+    return pointOnOrbit(el,E,radius);
+  }
+  function moonAt(ms,radius=MOON.displayOrbit){return satelliteAt(MOON,ms,radius);}
+  function europaAt(ms,radius=EUROPA.displayOrbit){return satelliteAt(EUROPA,ms,radius);}
+  function satelliteOrbit(body,ms,radius=body.displayOrbit,count=90){
+    if(!Number.isInteger(count)||count<3)throw new RangeError('Satellite orbit count must be at least 3.');
+    const el=satelliteElements(body,ms);
+    return Array.from({length:count+1},(_,i)=>pointOnOrbit(el,i/count*TAU,radius));
+  }
   function moonPhase(ms) {
     const m=moonAt(ms,1), e=positionAt(BODIES[2],ms);
     const elongation=wrap(Math.atan2(m.y,m.x)-Math.atan2(-e.y,-e.x));
@@ -239,5 +269,5 @@
     }
     now(mono,wall=Date.now()) { this.anchorMs=wall; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false; }
   }
-  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,BODIES,SUN,MOON,wrap,clamp,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,positionAt,orbitAt,moonElements,moonAt,moonPhase,SimulationClock});
+  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,BODIES,SUN,MOON,EUROPA,SATELLITES,SATELLITE_EPOCH,wrap,clamp,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,SimulationClock});
 });

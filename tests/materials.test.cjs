@@ -4,7 +4,7 @@ const {catalog,revision,valid}=require('../src/materials.js');
 const entry=catalog.find(e=>e.id==='saturn');
 const row=()=>({id:entry.id,revision,url:entry.urls[0],width:2048,height:1024,created:Date.now(),data:'data:image/webp;base64,dGVzdA=='});
 test('Public photo catalog covers requested Saturn, Neptune, Venus, Moon and other planets with credits',()=>{
- assert.deepEqual(catalog.map(e=>e.id),['saturn','neptune','venus','moon','jupiter','mars','mercury','uranus']);
+ assert.deepEqual(catalog.map(e=>e.id),['saturn','neptune','venus','moon','jupiter','mars','mercury']);
  for(const e of catalog){assert.ok(e.credit);assert.ok(e.urls.length<=3);for(const url of e.urls)assert.ok(url.startsWith('https://'));}
  assert.ok(!catalog.some(e=>e.id==='earth'));
 });

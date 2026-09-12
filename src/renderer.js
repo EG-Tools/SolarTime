@@ -1,8 +1,8 @@
-/* Solar Time v0.24 — dependency-free, depth-projected Canvas renderer.
-   Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
+/* Solar Time v0.25 — dependency-free, depth-projected Canvas renderer.
+   Credited photographic maps are embedded for Earth, Pluto, Uranus and Europa. */
 (function () {
   'use strict';
-  const A=window.SolarAstro, {TAU,DEG,clamp}=A;
+  const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
   function random(seed) { return function() { let t=seed+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
   const mix=(a,b,t)=>a+(b-a)*t;
   const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
@@ -108,8 +108,9 @@
       if(!Number.isFinite(x)||!Number.isFinite(y))return;
       this.cancelCameraMotion();this.camera.panX=clamp(x,VIEW.minPanX,VIEW.maxPanX);this.setPanY(y);
     }
+    sceneBodies() {return [A.SUN,...this.getBodies(),...(this.options.moon?SATELLITES:[])];}
     faceFeature(id,latitude,longitude,ms) {
-      const body=[A.SUN,...this.getBodies(),A.MOON].find(b=>b.id===id);if(!body)return;
+      const body=this.sceneBodies().find(b=>b.id===id);if(!body)return;
       const n=A.surfaceDirection(body,latitude,longitude,ms);
       this.focusBody(id);this.setOrbitView(Math.atan2(-n.x,-n.y),Math.asin(clamp(n.z,-1,1)));
     }
@@ -143,14 +144,17 @@
       return this.bodyRadiusForState(body,this.camera);
     }
 
-    moonOrbitRadius(earthRadius,moonRadius) {
-      // A close-up may enlarge Earth or Moon independently. Keep only their local
+    satelliteOrbitRadius(parentRadius,satelliteRadius,satellite,parent) {
+      // A close-up may enlarge a parent or satellite independently. Keep only their local
       // illustrative clearance, using the existing orbit/body ratio, not a second
-      // global magnifier. The orbit line and lunar position share this ONE radius.
+      // global magnifier. The orbit line and satellite position share this ONE radius.
+      const clearance=satellite.displayOrbit/(parent.size+satellite.size);
+      return Math.max(satellite.displayOrbit*this.bodyScale,
+        (parentRadius+satelliteRadius)*clearance)/this.scale;
+    }
+    moonOrbitRadius(earthRadius,moonRadius) {
       const earth=A.BODIES.find(body=>body.id==='earth');
-      const clearance=A.MOON.displayOrbit/(earth.size+A.MOON.size);
-      return Math.max(A.MOON.displayOrbit*this.bodyScale,
-        (earthRadius+moonRadius)*clearance)/this.scale;
+      return this.satelliteOrbitRadius(earthRadius,moonRadius,A.MOON,earth);
     }
     project(p) { const v=this.view(p);return {x:this.cx+v.x*this.scale,y:this.cy+v.y*this.scale,z:v.z}; }
     getBodies() { return this.options.pluto?A.BODIES:(this.bodiesWithoutPluto||(this.bodiesWithoutPluto=A.BODIES.filter(b=>b.id!=='pluto'))); }
@@ -182,7 +186,8 @@
     setOption(key,value) {
       this.options[key]=value;this.dirty=true;if(key==='quality')this.resize();
       if((key==='labels'&&!value)||key==='avoidLabels')this.clearLabels();
-      if((key==='moon'||key==='pluto')&&!value&&this.camera.focus===key)this.resetCamera();
+      if(key==='moon'&&!value&&SATELLITES.some(body=>body.id===this.camera.focus))this.resetCamera();
+      if(key==='pluto'&&!value&&this.camera.focus==='pluto')this.resetCamera();
     }
     setZoom(value,focusId=null) {
       if(!Number.isFinite(value))return;
@@ -191,12 +196,12 @@
       if(this.camera.zoom<=1)this.camera.focus=null;
       else if(!this.camera.focus) {
         const candidate=focusId||this.selected||'sun';
-        this.camera.focus=[A.SUN,...this.getBodies(),...(this.options.moon?[A.MOON]:[])].some(b=>b.id===candidate)?candidate:'sun';
+        this.camera.focus=this.sceneBodies().some(b=>b.id===candidate)?candidate:'sun';
       }
       this.dirty=true;
     }
     focusBody(id) {
-      const body=[A.SUN,...this.getBodies(),...(this.options.moon?[A.MOON]:[])].find(b=>b.id===id);
+      const body=this.sceneBodies().find(b=>b.id===id);
       if(!body)return;
       const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
       const t=clamp((radius-baseRadius)/(Math.min(this.w,this.h)*VIEW.detailFillRadius-baseRadius),0,1);
@@ -213,12 +218,12 @@
       if(state.azimuth<0||state.azimuth>=TAU||state.elevation<VIEW.minElevation||state.elevation>VIEW.maxElevation||
         state.zoom<VIEW.minZoom||state.zoom>VIEW.maxZoom||state.panX<VIEW.minPanX||state.panX>VIEW.maxPanX||
         state.panY<VIEW.minPanY||state.panY>VIEW.maxPanY)return false;
-      const validFocus=state.focus===null||[A.SUN,...A.BODIES,A.MOON].some(b=>b.id===state.focus);
+      const validFocus=state.focus===null||[A.SUN,...A.BODIES,...SATELLITES].some(b=>b.id===state.focus);
       return validFocus&&(state.zoom>1||state.focus===null);
     }
     restoreCamera(state) {
       if(!Renderer.validCamera(state))return false;
-      if((state.focus==='moon'&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
+      if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       this.cameraTween=null;this.autoRotation=null;
       // Commit one camera transaction. Time, selected body and display toggles are not preset data.
       this.camera={azimuth:state.azimuth,elevation:state.elevation,zoom:state.zoom,
@@ -230,7 +235,7 @@
     // at zoom=1 where both its position weight and its extra size are exactly zero.
     animateCamera(state,mono=performance.now(),duration=1100,input=false) {
       if(!Renderer.validCamera(state)||!Number.isFinite(mono)||!Number.isFinite(duration))return false;
-      if((state.focus==='moon'&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
+      if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       if(duration<=0)return this.restoreCamera(state);
       this.stopAutoRotate(mono);this.advanceCamera(mono);this.pendingAutoRotation=null;
       const from=this.cameraSnapshot(),to={...state};
@@ -265,7 +270,7 @@
       return this.smoothCamera(to,mono,150);
     }
     focusState(id,mono=performance.now()) {
-      const body=[A.SUN,...this.getBodies(),...(this.options.moon?[A.MOON]:[])].find(b=>b.id===id);
+      const body=this.sceneBodies().find(b=>b.id===id);
       if(!body)return null;
       this.advanceCamera(mono);this.advanceAutoRotate(mono);
       const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
@@ -279,7 +284,7 @@
       const to=this.focusState(id,mono);return !!to&&this.animateCamera(to,mono,duration);
     }
     animateFeature(id,latitude,longitude,ms,mono=performance.now(),duration=1100) {
-      const to=this.focusState(id,mono),body=[A.SUN,...this.getBodies(),A.MOON].find(b=>b.id===id);
+      const to=this.focusState(id,mono),body=this.sceneBodies().find(b=>b.id===id);
       if(!to||!body||![latitude,longitude,ms].every(Number.isFinite))return false;
       const n=A.surfaceDirection(body,latitude,longitude,ms);
       to.azimuth=A.wrap(Math.atan2(-n.x,-n.y));to.elevation=Math.asin(clamp(n.z,-1,1));
@@ -403,13 +408,14 @@
       // One parent body frame owns every visual child (surface, rings, markers).
       // There is intentionally no independently rotatable ring transform.
       const vectors=this.bodyFrame(body),frame=vectors.gpu||(vectors.gpu=Object.fromEntries(Object.entries(vectors).filter(([k])=>k!=='gpu').map(([k,v])=>[k,new Float32Array([v.x,v.y,v.z])])));
-      // A heliocentric Earth solve is needed only for Earth/Moon lighting.
+      // Satellites inherit their parent's heliocentric position for lighting.
       let physical;
       if(body.id==='sun')physical={x:0,y:0,z:0};
-      else if(body.id==='moon'||body.id==='earth'){
-        if(!this.earthPhysical||this.earthPhysical.ms!==ms||this.earthPhysical.model!==this.pathYear){const earth=A.BODIES.find(b=>b.id==='earth');this.earthPhysical={ms,model:this.pathYear,value:A.positionAt(earth,ms)};}
-        physical=this.earthPhysical.value;
-        if(body.id==='moon'){const m=A.moonAt(ms,.0025696);physical={x:physical.x+m.x,y:physical.y+m.y,z:physical.z+m.z};}
+      else if(body.parent){
+        const parent=A.BODIES.find(candidate=>candidate.id===body.parent),parentPhysical=A.positionAt(parent,ms);
+        const physicalRadius=body.id==='moon'?.0025696:.004484;
+        const local=A.satelliteAt(body,ms,physicalRadius);
+        physical={x:parentPhysical.x+local.x,y:parentPhysical.y+local.y,z:parentPhysical.z+local.z};
       }else physical=A.positionAt(body,ms);
       const lightVector=this.viewDirection({x:-physical.x,y:-physical.y,z:-physical.z});
       const len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
@@ -508,6 +514,18 @@
         c.strokeStyle=this.selected===b.id?'rgba(225,203,155,.7)':'rgba(210,226,244,.4)';c.lineWidth=.8;c.beginPath();c.arc(screen.x,screen.y,r+5,0,TAU);c.stroke();
       }
     }
+    occludeDirectBodies(c,bodies) {
+      if(!bodies.length)return;
+      // Stars, twinkles and comets live on the transparent 2D canvas above the
+      // direct WebGL planet canvas. Remove only those background pixels where an
+      // opaque GPU sphere was actually drawn, then paint labels/markers on top.
+      // Match the shader's half-device-pixel antialiased limb so no clear halo is
+      // introduced around a planet.
+      const inset=.5/(this.dpr||1);
+      c.save();c.globalCompositeOperation='destination-out';c.fillStyle='#000';
+      for(const {screen,r} of bodies){const radius=Math.max(0,r-inset);if(!radius)continue;c.beginPath();c.arc(screen.x,screen.y,radius,0,TAU);c.fill();}
+      c.restore();
+    }
     clearLabels() {this.labelStates.clear();this.lastLabelMono=null;}
     labels(c,bodies,mono) {
       // Stable identity order, not depth order: crossing orbits cannot change priority.
@@ -518,18 +536,18 @@
       const avoid=!!this.options?.avoidLabels;
       const alpha=avoid?1-Math.exp(-dt/LABEL.response):1,reserved=[],active=new Set();
       const byId=new Map(bodies.map(p=>[p.body.id,p]));
-      const ordered=[A.SUN,...A.BODIES,A.MOON].map(b=>byId.get(b.id)).filter(Boolean);
+      const ordered=[A.SUN,...A.BODIES,...SATELLITES].map(b=>byId.get(b.id)).filter(Boolean);
       const overlap=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*
         Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
       c.textAlign='center';c.textBaseline='top';
       for(const item of ordered) {
-        const {body:b,screen:s,r}=item,moon=b.id==='moon';active.add(b.id);
-        const font=moon?8:this.w<680?9:10,h=font+10;
+        const {body:b,screen:s,r}=item,satellite=!!b.parent;active.add(b.id);
+        const font=satellite?8:this.w<680?9:10,h=font+10;
         c.font=`500 ${font}px "Segoe UI", Arial, sans-serif`;
-        if('letterSpacing' in c)c.letterSpacing=moon?'1px':'1.65px';
-        const widths=this.labelWidths||(this.labelWidths=new Map()),metricKey=font+':'+moon+':'+b.en;
+        if('letterSpacing' in c)c.letterSpacing=satellite?'1px':'1.65px';
+        const widths=this.labelWidths||(this.labelWidths=new Map()),metricKey=font+':'+satellite+':'+b.en;
         let w=widths.get(metricKey);if(w===undefined){w=c.measureText(b.en).width+10;widths.set(metricKey,w);}
-        const gap=moon?7:b.id==='saturn'?13:9;
+        const gap=satellite?7:b.id==='saturn'?13:9;
         const offsets=avoid?[[0,r+gap],[0,-r-h-gap],[r+w/2+gap,-h/2],[-r-w/2-gap,-h/2],[0,r+gap+h+4]]:[[0,r+gap]];
         const candidates=offsets.map(([dx,dy],slot)=>({slot,
           x:clamp(s.x+dx-w/2,8,Math.max(8,this.w-w-8)),
@@ -576,7 +594,7 @@
           c.moveTo(s.x+dx/distance*(r+3),s.y+dy/distance*(r+3));c.lineTo(ex,ey);c.stroke();
         }
         c.shadowColor='rgba(0,0,0,.95)';c.shadowBlur=6;
-        c.fillStyle=this.selected===b.id?'#eedbb8':b.id==='sun'?'#f1c889':moon?'#7d8d9f':'#b9c4d2';
+        c.fillStyle=this.selected===b.id?'#eedbb8':b.id==='sun'?'#f1c889':satellite?'#8f9cac':'#b9c4d2';
         c.fillText(b.en,x,y);c.shadowBlur=0;this.hitTargets.push(box);
       }
       for(const id of this.labelStates.keys())if(!active.has(id))this.labelStates.delete(id);
@@ -590,15 +608,17 @@
       this.sky.decorate(c,seconds,this.options,this.boundStarGlow);
       const bodies=this.getBodies().map(body=>{const world=A.positionAt(body,ms,true);return {body,world,r:this.bodyRadiusAtZoom(body)};});
       bodies.push({body:A.SUN,world:{x:0,y:0,z:0},r:this.bodyRadiusAtZoom(A.SUN)});
-      const earth=bodies.find(p=>p.body.id==='earth');
-      let lunarRadius=0;
+      const satelliteLayouts=[];
       if(this.options.moon) {
-        const r=this.bodyRadiusAtZoom(A.MOON);
-        lunarRadius=this.moonOrbitRadius(earth.r,r);
-        const local=A.moonAt(ms,lunarRadius);
-        const world={x:earth.world.x+local.x,y:earth.world.y+local.y,z:earth.world.z+local.z};
-        bodies.push({body:A.MOON,world,r});
+        for(const satellite of SATELLITES){
+          const parent=bodies.find(item=>item.body.id===satellite.parent);if(!parent)continue;
+          const r=this.bodyRadiusAtZoom(satellite),orbitRadius=this.satelliteOrbitRadius(parent.r,r,satellite,parent.body);
+          const local=A.satelliteAt(satellite,ms,orbitRadius);
+          const world={x:parent.world.x+local.x,y:parent.world.y+local.y,z:parent.world.z+local.z};
+          const item={body:satellite,world,r,parent,orbitRadius};bodies.push(item);satelliteLayouts.push(item);
+        }
       }
+      const earth=bodies.find(p=>p.body.id==='earth');
       // Saved-view/focus transitions interpolate ONE tracking anchor between the
       // source and destination states. Null focus is the scene origin. Because the
       // anchor itself is blended, there is no focus hand-off frame and no camera
@@ -622,10 +642,10 @@
           for(const path of this.paths){const item=this.projectOrbit(path),selected=this.selected===path.body.id;
             this.gpu.orbit(item.xyz,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],selected?.64:.22);}
         }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id);
-        if(this.options.moon) {
-          const el=A.moonElements(ms);
-          if(direct){const xyz=new Float32Array(91*3);for(let i=0;i<=90;i++){const p=A.pointOnOrbit(el,i/90*TAU,lunarRadius),v=this.view({x:earth.world.x+p.x,y:earth.world.y+p.y,z:earth.world.z+p.z});xyz[i*3]=v.x;xyz[i*3+1]=v.y;xyz[i*3+2]=v.z;}this.gpu.orbit(xyz,this.scale,this.cx,this.cy,[.45,.61,.74],.26);}
-          else if(!this.gpu){c.strokeStyle='rgba(115,155,189,.26)';c.lineWidth=.65;c.beginPath();for(let i=0;i<=90;i++){const p=A.pointOnOrbit(el,i/90*TAU,lunarRadius),s=this.project({x:earth.world.x+p.x,y:earth.world.y+p.y,z:earth.world.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();}
+        for(const satellite of satelliteLayouts) {
+          const points=A.satelliteOrbit(satellite.body,ms,satellite.orbitRadius,90),parent=satellite.parent.world;
+          if(direct){const xyz=new Float32Array(points.length*3);for(let i=0;i<points.length;i++){const p=points[i],v=this.view({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});xyz[i*3]=v.x;xyz[i*3+1]=v.y;xyz[i*3+2]=v.z;}this.gpu.orbit(xyz,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],.26);}
+          else if(!this.gpu){c.strokeStyle=satellite.body.id==='moon'?'rgba(115,155,189,.26)':'rgba(171,158,117,.26)';c.lineWidth=.65;c.beginPath();for(let i=0;i<points.length;i++){const p=points[i],s=this.project({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();}
         }
       }
       bodies.sort((a,b)=>a.screen.z-b.screen.z);
@@ -644,11 +664,11 @@
       // worker batch completed. Use a stable producer cadence instead. Large/focus
       // bodies still refresh at ~30 fps in accelerated time while real-time motion
       // uses a lighter cadence. Camera motion gets an immediate-enough 40 ms path.
-      let directJobs=null;
+      let directJobs=null,directBodies=[];
       if(direct){
         directJobs=new Map(surfaceBodies.map(p=>[p.body.id,this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)]));
         for(const p of bodies){const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;if(!this.visible(p.screen,p.r*extent+16))continue;
-          const job=directJobs.get(p.body.id);if(job)this.gpu.planet(job,p.body,p.screen,p.r,seconds,false);
+          const job=directJobs.get(p.body.id);if(job&&this.gpu.planet(job,p.body,p.screen,p.r,seconds,false))directBodies.push(p);
         }
         this.gpu.end();
       }else if(!this.gpu){
@@ -661,6 +681,7 @@
           this.surface.update(surfaceBodies.map(p=>this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)),mono);
         }
       }
+      if(direct)this.occludeDirectBodies(c,directBodies);
       for(const p of bodies) {
         const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;
         if(!this.visible(p.screen,p.r*extent+16))continue;

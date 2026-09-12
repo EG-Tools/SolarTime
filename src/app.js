@@ -1,4 +1,4 @@
-/* Solar Time v0.24 — clock, interaction and accessible UI. */
+/* Solar Time v0.25 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -165,15 +165,19 @@
         $('wall-date').textContent=dateFormatter.format(new Date(wall));$('timezone-button').textContent=zoneLabel();
         $('timezone-button').setAttribute('aria-label',`${timezone==='utc'?'UTC':'현지 시간'} 표시 중. 눌러서 시간대 전환`);
       }
-      const bodies=[A.SUN,...A.BODIES,A.MOON];
+      // Display each satellite immediately after its parent while the renderer
+      // uses the same parent relationship for the actual scene hierarchy.
+      const satellites=A.SATELLITES||[A.MOON];
+      const bodies=[A.SUN,...A.BODIES.flatMap(body=>[body,...satellites.filter(satellite=>satellite.parent===body.id)])];
       const navButtons=new Map();
       for(const b of bodies) {
         const button=document.createElement('button');button.type='button';button.dataset.body=b.id;button.style.setProperty('--planet',b.color);
+        if(b.parent){button.dataset.parent=b.parent;button.classList.add('satellite');}
         button.setAttribute('aria-pressed','false');button.setAttribute('aria-label',`${b.ko} 정보`);
         const dot=document.createElement('i');dot.setAttribute('aria-hidden','true');button.append(dot,document.createTextNode(b.ko));
         button.addEventListener('click',()=>selectBody(b.id));$('planet-nav').append(button);navButtons.set(b.id,button);
       }
-      function navVisibility() {navButtons.get('pluto').hidden=!renderer.options.pluto;navButtons.get('moon').hidden=!renderer.options.moon;}
+      function navVisibility() {navButtons.get('pluto').hidden=!renderer.options.pluto;for(const satellite of A.SATELLITES)navButtons.get(satellite.id).hidden=!renderer.options.moon;}
       navVisibility();
       function setStat(id,value,unit) {const el=$(id);el.replaceChildren(document.createTextNode(value+' '));if(unit){const small=document.createElement('small');small.textContent=unit;el.append(small);}}
       function updateBody(ms) {
@@ -191,7 +195,11 @@
         } else if(b.id==='moon') {
           $('stat-label-one').textContent='지구 공전 주기';setStat('stat-value-one','27.32','일');
           const phase=A.moonPhase(ms);$('stat-label-two').textContent='지구에서 본 밝은 면 · 근사';setStat('stat-value-two','약 '+Math.round(phase.fraction*100),'%');
-          $('body-note').textContent=phase.name+' · 확대된 천체의 화면상 겹침은 실제 일식을 뜻하지 않습니다.';
+          $('body-note').textContent=phase.name+' · JPL 기준 시각에 맞춘 평균 궤도 위치 · 평균 거리는 고정입니다.';
+        } else if(b.id==='europa') {
+          $('stat-label-one').textContent='목성 공전 주기';setStat('stat-value-one','3.55','일');
+          $('stat-label-two').textContent='목성까지 평균 거리';setStat('stat-value-two','671,000','km');
+          $('body-note').textContent='JPL 기준 시각에 맞춘 현재 공전 위치 · 평균 거리는 고정이며 장기적인 미세 변화는 계산하지 않습니다.';
         } else {
           $('stat-label-one').textContent='공전 주기';setStat('stat-value-one',b.period>1000?(b.period/365.25).toFixed(1):b.period.toFixed(2),b.period>1000?'년':'일');
           const p=A.positionAt(b,ms);$('stat-label-two').textContent='태양까지 거리 · 근사';setStat('stat-value-two',Math.hypot(p.x,p.y,p.z).toFixed(2),'AU');
@@ -203,7 +211,7 @@
         if(id===renderer.selected||!id){closeBody();return;}
         const b=bodies.find(v=>v.id===id);if(!b)return;
         renderer.selected=id;$('body-panel').hidden=false;$('settings-panel').hidden=true;$('settings-button').setAttribute('aria-expanded','false');
-        $('body-category').textContent=id==='sun'?'THE HEART OF OUR SYSTEM':id==='earth'?'OUR PALE BLUE HOME':id==='moon'?'EARTH’S COMPANION':id==='pluto'?'A DISTANT DWARF PLANET':'A WORLD IN MOTION';
+        $('body-category').textContent=id==='sun'?'THE HEART OF OUR SYSTEM':id==='earth'?'OUR PALE BLUE HOME':id==='moon'?'EARTH’S COMPANION':id==='europa'?'JUPITER’S ICY MOON':id==='pluto'?'A DISTANT DWARF PLANET':'A WORLD IN MOTION';
         $('body-name').textContent=b.ko;$('body-english').textContent=b.en;$('body-description').textContent=b.description;
         for(const [key,button] of navButtons){button.classList.toggle('active',key===id);button.setAttribute('aria-pressed',String(key===id));}
         $('feature-view').hidden=!['earth','jupiter'].includes(id);$('feature-view').textContent=id==='earth'?'한국 보기 · 낮/밤 확인':'붉은 소용돌이 보기';
@@ -260,7 +268,7 @@
       $('timezone-button').addEventListener('click',()=>{timezone=timezone==='local'?'utc':'local';dateFormatter=realFormat();lastWallKey='';uiNow();persist();});
       function settings(open) {const next=open===undefined?$('settings-panel').hidden:open;$('settings-panel').hidden=!next;$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
-      for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if((key==='pluto'||key==='moon')&&!$(id).checked&&renderer.selected===key)closeBody();navVisibility();persist();});
+      for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
       $('hour-cycle').addEventListener('change',()=>{hourCycle=$('hour-cycle').value==='12'?'12':'24';lastWallKey='';uiNow();persist();});
       $('clock-font').addEventListener('change',()=>{const next=$('clock-font').value;if(!CLOCK_FONTS[next])return;clockFont=next;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);persist();});
@@ -501,7 +509,7 @@
       window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.24',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,hourCycle,clockFont,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.25',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,hourCycle,clockFont,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

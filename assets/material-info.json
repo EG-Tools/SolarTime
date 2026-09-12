@@ -1,0 +1,26 @@
+{
+  "pluto": {
+    "revision": "embedded-nasa-v025",
+    "url": "https://science.nasa.gov/resource/pluto-global-color-map/",
+    "width": 4096,
+    "height": 2048,
+    "credit": "NASA/JHUAPL/SwRI · New Horizons Ralph/MVIC",
+    "feature": null
+  },
+  "uranus": {
+    "revision": "embedded-nasa-v025",
+    "url": "https://science.nasa.gov/asset/webb/uranus-voyager-2/",
+    "width": 2048,
+    "height": 1024,
+    "credit": "NASA/Caltech · Voyager 2",
+    "feature": null
+  },
+  "europa": {
+    "revision": "embedded-nasa-v025",
+    "url": "https://science.nasa.gov/3d-resources/jupiter-europa/",
+    "width": 2048,
+    "height": 1024,
+    "credit": "USGS / NASA-JPL-Caltech · Voyager mosaic",
+    "feature": null
+  }
+}

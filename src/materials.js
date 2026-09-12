@@ -15,8 +15,7 @@ const catalog=Object.freeze([
  {id:'moon',name:'달',urls:['https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg',MIRROR+'2k_moon.jpg'],credit:'NASA SVS / LRO / LROC · Ernie Wright'},
  {id:'jupiter',name:'목성',urls:[SSS+'8k_jupiter.jpg',SSS+'2k_jupiter.jpg',MIRROR+'2k_jupiter.jpg'],credit:'Solar System Scope / INOVE · CC BY 4.0',feature:{latitude:-22,longitude:-48.6}},
  {id:'mars',name:'화성',urls:[SSS+'8k_mars.jpg',SSS+'2k_mars.jpg',MIRROR+'2k_mars.jpg'],credit:'Solar System Scope / INOVE · CC BY 4.0'},
- {id:'mercury',name:'수성',urls:[SSS+'8k_mercury.jpg',SSS+'2k_mercury.jpg',MIRROR+'2k_mercury.jpg'],credit:'Solar System Scope / INOVE · CC BY 4.0'},
- {id:'uranus',name:'천왕성',urls:[SSS+'2k_uranus.jpg',MIRROR+'2k_uranus.jpg'],credit:'Solar System Scope / INOVE · CC BY 4.0'}
+ {id:'mercury',name:'수성',urls:[SSS+'8k_mercury.jpg',SSS+'2k_mercury.jpg',MIRROR+'2k_mercury.jpg'],credit:'Solar System Scope / INOVE · CC BY 4.0'}
 ]);
 function valid(row,entry,now=Date.now()){
  return !!row&&row.revision===REV&&row.id===entry.id&&entry.urls.includes(row.url)&&row.width>=1024&&row.width<=4096&&row.height===row.width/2&&typeof row.data==='string'&&row.data.startsWith('data:image/webp;base64,')&&row.data.length<MAX_BYTES&&Number.isFinite(row.created)&&row.created<=now+60000&&now-row.created<MAX_AGE;
