@@ -1,4 +1,4 @@
-/* Solar Time v0.17 — clock, interaction and accessible UI. */
+/* Solar Time v0.18 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -206,7 +206,9 @@
         slider.min=cfg.min;slider.max=cfg.max;slider.step=cfg.step;slider.value=speedValues[speedMode];
         slider.setAttribute('aria-valuetext',speedText());
         const label=speedMode==='hour'?'시간':speedMode==='day'?'일':'년';
-        button.textContent=label;button.dataset.speedMode=speedMode;button.setAttribute('aria-label',`속도 단위 ${label}. 누르면 다음 단위로 전환`);
+        button.textContent=label;button.dataset.speedMode=speedMode;
+        const active=!clock.live;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
+        button.setAttribute('aria-label',active?`속도 단위 ${label}. 누르면 다음 단위로 전환`:`속도 단위 ${label} 대기. 누르면 이 단위로 배속 시작`);
       }
       function applySpeed(value=speedValues[speedMode]){
         const cfg=SPEED_MODES[speedMode],v=A.clamp(Math.round(Number(value)||cfg.min),cfg.min,cfg.max);speedValues[speedMode]=v;
@@ -220,12 +222,17 @@
         $('mode-label').textContent=clock.paused?'PAUSED':clock.live?'LIVE ORBITS':'TIME TRAVEL';
         $('simulation-date').textContent=compactDate(ms);$('simulation-date').dateTime=new Date(ms).toISOString();
         $('speed-value').textContent=clock.paused?'PAUSED':clock.live?'1 ×':speedText();
-        if(!clock.live)syncSpeedUi();
+        syncSpeedUi();
       }
       function uiNow() {const mono=performance.now(),wall=Date.now(),ms=clock.value(mono,wall);updateWall(wall);updateControls(ms);updateBody(ms);}
       function now() {A.calibrateAt(Date.now());renderer.invalidateSurfaces();clock.now(performance.now());uiNow();toast('현재 시각의 태양계로 돌아왔습니다.');}
       $('live-button').addEventListener('click',now);
-      $('speed-mode-button').addEventListener('click',()=>{const order=['hour','day','year'];speedMode=order[(order.indexOf(speedMode)+1)%order.length];applySpeed();});
+      $('speed-mode-button').addEventListener('click',()=>{
+        // In live mode the first press activates the unit already shown instead of
+        // skipping immediately to the next unit. Subsequent presses cycle units.
+        if(clock.live){applySpeed();return;}
+        const order=['hour','day','year'];speedMode=order[(order.indexOf(speedMode)+1)%order.length];applySpeed();
+      });
       $('speed-slider').addEventListener('input',()=>applySpeed($('speed-slider').value));
       syncSpeedUi();
       function pause() {renderer.invalidateSurfaces();clock.toggle(performance.now());uiNow();}
@@ -471,7 +478,7 @@
       window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.17',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.18',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
       materials.load();materialStatus();
       if(!document.hidden)raf=requestAnimationFrame(frame);

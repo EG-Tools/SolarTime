@@ -1,4 +1,4 @@
-/* Solar Time v0.17 playback slider overlay */
+/* Solar Time v0.18 playback slider overlay */
 .clock-face{top:56px}
 .playback-caption{justify-content:flex-end}
 .playback-bar{gap:8px}
@@ -12,3 +12,9 @@
 .speed-mode-button:hover{background:rgba(205,175,121,.18);color:#f0d8a7}
 @media(min-width:1800px){.clock-face{top:70px}}
 @media(max-width:760px){.speed-control{min-width:220px;gap:7px}#speed-slider{width:170px}.playback-bar{max-width:calc(100vw - 18px)}}
+
+/* v0.18: compact playback card and explicit live/off state for the unit button. */
+.playback{transform:translateX(-50%) scale(.9);transform-origin:50% 100%}
+.speed-mode-button{background:transparent;color:#8b96a5;border-color:rgba(171,188,212,.10)}
+.speed-mode-button.active{background:rgba(205,175,121,.12);color:#ead09d;border-color:rgba(171,188,212,.12)}
+.speed-mode-button:not(.active):hover{background:#ffffff09;color:#c9d1dc}

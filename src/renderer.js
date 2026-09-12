@@ -1,4 +1,4 @@
-/* Solar Time v0.17 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.18 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -109,16 +109,17 @@
     }
     baseBodyScale() {return clamp(Math.min(this.w/1330,this.h/820),.55,1.35);}
     focusRadius() {return Math.min(this.w,this.h)*4.5;}
+    bodyScaleForZoom(zoom) {
+      return this.baseBodyScale()*Math.sqrt(Math.min(zoom,VIEW.detailZoom));
+    }
     bodyScaleAtZoom() {
       // Scene magnification depends ONLY on viewport and zoom. A small tracking
       // target must never divide the scale used by every other planet or the Sun.
-      return this.baseBodyScale()*Math.sqrt(Math.min(this.camera.zoom,VIEW.detailZoom));
+      return this.bodyScaleForZoom(this.camera.zoom);
     }
-    bodyRadiusAtZoom(body) {
-      const zoom=this.camera.zoom;
-      if(body.id!==this.camera.focus||zoom<=1)return body.size*this.bodyScaleAtZoom();
-      // Keep all pre-v0.13 bookmarks (<=64x) identical. Extra zoom belongs
-      // only to the tracked body, never to every other planet in the scene.
+    bodyRadiusForState(body,state) {
+      const zoom=state.zoom;
+      if(body.id!==state.focus||zoom<=1)return body.size*this.bodyScaleForZoom(zoom);
       const oldMax=Math.min(this.w,this.h)*VIEW.detailFillRadius;
       if(zoom<=VIEW.detailZoom){
         const t=(Math.sqrt(zoom)-1)/(Math.sqrt(VIEW.detailZoom)-1);
@@ -126,6 +127,14 @@
       }
       const t=(Math.sqrt(zoom)-Math.sqrt(VIEW.detailZoom))/(Math.sqrt(VIEW.maxZoom)-Math.sqrt(VIEW.detailZoom));
       return mix(oldMax,this.focusRadius(),t);
+    }
+    bodyRadiusAtZoom(body) {
+      // Preset/focus transitions must not switch the special tracked-body size
+      // on the first frame. Blend the visible radius continuously from the exact
+      // source camera state to the exact destination camera state.
+      const move=this.cameraTween&&!this.cameraTween.input?this.cameraTween:null;
+      if(move)return mix(this.bodyRadiusForState(body,move.from),this.bodyRadiusForState(body,move.to),move.progress||0);
+      return this.bodyRadiusForState(body,this.camera);
     }
 
     moonOrbitRadius(earthRadius,moonRadius) {
@@ -219,12 +228,10 @@
       if(duration<=0)return this.restoreCamera(state);
       this.stopAutoRotate(mono);this.advanceCamera(mono);this.pendingAutoRotation=null;
       const from=this.cameraSnapshot(),to={...state};
-      // Programmatic focus shots pull the destination body straight from its
-      // current on-screen position to the viewport centre. There is no hidden
-      // zoom-first or pan-first stage; the body itself follows one direct line.
-      const projected=to.focus?this.projected?.find(p=>p.body?.id===to.focus):null;
-      const targetStartScreen=projected?.screen?{x:projected.screen.x,y:projected.screen.y}:null;
-      this.cameraTween={from,to,start:mono,duration,input,targetStartScreen};
+      // Programmatic transitions keep both the old and new tracking anchors alive
+      // for the whole move. This prevents a one-frame focus hand-off that used to
+      // make the tracked planet jump in size/position between saved views.
+      this.cameraTween={from,to,start:mono,duration,input,progress:0};
       this.cameraChangeAt=mono;this.dirty=true;return true;
     }
     // All UI camera commands use animateCamera: one owner, one rAF, no timers.
@@ -281,7 +288,7 @@
     }
     advanceCamera(mono=performance.now()) {
       const move=this.cameraTween;if(!move)return false;
-      const t=clamp((mono-move.start)/move.duration,0,1),p=ease(t),{from,to}=move;
+      const t=clamp((mono-move.start)/move.duration,0,1),p=ease(t),{from,to}=move;move.progress=p;
       const delta=A.wrap(to.azimuth-from.azimuth+Math.PI)-Math.PI;
       const state={azimuth:A.wrap(from.azimuth+delta*p),elevation:mix(from.elevation,to.elevation,p),
         panX:mix(from.panX,to.panX,p),panY:mix(from.panY,to.panY,p),
@@ -572,27 +579,17 @@
         const world={x:earth.world.x+local.x,y:earth.world.y+local.y,z:earth.world.z+local.z};
         bodies.push({body:A.MOON,world,r});
       }
-      // Focus transition: move the destination body itself on one straight
-      // screen-space line from where it was when tracking started to the exact
-      // unpanned viewport centre. Zoom and orbit angle may change concurrently,
-      // but they cannot create a second sideways search path.
+      // Saved-view/focus transitions interpolate ONE tracking anchor between the
+      // source and destination states. Null focus is the scene origin. Because the
+      // anchor itself is blended, there is no focus hand-off frame and no camera
+      // knock when moving 1→2→3 with a tracked planet in the middle preset.
       const move=this.cameraTween&&!this.cameraTween.input?this.cameraTween:null;
-      if(move?.to.focus){
-        const target=bodies.find(p=>p.body.id===move.to.focus);
-        if(target){
-          const raw=clamp((mono-move.start)/move.duration,0,1),blend=ease(raw),v=this.view(target.world);
-          const baseX=this.centerX-this.w*(this.camera.panX||0),baseY=this.centerY-this.h*(this.camera.panY||0);
-          const start=move.targetStartScreen||{x:baseX+v.x*this.scale,y:baseY+v.y*this.scale};
-          const desiredX=mix(start.x,baseX,blend),desiredY=mix(start.y,baseY,blend);
-          this.cx=desiredX-v.x*this.scale;this.cy=desiredY-v.y*this.scale;
-        }else{this.cx=this.homeCx;this.cy=this.homeCy;}
-      }else if(move){
-        // Non-focus transitions (home/presets without a target) retain the
-        // established camera interpolation.
+      if(move){
         const from=move.from.focus?bodies.find(p=>p.body.id===move.from.focus):null;
-        if(from){const raw=clamp((mono-move.start)/move.duration,0,1),blend=ease(raw),v=this.view(from.world);
-          this.cx=mix(this.centerX-v.x*this.scale,this.homeCx,blend);this.cy=mix(this.centerY-v.y*this.scale,this.homeCy,blend);
-        }else{this.cx=this.homeCx;this.cy=this.homeCy;}
+        const to=move.to.focus?bodies.find(p=>p.body.id===move.to.focus):null;
+        const a=from?.world||{x:0,y:0,z:0},b=to?.world||{x:0,y:0,z:0},p=move.progress||0;
+        const anchor={x:mix(a.x,b.x,p),y:mix(a.y,b.y,p),z:mix(a.z,b.z,p)},v=this.view(anchor);
+        this.cx=this.centerX-v.x*this.scale;this.cy=this.centerY-v.y*this.scale;
       }else{
         const target=bodies.find(p=>p.body.id===this.camera.focus);
         if(target){const v=this.view(target.world);this.cx=this.centerX-v.x*this.scale;this.cy=this.centerY-v.y*this.scale;}

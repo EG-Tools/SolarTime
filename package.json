@@ -1,12 +1,13 @@
 {
   "name": "eg-solar-time",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "private": true,
   "description": "Offline solar-system clock with smooth camera transitions and a spherical night sky.",
   "scripts": {
     "test": "node --test tests/*.test.cjs",
     "test:v015": "node --test tests/v015-*.test.cjs",
     "test:v016": "node --test tests/v016-*.test.cjs",
+    "test:v018": "node --test tests/v018-*.test.cjs",
     "build": "node tools/build.cjs"
   },
   "engines": {

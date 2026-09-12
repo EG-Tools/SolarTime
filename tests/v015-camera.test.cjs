@@ -50,7 +50,7 @@ test('auto rotation preserves a panned view and begins at the current centre',()
  const r=fixture();r.camera.panX=.15;r.camera.panY=.08;assert.ok(r.setAutoRotate(1,0));assert.equal(r.cameraTween,null);assert.equal(r.autoRotation.direction,1);near(r.camera.panX,.15);near(r.camera.panY,.08);
 });
 test('numeric preset data schema and old localStorage keys remain compatible',()=>{
- const r=fixture();assert.ok(Renderer.validCamera(r.camera));const app=fs.readFileSync(path.join(root,'src/app.js'),'utf8');assert.match(app,/eg\.solar-time\.v0\.01/);assert.match(app,/solar-time\.camera-presets\.v1/);assert.match(app,/version:'0\.17'/);
+ const r=fixture();assert.ok(Renderer.validCamera(r.camera));const app=fs.readFileSync(path.join(root,'src/app.js'),'utf8');assert.match(app,/eg\.solar-time\.v0\.01/);assert.match(app,/solar-time\.camera-presets\.v1/);assert.match(app,/version:'0\.18'/);
 });
 test('drop-in sky payload equals distributed WebP and leaves planet data untouched',()=>{
  const planets={earth:'preserved'},stars=[[1,2,3]],g={window:{SolarAssets:{materials:planets,stars,sky:'old'}}};vm.createContext(g);vm.runInContext(fs.readFileSync(path.join(root,'src/sky-asset.js'),'utf8'),g);
