@@ -1,4 +1,4 @@
-/* Solar Time v0.16 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.17 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -6,7 +6,7 @@
   function random(seed) { return function() { let t=seed+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
   const mix=(a,b,t)=>a+(b-a)*t;
   const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
-  const VIEW=Object.freeze({minZoom:.6,maxZoom:2048,detailZoom:64,lowerBy:.05,minPanY:-.2,maxPanY:.2,minPanX:-.2,maxPanX:.2,minElevation:-Math.PI/2,maxElevation:Math.PI/2,fillRadius:1.10,detailFillRadius:.34});
+  const VIEW=Object.freeze({minZoom:.6,maxZoom:2048,detailZoom:64,lowerBy:.05,minPanY:-.4,maxPanY:.4,minPanX:-.4,maxPanX:.4,minElevation:-Math.PI/2,maxElevation:Math.PI/2,fillRadius:1.10,detailFillRadius:.34});
   const SURFACE=Object.freeze({detailWidth:4096,maxRaster:1024,lowRaster:384});
   const AUTO_ROTATE_SPEED=2*DEG; // radians per real second; independent of orbital time
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
@@ -219,10 +219,12 @@
       if(duration<=0)return this.restoreCamera(state);
       this.stopAutoRotate(mono);this.advanceCamera(mono);this.pendingAutoRotation=null;
       const from=this.cameraSnapshot(),to={...state};
-      // Every camera command travels directly from the current state to the target.
-      // There is no overview bridge or intermediate framing; only the quintic
-      // ease at the beginning and end softens acceleration/deceleration.
-      this.cameraTween={from,to,start:mono,duration,input};
+      // Programmatic focus shots pull the destination body straight from its
+      // current on-screen position to the viewport centre. There is no hidden
+      // zoom-first or pan-first stage; the body itself follows one direct line.
+      const projected=to.focus?this.projected?.find(p=>p.body?.id===to.focus):null;
+      const targetStartScreen=projected?.screen?{x:projected.screen.x,y:projected.screen.y}:null;
+      this.cameraTween={from,to,start:mono,duration,input,targetStartScreen};
       this.cameraChangeAt=mono;this.dirty=true;return true;
     }
     // All UI camera commands use animateCamera: one owner, one rAF, no timers.
@@ -570,17 +572,27 @@
         const world={x:earth.world.x+local.x,y:earth.world.y+local.y,z:earth.world.z+local.z};
         bodies.push({body:A.MOON,world,r});
       }
-      // Blend the tracked world-space anchor itself. This removes the old
-      // zoom-derived snap in the middle of a focus transition and also gives a
-      // continuous path when changing from one tracked body to another.
+      // Focus transition: move the destination body itself on one straight
+      // screen-space line from where it was when tracking started to the exact
+      // unpanned viewport centre. Zoom and orbit angle may change concurrently,
+      // but they cannot create a second sideways search path.
       const move=this.cameraTween&&!this.cameraTween.input?this.cameraTween:null;
-      if(move){
-        const raw=clamp((mono-move.start)/move.duration,0,1),blend=ease(raw);
+      if(move?.to.focus){
+        const target=bodies.find(p=>p.body.id===move.to.focus);
+        if(target){
+          const raw=clamp((mono-move.start)/move.duration,0,1),blend=ease(raw),v=this.view(target.world);
+          const baseX=this.centerX-this.w*(this.camera.panX||0),baseY=this.centerY-this.h*(this.camera.panY||0);
+          const start=move.targetStartScreen||{x:baseX+v.x*this.scale,y:baseY+v.y*this.scale};
+          const desiredX=mix(start.x,baseX,blend),desiredY=mix(start.y,baseY,blend);
+          this.cx=desiredX-v.x*this.scale;this.cy=desiredY-v.y*this.scale;
+        }else{this.cx=this.homeCx;this.cy=this.homeCy;}
+      }else if(move){
+        // Non-focus transitions (home/presets without a target) retain the
+        // established camera interpolation.
         const from=move.from.focus?bodies.find(p=>p.body.id===move.from.focus):null;
-        const to=move.to.focus?bodies.find(p=>p.body.id===move.to.focus):null;
-        const a=from?this.view(from.world):{x:0,y:0},b=to?this.view(to.world):{x:0,y:0};
-        this.cx=this.centerX-mix(a.x,b.x,blend)*this.scale;
-        this.cy=this.centerY-mix(a.y,b.y,blend)*this.scale;
+        if(from){const raw=clamp((mono-move.start)/move.duration,0,1),blend=ease(raw),v=this.view(from.world);
+          this.cx=mix(this.centerX-v.x*this.scale,this.homeCx,blend);this.cy=mix(this.centerY-v.y*this.scale,this.homeCy,blend);
+        }else{this.cx=this.homeCx;this.cy=this.homeCy;}
       }else{
         const target=bodies.find(p=>p.body.id===this.camera.focus);
         if(target){const v=this.view(target.world);this.cx=this.centerX-v.x*this.scale;this.cy=this.centerY-v.y*this.scale;}
