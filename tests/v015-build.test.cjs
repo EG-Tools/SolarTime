@@ -15,14 +15,15 @@ function build(temp){return cp.spawnSync(process.execPath,['tools/build.cjs'],{c
 test('build embeds revised sky once and all script tags, leaving website index unchanged',()=>{
  const temp=fixture();try{
  const index=fs.readFileSync(path.join(temp,'index.html'),'utf8'),result=build(temp);assert.equal(result.status,0,result.stderr);
- const html=fs.readFileSync(path.join(temp,'dist/Solar-Time_v0.18.html'),'utf8');assert.doesNotMatch(html,/<script\b[^>]*\bsrc=/i);assert.doesNotMatch(html,/styles-v016\.css/);assert.doesNotMatch(html,/src\/sky-asset\.js/);
- assert.match(html,/version:'0\.16'/);assert.equal(fs.readFileSync(path.join(temp,'index.html'),'utf8'),index);
+ const pkg=JSON.parse(fs.readFileSync(path.join(temp,'package.json'),'utf8')),v=pkg.version.split('.').slice(1).join('.');
+ const html=fs.readFileSync(path.join(temp,'dist/Solar-Time_v'+v+'.html'),'utf8');assert.doesNotMatch(html,/<script\b[^>]*\bsrc=/i);assert.doesNotMatch(html,/styles-v016\.css/);assert.doesNotMatch(html,/src\/sky-asset\.js/);
+ assert.match(html,new RegExp(`version:'${v.replace('.', '\\.')}'`));assert.equal(fs.readFileSync(path.join(temp,'index.html'),'utf8'),index);
  const sky=fs.readFileSync(path.join(temp,'assets/universe.webp')).toString('base64');assert.equal(html.split(sky).length,2,'sky should occur exactly once');
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
 test('packing regenerates the website sky override from the current image',()=>{
- const temp=fixture();try{assert.equal(build(temp).status,0);const payload=fs.readFileSync(path.join(temp,'src/sky-asset.js'),'utf8');assert.ok(payload.includes(fs.readFileSync(path.join(temp,'assets/universe.webp')).toString('base64')));assert.match(payload,/0\.16/);}finally{fs.rmSync(temp,{recursive:true,force:true});}
+ const temp=fixture();try{assert.equal(build(temp).status,0);const payload=fs.readFileSync(path.join(temp,'src/sky-asset.js'),'utf8');assert.ok(payload.includes(fs.readFileSync(path.join(temp,'assets/universe.webp')).toString('base64')));const pkg=JSON.parse(fs.readFileSync(path.join(temp,'package.json'),'utf8')),v=pkg.version.split('.').slice(1).join('.');assert.ok(payload.includes(v));}finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
 test('build fails clearly if an original planet asset is missing, without publishing output',()=>{
- const temp=fixture();try{fs.unlinkSync(path.join(temp,'assets/earth.webp'));const result=build(temp);assert.notEqual(result.status,0);assert.match(result.stderr,/Missing original asset/);assert.ok(!fs.existsSync(path.join(temp,'dist/Solar-Time_v0.18.html')));}finally{fs.rmSync(temp,{recursive:true,force:true});}
+ const temp=fixture();try{fs.unlinkSync(path.join(temp,'assets/earth.webp'));const result=build(temp);assert.notEqual(result.status,0);assert.match(result.stderr,/Missing original asset/);const pkg=JSON.parse(fs.readFileSync(path.join(temp,'package.json'),'utf8')),v=pkg.version.split('.').slice(1).join('.');assert.ok(!fs.existsSync(path.join(temp,'dist/Solar-Time_v'+v+'.html')));}finally{fs.rmSync(temp,{recursive:true,force:true});}
 });

@@ -1,10 +1,10 @@
 # Solar Time
 
-**Life User • Solar Time v0.20 • Lyrikey@Naver.com**
+**Life User • Solar Time v0.21 • Lyrikey@Naver.com**
 
 실제 기기 시각으로 움직이는 감상용 태양계 시계입니다. 관측·항법용 정밀 천문력이 아닙니다.
 
-## v0.20 변경
+## v0.21 변경
 
 - 날짜 선택 버튼과 날짜 모달을 제거해 하단 재생 카드를 더 작게 정리했습니다.
 - 날짜 선택과 연결된 이벤트·키보드 분기·DOM 참조를 함께 삭제했습니다.
@@ -16,7 +16,7 @@
 
 GitHub Pages는 루트 `index.html`을 사용합니다. 변경 ZIP을 기존 SolarTime 프로젝트 루트에 같은 경로로 덮어쓰고 GitHub에 올리면 됩니다. 웹 버전은 별도 빌드가 필요 없습니다.
 
-단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.20.html`을 사용합니다.
+단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.21.html`을 사용합니다.
 
 ## 조작
 
@@ -29,3 +29,10 @@ GitHub Pages는 루트 `index.html`을 사용합니다. 변경 ZIP을 기존 Sol
 ## 출처
 
 기존 재질 출처와 이용 조건은 `assets/CREDITS.md`를 따릅니다. 현재 우주 배경은 사용자가 제공한 4096×2048 WebP를 유지합니다.
+
+
+## v0.21
+- 감상 모드에서 실제 시계 레이아웃 고정
+- 시계 숫자 폰트 선택
+- 시뮬레이션 상태 표시 상향
+- 첫 회전용 표면/텍스처 워밍업 및 공개 재질 로딩 지연

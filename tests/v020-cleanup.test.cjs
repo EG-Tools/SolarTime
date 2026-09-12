@@ -23,5 +23,5 @@ test('v0.20 removes dead offline photo export path',()=>{
 
 test('v0.20 product version is consistent',()=>{
  const html=read('index.html'),pkg=JSON.parse(read('package.json')),app=read('src/app.js');
- assert.equal(pkg.version,'0.0.20');assert.ok(html.includes('Solar Time v0.20'));assert.ok(app.includes("version:'0.20'"));
+ const v=pkg.version.split('.').slice(1).join('.');assert.ok(html.includes('Solar Time v'+v));assert.ok(app.includes("version:'"+v+"'"));
 });

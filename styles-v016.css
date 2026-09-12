@@ -1,5 +1,5 @@
-/* Solar Time v0.20 playback slider overlay */
-.clock-face{top:56px}
+/* Solar Time v0.21 compact UI overlay */
+.clock-face,body.zen .clock-face{top:56px}
 .playback-caption{justify-content:flex-end}
 .playback-bar{gap:7px;padding-left:8px;padding-right:8px}
 .speed-control{display:flex;align-items:center;gap:10px;min-width:292px}
@@ -10,7 +10,7 @@
 #speed-slider::-moz-range-thumb{width:12px;height:12px;border:0;border-radius:50%;background:#e2c58d;box-shadow:0 0 0 3px rgba(226,197,141,.10)}
 .speed-mode-button{min-width:42px;padding:7px 9px;border-radius:6px;background:rgba(205,175,121,.12);color:#ead09d;font-size:10px;border:1px solid rgba(171,188,212,.12)}
 .speed-mode-button:hover{background:rgba(205,175,121,.18);color:#f0d8a7}
-@media(min-width:1800px){.clock-face{top:70px}}
+@media(min-width:1800px){.clock-face,body.zen .clock-face{top:70px}}
 @media(max-width:760px){.speed-control{min-width:205px;gap:7px}#speed-slider{width:158px}.playback-bar{max-width:calc(100vw - 18px)}}
 
 /* v0.20: compact playback card and explicit live/off state for the unit button. */
@@ -24,3 +24,11 @@
 .signature,.modal-note{font-variant-numeric:tabular-nums}
 
 /* v0.20: date controls removed; playback card is intentionally narrower. */
+
+
+/* v0.21: zen mode must not alter the clock block. */
+:root{--clock-font:"Aptos Display","Segoe UI Light","Segoe UI",Arial,sans-serif}
+.wall-clock{font-family:var(--clock-font)}
+body.zen .clock-face .eyebrow{color:#8d918f}
+.scene-status{top:214px}
+@media(min-width:1800px){.scene-status{top:248px}}

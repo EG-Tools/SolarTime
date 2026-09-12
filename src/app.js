@@ -1,4 +1,4 @@
-/* Solar Time v0.20 — clock, interaction and accessible UI. */
+/* Solar Time v0.21 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -6,7 +6,7 @@
   let toastTimer,awakeTimer;
   function toast(message) { clearTimeout(toastTimer);$('toast').textContent=message;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,3400); }
   function fatal(error) { $('loading').hidden=true;$('fatal-error').hidden=false;$('fatal-message').textContent=error instanceof Error?error.message:String(error);console.error(error); }
-  function init() {
+  async function init() {
     try {
       const materials=new window.SolarMaterials.Owner();
       const bootWall=Date.now(),calibrationStarted=performance.now();
@@ -16,6 +16,14 @@
       const clock=new A.SimulationClock(Date.now(),performance.now());
       let timezone='local',showSeconds=false,zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
       let speedMode='day',speedValues={hour:60,day:1,year:1};
+      const CLOCK_FONTS=Object.freeze({
+        aptos:'"Aptos Display","Segoe UI Light","Segoe UI",Arial,sans-serif',
+        segoe:'"Segoe UI Light","Segoe UI",Arial,sans-serif',
+        bahnschrift:'"Bahnschrift Light","Bahnschrift","Segoe UI",Arial,sans-serif',
+        arial:'Arial,"Segoe UI",sans-serif',
+        consolas:'Consolas,"Cascadia Mono",monospace'
+      });
+      let clockFont='aptos';
       const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       renderer.options.twinkle=!reduced;renderer.options.activity=!reduced;renderer.options.skyMotion=!reduced;renderer.options.comets=!reduced;
       const validKeys={orbits:'show-orbits',labels:'show-labels',avoidLabels:'avoid-labels',twinkle:'show-twinkle',activity:'show-activity',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
@@ -25,6 +33,7 @@
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
           if(saved.timezone==='utc')timezone='utc';
           if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
+          if(typeof saved.clockFont==='string'&&CLOCK_FONTS[saved.clockFont])clockFont=saved.clockFont;
           if(['hour','day','year'].includes(saved.speedMode))speedMode=saved.speedMode;
           if(saved.speedValues&&typeof saved.speedValues==='object'){
             if(Number.isFinite(saved.speedValues.hour))speedValues.hour=A.clamp(Math.round(saved.speedValues.hour),1,1440);
@@ -39,8 +48,9 @@
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
       $('show-seconds').checked=showSeconds;$('seconds-group').hidden=!showSeconds;
+      $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
       const zoneLabel=()=>timezone==='utc'?'UTC':Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replaceAll('_',' ').toUpperCase();
-      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,showSeconds,speedMode,speedValues,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
+      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,showSeconds,clockFont,speedMode,speedValues,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
       function cameraUi() {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
         const zoom=controlState.zoom,limits=renderer.zoomLimits;
@@ -238,6 +248,7 @@
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
       for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if((key==='pluto'||key==='moon')&&!$(id).checked&&renderer.selected===key)closeBody();navVisibility();persist();});
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
+      $('clock-font').addEventListener('change',()=>{const next=$('clock-font').value;if(!CLOCK_FONTS[next])return;clockFont=next;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);persist();});
       function reset() {cancelGesture();renderer.resetCamera();cameraUi();persist();}
       $('fit-view').addEventListener('click',reset);
       function zoom(factor) {const mono=performance.now();renderer.smoothZoom(renderer.cameraInputState(mono).zoom*factor,null,mono);cameraUi();}
@@ -326,7 +337,8 @@
       function setZen(value) {
         closePresetDialog(false);zen=value;clearAwake();document.body.classList.toggle('zen',zen);
         $('zen-toggle').setAttribute('aria-pressed',String(zen));$('zen-toggle').setAttribute('aria-label',zen?'감상 모드 끄기':'감상 모드 켜기');$('zen-toggle').title=(zen?'일반 모드':'감상 모드')+' · H';
-        $('timezone-button').hidden=zen;$('timezone-readout').hidden=!zen;
+        // Keep the complete clock/date block pixel-identical in zen mode.
+        $('timezone-button').hidden=false;$('timezone-readout').hidden=true;
         for(const el of document.querySelectorAll('.ui,#timezone-button'))el.inert=zen;
         renderer.hover=null;
         if(zen){closeBody();settings(false);clearTimeout(toastTimer);$('toast').hidden=true;$('universe').focus({preventScroll:true});wakePointer();}
@@ -430,7 +442,25 @@
           renderer.setOrbitView(azimuth,elevation);cameraUi();persist();
         }
       },{capture:true});
-      // Optional public planet maps refresh quietly in the background; no management UI is retained.
+      // Finish the first surface batch under the loading cover. The worker, WebGL
+      // shader and embedded textures are then already warm when the user rotates.
+      async function warmInitialScene(maxMs=1200) {
+        const started=performance.now();
+        while(performance.now()-started<maxMs){
+          const surface=renderer.surface;if(surface?.stats?.accepted>0&&!surface.inflight)return true;
+          await new Promise(resolve=>setTimeout(resolve,16));
+        }
+        return false;
+      }
+      let materialRefreshTimer=0;
+      function scheduleMaterialRefresh(){
+        materialRefreshTimer=setTimeout(()=>{
+          materialRefreshTimer=0;
+          const run=()=>{if(!disposed)materials.load();};
+          if(typeof requestIdleCallback==='function')requestIdleCallback(run,{timeout:3000});else run();
+        },2200);
+      }
+      // Optional public planet maps refresh quietly after the first interactive window.
       let resizeTimer;
       window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>renderer.resize(),70);},{passive:true});
       function frame(mono) {
@@ -447,19 +477,21 @@
           renderer.draw(ms,effectTime,mono);
           if(wasTransitioning&&!renderer.cameraTween)persist();
           if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);}
-        } catch(error){disposed=true;renderer.dispose();materials.dispose();cancelAnimationFrame(raf);clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);fatal(error);}
+        } catch(error){disposed=true;renderer.dispose();materials.dispose();cancelAnimationFrame(raf);clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);clearTimeout(materialRefreshTimer);fatal(error);}
       }
       document.addEventListener('visibilitychange',()=>{
         if(document.hidden){closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
         else if(!raf&&!disposed){lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
       });
-      window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);});
+      window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.20',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,zen,effectTime,frameCount:renderer.frameCount})});
-      uiNow();renderer.draw(clock.value(performance.now()),0);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);
-      materials.load();
-      if(!document.hidden)raf=requestAnimationFrame(frame);
+      window.SolarTime=Object.freeze({version:'0.21',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,clockFont,zen,effectTime,frameCount:renderer.frameCount})});
+      uiNow();
+      const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
+      await warmInitialScene();
+      if(!disposed){renderer.draw(clock.value(performance.now()),0,performance.now());$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);scheduleMaterialRefresh();}
+      if(!document.hidden&&!disposed)raf=requestAnimationFrame(frame);
     } catch(error){fatal(error);}
   }
   requestAnimationFrame(()=>setTimeout(init,0));
