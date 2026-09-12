@@ -6,7 +6,7 @@
 
 https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation-5935/
 
-**Pluto:** NASA/JHUAPL/SwRI, New Horizons Ralph/MVIC global color mosaic. The 5926×2963 source was resized to 4096×2048 WebP. The source's unobserved black southern wedge is filled only for continuous spherical display by softly extending nearby measured color; it must not be treated as measured southern terrain. The old synthetic Pluto relief layer is not packed with this photograph.
+**Pluto:** NASA/JHUAPL/SwRI, New Horizons Ralph/MVIC global color mosaic. The 5926×2963 source was resized to 4096×2048 WebP. The source's unobserved black southern wedge is filled only for continuous spherical display: nearby measured color is softened into the cap and low-contrast detail comes from Solar Time's pre-existing continuous procedural relief so photographed features are not stretched toward the pole. The reconstructed cap must not be treated as measured southern terrain. The old relief layer is not packed as a separate bump map with this photograph.
 
 https://science.nasa.gov/resource/pluto-global-color-map/
 
@@ -14,7 +14,7 @@ https://science.nasa.gov/resource/pluto-global-color-map/
 
 https://science.nasa.gov/asset/webb/uranus-voyager-2/
 
-**Europa:** USGS / NASA-JPL-Caltech Voyager image mosaic supplied as NASA's Europa 3D-model texture preview. The grayscale albedo mosaic is resized to 2048×1024 and given a restrained ice-and-rust tint; geography is not procedurally added.
+**Europa:** USGS / NASA-JPL-Caltech Voyager image mosaic supplied as NASA's downloadable 1440×720 2:1 image texture for 3D models. The exact equirectangular source—not the 2048×1152 web preview—is resized to 2048×1024 and given a restrained ice-and-rust tint; geography is not procedurally added.
 
 https://science.nasa.gov/3d-resources/jupiter-europa/
 

@@ -13,15 +13,46 @@ def save_webp(image: Image.Image, target: Path) -> None:
     image.save(target, "WEBP", quality=94, method=6)
 
 
+def require_equirectangular(image: Image.Image, label: str) -> None:
+    """Reject web previews that would be squashed into the planet UV layout."""
+    if image.width != image.height * 2:
+        raise ValueError(
+            f"{label} must be a 2:1 equirectangular map, got "
+            f"{image.width}x{image.height}"
+        )
+
+
+def finish_equirectangular(image: Image.Image, size: tuple[int, int]) -> Image.Image:
+    """Use the same longitude and pole convention as existing spherical maps."""
+    image = image.resize(size, Image.Resampling.LANCZOS)
+    pixels = np.asarray(image, dtype=np.float32).copy()
+    # Every longitude meets at a pole. Converging only the last few texel rows
+    # prevents a fan-shaped pinch without moving mid-latitude landmarks.
+    pole_rows = max(2, min(24, size[1] // 64))
+    for top in (True, False):
+        for i in range(pole_rows):
+            y = i if top else pixels.shape[0] - 1 - i
+            weight = ((pole_rows - i) / pole_rows) ** 2
+            mean = pixels[y].mean(axis=0, keepdims=True)
+            pixels[y] = pixels[y] * (1 - weight) + mean * weight
+    # Existing planet assets and the runtime both join the antimeridian. Match
+    # the endpoint pixels here as well so no raw map can introduce a hard tear.
+    edge = (pixels[:, 0] + pixels[:, -1]) * 0.5
+    pixels[:, 0] = edge
+    pixels[:, -1] = edge
+    return Image.fromarray(np.uint8(np.clip(pixels, 0, 255)))
+
+
 def prepare_pluto(source: Path, target: Path) -> None:
-    image = np.asarray(Image.open(source).convert("RGB"), dtype=np.float32)
+    source_image = Image.open(source).convert("RGB")
+    require_equirectangular(source_image, "Pluto")
+    image = np.asarray(source_image, dtype=np.float32)
     # New Horizons did not image the far-southern cap at comparable resolution.
     # Fill only the map's pure-black no-data wedge by reflecting the nearest
     # observed southern latitudes. This prevents a black cap on the sphere while
     # preserving every measured pixel above the coverage boundary.
     valid = image.max(axis=2) > 12
     height, width = valid.shape
-    blend_mask = np.zeros((height, width), dtype=np.float32)
     for x in range(width):
         rows = np.flatnonzero(valid[:, x])
         if not len(rows):
@@ -39,30 +70,47 @@ def prepare_pluto(source: Path, target: Path) -> None:
                 t = (y - start) / max(1, edge - start)
                 t = t * t * (3 - 2 * t)
                 image[y, x] = image[y, x] * (1 - t) + replacement * t
-                blend_mask[y, x] = t
             else:
                 image[y, x] = replacement
-                blend_mask[y, x] = 1
-    # Slightly soften only the reconstructed cap so column-wise coverage edges
-    # from the source mosaic cannot show up as a latitude seam.
-    smooth = np.asarray(Image.fromarray(np.uint8(np.clip(image, 0, 255))).filter(ImageFilter.GaussianBlur(12)), dtype=np.float32)
-    weight = (blend_mask * 0.82)[..., None]
-    image = image * (1 - weight) + smooth * weight
-    out = Image.fromarray(np.uint8(np.clip(image, 0, 255))).resize((4096, 2048), Image.Resampling.LANCZOS)
-    pixels = np.asarray(out, dtype=np.float32).copy()
-    # Longitude is undefined at each pole; gently converge the last few rows to
-    # their row mean so the equirectangular wrap cannot form a pinched seam.
-    for top in (True, False):
-        for i in range(24):
-            y = i if top else pixels.shape[0] - 1 - i
-            weight = ((24 - i) / 24) ** 2
-            mean = pixels[y].mean(axis=0, keepdims=True)
-            pixels[y] = pixels[y] * (1 - weight) + mean * weight
-    save_webp(Image.fromarray(np.uint8(np.clip(pixels, 0, 255))), target)
+    # The missing cap must not inherit one long radial streak per source column.
+    # Resize first, then use a broad longitude-periodic blur only inside the
+    # reconstructed area. This keeps observed terrain intact and turns the
+    # unmeasured cap into a low-frequency continuation instead of a pinwheel.
+    filled = Image.fromarray(np.uint8(np.clip(image, 0, 255))).resize((4096, 2048), Image.Resampling.LANCZOS)
+    pad = 360
+    wrapped = Image.new("RGB", (filled.width + pad * 2, filled.height))
+    wrapped.paste(filled.crop((filled.width - pad, 0, filled.width, filled.height)), (0, 0))
+    wrapped.paste(filled, (pad, 0))
+    wrapped.paste(filled.crop((0, 0, pad, filled.height)), (pad + filled.width, 0))
+    smooth = wrapped.filter(ImageFilter.GaussianBlur(105)).crop((pad, 0, pad + filled.width, filled.height))
+    filled_pixels = np.asarray(filled, dtype=np.float32)
+    smooth_pixels = np.asarray(smooth, dtype=np.float32)
+    # The source coverage edge varies from about 29°S to 55°S. A latitude-only
+    # confidence fade avoids exposing that irregular footprint as vertical
+    # wedges while preserving every observed pixel north of 25°S.
+    latitude = np.linspace(90, -90, filled.height, dtype=np.float32)
+    south = np.clip((-latitude - 25) / (62 - 25), 0, 1)
+    south = (south * south * (3 - 2 * south))[:, None, None]
+    # Deeper into the unknown cap, longitude has no defensible photo content.
+    # Reuse only the zero-mean detail from Solar Time's existing continuous
+    # spherical relief so the fill has texture without stretching observations.
+    row_mean = smooth_pixels.mean(axis=1, keepdims=True)
+    relief_path = target.parent / "pluto-relief.webp"
+    relief = Image.open(relief_path).convert("RGB").resize(filled.size, Image.Resampling.LANCZOS)
+    relief_pixels = np.asarray(relief, dtype=np.float32)
+    relief_detail = relief_pixels - relief_pixels.mean(axis=1, keepdims=True)
+    synthetic_cap = np.clip(row_mean + relief_detail * 1.15, 0, 255)
+    replacement = smooth_pixels * (1 - south) + synthetic_cap * south
+    reconstructed_pixels = filled_pixels * (1 - south) + replacement * south
+    reconstructed = Image.fromarray(np.uint8(np.clip(reconstructed_pixels, 0, 255)))
+    out = finish_equirectangular(reconstructed, (4096, 2048))
+    save_webp(out, target)
 
 
 def prepare_europa(source: Path, target: Path) -> None:
-    image = Image.open(source).convert("L").resize((2048, 1024), Image.Resampling.LANCZOS)
+    source_image = Image.open(source).convert("L")
+    require_equirectangular(source_image, "Europa")
+    image = source_image.resize((2048, 1024), Image.Resampling.LANCZOS)
     luminance = np.asarray(image, dtype=np.float32) / 255
     luminance = np.clip((luminance - 0.08) / 0.92, 0, 1) ** 0.92
     # The USGS/NASA preview is an albedo mosaic. Apply a restrained ice-and-rust
@@ -70,7 +118,7 @@ def prepare_europa(source: Path, target: Path) -> None:
     dark = np.array([67, 45, 32], dtype=np.float32)
     light = np.array([242, 230, 198], dtype=np.float32)
     rgb = dark + luminance[..., None] * (light - dark)
-    save_webp(Image.fromarray(np.uint8(np.clip(rgb, 0, 255))), target)
+    save_webp(finish_equirectangular(Image.fromarray(np.uint8(np.clip(rgb, 0, 255))), (2048, 1024)), target)
 
 
 def bilinear(source: np.ndarray, x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -104,7 +152,8 @@ def prepare_uranus(source: Path, target: Path) -> None:
     sample_x = cx + 0.55 * radius * np.cos(latitude) * np.sin(longitude)
     sample_y = cy - 0.78 * radius * np.sin(latitude) + np.zeros_like(longitude)
     rgb = bilinear(softened, sample_x, sample_y)
-    save_webp(Image.fromarray(np.uint8(np.clip(rgb, 0, 255))), target)
+    out = finish_equirectangular(Image.fromarray(np.uint8(np.clip(rgb, 0, 255))), (2048, 1024))
+    save_webp(out, target)
 
 
 def main() -> None:

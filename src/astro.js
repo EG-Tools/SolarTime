@@ -4,7 +4,7 @@
  * https://ssd.jpl.nasa.gov/planets/approx_pos.html
  * UTC is used in place of TDB; Earth uses the Earth–Moon barycenter.
  * Pluto is a fixed, illustrative J2000 Kepler orbit, not a JPL ephemeris.
- * Moon and Europa use circular mean sidereal models phase-anchored to JPL
+ * Moon and Europa use mild elliptical mean sidereal models phase-anchored to JPL
  * Horizons state vectors at 2026-09-13 00:00 TDB; no perturbations/eclipses.
  */
 (function (root, factory) {
