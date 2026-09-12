@@ -28,11 +28,10 @@ test('clock colon spacing and zen SEOUL visibility are explicit',()=>{
   assert.match(css,/body\.zen #timezone-button\{display:inline-block!important;visibility:visible!important;opacity:1!important\}/);
 });
 
-test('all public version labels are v0.22',()=>{
-  const html=read('index.html'),pkg=JSON.parse(read('package.json')),app=read('src/app.js');
-  assert.equal(pkg.version,'0.0.22');
-  assert.match(html,/Solar Time v0\.22/);
-  assert.match(app,/version:'0\.22'/);
+test('all public version labels match package',()=>{
+  const html=read('index.html'),pkg=JSON.parse(read('package.json')),app=read('src/app.js'),v=pkg.version.split('.').slice(1).join('.');
+  assert.ok(html.includes('Solar Time v'+v));
+  assert.ok(app.includes("version:'"+v+"'"));
 });
 
 

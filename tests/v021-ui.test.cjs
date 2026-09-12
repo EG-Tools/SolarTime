@@ -7,7 +7,7 @@ test('zen mode preserves the complete clock block layout',()=>{
  const css=read('styles-v016.css'),app=read('src/app.js');
  assert.match(css,/\.clock-face,body\.zen \.clock-face\{top:56px\}/);
  assert.match(css,/body\.zen \.clock-face \.eyebrow\{color:#8d918f\}/);
- assert.match(app,/\$\('timezone-button'\)\.hidden=false;\$\('timezone-readout'\)\.hidden=true/);
+ assert.doesNotMatch(app,/timezone-readout/);
 });
 
 test('simulation status is moved upward',()=>assert.match(read('styles-v016.css'),/\.scene-status\{top:214px\}/));
@@ -29,7 +29,7 @@ test('optional public material refresh is deferred',()=>{
  const app=read('src/app.js');assert.match(app,/setTimeout\(\(\)=>\{[\s\S]*requestIdleCallback/);assert.match(app,/,2200\)/);
 });
 
-test('v0.21 version is consistent',()=>{
- const pkg=JSON.parse(read('package.json')),html=read('index.html'),app=read('src/app.js'),build=read('tools/build.cjs');
- assert.equal(pkg.version,'0.0.21');assert.match(html,/Solar Time v0\.21/);assert.match(app,/version:'0\.21'/);assert.match(build,/0\.0\.21/);
+test('release version is consistent',()=>{
+ const pkg=JSON.parse(read('package.json')),html=read('index.html'),app=read('src/app.js'),build=read('tools/build.cjs'),v=pkg.version.split('.').slice(1).join('.');
+ assert.ok(html.includes('Solar Time v'+v));assert.ok(app.includes("version:'"+v+"'"));assert.ok(build.includes('0.'+v));
 });

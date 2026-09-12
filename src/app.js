@@ -1,4 +1,4 @@
-/* Solar Time v0.22 — clock, interaction and accessible UI. */
+/* Solar Time v0.23 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -14,7 +14,7 @@
       const calibrationMs=performance.now()-calibrationStarted;
       const renderer=new window.SolarRenderer($('starfield'),$('universe'));
       const clock=new A.SimulationClock(Date.now(),performance.now());
-      let timezone='local',showSeconds=false,zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
+      let timezone='local',showSeconds=false,hourCycle='24',zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
       let speedMode='day',speedValues={hour:60,day:1,year:1};
       const CLOCK_FONTS=Object.freeze({
         aptos:'"Aptos Display","Segoe UI Light","Segoe UI",Arial,sans-serif',
@@ -43,6 +43,7 @@
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
           if(saved.timezone==='utc')timezone='utc';
           if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
+          if(saved.hourCycle==='12'||saved.hourCycle==='24')hourCycle=saved.hourCycle;
           if(typeof saved.clockFont==='string'&&CLOCK_FONTS[saved.clockFont])clockFont=saved.clockFont;
           if(['hour','day','year'].includes(saved.speedMode))speedMode=saved.speedMode;
           if(saved.speedValues&&typeof saved.speedValues==='object'){
@@ -58,9 +59,10 @@
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
       $('show-seconds').checked=showSeconds;$('seconds-group').hidden=!showSeconds;
+      $('hour-cycle').value=hourCycle;$('ampm').hidden=hourCycle!=='12';
       $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
       const zoneLabel=()=>timezone==='utc'?'UTC':Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replaceAll('_',' ').toUpperCase();
-      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,showSeconds,clockFont,speedMode,speedValues,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
+      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,showSeconds,hourCycle,clockFont,speedMode,speedValues,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
       function cameraUi() {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
         const zoom=controlState.zoom,limits=renderer.zoomLimits;
@@ -155,9 +157,11 @@
       function dateParts(ms) {const d=new Date(ms),p=timezone==='utc'?'getUTC':'get';return {y:d[p+'FullYear'](),mo:d[p+'Month']()+1,d:d[p+'Date'](),h:d[p+'Hours'](),mi:d[p+'Minutes'](),s:d[p+'Seconds']()};}
       function compactDate(ms) {const d=dateParts(ms);return `${d.y}.${two(d.mo)}.${two(d.d)}  ${two(d.h)}:${two(d.mi)}`;}
       function updateWall(wall) {
-        const p=dateParts(wall),key=[p.y,p.mo,p.d,p.h,p.mi,showSeconds?p.s:0,timezone,showSeconds].join('-');if(key===lastWallKey)return;lastWallKey=key;
-        $('hours').textContent=two(p.h);$('minutes').textContent=two(p.mi);$('seconds').textContent=two(p.s);
-        $('wall-clock').dateTime=new Date(wall).toISOString();$('wall-clock').setAttribute('aria-label',`실제 기기 시각 ${p.h}시 ${p.mi}분${showSeconds?' '+p.s+'초':''}`);
+        const p=dateParts(wall),key=[p.y,p.mo,p.d,p.h,p.mi,showSeconds?p.s:0,timezone,showSeconds,hourCycle].join('-');if(key===lastWallKey)return;lastWallKey=key;
+        const twelve=hourCycle==='12',displayHour=twelve?((p.h+11)%12)+1:p.h,period=p.h<12?'AM':'PM';
+        $('hours').textContent=two(displayHour);$('minutes').textContent=two(p.mi);$('seconds').textContent=two(p.s);
+        $('ampm').hidden=!twelve;$('ampm').textContent=period;
+        $('wall-clock').dateTime=new Date(wall).toISOString();$('wall-clock').setAttribute('aria-label',twelve?`실제 기기 시각 ${period} ${displayHour}시 ${p.mi}분${showSeconds?' '+p.s+'초':''}`:`실제 기기 시각 ${p.h}시 ${p.mi}분${showSeconds?' '+p.s+'초':''}`);
         $('wall-date').textContent=dateFormatter.format(new Date(wall));$('timezone-button').textContent=zoneLabel();
         $('timezone-button').setAttribute('aria-label',`${timezone==='utc'?'UTC':'현지 시간'} 표시 중. 눌러서 시간대 전환`);
       }
@@ -258,6 +262,7 @@
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
       for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if((key==='pluto'||key==='moon')&&!$(id).checked&&renderer.selected===key)closeBody();navVisibility();persist();});
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
+      $('hour-cycle').addEventListener('change',()=>{hourCycle=$('hour-cycle').value==='12'?'12':'24';lastWallKey='';uiNow();persist();});
       $('clock-font').addEventListener('change',()=>{const next=$('clock-font').value;if(!CLOCK_FONTS[next])return;clockFont=next;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);persist();});
       function reset() {cancelGesture();renderer.resetCamera();cameraUi();persist();}
       $('fit-view').addEventListener('click',reset);
@@ -496,7 +501,7 @@
       window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.22',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,clockFont,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.23',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,hourCycle,clockFont,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

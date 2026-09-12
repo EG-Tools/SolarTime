@@ -1,4 +1,4 @@
-/* Solar Time v0.19 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.23 — dependency-free, depth-projected Canvas renderer.
    Earth uses a NASA Blue Marble material; other worlds and sky are artistic materials. */
 (function () {
   'use strict';
@@ -28,6 +28,7 @@
       this.orbitCache=new WeakMap();this.frameCache=new Map();this.starSprites=new Map();
       this.stats={orbitProjections:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
       this.selected=null;this.hover=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
+      this.lastSurfaceSubmit=-Infinity;this.lastSurfaceSimMs=NaN;this.lastSurfaceMono=NaN;
       this.sky=new window.SolarSky(background);
       this.resize();
     }
@@ -40,7 +41,7 @@
       this.lensStretch=clamp(this.w/this.h,1,1.72);
       this.canvas.width=Math.round(this.w*this.dpr);this.canvas.height=Math.round(this.h*this.dpr);
       this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
-      this.sky.resize(this.w,this.h,this.dpr);this.dirty=true;this.surface?.invalidate(false);this.clearLabels();
+      this.sky.resize(this.w,this.h,this.dpr);this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate(false);this.clearLabels();
     }
     starGlow(c,x,y,r,alpha) {
       if(!(r>0)||!(alpha>0))return;
@@ -386,7 +387,7 @@
     // All bodies submit to the same bounded surface owner; no CPU pixel loop here.
     surfaceJob(body,world,r,ms,seconds,mono) {
       const focused=body.id===this.camera.focus;
-      const maximum=this.options.quality==='low'?SURFACE.lowRaster:focused?SURFACE.maxRaster:384;
+      const maximum=focused?SURFACE.maxRaster:256;
       const wanted=Math.min(maximum,Math.max(32,r*2*this.dpr));
       const diam=[32,64,128,192,256,384,512,768,1024].find(n=>n>=wanted)||1024;
       // Stable detail while dragging and on tab return. No flat->256->4096
@@ -412,7 +413,7 @@
       return {id:body.id,diam,textureWidth,frame,geometry,viewState,phase:spin/TAU,
         light:[lightVector.x/len,lightVector.y/len,lightVector.z/len],activity,seconds:activity?seconds:0};
     }
-    invalidateSurfaces() {this.surface?.invalidate();}
+    invalidateSurfaces() {this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate();}
     suspend() {
       const mono=performance.now();this.cancelCameraTween(mono);this.advanceAutoRotate(mono);
       if(this.autoRotation)this.autoRotation.mono=null; // Resume at the same view, never catch up a hidden tab.
@@ -616,8 +617,24 @@
       // resume()+pump() in the 60 fps draw hot path.
       // A corona that crosses the viewport does NOT make the hidden solar disk visible.
       const surfaceBodies=bodies.filter(p=>this.visible(p.screen,p.r+2));
-      surfaceBodies.sort((a,b)=>Number(b.body.id===this.camera.focus)-Number(a.body.id===this.camera.focus));
-      this.surface.update(surfaceBodies.map(p=>this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)),mono);
+      surfaceBodies.sort((a,b)=>{
+        const focus=Number(b.body.id===this.camera.focus)-Number(a.body.id===this.camera.focus);
+        return focus||b.r-a.r;
+      });
+      // Surface bitmaps are produced asynchronously. Submitting a new full batch
+      // every display frame made fast simulation accumulate work unevenly: the
+      // visible phase advanced continuously, then caught up in bursts when a
+      // worker batch completed. Use a stable producer cadence instead. Large/focus
+      // bodies still refresh at ~30 fps in accelerated time while real-time motion
+      // uses a lighter cadence. Camera motion gets an immediate-enough 40 ms path.
+      const realDt=Number.isFinite(this.lastSurfaceMono)?Math.max(1,mono-this.lastSurfaceMono):16.7;
+      const simDt=Number.isFinite(this.lastSurfaceSimMs)?Math.abs(ms-this.lastSurfaceSimMs):0;
+      const simRate=simDt/realDt, moving=!!this.cameraTween||!!this.autoRotation;
+      const surfaceInterval=moving?40:simRate>1000?34:90;
+      if(mono-this.lastSurfaceSubmit>=surfaceInterval){
+        this.lastSurfaceSubmit=mono;this.lastSurfaceSimMs=ms;this.lastSurfaceMono=mono;
+        this.surface.update(surfaceBodies.map(p=>this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)),mono);
+      }
       for(const p of bodies) {
         const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;
         if(!this.visible(p.screen,p.r*extent+16))continue;

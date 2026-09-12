@@ -1,0 +1,5 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'..'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
+test('v0.23 clock supports 12/24-hour setting',()=>{const h=read('index.html'),a=read('src/app.js');assert.match(h,/id="hour-cycle"/);assert.match(h,/value="24"/);assert.match(h,/value="12"/);assert.match(h,/id="ampm"/);assert.match(a,/hourCycle='24'/);assert.match(a,/saved\.hourCycle/);});
+test('v0.23 surface producer is throttled and non-focus raster is bounded',()=>{const r=read('src/renderer.js');assert.match(r,/surfaceInterval=moving\?40:simRate>1000\?34:90/);assert.match(r,/lastSurfaceSubmit/);assert.match(r,/focused\?SURFACE\.maxRaster:256/);assert.match(r,/return focus\|\|b\.r-a\.r/);});
+test('v0.23 version wiring is consistent',()=>{assert.match(read('package.json'),/"version": "0\.0\.23"/);assert.match(read('index.html'),/Solar Time v0\.23/);assert.match(read('src/app.js'),/version:'0\.23'/);});
