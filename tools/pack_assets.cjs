@@ -3,10 +3,11 @@
 const fs=require('node:fs'),path=require('node:path'),root=path.resolve(__dirname,'..');
 const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const version=pkg.version.split('.').slice(1).join('.'),materials={};
+const skyFile='universe-optimized.webp';
 const required=['sun','mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','pluto','moon','europa','clouds'];
 for(const id of required)if(!fs.existsSync(path.join(root,'assets',id+'.webp')))throw Error('Missing original asset: assets/'+id+'.webp');
-for(const name of fs.readdirSync(path.join(root,'assets')).filter(n=>n.endsWith('.webp')&&n!=='universe.webp'&&n!=='pluto-relief.webp'))materials[name.slice(0,-5)]='data:image/webp;base64,'+fs.readFileSync(path.join(root,'assets',name)).toString('base64');
-const sky='data:image/webp;base64,'+fs.readFileSync(path.join(root,'assets/universe.webp')).toString('base64');
+for(const name of fs.readdirSync(path.join(root,'assets')).filter(n=>n.endsWith('.webp')&&!['universe.webp',skyFile,'pluto-relief.webp'].includes(n)))materials[name.slice(0,-5)]='data:image/webp;base64,'+fs.readFileSync(path.join(root,'assets',name)).toString('base64');
+const sky='data:image/webp;base64,'+fs.readFileSync(path.join(root,'assets',skyFile)).toString('base64');
 const stars=JSON.parse(fs.readFileSync(path.join(root,'assets/stars.json'),'utf8'));
 if(!Array.isArray(stars))throw Error('assets/stars.json must be an array');
 const materialInfo=JSON.parse(fs.readFileSync(path.join(root,'assets/material-info.json'),'utf8'));

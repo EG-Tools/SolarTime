@@ -7,8 +7,8 @@ const all=[...A.BODIES,A.MOON,A.SUN];
 const close=(x,y,eps=1e-8)=>assert.ok(Math.abs(x-y)<eps,`${x} != ${y}`);
 const signed=x=>A.wrap(x+Math.PI)-Math.PI;
 
-test('Earth display radius is exactly 1.5x; other sizes and orbit stay unchanged',()=>{
- close(earth.size,11.5*1.5);close(earth.orbit,198);
+test('Earth and Sun start at their original display radii',()=>{
+ close(earth.size,11.5);close(earth.orbit,198);
  const original={mercury:6.5,venus:10.5,mars:8.5,jupiter:29,saturn:24,uranus:16.5,neptune:16,pluto:5};
  for(const b of A.BODIES)if(b.id!=='earth')close(b.size,original[b.id]);
  close(A.MOON.size,3.9);close(A.SUN.size,28);
@@ -73,10 +73,10 @@ test('Saturn and Uranus use the documented Cassini/Hubble representative periods
  close(A.BODIES.find(b=>b.id==='uranus').spin*86400,-62092,1e-7);
 });
 
-test('Lunar display orbit stays compact and independent of the 1.5x Earth size',()=>{
+test('Lunar display orbit stays compact with the original Earth size',()=>{
  close(A.MOON.displayOrbit,30);
- assert.ok(A.MOON.displayOrbit/(earth.size*2.6)<.67);
- close(A.MOON.period,27.321661);close(earth.size,17.25);
+ assert.ok(A.MOON.displayOrbit/earth.size>2.5&&A.MOON.displayOrbit/earth.size<2.7);
+ close(A.MOON.period,27.321661);close(earth.size,11.5);
  for(const t of [A.J2000,A.J2000+7*A.DAY,A.MAX_TIME]) {
   const p=A.moonAt(t,A.MOON.displayOrbit);
    const distance=Math.hypot(p.x,p.y,p.z);assert.ok(distance>=28.5&&distance<=31.5);

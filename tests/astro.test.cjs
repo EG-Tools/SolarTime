@@ -24,11 +24,23 @@ test('Earth J2000 position agrees with the published element solution at display
 });
 test('Rendered planet centers and orbit curves share precisely the same transform',()=>{
   for(const ms of [A.J2000,Date.UTC(2026,8,11),Date.UTC(2200,3,20)])for(const b of A.BODIES){
-    const p=A.positionAt(b,ms,true),on=A.pointOnOrbit(p.elements,p.E,b.orbit),physical=A.positionAt(b,ms);
-    for(const key of ['x','y','z']){close(p[key],on[key]);close(p[key],physical[key]*b.orbit/p.elements.a,1e-9);}
+    const p=A.positionAt(b,ms,true),physical=A.positionAt(b,ms),radius=Math.hypot(physical.x,physical.y,physical.z),scale=A.displayDistance(radius)/radius;
+    for(const key of ['x','y','z'])close(p[key],physical[key]*scale,1e-9);
   }
 });
 test('All orbit paths close without a visible seam',()=>{for(const b of A.BODIES){const p=A.orbitAt(b,A.J2000);for(const k of ['x','y','z'])close(p[0][k],p.at(-1)[k],1e-9);}});
+test('Normal overview orbit anchors have one equal gap from Mercury through Pluto',()=>{
+  const gaps=A.BODIES.slice(1).map((body,index)=>body.overviewOrbit-A.BODIES[index].overviewOrbit);
+  close(A.BODIES[0].overviewOrbit,190);for(const gap of gaps)close(gap,90);
+  for(const gap of [50,90,200])for(const [index,body] of A.BODIES.entries())close(A.displayDistance(body.base[0],0,gap),190+gap*index);
+  for(const body of A.BODIES){close(A.displayDistance(body.base[0]),body.overviewOrbit);close(A.displayDistance(body.base[0],1,200),body.orbit);}
+});
+test('Pluto overview keeps its real Neptune crossing without falsely reaching Uranus',()=>{
+  const uranus=A.BODIES.find(body=>body.id==='uranus'),neptune=A.BODIES.find(body=>body.id==='neptune'),pluto=A.BODIES.find(body=>body.id==='pluto');
+  const radii=A.orbitAt(pluto,A.J2000,720).map(point=>Math.hypot(point.x,point.y,point.z)),perihelion=Math.min(...radii);
+  assert.ok(perihelion>uranus.overviewOrbit,`${perihelion} must stay beyond Uranus ${uranus.overviewOrbit}`);
+  assert.ok(perihelion<neptune.overviewOrbit,`${perihelion} must retain Pluto's Neptune crossing ${neptune.overviewOrbit}`);
+});
 test('Perihelion and aphelion radii follow a(1±e)',()=>{
   for(const b of A.BODIES){const el=A.elementsAt(b,A.J2000);for(const [E,sign] of [[0,-1],[Math.PI,1]]){const p=A.pointOnOrbit(el,E);close(Math.hypot(p.x,p.y,p.z),el.a*(1+sign*el.e));}}
 });

@@ -62,7 +62,7 @@ test('Focus target radius is continuous and increasing from overview to maximum'
 });
 test('Illustrative zoom changes no physical sizes, lunar spacing, periods or time',()=>{
  const r=renderer(),t=Date.UTC(2026,8,11),before=all.map(b=>A.rotationAt(b,t));r.focusBody('moon');r.setZoom(64);
- assert.deepEqual(all.map(b=>A.rotationAt(b,t)),before);near(A.MOON.displayOrbit,30);near(A.MOON.size,3.9);near(A.BODIES[2].size,17.25);
+ assert.deepEqual(all.map(b=>A.rotationAt(b,t)),before);near(A.MOON.displayOrbit,30);near(A.MOON.size,3.9);near(A.BODIES[2].size,11.5);
 });
 test('Worker geometry cache remains bounded across high-resolution camera changes',()=>{
  const {Engine}=require('../src/surface.js').kernel(),engine=Object.create(Engine.prototype),r=renderer(),body=A.BODIES[4];Object.assign(engine,{cpuMaps:new Map(),textures:new Map(),mapPixels:0,stats:{mapsBuilt:0}});

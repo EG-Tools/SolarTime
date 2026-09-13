@@ -45,7 +45,7 @@
     ['venus','금성','VENUS',143,10.5,'#e3bd7c',224.701,-243.025,177.36,
       [.72332102,.00676399,3.39777545,181.97970850,131.76755713,76.67261496],
       [-.00000026,-.00005107,.00043494,58517.81560260,.05679648,-.27274174]],
-    ['earth','지구','EARTH',198,17.25,'#73b9ec',365.256,0.99726968,23.439,
+    ['earth','지구','EARTH',198,11.5,'#73b9ec',365.256,0.99726968,23.439,
       [1.00000018,.01673163,-.00054346,100.46691572,102.93005885,-5.11260389],
       [-.00000003,-.00003661,-.01337178,35999.37306329,.31795260,-.24123856]],
     ['mars','화성','MARS',254,8.5,'#d88762',686.98,1.025957,25.19,
@@ -78,15 +78,46 @@
     neptune:'짙은 푸른색의 가장 바깥쪽 행성. 한 번의 공전에 약 165년이 걸립니다.',
     pluto:'행성이 아닌 왜행성입니다. 기울어진 타원 궤도는 고정된 평균 요소로 개략적으로 표현합니다.'
   };
-  const BODIES = defs.map(([id,ko,en,orbit,size,color,period,spin,tilt,base,rates,correction]) =>
-    Object.freeze({id,ko,en,orbit,size,color,period:round2(period*86400)/86400,
+  // The normal overview gives Mercury extra clearance from the Sun, then uses
+  // one user-adjustable interval for every neighboring heliocentric orbit.
+  const OVERVIEW_ORBIT=Object.freeze({start:defs[0][3]*2,gap:90,minGap:50,maxGap:200});
+  const BODIES = defs.map(([id,ko,en,orbit,size,color,period,spin,tilt,base,rates,correction],index) =>
+    Object.freeze({id,ko,en,orbit,overviewOrbit:OVERVIEW_ORBIT.start+OVERVIEW_ORBIT.gap*index,size,color,period:round2(period*86400)/86400,
       periodSeconds:round2(period*86400),spin:round2(spin*86400)/86400,spinSeconds:round2(spin*86400),
       referenceSpinDays:spin,tilt:round3(tilt),base:Object.freeze(base),rates:Object.freeze(rates),
       correction:correction&&Object.freeze(correction),description:descriptions[id]}));
+  // The overview uses evenly spaced orbit anchors, but radial motion is still
+  // derived from the physical AU orbit. Mapping the physical radius through
+  // these anchors prevents Pluto's large eccentricity from being multiplied by
+  // the compressed 718 px orbit and falsely reaching the Uranus track.
+  const DISPLAY_ORBIT_ANCHORS=Object.freeze([
+    Object.freeze({distance:0,index:-1,actualOrbit:0}),
+    ...BODIES.map((body,index)=>Object.freeze({distance:body.base[0],index,actualOrbit:body.orbit}))
+  ]);
+  function displayDistance(distance,actualMix=0,overviewGap=OVERVIEW_ORBIT.gap){
+    if(!Number.isFinite(distance)||distance<0)throw new RangeError('Display distance must be finite and nonnegative.');
+    const gap=clamp(Number.isFinite(overviewGap)?overviewGap:OVERVIEW_ORBIT.gap,OVERVIEW_ORBIT.minGap,OVERVIEW_ORBIT.maxGap);
+    let upper=DISPLAY_ORBIT_ANCHORS.findIndex(anchor=>distance<=anchor.distance);
+    if(upper<0)upper=DISPLAY_ORBIT_ANCHORS.length-1;
+    else if(upper<1)upper=1;
+    const a=DISPLAY_ORBIT_ANCHORS[upper-1],b=DISPLAY_ORBIT_ANCHORS[upper],span=b.distance-a.distance||1;
+    const position=(distance-a.distance)/span;
+    const overviewA=a.index<0?0:OVERVIEW_ORBIT.start+gap*a.index;
+    const overviewB=OVERVIEW_ORBIT.start+gap*b.index;
+    const overview=overviewA+(overviewB-overviewA)*position;
+    const actual=a.actualOrbit+(b.actualOrbit-a.actualOrbit)*position;
+    return overview+(actual-overview)*clamp(Number.isFinite(actualMix)?actualMix:0,0,1);
+  }
+  function displayPoint(point){
+    const radius=Math.hypot(point.x,point.y,point.z);if(!(radius>1e-12))return point;
+    const scale=displayDistance(radius)/radius;
+    return {x:point.x*scale,y:point.y*scale,z:point.z*scale,physicalDistance:radius};
+  }
   const SUN = Object.freeze({id:'sun',ko:'태양',en:'SUN',size:28,color:'#ffb753',spin:25.38,spinSeconds:2192832,referenceSpinDays:25.38,tilt:7.25,
     description:'태양계의 중심. 표면의 입상 조직과 부드러운 샤인은 감상을 위한 시각 효과입니다.'});
-  // Lunar display-orbit radius is in reference-screen units, like body sizes.
-  // It is intentionally independent of Earth's display radius (not a physical distance).
+  // Satellite display-orbit radii are reference-screen values. The renderer keeps
+  // them illustrative normally and scales each local system with its parent when
+  // actual-size presentation is enabled.
   const MOON = Object.freeze({id:'moon',ko:'달',en:'MOON',size:3.9,displayOrbit:30,color:'#d0ced0',period:2360591.51/86400,periodSeconds:2360591.51,spin:2360591.51/86400,spinSeconds:2360591.51,referenceSpinDays:27.321661,tilt:6.68,
     parent:'earth',description:'지구를 약 27.32일에 한 바퀴 도는 유일한 자연 위성. 현재 시뮬레이션 시각의 공전 위치를 표시하며 거리와 크기는 보기 편하게 확대했습니다.'});
   const EUROPA = Object.freeze({id:'europa',ko:'유로파',en:'EUROPA',size:3.8,displayOrbit:45,color:'#d8c89c',period:3.551181,periodSeconds:306822.04,spin:3.551181,spinSeconds:306822.04,referenceSpinDays:3.551181,tilt:.1,
@@ -200,11 +231,12 @@
   }
   function positionAt(body, ms, display=false) {
     const elements=elementsAt(body,ms), E=eccentricAnomaly(elements.M,elements.e);
-    return {...pointOnOrbit(elements,E,display ? body.orbit : elements.a),elements,E};
+    const physical=pointOnOrbit(elements,E),point=display?displayPoint(physical):physical;
+    return {...point,elements,E};
   }
   function orbitAt(body, ms, count=360) {
     const el=elementsAt(body,ms);
-    return Array.from({length:count+1},(_,i)=>pointOnOrbit(el,TAU*i/count,body.orbit));
+    return Array.from({length:count+1},(_,i)=>displayPoint(pointOnOrbit(el,TAU*i/count)));
   }
   const SATELLITE_EPOCH=Date.UTC(2026,8,13);
   // Fixed osculating ellipses from JPL Horizons parent-relative state vectors
@@ -269,5 +301,5 @@
     }
     now(mono,wall=Date.now()) { this.anchorMs=wall; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false; }
   }
-  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,BODIES,SUN,MOON,EUROPA,SATELLITES,SATELLITE_EPOCH,wrap,clamp,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,SimulationClock});
+  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,OVERVIEW_ORBIT,BODIES,SUN,MOON,EUROPA,SATELLITES,SATELLITE_EPOCH,wrap,clamp,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,displayDistance,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,SimulationClock});
 });

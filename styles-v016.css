@@ -1,4 +1,4 @@
-/* Solar Time v0.3 compact UI overlay */
+/* Solar Time v0.32 compact UI overlay */
 .clock-face,body.zen .clock-face{top:56px}
 .playback-caption{justify-content:flex-end}
 .playback-bar{gap:7px;padding-left:8px;padding-right:8px}
@@ -49,6 +49,10 @@ body.zen #timezone-button{display:inline-block!important;visibility:visible!impo
 .playback-bar{background:transparent;border-color:rgba(164,178,196,.18);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
 .speed-button.active,.speed-mode-button.active{background:transparent}
 #zen-toggle,#zen-toggle[aria-pressed=true]{background:transparent;border-color:transparent}
+.view-controls .camera-mode-toggle{flex-shrink:0;padding:0;border:1px solid transparent;background:transparent;color:#94a0af;transition:color .18s,border-color .18s,background .18s}
+.view-controls .camera-mode-toggle:hover,.view-controls .camera-mode-toggle[aria-pressed=true]{color:var(--accent);border-color:rgba(225,199,150,.42);background:rgba(185,150,97,.11)}
+.camera-mode-toggle .mode-icon-move{display:none}.camera-mode-toggle[data-mode=move] .mode-icon-zoom{display:none}.camera-mode-toggle[data-mode=move] .mode-icon-move{display:inline}
+.camera-preset.saved::after{content:attr(data-mode-short);right:2px;bottom:1px;width:auto;height:auto;background:transparent;color:rgba(233,200,141,.78);font-size:5px;line-height:1;letter-spacing:0}
 
 /* Shared glass language for settings, help and camera preset actions. */
 .settings-panel,.body-panel,.modal,.preset-dialog{border-color:rgba(193,215,236,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 18px 54px rgba(0,0,0,.07)}

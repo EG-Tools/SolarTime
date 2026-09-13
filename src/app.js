@@ -1,4 +1,4 @@
-/* Solar Time v0.3 — clock, interaction and accessible UI. */
+/* Solar Time v0.32 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -21,14 +21,14 @@
   const COPY={
     kor:{
       metaDescription:'별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주.',
-      universeAria:'태양계. 좌클릭 드래그로 시점 회전, 가운데 버튼 드래그로 상하좌우 이동, 마우스 휠로 확대. 하단 천체 버튼으로 상세 정보를 확인할 수 있습니다.',
+      universeAria:'태양계. 좌클릭 드래그로 시점을 자유 회전하고, 가운데 버튼 드래그로 상하좌우 이동합니다. 우측 줌·이동 버튼으로 휠 작동 방식을 바꿀 수 있습니다.',
       languageChange:'언어 변경',languageCurrent:'현재 한국어',helpLabel:'사용 방법과 계산 기준',settings:'화면 설정',settingsClose:'설정 닫기',
-      actualScale:'실제 크기 비율',orbits:'궤도선',bodyNames:'천체 이름',avoidLabels:'이름 겹침 자동 정리',showSeconds:'시계 초 표시',hourCycle:'시간 표기',hourCycleAria:'12시간 또는 24시간 표기',hour24:'24시간',hour12:'12시간',clockFont:'시계 숫자 폰트',sunShine:'태양 샤인',satellites:'주요 위성 · 달과 유로파',pluto:'명왕성',dwarfPlanet:'왜행성',comets:'멀리 지나는 혜성',
-      selectedBody:'선택한 천체 정보',bodyClose:'천체 정보 닫기',focusBody:'가까이 보기 · 천체 추적',viewControls:'시점 조절',zoomIn:'확대',zoomOut:'축소',zoomValue:'화면 확대 배율',homeView:'기본 시점',cameraPresets:'카메라 시점 저장',
-      playbackControls:'공전 재생 조절',realTime:'실제 시간',orbitSpeed:'공전 속도',speedSlider:'1초당 진행하는 시간',sources:'출처',bodySelect:'천체 선택',scaleNote:'크기·거리 축척 조정 · 평균 궤도 근사 · 자전·공전 시간 연동',
+      actualScale:'실제 크기 비율',orbitSpacing:'일반 보기 궤도 간격',orbitSpacingAria:'일반 보기의 행성 궤도 간격',displaySize:'화면 표시 크기',displaySizeAria:'선택한 천체의 화면 표시 크기',resetSize:'원래 크기',actualSizeLocked:'실제 크기 비율에서는 조절할 수 없습니다.',orbits:'궤도선',bodyNames:'천체 이름',avoidLabels:'이름 겹침 자동 정리',showSeconds:'시계 초 표시',hourCycle:'24시간 표기',hourCycleAria:'24시간 표기. 켜면 24시간, 끄면 12시간',hour24:'24시간',hour12:'12시간',clockFont:'시계 숫자 폰트',sunShine:'태양 샤인',satellites:'주요 위성 · 달과 유로파',pluto:'명왕성',dwarfPlanet:'왜행성',comets:'멀리 지나는 혜성',
+      selectedBody:'선택한 천체 정보',bodyClose:'천체 정보 닫기',focusBody:'가까이 보기 · 천체 추적',viewControls:'시점 조절',zoomIn:'확대',zoomOut:'축소',moveCloser:'앞으로 이동',moveFarther:'뒤로 이동',zoomValue:'화면 확대 배율',moveValue:'카메라 이동 배율',zoomMode:'줌',moveMode:'이동',cameraMode:'휠 작동 방식 · {mode}',cameraModeAria:'휠 모드: {mode}. 누르면 다른 방식으로 전환',homeView:'기본 시점',cameraPresets:'카메라 시점 저장',
+      playbackControls:'공전 재생 조절',realTime:'실제 시간',orbitSpeed:'공전 속도',speedSlider:'1초당 진행하는 시간',sources:'출처',bodySelect:'천체 선택',scaleNoteLineOne:'크기·거리 축척 조정 · 평균 궤도 근사',scaleNoteLineTwo:'자전·공전 시간 연동',
       apply:'이동',save:'저장',delete:'삭제',cancel:'취소',helpClose:'도움말 닫기',helpTitle:'사용 방법과 계산 기준',basicControls:'기본 조작',
-      basicHelp:'좌클릭 드래그로 시점을 회전하고, 가운데 버튼 드래그로 화면을 상하좌우 ±40% 이동합니다. 휠로 확대·축소하고 천체를 더블클릭하거나 «가까이 보기»를 누르면 해당 천체를 추적합니다. 0은 기본 시점, 1·2·3은 저장 시점, F는 전체 화면, H는 감상 모드입니다.',
-      releaseHelp:'일반 화면에서 태양을 선택하지 않고 확대해도 태양 표면이 제한 없이 계속 확대됩니다. 창의 X 닫기 버튼은 테두리 없이 간결하게 표시됩니다.',
+      basicHelp:'좌클릭 드래그는 위아래 제한 없이 시점을 한 바퀴 계속 회전합니다. 가운데 버튼 드래그는 화면을 상하좌우 ±80% 이동합니다. 우측 맨 위 버튼에서 휠을 평면적인 줌 또는 원근감이 생기는 실제 카메라 이동으로 전환할 수 있습니다. 천체를 더블클릭하거나 «가까이 보기»를 누르면 추적합니다. 0은 기본 시점, 1·2·3은 줌/이동 방식까지 함께 저장하는 시점입니다.',
+      releaseHelp:'실제 크기와 일반 보기를 분리해 행성·위성 계층과 궤도 비율을 정리했습니다. 행성별 표시 크기, 일반 보기 궤도 간격, 줌·이동 카메라와 저장 시점을 추가했으며 자동 회전은 사용자가 직접 끌 때까지 유지됩니다. 전체 화면 전환 시 궤도도 즉시 맞춰집니다.',
       timeAndCalculation:'시간과 계산',timeHelp:'상단 시계는 선택한 지역에 맞춰 한국·미국 동부·중국·일본·영국의 실제 시간을 표시합니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.',
       orbitHelp:'행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.',
       pause:'일시정지',fullscreen:'전체 화면',zenMode:'감상 모드',savedViews:'저장 시점',stepExit:'단계별 종료',loading:'작은 우주를 펼치는 중',fatalTitle:'화면을 시작하지 못했습니다.',fatalRetry:'최신 Edge 또는 Chrome에서 다시 열어 주세요.',loadingTime:'시간을 불러오는 중',
@@ -42,14 +42,14 @@
     },
     en:{
       metaDescription:'A solar-system clock flowing with the stars—real time, planetary orbits, Earth and Moon in a small cosmos.',
-      universeAria:'Solar system. Drag with the left mouse button to rotate the view, drag with the middle button to pan, and use the wheel to zoom. Use the body buttons below for details.',
+      universeAria:'Solar system. Left-drag rotates freely, middle-drag pans, and the top-right Zoom/Move control changes the wheel camera mode.',
       languageChange:'Change language',languageCurrent:'English selected',helpLabel:'Guide and calculation notes',settings:'Display settings',settingsClose:'Close settings',
-      actualScale:'True size ratio',orbits:'Orbit lines',bodyNames:'Body names',avoidLabels:'Prevent label overlap',showSeconds:'Show clock seconds',hourCycle:'Time format',hourCycleAria:'12-hour or 24-hour format',hour24:'24 hour',hour12:'12 hour',clockFont:'Clock numeral font',sunShine:'Solar shine',satellites:'Major moons · Moon and Europa',pluto:'Pluto',dwarfPlanet:'Dwarf planet',comets:'Distant comets',
-      selectedBody:'Selected body information',bodyClose:'Close body information',focusBody:'Closer view · Track body',viewControls:'View controls',zoomIn:'Zoom in',zoomOut:'Zoom out',zoomValue:'View zoom level',homeView:'Default view',cameraPresets:'Saved camera views',
-      playbackControls:'Orbit playback controls',realTime:'Real time',orbitSpeed:'Orbit speed',speedSlider:'Time advanced per second',sources:'Sources',bodySelect:'Select body',scaleNote:'Adjusted size and distance scale · Mean orbit approximation · Rotation and orbit linked to time',
+      actualScale:'True size ratio',orbitSpacing:'Overview orbit spacing',orbitSpacingAria:'Planet orbit spacing in overview mode',displaySize:'Display size',displaySizeAria:'Display size of the selected body',resetSize:'Original size',actualSizeLocked:'Size adjustment is unavailable in true-size mode.',orbits:'Orbit lines',bodyNames:'Body names',avoidLabels:'Prevent label overlap',showSeconds:'Show clock seconds',hourCycle:'24-hour clock',hourCycleAria:'24-hour clock. On is 24-hour, off is 12-hour',hour24:'24 hour',hour12:'12 hour',clockFont:'Clock numeral font',sunShine:'Solar shine',satellites:'Major moons · Moon and Europa',pluto:'Pluto',dwarfPlanet:'Dwarf planet',comets:'Distant comets',
+      selectedBody:'Selected body information',bodyClose:'Close body information',focusBody:'Closer view · Track body',viewControls:'View controls',zoomIn:'Zoom in',zoomOut:'Zoom out',moveCloser:'Move closer',moveFarther:'Move farther',zoomValue:'View zoom level',moveValue:'Camera travel level',zoomMode:'ZOOM',moveMode:'MOVE',cameraMode:'Wheel mode · {mode}',cameraModeAria:'Wheel mode: {mode}. Press to switch modes.',homeView:'Default view',cameraPresets:'Saved camera views',
+      playbackControls:'Orbit playback controls',realTime:'Real time',orbitSpeed:'Orbit speed',speedSlider:'Time advanced per second',sources:'Sources',bodySelect:'Select body',scaleNoteLineOne:'Adjusted size and distance scale · Mean orbit approximation',scaleNoteLineTwo:'Rotation and orbit linked to time',
       apply:'Move',save:'Save',delete:'Delete',cancel:'Cancel',helpClose:'Close help',helpTitle:'Guide and calculation notes',basicControls:'Basic controls',
-      basicHelp:'Drag with the left mouse button to rotate the view and with the middle button to pan up, down, left or right by ±40%. Use the wheel to zoom. Double-click a body or choose “Closer view” to track it. 0 restores the default view, 1·2·3 recall saved views, F toggles fullscreen, and H toggles viewing mode.',
-      releaseHelp:'The Sun now continues to enlarge without a limit when zooming from the overview without selecting it. Window close buttons use a clean borderless X.',
+      basicHelp:'Left-drag rotates continuously through a full turn without a vertical stop. Middle-drag pans up, down, left or right by ±80%. The top button on the right switches the wheel between flat zoom and true camera travel with perspective. Double-click a body or choose “Closer view” to track it. 0 restores the default view; 1·2·3 save the view together with its Zoom/Move mode.',
+      releaseHelp:'True-size and overview presentation are now separated with consistent planet, moon and orbit hierarchies. Per-body display size, overview orbit spacing, Zoom/Move camera modes and saved views are included. Auto-rotation stays on until you turn it off, and orbits resize immediately in fullscreen.',
       timeAndCalculation:'Time and calculation',timeHelp:'The upper clock follows the selected region: Korea, U.S. Eastern, China, Japan, or the United Kingdom. Turn off Real time below to adjust simulation speed in hours, days or years. The ranges are 1 minute–24 hours, 1–365 days, and 1–20 years per second.',
       orbitHelp:'Planets move on elliptical orbits, faster near perihelion and slower near aphelion. Moon and Europa are children of Earth and Jupiter, with positions calculated for the simulation time and eccentricities of 0.05 and 0.01. Long-term perturbations and minute distance changes are omitted, so this is not a precision ephemeris for observation, navigation or eclipse prediction.',
       pause:'Pause',fullscreen:'Fullscreen',zenMode:'Viewing mode',savedViews:'Saved views',stepExit:'Step-by-step exit',loading:'Opening a small cosmos',fatalTitle:'Unable to start the view.',fatalRetry:'Open it again in the latest Edge or Chrome.',loadingTime:'Loading time',
@@ -63,14 +63,14 @@
     },
     chn:{
       metaDescription:'伴随星光流动的太阳系时钟，在小宇宙中呈现实时时间、行星公转、地球与月球。',
-      universeAria:'太阳系。按住鼠标左键拖动可旋转视角，按住中键拖动可平移，滚轮可缩放。可用下方天体按钮查看详情。',
+      universeAria:'太阳系。按住左键可自由旋转，按住中键可平移，右上角的缩放/移动按钮可切换滚轮相机模式。',
       languageChange:'切换语言',languageCurrent:'当前为中文',helpLabel:'使用方法与计算说明',settings:'显示设置',settingsClose:'关闭设置',
-      actualScale:'真实大小比例',orbits:'轨道线',bodyNames:'天体名称',avoidLabels:'自动避免名称重叠',showSeconds:'显示时钟秒数',hourCycle:'时间格式',hourCycleAria:'12小时或24小时格式',hour24:'24小时',hour12:'12小时',clockFont:'时钟数字字体',sunShine:'太阳光芒',satellites:'主要卫星 · 月球与木卫二',pluto:'冥王星',dwarfPlanet:'矮行星',comets:'远方彗星',
-      selectedBody:'所选天体信息',bodyClose:'关闭天体信息',focusBody:'近距离查看 · 跟踪天体',viewControls:'视角控制',zoomIn:'放大',zoomOut:'缩小',zoomValue:'视图缩放倍率',homeView:'默认视角',cameraPresets:'保存的相机视角',
-      playbackControls:'公转播放控制',realTime:'实时',orbitSpeed:'公转速度',speedSlider:'每秒推进的时间',sources:'来源',bodySelect:'选择天体',scaleNote:'大小与距离比例已调整 · 平均轨道近似 · 自转和公转与时间联动',
+      actualScale:'真实大小比例',orbitSpacing:'普通视图轨道间距',orbitSpacingAria:'普通视图中的行星轨道间距',displaySize:'显示大小',displaySizeAria:'所选天体的显示大小',resetSize:'原始大小',actualSizeLocked:'真实大小比例下无法调整。',orbits:'轨道线',bodyNames:'天体名称',avoidLabels:'自动避免名称重叠',showSeconds:'显示时钟秒数',hourCycle:'24小时制',hourCycleAria:'24小时制。开启为24小时，关闭为12小时',hour24:'24小时',hour12:'12小时',clockFont:'时钟数字字体',sunShine:'太阳光芒',satellites:'主要卫星 · 月球与木卫二',pluto:'冥王星',dwarfPlanet:'矮行星',comets:'远方彗星',
+      selectedBody:'所选天体信息',bodyClose:'关闭天体信息',focusBody:'近距离查看 · 跟踪天体',viewControls:'视角控制',zoomIn:'放大',zoomOut:'缩小',moveCloser:'向前移动',moveFarther:'向后移动',zoomValue:'视图缩放倍率',moveValue:'相机移动倍率',zoomMode:'缩放',moveMode:'移动',cameraMode:'滚轮模式 · {mode}',cameraModeAria:'滚轮模式：{mode}。点击可切换。',homeView:'默认视角',cameraPresets:'保存的相机视角',
+      playbackControls:'公转播放控制',realTime:'实时',orbitSpeed:'公转速度',speedSlider:'每秒推进的时间',sources:'来源',bodySelect:'选择天体',scaleNoteLineOne:'大小与距离比例已调整 · 平均轨道近似',scaleNoteLineTwo:'自转和公转与时间联动',
       apply:'移动',save:'保存',delete:'删除',cancel:'取消',helpClose:'关闭帮助',helpTitle:'使用方法与计算说明',basicControls:'基本操作',
-      basicHelp:'按住鼠标左键拖动可旋转视角，按住中键拖动可向上下左右平移 ±40%。滚轮可缩放；双击天体或选择“近距离查看”可跟踪该天体。0 恢复默认视角，1·2·3 调用保存视角，F 切换全屏，H 切换观赏模式。',
-      releaseHelp:'在总览中未选择太阳时继续放大，太阳表面也会持续放大而不再受限。窗口关闭按钮使用简洁的无边框 X。',
+      basicHelp:'按住左键拖动可不受上下限制地连续旋转一周；按住中键拖动可向上下左右平移 ±80%。右侧最上方按钮可在平面缩放与具有透视感的真实相机移动之间切换滚轮模式。双击天体或选择“近距离查看”可跟踪天体。0 恢复默认视角，1·2·3 会连同缩放/移动模式一起保存。',
+      releaseHelp:'真实大小与普通视图现已分离，并统一行星、卫星及轨道层级。新增天体显示大小、普通视图轨道间距、缩放/移动相机及保存视角。自动旋转会保持到手动关闭，全屏切换时轨道也会立即适配。',
       timeAndCalculation:'时间与计算',timeHelp:'上方时钟会按所选地区显示韩国、美国东部、中国、日本或英国的实际时间。关闭下方“实时”后，可按小时、日或年调整模拟速度。范围为每秒 1 分钟–24 小时、1–365 日或 1–20 年。',
       orbitHelp:'行星沿椭圆轨道运行，靠近近日点时较快，靠近远日点时较慢。月球和木卫二分别作为地球和木星的子天体，按模拟时间计算位置，离心率仅采用 0.05 和 0.01。未计算长期摄动和细微距离变化，因此不可用于观测、导航或日月食预测等精密星历用途。',
       pause:'暂停',fullscreen:'全屏',zenMode:'观赏模式',savedViews:'保存视角',stepExit:'逐步退出',loading:'正在展开一片小宇宙',fatalTitle:'无法启动画面。',fatalRetry:'请使用最新版 Edge 或 Chrome 重新打开。',loadingTime:'正在读取时间',
@@ -84,14 +84,14 @@
     },
     jpn:{
       metaDescription:'星明かりとともに流れる太陽系時計。リアルタイムの惑星軌道と、地球・月を小さな宇宙に描きます。',
-      universeAria:'太陽系。左ドラッグで視点を回転し、中ボタンドラッグで上下左右に移動、ホイールで拡大・縮小します。下部の天体ボタンから詳細を確認できます。',
+      universeAria:'太陽系。左ドラッグで自由回転、中ボタンドラッグで平行移動し、右上のズーム・移動ボタンでホイールのカメラ方式を切り替えます。',
       languageChange:'言語を変更',languageCurrent:'日本語を選択中',helpLabel:'操作方法と計算基準',settings:'表示設定',settingsClose:'設定を閉じる',
-      actualScale:'実際の大きさの比率',orbits:'軌道線',bodyNames:'天体名',avoidLabels:'ラベルの重なりを自動調整',showSeconds:'時計に秒を表示',hourCycle:'時刻表示',hourCycleAria:'12時間または24時間表示',hour24:'24時間',hour12:'12時間',clockFont:'時計の数字フォント',sunShine:'太陽の輝き',satellites:'主な衛星 · 月とエウロパ',pluto:'冥王星',dwarfPlanet:'準惑星',comets:'遠方を通る彗星',
-      selectedBody:'選択した天体の情報',bodyClose:'天体情報を閉じる',focusBody:'近くで見る · 天体を追跡',viewControls:'視点調整',zoomIn:'拡大',zoomOut:'縮小',zoomValue:'画面の拡大率',homeView:'標準視点',cameraPresets:'保存したカメラ視点',
-      playbackControls:'公転再生コントロール',realTime:'リアルタイム',orbitSpeed:'公転速度',speedSlider:'1秒あたりに進む時間',sources:'出典',bodySelect:'天体を選択',scaleNote:'大きさ・距離の縮尺を調整 · 平均軌道による近似 · 自転と公転を時間に連動',
+      actualScale:'実際の大きさの比率',orbitSpacing:'通常表示の軌道間隔',orbitSpacingAria:'通常表示での惑星軌道の間隔',displaySize:'表示サイズ',displaySizeAria:'選択した天体の表示サイズ',resetSize:'元の大きさ',actualSizeLocked:'実際の大きさの比率では調整できません。',orbits:'軌道線',bodyNames:'天体名',avoidLabels:'ラベルの重なりを自動調整',showSeconds:'時計に秒を表示',hourCycle:'24時間表示',hourCycleAria:'24時間表示。オンは24時間、オフは12時間',hour24:'24時間',hour12:'12時間',clockFont:'時計の数字フォント',sunShine:'太陽の輝き',satellites:'主な衛星 · 月とエウロパ',pluto:'冥王星',dwarfPlanet:'準惑星',comets:'遠方を通る彗星',
+      selectedBody:'選択した天体の情報',bodyClose:'天体情報を閉じる',focusBody:'近くで見る · 天体を追跡',viewControls:'視点調整',zoomIn:'拡大',zoomOut:'縮小',moveCloser:'前へ移動',moveFarther:'後ろへ移動',zoomValue:'画面の拡大率',moveValue:'カメラ移動倍率',zoomMode:'ズーム',moveMode:'移動',cameraMode:'ホイール方式 · {mode}',cameraModeAria:'ホイール方式：{mode}。押すと切り替わります。',homeView:'標準視点',cameraPresets:'保存したカメラ視点',
+      playbackControls:'公転再生コントロール',realTime:'リアルタイム',orbitSpeed:'公転速度',speedSlider:'1秒あたりに進む時間',sources:'出典',bodySelect:'天体を選択',scaleNoteLineOne:'大きさ・距離の縮尺を調整 · 平均軌道による近似',scaleNoteLineTwo:'自転と公転を時間に連動',
       apply:'移動',save:'保存',delete:'削除',cancel:'キャンセル',helpClose:'ヘルプを閉じる',helpTitle:'操作方法と計算基準',basicControls:'基本操作',
-      basicHelp:'左ドラッグで視点を回転し、中ボタンドラッグで上下左右へ ±40% 移動します。ホイールで拡大・縮小し、天体をダブルクリックするか「近くで見る」を選ぶと追跡します。0 は標準視点、1・2・3 は保存視点、F は全画面、H は鑑賞モードを切り替えます。',
-      releaseHelp:'全体表示で太陽を選択していない場合でも、太陽表面を制限なく拡大できます。ウィンドウの閉じるボタンは枠のない簡潔な X です。',
+      basicHelp:'左ドラッグは上下で止まらず一周連続して回転します。中ボタンドラッグは上下左右へ ±80% 移動します。右側最上部のボタンで、平面的なズームと遠近感のある実カメラ移動を切り替えられます。天体をダブルクリックするか「近くで見る」で追跡します。0 は標準視点、1・2・3 はズーム/移動方式も一緒に保存します。',
+      releaseHelp:'実寸表示と通常表示を分離し、惑星・衛星・軌道の階層を統一しました。天体ごとの表示サイズ、通常表示の軌道間隔、ズーム/移動カメラと保存視点を追加しました。自動回転は手動でオフにするまで維持され、全画面時の軌道も即座に適合します。',
       timeAndCalculation:'時刻と計算',timeHelp:'上部の時計は選択した地域に合わせて、韓国・米国東部・中国・日本・英国の現在時刻を表示します。下部のリアルタイムをオフにすると、時・日・年単位でシミュレーション速度を調整できます。範囲は1秒あたり1分〜24時間、1〜365日、1〜20年です。',
       orbitHelp:'惑星は楕円軌道を進み、近日点では速く、遠日点では遅くなります。月とエウロパは地球と木星の子天体としてシミュレーション時刻の位置を計算し、離心率は 0.05 と 0.01 のみを適用します。長期摂動や微小な距離変化は省略しているため、観測・航法・食予測用の精密暦ではありません。',
       pause:'一時停止',fullscreen:'全画面',zenMode:'鑑賞モード',savedViews:'保存視点',stepExit:'段階的に終了',loading:'小さな宇宙を開いています',fatalTitle:'画面を開始できませんでした。',fatalRetry:'最新の Edge または Chrome で開き直してください。',loadingTime:'時刻を読み込み中',
@@ -162,6 +162,7 @@
         lucida:'"Lucida Console",Consolas,monospace'
       });
       let clockFont='aptos';
+      let savedAutoRotateDirection=0;
       const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       renderer.options.twinkle=true;renderer.options.activity=!reduced;renderer.options.skyMotion=!reduced;renderer.options.comets=!reduced;
       const validKeys={actualScale:'actual-scale',orbits:'show-orbits',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
@@ -170,6 +171,9 @@
         if(saved&&typeof saved==='object') {
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
            if(saved.timezone==='utc')timezone='utc';
+           if(typeof saved.dollyZoom==='boolean')renderer.options.dollyZoom=saved.dollyZoom;
+           if([-1,1].includes(saved.autoRotateDirection))savedAutoRotateDirection=saved.autoRotateDirection;
+          if(Number.isFinite(saved.overviewOrbitGap))renderer.options.overviewOrbitGap=A.clamp(Math.round(saved.overviewOrbitGap),A.OVERVIEW_ORBIT.minGap,A.OVERVIEW_ORBIT.maxGap);
           if(LANG_ORDER.includes(saved.language))language=saved.language;
           if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
           if(saved.hourCycle==='12'||saved.hourCycle==='24')hourCycle=saved.hourCycle;
@@ -180,26 +184,39 @@
             if(Number.isFinite(saved.speedValues.day))speedValues.day=A.clamp(Math.round(saved.speedValues.day),1,365);
             if(Number.isFinite(saved.speedValues.year))speedValues.year=A.clamp(Math.round(saved.speedValues.year),1,20);
           }
+          renderer.setBodyScales(saved.bodyScales);
           if(Number.isFinite(saved.elevation))renderer.setOrbitView(renderer.camera.azimuth,saved.elevation*A.DEG);
           if(Number.isFinite(saved.panY))renderer.setPanY(saved.panY);
           if(Number.isFinite(saved.panX))renderer.setPan(saved.panX);
         }
       } catch (_) { /* Private browsing, corrupt JSON and blocked storage must not break the clock. */ }
       renderer.setOption('actualScale',renderer.options.actualScale,false);
+      renderer.setOption('dollyZoom',renderer.options.dollyZoom,false);
       renderer.setSite(activeRegion());
+      if(savedAutoRotateDirection)renderer.setAutoRotate(savedAutoRotateDirection,performance.now());
       translateStatic();
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
       $('show-seconds').checked=showSeconds;$('seconds-group').hidden=!showSeconds;
-      $('hour-cycle').value=hourCycle;$('ampm').hidden=hourCycle!=='12';
+      $('hour-cycle').checked=hourCycle==='24';$('ampm').hidden=hourCycle!=='12';
       $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
+      function syncOrbitSpacingControl(){
+        const input=$('overview-orbit-gap'),value=Math.round(renderer.options.overviewOrbitGap),locked=renderer.options.actualScale;
+        input.value=value;input.disabled=locked;$('overview-orbit-gap-output').textContent=String(value);$('overview-orbit-gap-control').classList.toggle('locked',locked);
+      }
+      syncOrbitSpacingControl();
       const zoneLabel=()=>timezone==='utc'?'UTC':activeRegion().label;
-      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,timezone,showSeconds,hourCycle,clockFont,speedMode,speedValues,language,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
+      function persist() { try { localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,bodyScales:renderer.getBodyScales(),autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockFont,speedMode,speedValues,language,elevation:renderer.camera.elevation/A.DEG,panY:renderer.camera.panY,panX:renderer.camera.panX})); } catch (_) {} }
       function cameraUi() {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
-        const zoom=controlState.zoom,limits=renderer.zoomLimits;
-        $('zoom-value').textContent=zoom.toFixed(1)+'×';
-        $('zoom-in').disabled=zoom>=limits.maxZoom;$('zoom-out').disabled=zoom<=limits.minZoom;
+        const limits=renderer.zoomLimits,move=renderer.options.dollyZoom,level=move?(controlState.dolly??1):controlState.zoom;
+        $('zoom-value').textContent=level.toFixed(1)+'×';
+        $('zoom-value').setAttribute('aria-label',t(move?'moveValue':'zoomValue'));
+        const mode=$('camera-mode-toggle'),modeLabel=t(move?'moveMode':'zoomMode');
+        mode.dataset.mode=move?'move':'zoom';mode.setAttribute('aria-pressed',String(move));
+        mode.setAttribute('aria-label',t('cameraModeAria',{mode:modeLabel}));mode.title=t('cameraMode',{mode:modeLabel});
+        for(const [id,key] of [['zoom-in',move?'moveCloser':'zoomIn'],['zoom-out',move?'moveFarther':'zoomOut']]){$(id).setAttribute('aria-label',t(key));$(id).title=t(key);}
+        $('zoom-in').disabled=level>=limits.maxZoom;$('zoom-out').disabled=level<=limits.minZoom;
         for(const [id,direction,label] of [['rotate-left',-1,t('rotateRight')],['rotate-right',1,t('rotateLeft')]]){
           const active=renderer.autoRotateDirection===direction,b=$(id);
           b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-label',label+' '+t(active?'stop':'start'));
@@ -212,18 +229,21 @@
       const presetDialog=$('preset-dialog');
       try {
         const saved=JSON.parse(localStorage.getItem(PRESETS_KEY)||'null');
-        if(saved?.schema===1&&Array.isArray(saved.slots))cameraPresets=cameraPresets.map((_,i)=>
-          window.SolarRenderer.validCamera(saved.slots[i])?{...saved.slots[i]}:null);
+        if([1,2].includes(saved?.schema)&&Array.isArray(saved.slots))cameraPresets=cameraPresets.map((_,i)=>{
+          const legacy=saved.slots[i],value=legacy&&{...legacy,dolly:Number.isFinite(legacy.dolly)?legacy.dolly:1,mode:legacy.mode||'zoom'};
+          return window.SolarRenderer.validCamera(value)?value:null;
+        });
       }catch(_){/* Corrupt or inaccessible settings never affect the running camera. */}
       function presetUi() {
         cameraPresets.forEach((value,i)=>{
           const b=$('camera-preset-'+(i+1));b.classList.toggle('saved',!!value);b.dataset.saved=String(!!value);
-          b.title=t('presetButtonTitle',{n:i+1});
-          b.setAttribute('aria-label',t('presetAria',{n:i+1,state:t(value?'saved':'empty')}));
+          const mode=value?t(value.mode==='move'?'moveMode':'zoomMode'):'';b.dataset.modeShort=value?.mode==='move'?'M':value?'Z':'';
+          b.title=t('presetButtonTitle',{n:i+1})+(mode?' · '+mode:'');
+          b.setAttribute('aria-label',t('presetAria',{n:i+1,state:t(value?'saved':'empty')})+(mode?' · '+mode:''));
         });
       }
       function writePresets() {
-        try{localStorage.setItem(PRESETS_KEY,JSON.stringify({schema:1,slots:cameraPresets}));presetStorageAvailable=true;}
+        try{localStorage.setItem(PRESETS_KEY,JSON.stringify({schema:2,slots:cameraPresets}));presetStorageAvailable=true;}
         catch(_){presetStorageAvailable=false;}
         presetUi();
       }
@@ -317,6 +337,23 @@
       }
       function navVisibility() {navButtons.get('pluto').hidden=!renderer.options.pluto;for(const satellite of A.SATELLITES)navButtons.get(satellite.id).hidden=!renderer.options.moon;}
       navVisibility();
+      function syncBodySizeControl(body=bodies.find(value=>value.id===renderer.selected)) {
+        if(!body)return;
+        const locked=renderer.options.actualScale,value=Math.round(renderer.bodySizeScale(body)*100),limits=renderer.bodyScaleLimits(body);
+        $('body-size-slider').min=Math.round(limits.min*100);$('body-size-slider').max=Math.round(limits.max*100);
+        $('body-size-slider').value=value;$('body-size-output').textContent=value+'%';
+        $('body-size-slider').disabled=locked;$('body-size-reset').disabled=locked||value===100;
+        $('body-size-lock').hidden=!locked;$('body-size-control').classList.toggle('locked',locked);
+      }
+      $('body-size-slider').addEventListener('input',()=>{
+        const body=bodies.find(value=>value.id===renderer.selected);if(!body)return;
+        renderer.setBodyScale(body.id,Number($('body-size-slider').value)/100);syncBodySizeControl(body);
+      });
+      $('body-size-slider').addEventListener('change',persist);
+      $('body-size-reset').addEventListener('click',()=>{
+        const body=bodies.find(value=>value.id===renderer.selected);if(!body)return;
+        if(renderer.resetBodyScale(body.id)){syncBodySizeControl(body);persist();}
+      });
       function setStat(id,value,unit) {const el=$(id);el.replaceChildren(document.createTextNode(value+' '));if(unit){const small=document.createElement('small');small.textContent=unit;el.append(small);}}
       function updateBody(ms) {
         const b=bodies.find(v=>v.id===renderer.selected);if(!b)return;
@@ -354,6 +391,7 @@
         const copy=bodyCopy(b);$('body-name').textContent=copy.name;$('body-english').textContent=b.en;$('body-description').textContent=copy.description;
         for(const [key,button] of navButtons){button.classList.toggle('active',key===id);button.setAttribute('aria-pressed',String(key===id));}
         $('feature-view').hidden=!['earth','jupiter'].includes(id);$('feature-view').textContent=id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');
+        syncBodySizeControl(b);
         updateBody(clock.value(performance.now()));
         anchorBodyPanel();
       }
@@ -408,13 +446,21 @@
       $('timezone-button').addEventListener('click',()=>{timezone=timezone==='local'?'utc':'local';refreshTimeFormats();lastWallKey='';uiNow();persist();});
       function settings(open) {const next=open===undefined?$('settings-panel').hidden:open;$('settings-panel').hidden=!next;$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
-      for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
+      for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if(key==='actualScale'){syncOrbitSpacingControl();if(renderer.selected)syncBodySizeControl();}if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
+      $('overview-orbit-gap').addEventListener('input',()=>{renderer.setOption('overviewOrbitGap',$('overview-orbit-gap').value);syncOrbitSpacingControl();});
+      $('overview-orbit-gap').addEventListener('change',persist);
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
-      $('hour-cycle').addEventListener('change',()=>{hourCycle=$('hour-cycle').value==='12'?'12':'24';lastWallKey='';uiNow();persist();});
+      $('hour-cycle').addEventListener('change',()=>{hourCycle=$('hour-cycle').checked?'24':'12';lastWallKey='';uiNow();persist();});
       $('clock-font').addEventListener('change',()=>{const next=$('clock-font').value;if(!CLOCK_FONTS[next])return;clockFont=next;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);persist();});
-      function reset() {cancelGesture();renderer.resetCamera();cameraUi();persist();}
+      function reset() {cancelGesture();renderer.animateHome(performance.now(),1100);cameraUi();}
       $('fit-view').addEventListener('click',reset);
-      function zoom(factor) {const mono=performance.now();renderer.smoothZoom(renderer.cameraInputState(mono).zoom*factor,null,mono);cameraUi();}
+      $('camera-mode-toggle').addEventListener('click',()=>{renderer.setDollyMode(!renderer.options.dollyZoom,true);cameraUi();persist();});
+      function zoom(factor) {
+        const mono=performance.now(),state=renderer.cameraInputState(mono);
+        if(renderer.options.dollyZoom)renderer.smoothDolly((state.dolly??1)*factor,renderer.selected,mono);
+        else renderer.smoothZoom(state.zoom*factor,null,mono);
+        cameraUi();
+      }
       function focusBody(id) {
         if(!id)return;
         cancelGesture();renderer.animateFocus(id);cameraUi();
@@ -423,7 +469,7 @@
       $('feature-view').addEventListener('click',()=>{const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;cancelGesture();const region=activeRegion();renderer.animateFeature(id,id==='earth'?region.latitude:-22,id==='earth'?region.longitude:(window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70),clock.value(performance.now()));cameraUi();});
       $('zoom-in').addEventListener('click',()=>zoom(1.2));$('zoom-out').addEventListener('click',()=>zoom(1/1.2));
       for(const [id,direction] of [['rotate-left',-1],['rotate-right',1]])$(id).addEventListener('click',()=>{
-        renderer.setAutoRotate(renderer.autoRotateDirection===direction?0:direction,performance.now());cameraUi();
+        renderer.setAutoRotate(renderer.autoRotateDirection===direction?0:direction,performance.now());cameraUi();persist();
       });
       let fullscreenBusy=false,keyboardEpoch=0,escapeLock='inactive';
       function unlockEscape() {
@@ -468,7 +514,7 @@
         $('fullscreen-button').setAttribute('aria-label',t(document.fullscreenElement?'fullscreenExit':'fullscreen'));
         $('fullscreen-button').title=t(document.fullscreenElement?'fullscreenExit':'fullscreen')+' · F';
         if(document.fullscreenElement)lockEscape();else unlockEscape();
-        renderer.resize();
+        refreshViewport();
       });
       function handleEscape() {
         // Exactly one state change per key press. Never toggle into fullscreen here.
@@ -536,12 +582,12 @@
         refreshNavLabels();presetUi();cameraUi();syncSpeedUi();
         if(presetAction){const value=cameraPresets[presetAction.index];$('preset-title').textContent=t('presetTitle',{n:presetAction.index+1});$('preset-note').textContent=t(value?'presetSavedNote':'presetEmptyNote');}
         const selected=bodies.find(body=>body.id===renderer.selected);
-        if(selected){const copy=bodyCopy(selected);$('body-name').textContent=copy.name;$('body-description').textContent=copy.description;$('feature-view').textContent=selected.id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');updateBody(clock.value(performance.now()));}
+        if(selected){const copy=bodyCopy(selected);$('body-name').textContent=copy.name;$('body-description').textContent=copy.description;$('feature-view').textContent=selected.id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');syncBodySizeControl(selected);updateBody(clock.value(performance.now()));}
         uiNow();persist();if(helpDialog.open)requestAnimationFrame(updateHelpScrollCues);
       }
       $('language-toggle').addEventListener('click',()=>setLanguage(LANG_ORDER[(LANG_ORDER.indexOf(language)+1)%LANG_ORDER.length]));
       const canvas=$('universe'),pointers=new Map();
-      let drag=null,pinchDistance=0,pinchZoom=1,pinched=false,clickGestures=0;
+      let drag=null,pinchDistance=0,pinchLevel=1,pinched=false,clickGestures=0;
       function cancelGesture() {
         const ids=[...pointers.keys()];pointers.clear();drag=null;pinched=false;clickGestures=0;pinchDistance=0;
         for(const id of ids)if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
@@ -557,14 +603,14 @@
         const p=pointerPosition(event);pointers.set(event.pointerId,p);canvas.setPointerCapture(event.pointerId);
         if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,startAzimuth:renderer.camera.azimuth,startElevation:renderer.camera.elevation,mode:pan?'pan':'orbit',moved:false};pinched=false;}
         if(zen&&pointers.size===3){setZen(false);pinched=true;if(drag)drag.moved=true;return;}
-        if(pointers.size===2){clickGestures=0;const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchZoom=renderer.camera.zoom;pinched=true;}
+        if(pointers.size===2){clickGestures=0;const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchLevel=renderer.options.dollyZoom?(renderer.camera.dolly??1):renderer.camera.zoom;pinched=true;}
       });
       canvas.addEventListener('pointermove',event=>{
         const p=pointerPosition(event);
         if(!pointers.has(event.pointerId)) {renderer.hover=zen?null:renderer.hit(p.x,p.y);canvas.style.cursor=renderer.hover?'pointer':'grab';return;}
         pointers.set(event.pointerId,p);
         if(pointers.size>=2) {
-          const [a,b]=[...pointers.values()];if(pinchDistance>0){renderer.setZoom(pinchZoom*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance,null);cameraUi();}if(drag)drag.moved=true;return;
+          const [a,b]=[...pointers.values()];if(pinchDistance>0){const level=pinchLevel*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance;if(renderer.options.dollyZoom)renderer.setDolly(level,renderer.selected);else renderer.setZoom(level);cameraUi();}if(drag)drag.moved=true;return;
         }
         if(!drag)return;
         const dx=p.x-drag.x,dy=p.y-drag.y;
@@ -651,8 +697,15 @@
         },2200);
       }
       // Optional public planet maps refresh quietly after the first interactive window.
-      let resizeTimer;
-      window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>renderer.resize(),70);},{passive:true});
+      let resizeFrame=0;
+      function refreshViewport(){
+        // Fullscreen geometry can settle just after its event. Resize immediately,
+        // then verify once on the next paint instead of leaving old orbits visible
+        // behind a 70 ms debounce.
+        renderer.resize();
+        if(!resizeFrame)resizeFrame=requestAnimationFrame(()=>{resizeFrame=0;renderer.resize();});
+      }
+      window.addEventListener('resize',refreshViewport,{passive:true});
       function frame(mono) {
         if(disposed||document.hidden){raf=0;return;}
         raf=requestAnimationFrame(frame);
@@ -667,16 +720,16 @@
           renderer.draw(ms,effectTime,mono);
           if(wasTransitioning&&!renderer.cameraTween)persist();
           if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);}
-        } catch(error){disposed=true;renderer.dispose();materials.dispose();cancelAnimationFrame(raf);clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);clearTimeout(materialRefreshTimer);fatal(error);}
+        } catch(error){disposed=true;renderer.dispose();materials.dispose();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
       }
       document.addEventListener('visibilitychange',()=>{
         if(document.hidden){closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
         else if(!raf&&!disposed){renderer.resume();lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
       });
-      window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);clearTimeout(materialRefreshTimer);});
+      window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.3',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.32',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

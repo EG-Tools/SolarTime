@@ -48,6 +48,15 @@ function drawCometRibbon(ctx,points,opacity=1){
  ctx.restore();
 }
 function rand(seed){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
+function starField(source,total=4400){
+ const field=(Array.isArray(source)?source:[]).filter(star=>Array.isArray(star)&&star.length>=6).map(star=>star.slice(0,6));
+ const random=rand(204031),target=Math.max(total,field.length);
+ while(field.length<target){
+  const z=random()*2-1,angle=random()*TAU,radius=Math.sqrt(Math.max(0,1-z*z)),rare=random();
+  field.push([Math.cos(angle)*radius,Math.sin(angle)*radius,z,.28+Math.pow(rare,7)*.92,.16+random()*.32+(rare>.985?.18:0),random()*12]);
+ }
+ return field;
+}
 function shader(g,type,source){
  const s=g.createShader(type);if(!s)throw Error('Cannot allocate sky shader');
  g.shaderSource(s,source);g.compileShader(s);
@@ -62,7 +71,7 @@ function rasterSize(w,h,moving){
 }
 class Sky{
  constructor(canvas){
-  this.canvas=canvas;this.ready=false;this.disposed=false;this.paused=false;
+   this.canvas=canvas;this.ready=false;this.disposed=false;this.paused=false;
   this.abort=new AbortController();this.gl=null;this.initTicket=0;this.softwareEpoch=0;
   this.stats={backend:'loading',frames:0,skipped:0,starProjections:0};
   this.random=rand(610639);this.comet=null;this.nextComet=18+this.random()*22;this.lastTime=0;
@@ -71,13 +80,13 @@ class Sky{
   this.gamma=new Float32Array(4096);for(let i=0;i<4096;i++)this.gamma[i]=Math.pow(i/4095,.95)*255*.67;
   canvas.addEventListener('webglcontextlost',e=>{
    e.preventDefault();this.initTicket++;this.ready=false;this.stats.backend='context-lost';
-   this.texture=this.buffer=this.program=null;this.cancelSoftware();this.invalidate();
+   this.texture=this.buffer=this.program=this.starBuffer=this.starProgram=null;this.starA=this.starU=null;this.cancelSoftware();this.invalidate();
   },{signal:this.abort.signal});
   canvas.addEventListener('webglcontextrestored',()=>{if(!this.disposed){this.invalidate();this.initialize();}},{signal:this.abort.signal});
   this.initialize();
  }
  invalidate(){this.lastPose=null;this.lastKey='';this.lastGPU=-Infinity;this.starPose=null;}
- async initialize(){
+  async initialize(){
   const ticket=++this.initTicket;
   try{
    if(!this.image){const image=new Image();image.src=root.SolarAssets?.sky||'';await image.decode();if(this.disposed||ticket!==this.initTicket)return;this.image=image;}
@@ -99,8 +108,9 @@ class Sky{
      q=normalize(vec3(q.x,q.y*.866025403784-q.z*.5,q.y*.5+q.z*.866025403784));
      float longitude=length(q.xy)>.0000001?atan(q.y,q.x):0.;
      vec2 uv=vec2(fract(longitude/6.28318530718+.5),.5-asin(clamp(q.z,-1.,1.))/3.14159265359);
-     vec3 col=texture2D(sky,uv).rgb;float vignette=1.-.24*pow(clamp(length(p)*.6,0.,1.),2.);
-     gl_FragColor=vec4(pow(col,vec3(.95))*.67*vignette,1.);
+     vec3 haze=texture2D(sky,uv).rgb;float vignette=1.-.24*pow(clamp(length(p)*.6,0.,1.),2.);
+     vec3 col=vec3(.001,.002,.006)+pow(haze,vec3(.95))*.68;
+     gl_FragColor=vec4(col*vignette,1.);
     }`);}catch(error){g.deleteShader(vs);throw error;}
    const program=g.createProgram();this.program=program;
    g.attachShader(program,vs);g.attachShader(program,fs);g.linkProgram(program);g.deleteShader(vs);g.deleteShader(fs);
@@ -120,16 +130,44 @@ class Sky{
    // Base-level linear sampling avoids the atan/fract derivative seam.
    g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
    g.useProgram(program);g.uniform1i(this.u.sky,0);g.uniform1f(this.u.fov,this.tanFov);
-   this.stats.backend='gpu';this.stats.textureSize=[width,height];this.ready=true;this.invalidate();
+   const starVertex=shader(g,g.VERTEX_SHADER,`precision ${precision} float;
+    attribute vec3 position,appearance;uniform vec3 right,down,forward;uniform vec2 size;uniform float fov,pointScale,seconds;
+    varying float intensity;
+    void main(){
+     float z=dot(position,forward),phase=appearance.z;
+     float pulse=pow(max(0.,sin((seconds+phase)/(6.+phase)*6.28318530718)),16.);
+     intensity=appearance.y*(.55+pulse*.65);
+     if(z>=-.08){gl_Position=vec4(2.,2.,1.,1.);gl_PointSize=1.;return;}
+     vec2 ndc=vec2(dot(position,right)/(-z*fov*size.x/size.y),-dot(position,down)/(-z*fov));
+     gl_Position=vec4(ndc,0.,1.);gl_PointSize=clamp(appearance.x*10.*pointScale,1.,30.);
+    }`);
+   const starFragment=shader(g,g.FRAGMENT_SHADER,`precision ${precision} float;varying float intensity;
+    void main(){
+     vec2 q=gl_PointCoord-.5;float d=length(q);
+     float halo=1.-smoothstep(.08,.5,d),core=1.-smoothstep(.015,.21,d);
+     float cross=(1.-smoothstep(.012,.042,min(abs(q.x),abs(q.y))))*(1.-smoothstep(.12,.5,max(abs(q.x),abs(q.y))));
+     float alpha=(halo*.24+core*.94+cross*.14)*intensity;if(alpha<.002)discard;
+     vec3 color=mix(vec3(.45,.66,.94),vec3(1.,.99,.96),core);
+     gl_FragColor=vec4(color,alpha);
+    }`);
+   this.starProgram=g.createProgram();g.attachShader(this.starProgram,starVertex);g.attachShader(this.starProgram,starFragment);g.linkProgram(this.starProgram);g.deleteShader(starVertex);g.deleteShader(starFragment);
+   if(!g.getProgramParameter(this.starProgram,g.LINK_STATUS))throw Error(g.getProgramInfoLog(this.starProgram)||'Star link failed');
+   const stars=starField(root.SolarAssets?.stars),starData=new Float32Array(stars.length*6);
+   stars.forEach((star,index)=>starData.set(star,index*6));this.starCount=stars.length;
+   this.starBuffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.starBuffer);g.bufferData(g.ARRAY_BUFFER,starData,g.STATIC_DRAW);
+   this.starA={position:g.getAttribLocation(this.starProgram,'position'),appearance:g.getAttribLocation(this.starProgram,'appearance')};
+   this.starU=Object.fromEntries(['right','down','forward','size','fov','pointScale','seconds'].map(k=>[k,g.getUniformLocation(this.starProgram,k)]));
+   this.stats.backend='gpu';this.stats.textureSize=[width,height];this.stats.starCount=this.starCount;this.ready=true;this.invalidate();
   }catch(error){
    if(this.disposed||ticket!==this.initTicket)return;
    this.stats.error=String(error.message||error);this.toSoftware();
+   }
   }
- }
  releaseGPU(){
   const g=this.gl;if(!g)return;
   if(this.texture)g.deleteTexture(this.texture);if(this.buffer)g.deleteBuffer(this.buffer);if(this.program)g.deleteProgram(this.program);
-  this.texture=this.buffer=this.program=null;
+  if(this.starBuffer)g.deleteBuffer(this.starBuffer);if(this.starProgram)g.deleteProgram(this.starProgram);
+  this.texture=this.buffer=this.program=this.starBuffer=this.starProgram=null;this.starA=this.starU=null;
  }
  toSoftware(){
   const previous=this.gl;this.releaseGPU();this.gl=null;
@@ -172,9 +210,9 @@ class Sky{
   if(this.lastEffect!==null&&options.skyMotion)this.offset=(this.offset+Math.max(0,seconds-this.lastEffect)*DRIFT)%TAU;
   this.lastEffect=seconds;this.camera=camera;this.updateAxes(camera);
   if(!this.ready||!this.w||!this.h)return;
-  const now=performance.now(),a=camera.azimuth,e=camera.elevation,pose=this.lastPose;
+  const now=performance.now(),a=camera.azimuth,e=camera.elevation,pose=this.lastPose,starTick=options.twinkle?Math.floor(seconds*30):0;
   const cameraChanged=!pose||pose.a!==a||pose.e!==e||pose.w!==this.w||pose.h!==this.h;
-  const unchanged=!cameraChanged&&pose.offset===this.offset;
+  const unchanged=!cameraChanged&&pose.offset===this.offset&&pose.starTick===starTick;
   if(unchanged){this.stats.skipped++;return;}
   if(!this.gl){
    if(this.softwareA!==a||this.softwareE!==e){this.cameraMotionAt=now;this.softwareA=a;this.softwareE=e;}
@@ -188,12 +226,21 @@ class Sky{
   // the application's full RAF rate; planets, clock and twinkles are not capped.
   if(!cameraChanged&&now-this.lastGPU<1000/30-1){this.stats.skipped++;return;}
   const g=this.gl;if(g.isContextLost())return;
-  g.viewport(0,0,this.canvas.width,this.canvas.height);g.useProgram(this.program);
+  g.viewport(0,0,this.canvas.width,this.canvas.height);g.disable(g.BLEND);g.useProgram(this.program);
   g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.enableVertexAttribArray(this.attribute);g.vertexAttribPointer(this.attribute,2,g.FLOAT,false,0,0);
   for(const k of ['right','down','forward'])g.uniform3fv(this.u[k],this.axesNow[k]);
   g.uniform2f(this.u.size,this.w,this.h);g.uniform1f(this.u.drift,this.offset);
   g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,this.texture);g.drawArrays(g.TRIANGLES,0,6);
-  this.lastPose={a,e,offset:this.offset,w:this.w,h:this.h};this.lastGPU=now;this.stats.frames++;
+  if(options.twinkle&&this.starProgram&&this.starCount){
+   g.enable(g.BLEND);g.blendFunc(g.SRC_ALPHA,g.ONE);g.useProgram(this.starProgram);g.bindBuffer(g.ARRAY_BUFFER,this.starBuffer);
+   g.enableVertexAttribArray(this.starA.position);g.vertexAttribPointer(this.starA.position,3,g.FLOAT,false,24,0);
+   g.enableVertexAttribArray(this.starA.appearance);g.vertexAttribPointer(this.starA.appearance,3,g.FLOAT,false,24,12);
+   for(const k of ['right','down','forward'])g.uniform3fv(this.starU[k],this.panAxes[k]);
+   g.uniform2f(this.starU.size,this.w,this.h);g.uniform1f(this.starU.fov,this.tanFov);
+   g.uniform1f(this.starU.pointScale,this.canvas.width/this.w);g.uniform1f(this.starU.seconds,seconds);
+   g.drawArrays(g.POINTS,0,this.starCount);g.disable(g.BLEND);
+  }
+  this.lastPose={a,e,offset:this.offset,w:this.w,h:this.h,starTick};this.lastGPU=now;this.stats.frames++;
  }
  rayTable(sw,sh,aspect){
   const key=[sw,sh,aspect,this.tanFov].join(':');let table=this.rayTables.get(key);if(table)return table;
@@ -259,7 +306,7 @@ class Sky{
  }
  decorate(ctx,seconds,options,glow){
   if(!this.axesNow||this.paused||this.disposed)return;
-  if(options.twinkle){
+  if(options.twinkle&&!this.gl){
    const stars=root.SolarAssets?.stars||[],pose=this.starPose;
    if(!pose||pose.source!==stars||pose.axes!==this.panAxes||pose.w!==this.w||pose.h!==this.h){
     this.visibleStars=[];
