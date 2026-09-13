@@ -212,26 +212,40 @@ def prepare_uranus(source: Path, target: Path) -> None:
     save_webp(out, target)
 
 
+def prepare_uranus_ai(source: Path, target: Path) -> None:
+    """Finish an ImageGen-recreated Uranus atmosphere without flattening a disk photo."""
+    source_image = Image.open(source).convert("RGB")
+    require_equirectangular(source_image, "AI Uranus")
+    save_webp(finish_equirectangular(source_image, (2048, 1024)), target)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pluto", type=Path, required=True)
+    parser.add_argument("--pluto", type=Path)
     parser.add_argument("--pluto-ai", type=Path)
     parser.add_argument("--sun", type=Path)
     parser.add_argument("--sun-ai", type=Path)
-    parser.add_argument("--uranus", type=Path, required=True)
-    parser.add_argument("--europa", type=Path, required=True)
+    parser.add_argument("--uranus", type=Path)
+    parser.add_argument("--uranus-ai", type=Path)
+    parser.add_argument("--europa", type=Path)
     parser.add_argument("--assets", type=Path, required=True)
     args = parser.parse_args()
+    if not any((args.pluto, args.pluto_ai, args.sun, args.sun_ai, args.uranus, args.uranus_ai, args.europa)):
+        parser.error("provide at least one source texture")
     if args.pluto_ai:
         prepare_pluto_ai(args.pluto_ai, args.assets / "pluto.webp")
-    else:
+    elif args.pluto:
         prepare_pluto(args.pluto, args.assets / "pluto.webp")
     if args.sun_ai:
         prepare_sun_ai(args.sun_ai, args.assets / "sun.webp")
     elif args.sun:
         prepare_sun(args.sun, args.assets / "sun.webp")
-    prepare_uranus(args.uranus, args.assets / "uranus.webp")
-    prepare_europa(args.europa, args.assets / "europa.webp")
+    if args.uranus_ai:
+        prepare_uranus_ai(args.uranus_ai, args.assets / "uranus.webp")
+    elif args.uranus:
+        prepare_uranus(args.uranus, args.assets / "uranus.webp")
+    if args.europa:
+        prepare_europa(args.europa, args.assets / "europa.webp")
 
 
 if __name__ == "__main__":

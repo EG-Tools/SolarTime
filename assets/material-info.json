@@ -16,11 +16,11 @@
     "feature": null
   },
   "uranus": {
-    "revision": "embedded-nasa-v025",
+    "revision": "embedded-ai-assisted-v03",
     "url": "https://science.nasa.gov/asset/webb/uranus-voyager-2/",
     "width": 2048,
     "height": 1024,
-    "credit": "NASA/Caltech · Voyager 2",
+    "credit": "NASA Uranus reference · OpenAI ImageGen artistic reconstruction",
     "feature": null
   },
   "europa": {

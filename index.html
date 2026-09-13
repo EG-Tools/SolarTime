@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#03060b">
-  <meta name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주.">
+  <meta id="meta-description" name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주." data-i18n-content="metaDescription">
   <title>Solar Time</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23060910'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='12' transform='rotate(-28 32 32)' fill='none' stroke='%23748295' stroke-width='1.4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23efbf76'/%3E%3Ccircle cx='54' cy='20' r='3' fill='%23b6d8ed'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=0.26">
-  <link rel="stylesheet" href="styles-v016.css?v=0.26-ui1">
+  <link rel="stylesheet" href="styles.css?v=0.3">
+  <link rel="stylesheet" href="styles-v016.css?v=0.3-ui1">
 </head>
 <body>
   <canvas id="starfield" aria-hidden="true"></canvas>
   <canvas id="planet-layer" aria-hidden="true"></canvas>
-  <canvas id="universe" tabindex="0" aria-label="태양계. 좌클릭 드래그로 시점 회전, 가운데 버튼 드래그로 상하좌우 이동, 마우스 휠로 확대. 하단 천체 버튼으로 상세 정보를 확인할 수 있습니다."></canvas>
+  <canvas id="universe" tabindex="0" aria-label="태양계. 좌클릭 드래그로 시점 회전, 가운데 버튼 드래그로 상하좌우 이동, 마우스 휠로 확대. 하단 천체 버튼으로 상세 정보를 확인할 수 있습니다." data-i18n-aria="universeAria"></canvas>
   <div class="edge-shade" aria-hidden="true"></div>
 
   <header class="masthead ui">
@@ -22,10 +22,11 @@
       <div><h1>SOLAR TIME</h1><p>A LITTLE CLOSER TO THE COSMOS</p></div>
     </div>
     <div class="top-actions">
-      <button id="help-button" class="icon-button" aria-label="사용 방법과 계산 기준" title="사용 방법과 계산 기준">
+      <button id="language-toggle" class="icon-button language-toggle" type="button" aria-label="언어 변경. 현재 한국어" title="언어 변경 · KOR">KOR</button>
+      <button id="help-button" class="icon-button" aria-label="사용 방법과 계산 기준" aria-expanded="false" aria-controls="help-dialog" title="사용 방법과 계산 기준" data-i18n-aria="helpLabel" data-i18n-title="helpLabel">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.8 9a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.7-2.2 3.4M12 16v.1"/></svg>
       </button>
-      <button id="settings-button" class="icon-button" aria-label="화면 설정" aria-expanded="false" aria-controls="settings-panel" title="화면 설정">
+      <button id="settings-button" class="icon-button" aria-label="화면 설정" aria-expanded="false" aria-controls="settings-panel" title="화면 설정" data-i18n-aria="settings" data-i18n-title="settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5"/><circle cx="15" cy="17" r="2.5"/></svg>
       </button>
       <button id="fullscreen-button" class="icon-button" aria-label="전체 화면" title="전체 화면 · F">
@@ -37,37 +38,37 @@
   <main class="clock-face">
     <p class="eyebrow">EVERY MOMENT, IN ORBIT</p>
     <time id="wall-clock" class="wall-clock" aria-label="현재 기기 시각"><span id="hours">00</span><span class="colon">:</span><span id="minutes">00</span><span id="seconds-group" hidden><span class="colon">:</span><span id="seconds">00</span></span><span id="ampm" class="ampm" hidden>PM</span></time>
-    <div class="date-line"><span id="wall-date">시간을 불러오는 중</span><span class="date-divider"></span><button id="timezone-button" title="현지 시간 / UTC 전환" aria-label="시간대 전환">LOCAL</button></div>
+    <div class="date-line"><span id="wall-date" data-i18n="loadingTime">시간을 불러오는 중</span><span class="date-divider"></span><button id="timezone-button" title="현지 시간 / UTC 전환" aria-label="시간대 전환">LOCAL</button></div>
   </main>
 
   <div class="scene-status ui">
     <span id="status-dot" class="status-dot"></span><span id="mode-label">LIVE ORBITS</span><span class="status-separator">/</span><time id="simulation-date"></time>
   </div>
 
-  <aside id="settings-panel" class="panel settings-panel ui" hidden aria-label="화면 설정">
-    <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2>화면 설정</h2></div><button id="settings-close" class="close-button" aria-label="설정 닫기">×</button></div>
-    <div class="setting-row"><label for="show-orbits">궤도선</label><input id="show-orbits" type="checkbox" checked role="switch"></div>
-    <div class="setting-row"><label for="show-labels">천체 이름</label><input id="show-labels" type="checkbox" checked role="switch"></div>
-    <div class="setting-row"><label for="avoid-labels">이름 겹침 자동 정리</label><input id="avoid-labels" type="checkbox" role="switch"></div>
-    <div class="setting-row"><label for="show-seconds">시계 초 표시</label><input id="show-seconds" type="checkbox" role="switch"></div>
-    <div class="setting-row"><label for="hour-cycle">시간 표기</label><select id="hour-cycle" aria-label="12시간 또는 24시간 표기"><option value="24">24시간</option><option value="12">12시간</option></select></div>
-    <div class="setting-row"><label for="clock-font">시계 숫자 폰트</label><select id="clock-font" aria-label="시계 숫자 폰트">
+  <aside id="settings-panel" class="panel settings-panel ui" hidden aria-label="화면 설정" data-i18n-aria="settings">
+    <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2 data-i18n="settings">화면 설정</h2></div><button id="settings-close" class="close-button" aria-label="설정 닫기" data-i18n-aria="settingsClose">×</button></div>
+    <div class="setting-row"><label for="actual-scale" data-i18n="actualScale">실제 크기 비율</label><input id="actual-scale" type="checkbox" role="switch"></div>
+    <div class="setting-row"><label for="show-orbits" data-i18n="orbits">궤도선</label><input id="show-orbits" type="checkbox" checked role="switch"></div>
+    <div class="setting-row"><label for="show-labels" data-i18n="bodyNames">천체 이름</label><input id="show-labels" type="checkbox" checked role="switch"></div>
+    <div class="setting-row"><label for="avoid-labels" data-i18n="avoidLabels">이름 겹침 자동 정리</label><input id="avoid-labels" type="checkbox" role="switch"></div>
+    <div class="setting-row"><label for="show-seconds" data-i18n="showSeconds">시계 초 표시</label><input id="show-seconds" type="checkbox" role="switch"></div>
+    <div class="setting-row"><label for="hour-cycle" data-i18n="hourCycle">시간 표기</label><select id="hour-cycle" aria-label="12시간 또는 24시간 표기" data-i18n-aria="hourCycleAria"><option value="24" data-i18n="hour24">24시간</option><option value="12" data-i18n="hour12">12시간</option></select></div>
+    <div class="setting-row"><label for="clock-font" data-i18n="clockFont">시계 숫자 폰트</label><select id="clock-font" aria-label="시계 숫자 폰트" data-i18n-aria="clockFont">
       <option value="aptos">Aptos Display</option><option value="segoe-variable">Segoe UI Variable</option><option value="segoe">Segoe UI Light</option>
       <option value="bahnschrift">Bahnschrift Light</option><option value="calibri">Calibri Light</option><option value="corbel">Corbel Light</option>
       <option value="candara">Candara Light</option><option value="century">Century Gothic</option><option value="trebuchet">Trebuchet MS</option>
       <option value="arial">Arial</option><option value="georgia">Georgia</option><option value="times">Times New Roman</option>
       <option value="cascadia">Cascadia Mono</option><option value="consolas">Consolas</option><option value="lucida">Lucida Console</option>
     </select></div>
-    <div class="setting-row"><label for="show-twinkle">별 반짝임</label><input id="show-twinkle" type="checkbox" checked role="switch"></div>
-    <div class="setting-row"><label for="show-activity">태양 샤인</label><input id="show-activity" type="checkbox" checked role="switch"></div>
-    <div class="setting-row"><label for="show-moon">주요 위성 · 달과 유로파</label><input id="show-moon" type="checkbox" checked role="switch"></div>
-    <div class="setting-row"><label for="show-pluto">명왕성 <small>왜행성</small></label><input id="show-pluto" type="checkbox" checked role="switch"></div>
-    <div class="setting-row"><label for="show-comets">멀리 지나는 혜성</label><input id="show-comets" type="checkbox" checked role="switch"></div>
-    <p class="settings-credit">Life User • Solar Time v0.26 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
+    <div class="setting-row"><label for="show-activity" data-i18n="sunShine">태양 샤인</label><input id="show-activity" type="checkbox" checked role="switch"></div>
+    <div class="setting-row"><label for="show-moon" data-i18n="satellites">주요 위성 · 달과 유로파</label><input id="show-moon" type="checkbox" checked role="switch"></div>
+    <div class="setting-row"><label for="show-pluto"><span data-i18n="pluto">명왕성</span> <small data-i18n="dwarfPlanet">왜행성</small></label><input id="show-pluto" type="checkbox" checked role="switch"></div>
+    <div class="setting-row"><label for="show-comets" data-i18n="comets">멀리 지나는 혜성</label><input id="show-comets" type="checkbox" checked role="switch"></div>
+    <p class="settings-credit">Life User • Solar Time v0.3 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
   </aside>
 
-  <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보">
-    <button id="body-close" class="close-button" aria-label="천체 정보 닫기">×</button>
+  <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보" data-i18n-aria="selectedBody">
+    <button id="body-close" class="close-button" aria-label="천체 정보 닫기" data-i18n-aria="bodyClose">×</button>
     <span id="body-category" class="eyebrow">OUR HOME</span>
     <h2><span id="body-name">지구</span><span id="body-english">EARTH</span></h2>
     <p id="body-description"></p>
@@ -75,16 +76,16 @@
     <p id="body-spin" class="body-note"></p>
     <p id="body-note" class="body-note"></p>
     <p id="body-material" class="material-source"></p>
-    <button id="focus-body" class="text-button full-width focus-button">가까이 보기 · 천체 추적</button>
+    <button id="focus-body" class="text-button full-width focus-button" data-i18n="focusBody">가까이 보기 · 천체 추적</button>
     <button id="feature-view" class="text-button full-width focus-button" hidden>한국 보기</button>
   </aside>
 
-  <div id="view-controls" class="view-controls ui" role="group" aria-label="시점 조절">
+  <div id="view-controls" class="view-controls ui" role="group" aria-label="시점 조절" data-i18n-aria="viewControls">
     <button id="zoom-in" class="icon-button" aria-label="확대" title="확대"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
     <button id="zoom-out" class="icon-button" aria-label="축소" title="축소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
-    <output id="zoom-value" aria-label="화면 확대 배율">1.0×</output>
+    <output id="zoom-value" aria-label="화면 확대 배율" data-i18n-aria="zoomValue">1.0×</output>
     <button id="fit-view" class="icon-button" aria-label="기본 시점" title="기본 시점 · 0"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></button>
-    <div id="camera-presets" class="camera-presets" role="group" aria-label="카메라 시점 저장">
+    <div id="camera-presets" class="camera-presets" role="group" aria-label="카메라 시점 저장" data-i18n-aria="cameraPresets">
         <button type="button" id="camera-preset-1" class="icon-button camera-preset" data-preset="1" aria-label="1번 시점 저장">1</button>
         <button type="button" id="camera-preset-2" class="icon-button camera-preset" data-preset="2" aria-label="2번 시점 저장">2</button>
         <button type="button" id="camera-preset-3" class="icon-button camera-preset" data-preset="3" aria-label="3번 시점 저장">3</button>
@@ -99,7 +100,7 @@
   </div>
 
 
-  <section class="playback ui" aria-label="공전 재생 조절">
+  <section class="playback ui" aria-label="공전 재생 조절" data-i18n-aria="playbackControls">
     <div class="playback-caption"><span id="speed-value">1 ×</span></div>
     <div class="playback-bar">
       <button id="pause-button" class="play-button" aria-label="공전 일시정지" aria-pressed="false" title="공전 일시정지 · Space">
@@ -107,54 +108,54 @@
         <svg id="play-icon" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m9 5 10 7-10 7Z"/></svg>
       </button>
       <span class="bar-divider"></span>
-      <button id="live-button" class="speed-button active" aria-pressed="true"><span class="tiny-dot"></span>실제 시간</button>
-      <div class="speed-control" aria-label="공전 속도">
-        <input id="speed-slider" type="range" min="1" max="365" step="1" value="1" aria-label="1초당 진행하는 시간">
+      <button id="live-button" class="speed-button active" aria-pressed="true"><span class="tiny-dot"></span><span data-i18n="realTime">실제 시간</span></button>
+      <div class="speed-control" aria-label="공전 속도" data-i18n-aria="orbitSpeed">
+        <input id="speed-slider" type="range" min="1" max="365" step="1" value="1" aria-label="1초당 진행하는 시간" data-i18n-aria="speedSlider">
         <button id="speed-mode-button" class="speed-mode-button" type="button" data-speed-mode="day" aria-label="속도 단위 일. 누르면 다음 단위로 전환">일</button>
       </div>
     </div>
   </section>
 
   <footer class="footer ui">
-    <span class="signature">Life User • Solar Time v0.26 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
-    <nav id="planet-nav" class="planet-nav" aria-label="천체 선택"></nav>
+    <span class="signature">© 2026 EG-Tools. All rights reserved. · Solar Time v0.3 · <a class="source-link" href="https://github.com/EG-Tools/SolarTime/blob/main/assets/CREDITS.md" target="_blank" rel="noopener" data-i18n="sources">출처</a> · <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
+    <nav id="planet-nav" class="planet-nav" aria-label="천체 선택" data-i18n-aria="bodySelect"></nav>
   </footer>
-  <p class="scale-note ui">크기·거리 축척 조정<span>·</span>평균 궤도 근사<span>·</span><span id="spin-mode-note">자전·공전 시간 연동</span></p>
+  <p class="scale-note ui" data-i18n="scaleNote">크기·거리 축척 조정 · 평균 궤도 근사 · 자전·공전 시간 연동</p>
   <div id="toast" class="toast" role="status" hidden></div>
 
   <dialog id="preset-dialog" class="preset-dialog" aria-labelledby="preset-title" aria-describedby="preset-note">
     <h2 id="preset-title">1번 카메라</h2>
     <p id="preset-note">카메라 동작을 선택하세요.</p>
-    <div class="preset-actions"><button type="button" id="preset-apply">적용</button><button type="button" id="preset-save">저장</button><button type="button" id="preset-delete">삭제</button><button type="button" id="preset-cancel" autofocus>취소</button></div>
+    <div class="preset-actions"><button type="button" id="preset-apply" data-i18n="apply">이동</button><button type="button" id="preset-save" data-i18n="save">저장</button><button type="button" id="preset-delete" data-i18n="delete">삭제</button><button type="button" id="preset-cancel" data-i18n="cancel" autofocus>취소</button></div>
   </dialog>
 
   <dialog id="help-dialog" class="modal">
-    <form method="dialog"><button class="close-button" aria-label="도움말 닫기">×</button></form>
+    <form method="dialog"><button class="close-button" aria-label="도움말 닫기" data-i18n-aria="helpClose">×</button></form>
     <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
     <div id="help-scroll" class="modal-scroll">
-      <span class="eyebrow">QUICK GUIDE</span><h2>사용 방법과 계산 기준</h2>
-      <h3>기본 조작</h3>
-      <p>좌클릭 드래그로 시점을 회전하고, 가운데 버튼 드래그로 화면을 상하좌우 ±40% 이동합니다. 휠로 확대·축소하고 천체를 더블클릭하거나 «가까이 보기»를 누르면 해당 천체를 추적합니다. 0은 기본 시점, 1·2·3은 저장 시점, F는 전체 화면, H는 감상 모드입니다.</p>
-      <h3>v0.26</h3>
-      <p>일반 화면에서 태양을 선택하지 않고 확대해도 태양 표면이 제한 없이 계속 확대됩니다. 창의 X 닫기 버튼은 테두리 없이 간결하게 표시됩니다.</p>
-      <h3>시간과 계산</h3>
-      <p>상단 시계는 기기 실제 시간입니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.</p>
-      <p>행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.</p>
-      <div class="shortcuts"><span><kbd>Space</kbd> 일시정지</span><span><kbd>R</kbd> 실제 시간</span><span><kbd>F</kbd> 전체 화면</span><span><kbd>H</kbd> 감상 모드</span><span><kbd>0</kbd> 기본 시점</span><span><kbd>1 · 2 · 3</kbd> 저장 시점</span><span><kbd>Esc</kbd> 단계별 종료</span></div>
-      <p class="modal-note">Life User • Solar Time v0.26 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
+      <span class="eyebrow">QUICK GUIDE</span><h2 data-i18n="helpTitle">사용 방법과 계산 기준</h2>
+      <h3 data-i18n="basicControls">기본 조작</h3>
+      <p data-i18n="basicHelp">좌클릭 드래그로 시점을 회전하고, 가운데 버튼 드래그로 화면을 상하좌우 ±40% 이동합니다. 휠로 확대·축소하고 천체를 더블클릭하거나 «가까이 보기»를 누르면 해당 천체를 추적합니다. 0은 기본 시점, 1·2·3은 저장 시점, F는 전체 화면, H는 감상 모드입니다.</p>
+      <h3>v0.3</h3>
+      <p data-i18n="releaseHelp">일반 화면에서 태양을 선택하지 않고 확대해도 태양 표면이 제한 없이 계속 확대됩니다. 창의 X 닫기 버튼은 테두리 없이 간결하게 표시됩니다.</p>
+      <h3 data-i18n="timeAndCalculation">시간과 계산</h3>
+      <p data-i18n="timeHelp">상단 시계는 기기 실제 시간입니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.</p>
+      <p data-i18n="orbitHelp">행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.</p>
+      <div class="shortcuts"><span><kbd>Space</kbd> <span data-i18n="pause">일시정지</span></span><span><kbd>R</kbd> <span data-i18n="realTime">실제 시간</span></span><span><kbd>F</kbd> <span data-i18n="fullscreen">전체 화면</span></span><span><kbd>H</kbd> <span data-i18n="zenMode">감상 모드</span></span><span><kbd>0</kbd> <span data-i18n="homeView">기본 시점</span></span><span><kbd>1 · 2 · 3</kbd> <span data-i18n="savedViews">저장 시점</span></span><span><kbd>Esc</kbd> <span data-i18n="stepExit">단계별 종료</span></span></div>
+      <p class="modal-note">Life User • Solar Time v0.3 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </dialog>
-  <div id="loading" class="loading"><div class="loading-orbit"></div><span>작은 우주를 펼치는 중</span></div>
-  <div id="fatal-error" class="fatal-error" role="alert" hidden><h2>화면을 시작하지 못했습니다.</h2><p id="fatal-message"></p><p>최신 Edge 또는 Chrome에서 다시 열어 주세요.</p></div>
+  <div id="loading" class="loading"><div class="loading-orbit"></div><span data-i18n="loading">작은 우주를 펼치는 중</span></div>
+  <div id="fatal-error" class="fatal-error" role="alert" hidden><h2 data-i18n="fatalTitle">화면을 시작하지 못했습니다.</h2><p id="fatal-message"></p><p data-i18n="fatalRetry">최신 Edge 또는 Chrome에서 다시 열어 주세요.</p></div>
   <noscript><div class="fatal-error">태양계 시계를 실행하려면 브라우저의 JavaScript를 켜 주세요.</div></noscript>
-  <script id="solar-assets" src="src/assets.js?v=0.26-textures2"></script>
-  <script src="src/sky-asset.js?v=0.26"></script>
-  <script src="src/materials.js?v=0.26"></script>
-  <script src="src/astro.js?v=0.26"></script>
-  <script src="src/surface.js?v=0.26-sunbright2"></script>
-  <script src="src/sky.js?v=0.26"></script>
-  <script src="src/renderer.js?v=0.26-zoom4"></script>
-  <script src="src/app.js?v=0.26-ui1"></script>
+  <script id="solar-assets" src="src/assets.js?v=0.3-textures1"></script>
+  <script src="src/sky-asset.js?v=0.3"></script>
+  <script src="src/materials.js?v=0.3"></script>
+  <script src="src/astro.js?v=0.3"></script>
+  <script src="src/surface.js?v=0.3-sunflow1"></script>
+  <script src="src/sky.js?v=0.3"></script>
+  <script src="src/renderer.js?v=0.3-regions1"></script>
+  <script src="src/app.js?v=0.3-ui1"></script>
 </body>
 </html>

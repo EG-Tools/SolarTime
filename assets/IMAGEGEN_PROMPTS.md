@@ -1,6 +1,6 @@
-# Solar Time v0.25 ImageGen prompts
+# Solar Time v0.3 ImageGen prompts
 
-The final `assets/pluto.webp` and `assets/sun.webp` maps were created with the built-in OpenAI ImageGen tool, then normalized by `tools/prepare_v025_textures.py` to 4096×2048 WebP maps with closed left/right seams and stabilized pole rows.
+The final `assets/pluto.webp`, `assets/sun.webp`, and `assets/uranus.webp` maps were created with the built-in OpenAI ImageGen tool. `tools/prepare_v025_textures.py` closes the left/right seam, stabilizes pole rows, and normalizes them to the documented 2:1 WebP sizes.
 
 ## Pluto
 
@@ -21,4 +21,10 @@ Avoid: mirrored terrain, repeated bands, vertical smearing, radial streaks, pain
 
 ```text
 Use case: scientific-educational visual material. Asset type: production albedo/emissive texture for a real-time GPU-rendered Sun sphere. Image 1 is an official NASA/GSFC Solar Dynamics Observatory SDO/AIA 171 Å full-disk image and is the primary visual reference. Re-create its rich golden solar surface vocabulary—fine plasma granulation, tangled filament channels, restrained dark coronal-hole-like structures, and scattered bright magnetic active regions—as one complete coherent full-globe texture. Composition: a single flat exact 2:1 equirectangular map spanning 360 degrees longitude and 180 degrees latitude; north pole is the entire top edge and south pole the entire bottom edge. This must be a texture map, never a picture of a sphere. Distribute many small and medium structures naturally across the whole map; no single giant bright patch. Lighting: uniform emissive/albedo exposure with no directional lighting, cast shadow, limb darkening, vignette, halo, corona, rays, flares extending beyond an edge, black space, or baked spherical shading. Color: sophisticated deep amber, molten gold and pale yellow highlights matching the reference, preserving broad dynamic range without white clipping. Constraints: left and right edges tile seamlessly; both pole rows converge smoothly; continuous multiscale plasma detail; no horizontal or vertical smears, radial stretching, pinwheel poles, mirrored hemispheres, duplicated landmarks, obvious repeated bands, seams, text, timestamp, label, watermark, border, grid, stars, planet silhouette, 3D sphere, or empty region. Avoid: smooth generic noise, painted brush texture, regular cells, enormous active region, over-saturation, uniform yellow.
+```
+
+## Uranus
+
+```text
+Create a brand-new scientific-inspired WebGL asset using the attached NASA Uranus observation only as visual mood and color reference, not as a literal crop or reconstruction. Output a seamless 2:1 equirectangular diffuse/albedo texture map covering the full 360-degree atmosphere of Uranus. The entire canvas must be the flat map: no spherical planet disk, no rings, no black space, no stars, no text, no labels, no watermark, no vignette, no limb darkening, no cast shadow, and no specular highlight. Use smooth cyan, turquoise, and blue-green cloud layers like the reference, with very subtle low-contrast latitudinal atmospheric banding, a restrained pale cyan band, fine soft cloud haze, and a few faint elongated white-cyan cloud traces. Uranus should remain calm and mostly featureless, not stormy like Neptune or Jupiter. Use even neutral illumination, texture detail that wraps naturally around a sphere, pole-safe distortion, and make the left and right edges visually seamless. High-resolution production texture, wide 2:1 composition, clean continuous surface with no seams.
 ```

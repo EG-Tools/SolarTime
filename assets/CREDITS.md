@@ -16,7 +16,7 @@ https://science.nasa.gov/photojournal/image-of-sun-from-nasas-solar-dynamics-obs
 
 https://science.nasa.gov/resource/pluto-global-color-map/
 
-**Uranus:** NASA/Caltech Voyager 2 image from 1986-01-24. Because this is a disk photograph rather than a global map, Solar Time samples its well-exposed inner atmosphere into a seamless 2048×1024 map and repeats the nearly featureless observed hemisphere on the unseen side. No fictional storms are added.
+**Uranus:** A user-supplied NASA Uranus observation was used as the visual reference. Solar Time's 2048×1024 WebP is a new OpenAI ImageGen artistic re-creation made directly as a full 2:1 equirectangular atmosphere map rather than stretching a photographed disk. It keeps the reference's calm cyan/turquoise appearance, restrained atmospheric bands and sparse pale cloud traces; it is not a measured global mosaic. The antimeridian and pole texels are converged for spherical display. Rings are rendered separately as multiple narrow, faint child rings and are not baked into the texture.
 
 https://science.nasa.gov/asset/webb/uranus-voyager-2/
 
@@ -39,7 +39,7 @@ Textures courtesy of Solar System Scope, developed by INOVE.
 Source and attribution: https://www.solarsystemscope.com/textures/
 License: Creative Commons Attribution 4.0 International — https://creativecommons.org/licenses/by/4.0/
 
-Maps used: Saturn, Neptune, Venus atmosphere, Jupiter, Mars and Mercury; Moon only as a fallback if the NASA source fails. Uranus is excluded from this replacement catalogue because the embedded NASA/Caltech Voyager 2 material is authoritative for v0.25. The source pack uses NASA imagery/elevation, artist-adjusted colors, and fictional terrain in unmapped gaps. It is not a set of current, perfectly calibrated scientific observations.
+Maps used: Saturn, Neptune, Venus atmosphere, Jupiter, Mars and Mercury; Moon only as a fallback if the NASA source fails. Uranus is excluded from this replacement catalogue because v0.3 carries its dedicated AI-recreated embedded map. The source pack uses NASA imagery/elevation, artist-adjusted colors, and fictional terrain in unmapped gaps. It is not a set of current, perfectly calibrated scientific observations.
 
 Changes made after receipt: image decoding, maximum-width reduction to 4096 while retaining 2:1 projection, WebP re-encoding at quality 0.95. Native 2048 maps remain 2048. Existing unrelated synthetic relief maps are removed from the corresponding material. Actual received source URL, credit and dimensions are recorded in the exported app.
 

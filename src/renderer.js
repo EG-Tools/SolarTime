@@ -1,4 +1,4 @@
-/* Solar Time v0.26 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.3 — dependency-free, depth-projected Canvas renderer.
    Credited photographic maps are embedded for Earth, Pluto, Uranus and Europa. */
 (function () {
   'use strict';
@@ -10,6 +10,8 @@
   const SURFACE=Object.freeze({detailWidth:4096,maxRaster:1024,lowRaster:384});
   const AUTO_ROTATE_SPEED=2*DEG; // radians per real second; independent of orbital time
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
+  const TRUE_RADIUS_KM=Object.freeze({sun:696340,mercury:2439.7,venus:6051.8,earth:6371,mars:3389.5,jupiter:69911,saturn:58232,uranus:25362,neptune:24622,pluto:1188.3,moon:1737.4,europa:1560.8});
+  const TRUE_SCALE_SUN_SIZE=67.2;
   function noise(x,y) {
     const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);
     const hash=(a,b)=>{ let h=Math.imul(a,374761393)+Math.imul(b,668265263); h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967295; };
@@ -23,9 +25,10 @@
       this.gpu=null;this.gpuError=null;
       const gpuCanvas=typeof document==='object'&&typeof document.getElementById==='function'?document.getElementById('planet-layer'):null;
       if(gpuCanvas&&window.SolarSurface?.DirectRenderer){try{this.gpu=new window.SolarSurface.DirectRenderer(gpuCanvas);}catch(error){this.gpuError=error.message;}}
-      this.options={orbits:true,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
+      this.options={actualScale:false,orbits:true,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
       this.camera={azimuth:25*DEG,elevation:45*DEG,zoom:1,focus:null,panY:0,panX:0};
-      this.cameraTween=null;this.autoRotation=null;this.rotationGeneration=0;
+      this.site={label:'KOREA',latitude:37.5665,longitude:126.978};
+      this.cameraTween=null;this.autoRotation=null;this.rotationGeneration=0;this.actualScaleMix=0;this.actualScaleTween=null;
       this.surface=this.gpu||new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
       this.labelStates=new Map();this.lastLabelMono=null;this.labelWidths=new Map();
       this.orbitCache=new WeakMap();this.frameCache=new Map();this.starSprites=new Map();
@@ -109,6 +112,10 @@
       this.cancelCameraMotion();this.camera.panX=clamp(x,VIEW.minPanX,VIEW.maxPanX);this.setPanY(y);
     }
     sceneBodies() {return [A.SUN,...this.getBodies(),...(this.options.moon?SATELLITES:[])];}
+    setSite(site){
+      if(!site||typeof site.label!=='string'||!Number.isFinite(site.latitude)||!Number.isFinite(site.longitude))return false;
+      this.site={label:site.label,latitude:site.latitude,longitude:site.longitude};this.dirty=true;return true;
+    }
     faceFeature(id,latitude,longitude,ms) {
       const body=this.sceneBodies().find(b=>b.id===id);if(!body)return;
       const n=A.surfaceDirection(body,latitude,longitude,ms);
@@ -124,23 +131,27 @@
       // target must never divide the scale used by every other planet or the Sun.
       return this.bodyScaleForZoom(this.camera.zoom);
     }
+    bodyDisplaySize(body){
+      const designed=body.size*(body.id==='sun'?1.2:1),radius=TRUE_RADIUS_KM[body.id]||TRUE_RADIUS_KM.earth;
+      const physical=TRUE_SCALE_SUN_SIZE*radius/TRUE_RADIUS_KM.sun;
+      return mix(designed,physical,this.actualScaleMix);
+    }
     bodyRadiusForState(body,state) {
-      const zoom=state.zoom;
-      const displayScale=body.id==='sun'?1.2:1;
+      const zoom=state.zoom,displaySize=this.bodyDisplaySize(body);
       // The Sun is the untracked scene's fixed origin. Its ordinary body scale
       // intentionally tops out at detailZoom, but the old early return also made
       // wheel/+ zoom appear broken once the solar disk filled about 80% of the
       // viewport. Continue the central Sun into the close-up curve without
       // silently attaching a camera focus or changing any planet's behaviour.
       const centralSun=body.id==='sun'&&state.focus===null&&zoom>VIEW.detailZoom;
-      if((body.id!==state.focus&&!centralSun)||zoom<=1)return body.size*this.bodyScaleForZoom(zoom)*displayScale;
-      const oldMax=centralSun?body.size*this.bodyScaleForZoom(VIEW.detailZoom):Math.min(this.w,this.h)*VIEW.detailFillRadius;
+      if((body.id!==state.focus&&!centralSun)||zoom<=1)return displaySize*this.bodyScaleForZoom(zoom);
+      const oldMax=centralSun?displaySize*this.bodyScaleForZoom(VIEW.detailZoom):Math.min(this.w,this.h)*VIEW.detailFillRadius;
       if(zoom<=VIEW.detailZoom){
         const t=(Math.sqrt(zoom)-1)/(Math.sqrt(VIEW.detailZoom)-1);
-        return mix(body.size*this.baseBodyScale(),oldMax,t)*displayScale;
+        return mix(displaySize*this.baseBodyScale(),oldMax,t);
       }
       const t=(Math.sqrt(zoom)-Math.sqrt(VIEW.detailZoom))/(Math.sqrt(VIEW.maxZoom)-Math.sqrt(VIEW.detailZoom));
-      return mix(oldMax,this.focusRadius(),t)*displayScale;
+      return mix(oldMax,this.focusRadius(),t);
     }
     bodyRadiusAtZoom(body) {
       // Preset/focus transitions must not switch the special tracked-body size
@@ -190,7 +201,18 @@
       this.cx=this.centerX;this.homeCx=this.centerX;this.homeCy=this.centerY;this.cy=this.homeCy;
       this.bodyScale=this.bodyScaleAtZoom();this.lastPathMs=ms;this.pathYear=A.modelYear(ms);this.dirty=false;
     }
-    setOption(key,value) {
+    advanceActualScale(mono=performance.now()){
+      const tween=this.actualScaleTween;if(!tween)return;
+      const p=clamp((mono-tween.started)/tween.duration,0,1),e=p*p*(3-2*p);this.actualScaleMix=mix(tween.from,tween.to,e);
+      if(p>=1){this.actualScaleMix=tween.to;this.actualScaleTween=null;}
+    }
+    setOption(key,value,animate=true) {
+      if(key==='actualScale'){
+        const mono=performance.now();this.advanceActualScale(mono);this.options.actualScale=!!value;
+        if(animate)this.actualScaleTween={from:this.actualScaleMix,to:value?1:0,started:mono,duration:2000};
+        else{this.actualScaleMix=value?1:0;this.actualScaleTween=null;}
+        this.lastSurfaceSubmit=-Infinity;return;
+      }
       this.options[key]=value;this.dirty=true;if(key==='quality')this.resize();
       if((key==='labels'&&!value)||key==='avoidLabels')this.clearLabels();
       if(key==='moon'&&!value&&SATELLITES.some(body=>body.id===this.camera.focus))this.resetCamera();
@@ -210,7 +232,7 @@
     focusBody(id) {
       const body=this.sceneBodies().find(b=>b.id===id);
       if(!body)return;
-      const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
+      const baseRadius=this.bodyDisplaySize(body)*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
       const t=clamp((radius-baseRadius)/(Math.min(this.w,this.h)*VIEW.detailFillRadius-baseRadius),0,1);
       this.cancelCameraMotion();this.camera.focus=id;
       this.setZoom(clamp((1+t*(Math.sqrt(VIEW.detailZoom)-1))**2,6,VIEW.detailZoom));
@@ -280,7 +302,7 @@
       const body=this.sceneBodies().find(b=>b.id===id);
       if(!body)return null;
       this.advanceCamera(mono);this.advanceAutoRotate(mono);
-      const baseRadius=body.size*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
+      const baseRadius=this.bodyDisplaySize(body)*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
       const t=clamp((radius-baseRadius)/(Math.min(this.w,this.h)*VIEW.detailFillRadius-baseRadius),0,1);
       // Tracking is always viewport-centred. A previous middle-button pan is a
       // scene navigation offset, not part of a planet-follow camera preset.
@@ -426,7 +448,8 @@
       }else physical=A.positionAt(body,ms);
       const lightVector=this.viewDirection({x:-physical.x,y:-physical.y,z:-physical.z});
       const len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
-      const activity=false; // No surface distortion or erupting loops: physical spin + shine only.
+      // Solar activity changes emissive brightness only; geometry and rotation remain physical.
+      const activity=body.id==='sun'&&this.options.activity;
       const spin=A.rotationAt(body,ms);
       const geometry=[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,'camera-3d',A.rotationPoleTilt(body),this.camera.azimuth.toFixed(5),this.camera.elevation.toFixed(5),Number(activity)].join(':');
       const viewState={yaw:this.camera.azimuth,pitch:this.camera.elevation,limit:this.autoRotation?Math.PI/120:Math.PI/36,
@@ -488,13 +511,22 @@
       const sat=b.id==='saturn',{u,v}=frame,nearStart=Math.atan2(v.z,u.z)-Math.PI/2;
       const start=nearStart+(front?0:Math.PI);
       c.save();c.transform(u.x,u.y,v.x,v.y,p.x,p.y);
-      const inner=sat?1.28:1.58,outer=sat?2.26:1.94,steps=sat?116:18;
-      for(let i=0;i<steps;i++) {
-        const f=i/(steps-1),rr=mix(inner,outer,f)*r;
-        if(sat&&f>.56&&f<.62)continue;
-        const alpha=sat?(.19+.48*Math.sin(f*75)**2)*(f>.85?.6:1):.22;
-        c.strokeStyle=sat?`rgba(${205+Math.round(f*25)},${180+Math.round(f*22)},${133+Math.round(f*38)},${alpha})`:`rgba(150,194,193,${alpha})`;
-        c.lineWidth=(outer-inner)*r/steps*1.18;c.beginPath();c.arc(0,0,rr,start,start+Math.PI);c.stroke();
+      const inner=sat?1.28:1.58,outer=sat?2.26:1.94;
+      if(sat){
+        const steps=116;
+        for(let i=0;i<steps;i++) {
+          const f=i/(steps-1),rr=mix(inner,outer,f)*r;if(f>.56&&f<.62)continue;
+          const alpha=(.19+.48*Math.sin(f*75)**2)*(f>.85?.6:1);
+          c.strokeStyle=`rgba(${205+Math.round(f*25)},${180+Math.round(f*22)},${133+Math.round(f*38)},${alpha})`;
+          c.lineWidth=(outer-inner)*r/steps*1.18;c.beginPath();c.arc(0,0,rr,start,start+Math.PI);c.stroke();
+        }
+      }else{
+        // Uranus has a family of narrow, low-albedo rings rather than one broad annulus.
+        const rings=[[.07,.16,.72],[.16,.20,.65],[.27,.13,.68],[.39,.22,.62],[.53,.17,.78],[.68,.25,.68],[.83,.19,.82],[.95,.46,1.05]];
+        for(const [f,alpha,width] of rings){
+          c.strokeStyle=`rgba(158,199,202,${alpha})`;c.lineWidth=Math.max(.55,width*this.dpr);
+          c.beginPath();c.arc(0,0,mix(inner,outer,f)*r,start,start+Math.PI);c.stroke();
+        }
       }
       c.restore();
     }
@@ -608,7 +640,7 @@
       if('letterSpacing' in c)c.letterSpacing='0px';
     }
     draw(ms,seconds,mono=performance.now()) {
-      this.advanceCamera(mono);this.advanceAutoRotate(mono);
+      this.advanceActualScale(mono);this.advanceCamera(mono);this.advanceAutoRotate(mono);
       const c=this.ctx;this.frameCount++;c.clearRect(0,0,this.w,this.h);
       if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
       this.sky.draw(seconds,this.camera,this.options);
@@ -675,7 +707,7 @@
       if(direct){
         directJobs=new Map(surfaceBodies.map(p=>[p.body.id,this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)]));
         for(const p of bodies){const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;if(!this.visible(p.screen,p.r*extent+16))continue;
-          const job=directJobs.get(p.body.id);if(job&&this.gpu.planet(job,p.body,p.screen,p.r,seconds,false))directBodies.push(p);
+          const job=directJobs.get(p.body.id);if(job&&this.gpu.planet(job,p.body,p.screen,p.r,seconds,this.options.activity))directBodies.push(p);
         }
         this.gpu.end();
       }else if(!this.gpu){
@@ -699,12 +731,12 @@
         this.hitTargets.push({id:p.body.id,x:p.screen.x,y:p.screen.y,r:Math.max(p.r+6,11),z:p.screen.z});
       }
       if(this.camera.focus==='earth'&&earth.r>65){
-        const normal=this.viewDirection(A.surfaceDirection(earth.body,37.5665,126.978,ms));
+        const site=this.site,normal=this.viewDirection(A.surfaceDirection(earth.body,site.latitude,site.longitude,ms));
         if(normal.z>.03){
-          const x=earth.screen.x+normal.x*earth.r,y=earth.screen.y+normal.y*earth.r,day=A.siteSun(ms).altitude>=0;
+          const x=earth.screen.x+normal.x*earth.r,y=earth.screen.y+normal.y*earth.r,day=A.siteSun(ms,site.latitude,site.longitude).altitude>=0;
           c.fillStyle=day?'#ffdb92':'#98c9ff';c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=1;
           c.beginPath();c.arc(x,y,3,0,TAU);c.fill();c.beginPath();c.arc(x,y,6,0,TAU);c.stroke();
-          c.font='11px "Segoe UI",sans-serif';c.textAlign='left';c.shadowColor='#000';c.shadowBlur=5;c.fillText('SEOUL · '+(day?'DAY':'NIGHT'),x+11,y-9);c.shadowBlur=0;
+          c.font='11px "Segoe UI",sans-serif';c.textAlign='left';c.shadowColor='#000';c.shadowBlur=5;c.fillText(site.label+' · '+(day?'DAY':'NIGHT'),x+11,y-9);c.shadowBlur=0;
         }
       }
       if(this.options.labels)this.labels(c,bodies.filter(p=>this.visible(p.screen,p.r+20)),mono);
