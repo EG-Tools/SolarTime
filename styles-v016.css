@@ -1,4 +1,4 @@
-/* Solar Time v0.32 compact UI overlay */
+/* Solar Time v0.33 compact UI overlay */
 .clock-face,body.zen .clock-face{top:56px}
 .playback-caption{justify-content:flex-end}
 .playback-bar{gap:7px;padding-left:8px;padding-right:8px}
@@ -48,6 +48,8 @@ body.zen #timezone-button{display:inline-block!important;visibility:visible!impo
 /* v0.25: transparent playback and matching transparent view-mode control. */
 .playback-bar{background:transparent;border-color:rgba(164,178,196,.18);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
 .speed-button.active,.speed-mode-button.active{background:transparent}
+#live-button span:not(.tiny-dot){font-size:11px}
+@media(max-width:680px){#live-button span:not(.tiny-dot){font-size:10px}}
 #zen-toggle,#zen-toggle[aria-pressed=true]{background:transparent;border-color:transparent}
 .view-controls .camera-mode-toggle{flex-shrink:0;padding:0;border:1px solid transparent;background:transparent;color:#94a0af;transition:color .18s,border-color .18s,background .18s}
 .view-controls .camera-mode-toggle:hover,.view-controls .camera-mode-toggle[aria-pressed=true]{color:var(--accent);border-color:rgba(225,199,150,.42);background:rgba(185,150,97,.11)}

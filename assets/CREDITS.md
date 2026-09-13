@@ -64,6 +64,16 @@ Moon relative to Earth (DE441) and Europa relative to Jupiter (`jup365_merged`) 
 
 https://ssd.jpl.nasa.gov/horizons/
 
+## Temperature and gravity reference
+
+Mean planetary temperatures and surface-gravity values use NASA/NSSDCA's metric Planetary Fact Sheet. For Jupiter, Saturn, Uranus and Neptune, the temperature is the value at an atmospheric pressure comparable to Earth's sea-level pressure because these worlds have no solid surface. The card also shows a compact representative low-to-high range; rocky-body extremes and Europa/Pluto ranges follow NASA Science fact pages, while giant-planet ranges are illustrative atmospheric context rather than a complete minimum/maximum through the planet's depth.
+
+https://nssdc.gsfc.nasa.gov/planetary/factsheet/
+https://science.nasa.gov/solar-system/temperatures-across-our-solar-system/
+https://science.nasa.gov/mission/europa-clipper/mission-faq/
+https://science.nasa.gov/dwarf-planets/pluto/facts/
+https://science.nasa.gov/sun/facts/
+
 ## Exclusions and validation limits
 
 The downloaded-map catalogue does not replace the existing Earth, Sun, Pluto, Uranus or Europa assets. The Saturn ring is separately rendered rather than taken from a photograph of the whole planet. Network/decoder tests use explicitly synthetic test fixtures, excluded from the released app, and do not establish live source reachability.

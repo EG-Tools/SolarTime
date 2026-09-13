@@ -365,20 +365,31 @@ const DIRECT_COLOR_FRAGMENT=`precision mediump float;uniform vec4 color;void mai
 const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,axisV;uniform float radius,outer;uniform vec2 depthAxis;
   varying vec2 local;varying float depth;
   void main(){local=a*outer;depth=dot(local,depthAxis);vec2 q=center+(axisU*local.x+axisV*local.y)*radius;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);}`;
-const DIRECT_RING_FRAGMENT=`precision highp float;varying vec2 local;varying float depth;
-  uniform float inner,outer,front,saturn,pixel;uniform vec3 ringColor;
-  float lineBand(float f,float center,float width,float aa){return 1.-smoothstep(width,width+aa,abs(f-center));}
-  void main(){float r=length(local);if(r<inner||r>outer||(front>.5&&depth<0.)||(front<.5&&depth>=0.))discard;
-    float f=(r-inner)/(outer-inner);if(saturn>.5&&f>.56&&f<.62)discard;
-    float edge=max(pixel,.002),alpha=smoothstep(inner,inner+edge,r)*(1.-smoothstep(outer-edge,outer,r));
-    if(saturn>.5)alpha*=(.19+.48*pow(sin(f*75.),2.))*(f>.85?.6:1.);
-    else{
-      float aa=max(pixel/(outer-inner),.0025),lines=0.;
+ const DIRECT_RING_FRAGMENT=`precision highp float;varying vec2 local;varying float depth;
+   uniform vec2 axisU,axisV;uniform float radius,inner,outer,front,saturn,pixel;uniform vec3 ringColor;
+   float lineBand(float f,float center,float width,float aa){return 1.-smoothstep(width,width+aa,abs(f-center));}
+   void main(){float r=length(local);if(r<inner||r>outer||(front>.5&&depth<0.)||(front<.5&&depth>=0.))discard;
+     float f=(r-inner)/(outer-inner),span=outer-inner;
+     vec2 radial=local/max(r,.0001),screenRadial=axisU*radial.x+axisV*radial.y;
+     float aa=max(pixel/span,1.15/(max(radius*length(screenRadial),1.)*span));
+     float edge=max(pixel,aa*span),alpha=smoothstep(inner,inner+edge,r)*(1.-smoothstep(outer-edge,outer,r));
+     if(saturn>.5){
+       float gap=smoothstep(.56-aa*1.5,.56+aa*1.5,f)*(1.-smoothstep(.62-aa*1.5,.62+aa*1.5,f));
+       float cyclePixels=3.14159265/(75.*aa),detail=smoothstep(2.,5.,cyclePixels);
+       float bands=.19+.48*mix(.5,pow(sin(f*75.),2.),detail);
+     alpha*=bands*(1.-gap)*(f>.85?.6:1.);
+     }
+     else{
+      float lines=0.;
       lines+=lineBand(f,.07,.007,aa)*.22;lines+=lineBand(f,.16,.006,aa)*.28;
       lines+=lineBand(f,.27,.008,aa)*.18;lines+=lineBand(f,.39,.006,aa)*.30;
       lines+=lineBand(f,.53,.009,aa)*.24;lines+=lineBand(f,.68,.007,aa)*.34;
       lines+=lineBand(f,.83,.009,aa)*.27;lines+=lineBand(f,.95,.010,aa)*.62;
-      alpha*=min(lines,.68);
+      float separationPixels=.09/max(aa,.0001);
+      float detail=smoothstep(2.5,5.5,separationPixels);
+      float coverage=min(1.,.012/max(aa,.012));
+      float unresolved=.035+.025*smoothstep(.70,1.,f);
+      alpha*=mix(unresolved,min(lines*coverage,.68),detail);
     }
     gl_FragColor=vec4(ringColor,alpha);}`;
 function directCompile(gl,type,source){

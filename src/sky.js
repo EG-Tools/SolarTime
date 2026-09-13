@@ -75,7 +75,9 @@ class Sky{
   this.abort=new AbortController();this.gl=null;this.initTicket=0;this.softwareEpoch=0;
   this.stats={backend:'loading',frames:0,skipped:0,starProjections:0};
   this.random=rand(610639);this.comet=null;this.nextComet=18+this.random()*22;this.lastTime=0;
-  this.offset=0;this.lastEffect=null;this.tanFov=Math.tan(38*Math.PI/180);this.lastGPU=-Infinity;
+   // Choose a fresh panorama longitude on every launch/reload, then retain it
+   // for this page lifetime while the existing passive drift continues from it.
+   this.offset=Math.random()*TAU;this.lastEffect=null;this.tanFov=Math.tan(38*Math.PI/180);this.lastGPU=-Infinity;
   this.rayTables=new Map();this.visibleStars=[];this.cameraMotionAt=-Infinity;
   this.gamma=new Float32Array(4096);for(let i=0;i<4096;i++)this.gamma[i]=Math.pow(i/4095,.95)*255*.67;
   canvas.addEventListener('webglcontextlost',e=>{
