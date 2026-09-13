@@ -62,7 +62,7 @@ function surfaceKernel(){
         col+=vec3(.075,.36,.72)*rim;
         col=mix(col,vec3(.065,.16,.32),pow(1.-n.z,6.)*.17);
       }else if(kind==2.){
-        col=base*(.70+.30*pow(n.z,.5));
+        col=base*(1.05+.45*pow(n.z,.5));
       }else if(kind==3.){
         col+=vec3(.18,.26,.33)*pow(1.-n.z,5.)*day*.16;
       }
@@ -148,7 +148,7 @@ function surfaceKernel(){
           const a=(y0*w+x0)*4,b=(y0*w+x1)*4,c=(y1*w+x0)*4,d=(y1*w+x1)*4;
           const wa=(1-fx)*(1-fy),wb=fx*(1-fy),wc=(1-fx)*fy,wd=fx*fy;
           const day=Math.max(0,nx*light[0]+ny*light[1]+nz*light[2]);
-          const lit=id==='sun'?.70+.30*Math.sqrt(nz):.115+.98*day;
+          const lit=id==='sun'?1.05+.45*Math.sqrt(nz):.115+.98*day;
           for(let k=0;k<3;k++)data[i+k]=(tex[a+k]*wa+tex[b+k]*wb+tex[c+k]*wc+tex[d+k]*wd)*lit;
           if(id==='earth'){
             const ci=(Math.min(clouds.height-1,Math.floor(v*clouds.height))*clouds.width+Math.floor(u*clouds.width))*4,cover=clouds.data[ci]/255*.50;
@@ -295,7 +295,7 @@ const DIRECT_PLANET_FRAGMENT=`precision highp float;
       col+=vec3(.63,.76,.85)*pow(max(0.,dot(n,halfdir)),70.)*day*ocean*.38;
       float rim=pow(1.-n.z,4.)*(.05+.8*day);col+=vec3(.075,.36,.72)*rim;
       col=mix(col,vec3(.065,.16,.32),pow(1.-n.z,6.)*.17);
-    }else if(kind==2.)col=base*(.70+.30*pow(n.z,.5));
+    }else if(kind==2.)col=base*(1.05+.45*pow(n.z,.5));
     else if(kind==3.)col+=vec3(.18,.26,.33)*pow(1.-n.z,5.)*day*.16;
     float alpha=clamp((1.-sqrt(rr))*diameter,0.,1.);gl_FragColor=vec4(col,alpha);
   }`;

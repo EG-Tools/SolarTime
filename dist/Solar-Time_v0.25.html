@@ -144,9 +144,9 @@ body.zen #timezone-button{display:inline-block!important;visibility:visible!impo
 @media(max-width:760px){.wall-clock .ampm{margin-left:8px}}
 
 /* v0.25: translucent glass is the digit material, not a card around it. */
-.wall-clock{color:rgba(226,241,250,.24);background:linear-gradient(180deg,rgba(255,255,255,.50) 0%,rgba(187,215,234,.14) 43%,rgba(233,246,253,.29) 72%,rgba(255,255,255,.40) 100%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;-webkit-text-stroke:.7px rgba(245,251,255,.52);filter:blur(.2px) drop-shadow(0 5px 13px rgba(137,183,217,.14));text-shadow:0 1px 1px rgba(255,255,255,.34),0 0 7px rgba(190,222,244,.16)}
+.wall-clock{color:transparent;background:none;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;-webkit-text-stroke:.75px rgba(215,242,255,.28);mix-blend-mode:screen;filter:blur(.08px) drop-shadow(-.8px -1px .6px rgba(255,255,255,.16)) drop-shadow(.9px 1px .7px rgba(91,208,255,.09)) drop-shadow(1.3px 0 .7px rgba(255,151,200,.045));text-shadow:-1px -1px 0 rgba(255,255,255,.10),1px 1px 0 rgba(112,218,255,.055),0 0 3px rgba(210,240,255,.045)}
 .wall-clock::before,.wall-clock::after{content:none}
-.wall-clock .colon{color:rgba(132,157,180,.58);-webkit-text-fill-color:rgba(132,157,180,.58);-webkit-text-stroke:.3px rgba(211,231,246,.22);text-shadow:0 0 10px rgba(153,195,229,.13)}
+.wall-clock .colon{color:transparent;-webkit-text-fill-color:transparent;-webkit-text-stroke:.3px rgba(209,239,253,.24);text-shadow:-1px -1px 0 rgba(255,255,255,.08),1px 1px 0 rgba(102,211,255,.05),0 0 5px rgba(153,207,235,.045)}
 .wall-clock .ampm{background:none;-webkit-text-fill-color:#8f9aa7;-webkit-text-stroke:0;filter:none;text-shadow:none}
 
 /* v0.25: transparent playback and matching transparent view-mode control. */
@@ -155,7 +155,7 @@ body.zen #timezone-button{display:inline-block!important;visibility:visible!impo
 #zen-toggle,#zen-toggle[aria-pressed=true]{background:transparent;border-color:transparent}
 
 /* v0.25: a light, nearly unblurred glass language for settings and help. */
-.settings-panel,.modal{background:linear-gradient(145deg,rgba(13,19,28,.72),rgba(7,11,18,.72));border-color:rgba(193,215,236,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 22px 70px rgba(0,0,0,.12);backdrop-filter:blur(2px) saturate(1.04);-webkit-backdrop-filter:blur(2px) saturate(1.04)}
+.settings-panel,.modal{background:linear-gradient(145deg,rgba(13,19,28,.18),rgba(7,11,18,.18));border-color:rgba(193,215,236,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 18px 54px rgba(0,0,0,.07);backdrop-filter:blur(2.31px) saturate(1.04);-webkit-backdrop-filter:blur(2.31px) saturate(1.04)}
 .modal{overflow:hidden;padding:0;position:relative}
 .modal::backdrop{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
 .modal-scroll{box-sizing:border-box;max-height:85vh;overflow-x:hidden;overflow-y:auto;padding:34px 34px 26px;scrollbar-width:none;overscroll-behavior:contain}
@@ -764,7 +764,7 @@ function surfaceKernel(){
         col+=vec3(.075,.36,.72)*rim;
         col=mix(col,vec3(.065,.16,.32),pow(1.-n.z,6.)*.17);
       }else if(kind==2.){
-        col=base*(.70+.30*pow(n.z,.5));
+        col=base*(1.05+.45*pow(n.z,.5));
       }else if(kind==3.){
         col+=vec3(.18,.26,.33)*pow(1.-n.z,5.)*day*.16;
       }
@@ -850,7 +850,7 @@ function surfaceKernel(){
           const a=(y0*w+x0)*4,b=(y0*w+x1)*4,c=(y1*w+x0)*4,d=(y1*w+x1)*4;
           const wa=(1-fx)*(1-fy),wb=fx*(1-fy),wc=(1-fx)*fy,wd=fx*fy;
           const day=Math.max(0,nx*light[0]+ny*light[1]+nz*light[2]);
-          const lit=id==='sun'?.70+.30*Math.sqrt(nz):.115+.98*day;
+          const lit=id==='sun'?1.05+.45*Math.sqrt(nz):.115+.98*day;
           for(let k=0;k<3;k++)data[i+k]=(tex[a+k]*wa+tex[b+k]*wb+tex[c+k]*wc+tex[d+k]*wd)*lit;
           if(id==='earth'){
             const ci=(Math.min(clouds.height-1,Math.floor(v*clouds.height))*clouds.width+Math.floor(u*clouds.width))*4,cover=clouds.data[ci]/255*.50;
@@ -997,7 +997,7 @@ const DIRECT_PLANET_FRAGMENT=`precision highp float;
       col+=vec3(.63,.76,.85)*pow(max(0.,dot(n,halfdir)),70.)*day*ocean*.38;
       float rim=pow(1.-n.z,4.)*(.05+.8*day);col+=vec3(.075,.36,.72)*rim;
       col=mix(col,vec3(.065,.16,.32),pow(1.-n.z,6.)*.17);
-    }else if(kind==2.)col=base*(.70+.30*pow(n.z,.5));
+    }else if(kind==2.)col=base*(1.05+.45*pow(n.z,.5));
     else if(kind==3.)col+=vec3(.18,.26,.33)*pow(1.-n.z,5.)*day*.16;
     float alpha=clamp((1.-sqrt(rr))*diameter,0.,1.);gl_FragColor=vec4(col,alpha);
   }`;
@@ -1590,14 +1590,15 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
     }
     bodyRadiusForState(body,state) {
       const zoom=state.zoom;
-      if(body.id!==state.focus||zoom<=1)return body.size*this.bodyScaleForZoom(zoom);
+      const displayScale=body.id==='sun'?1.2:1;
+      if(body.id!==state.focus||zoom<=1)return body.size*this.bodyScaleForZoom(zoom)*displayScale;
       const oldMax=Math.min(this.w,this.h)*VIEW.detailFillRadius;
       if(zoom<=VIEW.detailZoom){
         const t=(Math.sqrt(zoom)-1)/(Math.sqrt(VIEW.detailZoom)-1);
-        return mix(body.size*this.baseBodyScale(),oldMax,t);
+        return mix(body.size*this.baseBodyScale(),oldMax,t)*displayScale;
       }
       const t=(Math.sqrt(zoom)-Math.sqrt(VIEW.detailZoom))/(Math.sqrt(VIEW.maxZoom)-Math.sqrt(VIEW.detailZoom));
-      return mix(oldMax,this.focusRadius(),t);
+      return mix(oldMax,this.focusRadius(),t)*displayScale;
     }
     bodyRadiusAtZoom(body) {
       // Preset/focus transitions must not switch the special tracked-body size

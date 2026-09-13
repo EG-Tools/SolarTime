@@ -44,9 +44,9 @@ body.zen #timezone-button{display:inline-block!important;visibility:visible!impo
 @media(max-width:760px){.wall-clock .ampm{margin-left:8px}}
 
 /* v0.25: translucent glass is the digit material, not a card around it. */
-.wall-clock{color:rgba(226,241,250,.24);background:linear-gradient(180deg,rgba(255,255,255,.50) 0%,rgba(187,215,234,.14) 43%,rgba(233,246,253,.29) 72%,rgba(255,255,255,.40) 100%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;-webkit-text-stroke:.7px rgba(245,251,255,.52);filter:blur(.2px) drop-shadow(0 5px 13px rgba(137,183,217,.14));text-shadow:0 1px 1px rgba(255,255,255,.34),0 0 7px rgba(190,222,244,.16)}
+.wall-clock{color:transparent;background:none;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;-webkit-text-stroke:.75px rgba(215,242,255,.28);mix-blend-mode:screen;filter:blur(.08px) drop-shadow(-.8px -1px .6px rgba(255,255,255,.16)) drop-shadow(.9px 1px .7px rgba(91,208,255,.09)) drop-shadow(1.3px 0 .7px rgba(255,151,200,.045));text-shadow:-1px -1px 0 rgba(255,255,255,.10),1px 1px 0 rgba(112,218,255,.055),0 0 3px rgba(210,240,255,.045)}
 .wall-clock::before,.wall-clock::after{content:none}
-.wall-clock .colon{color:rgba(132,157,180,.58);-webkit-text-fill-color:rgba(132,157,180,.58);-webkit-text-stroke:.3px rgba(211,231,246,.22);text-shadow:0 0 10px rgba(153,195,229,.13)}
+.wall-clock .colon{color:transparent;-webkit-text-fill-color:transparent;-webkit-text-stroke:.3px rgba(209,239,253,.24);text-shadow:-1px -1px 0 rgba(255,255,255,.08),1px 1px 0 rgba(102,211,255,.05),0 0 5px rgba(153,207,235,.045)}
 .wall-clock .ampm{background:none;-webkit-text-fill-color:#8f9aa7;-webkit-text-stroke:0;filter:none;text-shadow:none}
 
 /* v0.25: transparent playback and matching transparent view-mode control. */
@@ -55,7 +55,7 @@ body.zen #timezone-button{display:inline-block!important;visibility:visible!impo
 #zen-toggle,#zen-toggle[aria-pressed=true]{background:transparent;border-color:transparent}
 
 /* v0.25: a light, nearly unblurred glass language for settings and help. */
-.settings-panel,.modal{background:linear-gradient(145deg,rgba(13,19,28,.72),rgba(7,11,18,.72));border-color:rgba(193,215,236,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 22px 70px rgba(0,0,0,.12);backdrop-filter:blur(2px) saturate(1.04);-webkit-backdrop-filter:blur(2px) saturate(1.04)}
+.settings-panel,.modal{background:linear-gradient(145deg,rgba(13,19,28,.18),rgba(7,11,18,.18));border-color:rgba(193,215,236,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 18px 54px rgba(0,0,0,.07);backdrop-filter:blur(2.31px) saturate(1.04);-webkit-backdrop-filter:blur(2.31px) saturate(1.04)}
 .modal{overflow:hidden;padding:0;position:relative}
 .modal::backdrop{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
 .modal-scroll{box-sizing:border-box;max-height:85vh;overflow-x:hidden;overflow-y:auto;padding:34px 34px 26px;scrollbar-width:none;overscroll-behavior:contain}

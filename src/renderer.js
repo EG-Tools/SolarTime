@@ -126,14 +126,15 @@
     }
     bodyRadiusForState(body,state) {
       const zoom=state.zoom;
-      if(body.id!==state.focus||zoom<=1)return body.size*this.bodyScaleForZoom(zoom);
+      const displayScale=body.id==='sun'?1.2:1;
+      if(body.id!==state.focus||zoom<=1)return body.size*this.bodyScaleForZoom(zoom)*displayScale;
       const oldMax=Math.min(this.w,this.h)*VIEW.detailFillRadius;
       if(zoom<=VIEW.detailZoom){
         const t=(Math.sqrt(zoom)-1)/(Math.sqrt(VIEW.detailZoom)-1);
-        return mix(body.size*this.baseBodyScale(),oldMax,t);
+        return mix(body.size*this.baseBodyScale(),oldMax,t)*displayScale;
       }
       const t=(Math.sqrt(zoom)-Math.sqrt(VIEW.detailZoom))/(Math.sqrt(VIEW.maxZoom)-Math.sqrt(VIEW.detailZoom));
-      return mix(oldMax,this.focusRadius(),t);
+      return mix(oldMax,this.focusRadius(),t)*displayScale;
     }
     bodyRadiusAtZoom(body) {
       // Preset/focus transitions must not switch the special tracked-body size
