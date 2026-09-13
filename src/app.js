@@ -1,4 +1,4 @@
-/* Solar Time v0.25 — clock, interaction and accessible UI. */
+/* Solar Time v0.26 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -376,10 +376,9 @@
         helpDialog.classList.toggle('can-scroll-up',helpScroll.scrollTop>3);
         helpDialog.classList.toggle('can-scroll-down',remaining>3);
       }
-      $('help-button').addEventListener('click',()=>{helpDialog.showModal();helpScroll.scrollTop=0;updateHelpScrollCues();requestAnimationFrame(updateHelpScrollCues);});
+      $('help-button').addEventListener('click',()=>{if(!helpDialog.open)helpDialog.showModal();helpScroll.scrollTop=0;updateHelpScrollCues();requestAnimationFrame(updateHelpScrollCues);});
       helpScroll.addEventListener('scroll',updateHelpScrollCues,{passive:true});
       window.addEventListener('resize',()=>{if(helpDialog.open)updateHelpScrollCues();},{passive:true});
-      helpDialog.addEventListener('click',event=>{if(event.target!==helpDialog)return;const r=helpDialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)helpDialog.close();});
       helpDialog.addEventListener('cancel',event=>{event.preventDefault();handleEscape();});
       const canvas=$('universe'),pointers=new Map();
       let drag=null,pinchDistance=0,pinchZoom=1,pinched=false,clickGestures=0;
@@ -517,7 +516,7 @@
       window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(resizeTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.25',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,hourCycle,clockFont,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.26',clock,renderer,materials,calibrationMs,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,showSeconds,hourCycle,clockFont,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

@@ -1,4 +1,4 @@
-/* Solar Time v0.25 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.26 — dependency-free, depth-projected Canvas renderer.
    Credited photographic maps are embedded for Earth, Pluto, Uranus and Europa. */
 (function () {
   'use strict';
@@ -127,8 +127,14 @@
     bodyRadiusForState(body,state) {
       const zoom=state.zoom;
       const displayScale=body.id==='sun'?1.2:1;
-      if(body.id!==state.focus||zoom<=1)return body.size*this.bodyScaleForZoom(zoom)*displayScale;
-      const oldMax=Math.min(this.w,this.h)*VIEW.detailFillRadius;
+      // The Sun is the untracked scene's fixed origin. Its ordinary body scale
+      // intentionally tops out at detailZoom, but the old early return also made
+      // wheel/+ zoom appear broken once the solar disk filled about 80% of the
+      // viewport. Continue the central Sun into the close-up curve without
+      // silently attaching a camera focus or changing any planet's behaviour.
+      const centralSun=body.id==='sun'&&state.focus===null&&zoom>VIEW.detailZoom;
+      if((body.id!==state.focus&&!centralSun)||zoom<=1)return body.size*this.bodyScaleForZoom(zoom)*displayScale;
+      const oldMax=centralSun?body.size*this.bodyScaleForZoom(VIEW.detailZoom):Math.min(this.w,this.h)*VIEW.detailFillRadius;
       if(zoom<=VIEW.detailZoom){
         const t=(Math.sqrt(zoom)-1)/(Math.sqrt(VIEW.detailZoom)-1);
         return mix(body.size*this.baseBodyScale(),oldMax,t)*displayScale;

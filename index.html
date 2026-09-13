@@ -7,8 +7,8 @@
   <meta name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주.">
   <title>Solar Time</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23060910'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='12' transform='rotate(-28 32 32)' fill='none' stroke='%23748295' stroke-width='1.4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23efbf76'/%3E%3Ccircle cx='54' cy='20' r='3' fill='%23b6d8ed'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css?v=0.25">
-  <link rel="stylesheet" href="styles-v016.css?v=0.25-ui16">
+  <link rel="stylesheet" href="styles.css?v=0.26">
+  <link rel="stylesheet" href="styles-v016.css?v=0.26-ui1">
 </head>
 <body>
   <canvas id="starfield" aria-hidden="true"></canvas>
@@ -63,7 +63,7 @@
     <div class="setting-row"><label for="show-moon">주요 위성 · 달과 유로파</label><input id="show-moon" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-pluto">명왕성 <small>왜행성</small></label><input id="show-pluto" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-comets">멀리 지나는 혜성</label><input id="show-comets" type="checkbox" checked role="switch"></div>
-    <p class="settings-credit">Life User • Solar Time v0.25 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
+    <p class="settings-credit">Life User • Solar Time v0.26 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
   </aside>
 
   <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보">
@@ -116,7 +116,7 @@
   </section>
 
   <footer class="footer ui">
-    <span class="signature">Life User • Solar Time v0.25 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
+    <span class="signature">Life User • Solar Time v0.26 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택"></nav>
   </footer>
   <p class="scale-note ui">크기·거리 축척 조정<span>·</span>평균 궤도 근사<span>·</span><span id="spin-mode-note">자전·공전 시간 연동</span></p>
@@ -135,26 +135,26 @@
       <span class="eyebrow">QUICK GUIDE</span><h2>사용 방법과 계산 기준</h2>
       <h3>기본 조작</h3>
       <p>좌클릭 드래그로 시점을 회전하고, 가운데 버튼 드래그로 화면을 상하좌우 ±40% 이동합니다. 휠로 확대·축소하고 천체를 더블클릭하거나 «가까이 보기»를 누르면 해당 천체를 추적합니다. 0은 기본 시점, 1·2·3은 저장 시점, F는 전체 화면, H는 감상 모드입니다.</p>
-      <h3>v0.25</h3>
-      <p>GPU 행성 위로 별과 혜성이 비쳐 보이던 캔버스 합성 순서를 보정해 행성 표면이 완전히 불투명하게 보입니다. 12시간 모드의 AM/PM은 숫자 시계의 오른쪽 아래에 표시됩니다.</p>
+      <h3>v0.26</h3>
+      <p>일반 화면에서 태양을 선택하지 않고 확대해도 태양 표면이 제한 없이 계속 확대됩니다. 창의 X 닫기 버튼은 테두리 없이 간결하게 표시됩니다.</p>
       <h3>시간과 계산</h3>
       <p>상단 시계는 기기 실제 시간입니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.</p>
       <p>행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.</p>
       <div class="shortcuts"><span><kbd>Space</kbd> 일시정지</span><span><kbd>R</kbd> 실제 시간</span><span><kbd>F</kbd> 전체 화면</span><span><kbd>H</kbd> 감상 모드</span><span><kbd>0</kbd> 기본 시점</span><span><kbd>1 · 2 · 3</kbd> 저장 시점</span><span><kbd>Esc</kbd> 단계별 종료</span></div>
-      <p class="modal-note">Life User • Solar Time v0.25 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
+      <p class="modal-note">Life User • Solar Time v0.26 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </dialog>
   <div id="loading" class="loading"><div class="loading-orbit"></div><span>작은 우주를 펼치는 중</span></div>
   <div id="fatal-error" class="fatal-error" role="alert" hidden><h2>화면을 시작하지 못했습니다.</h2><p id="fatal-message"></p><p>최신 Edge 또는 Chrome에서 다시 열어 주세요.</p></div>
   <noscript><div class="fatal-error">태양계 시계를 실행하려면 브라우저의 JavaScript를 켜 주세요.</div></noscript>
-  <script id="solar-assets" src="src/assets.js?v=0.25-textures2"></script>
-  <script src="src/sky-asset.js?v=0.25"></script>
-  <script src="src/materials.js?v=0.25"></script>
-  <script src="src/astro.js?v=0.25"></script>
-  <script src="src/surface.js?v=0.25-sunbright2"></script>
-  <script src="src/sky.js?v=0.25"></script>
-  <script src="src/renderer.js?v=0.25-zoom3"></script>
-  <script src="src/app.js?v=0.25-ui2"></script>
+  <script id="solar-assets" src="src/assets.js?v=0.26-textures2"></script>
+  <script src="src/sky-asset.js?v=0.26"></script>
+  <script src="src/materials.js?v=0.26"></script>
+  <script src="src/astro.js?v=0.26"></script>
+  <script src="src/surface.js?v=0.26-sunbright2"></script>
+  <script src="src/sky.js?v=0.26"></script>
+  <script src="src/renderer.js?v=0.26-zoom4"></script>
+  <script src="src/app.js?v=0.26-ui1"></script>
 </body>
 </html>

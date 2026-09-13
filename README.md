@@ -1,8 +1,16 @@
 # Solar Time
 
-**Life User • Solar Time v0.25 • Lyrikey@Naver.com**
+**Life User • Solar Time v0.26 • Lyrikey@Naver.com**
 
 실제 기기 시각으로 움직이는 감상용 태양계 시계입니다. 관측·항법용 정밀 천문력이 아닙니다.
+
+## v0.26 변경
+
+- 일반 화면에서 태양을 선택하지 않고 휠 또는 + 버튼으로 확대해도 64배 이후 태양 표면이 계속 커지도록 수정했습니다.
+- 화면 설정과 도움말에 저장한 투명도·밝기·블러 값을 고정하고 임시 조절 항목을 제거했습니다.
+- 도움말을 포함한 모달 X 닫기 버튼의 원형 테두리를 제거했습니다.
+- 시계 숫자는 기존 흰색 표시로 유지합니다.
+- 배포용 `dist`는 최신 단일 HTML만 유지합니다.
 
 ## v0.25 변경
 
@@ -36,7 +44,7 @@
 
 GitHub Pages는 루트 `index.html`을 사용합니다. 변경 ZIP을 기존 SolarTime 프로젝트 루트에 같은 경로로 덮어쓰고 GitHub에 올리면 됩니다. 웹 버전은 별도 빌드가 필요 없습니다.
 
-단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.25.html`을 사용합니다.
+단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.26.html`을 사용합니다.
 
 ## 조작
 
