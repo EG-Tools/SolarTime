@@ -412,7 +412,10 @@ function directPower(value){return Math.max(128,Math.min(4096,2**Math.round(Math
 class DirectRenderer{
   constructor(canvas){
     if(!canvas)throw Error('Direct GPU canvas is missing.');
-    this.canvas=canvas;this.gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false,antialias:true,preserveDrawingBuffer:false});
+    // GPU colors are blended into a transparent backing store as premultiplied
+    // values. Tell Chromium compositors the truth so thin orbit alpha is not
+    // multiplied a second time (notably visible in Microsoft Edge).
+    this.canvas=canvas;this.gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:true,preserveDrawingBuffer:false});
     if(!this.gl)throw Error('WebGL is required for the direct planet renderer.');
     this.disposed=false;this.paused=false;this.generation=0;this.textureToken=0;this.width=1;this.height=1;this.dpr=1;
     this.textures=new Map();this.frames=new Map();this.desired=new Map();this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
@@ -433,7 +436,7 @@ class DirectRenderer{
     this.lines=g.createBuffer();
     this.black=g.createTexture();g.bindTexture(g.TEXTURE_2D,this.black);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,1,1,0,g.RGBA,g.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
     g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
-    g.enable(g.BLEND);g.blendFunc(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA);g.disable(g.DEPTH_TEST);g.clearColor(0,0,0,0);
+    g.enable(g.BLEND);g.blendFuncSeparate(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA,g.ONE,g.ONE_MINUS_SRC_ALPHA);g.disable(g.DEPTH_TEST);g.clearColor(0,0,0,0);
   }
   resize(width,height,dpr=1){
     this.width=Math.max(1,width);this.height=Math.max(1,height);
@@ -445,7 +448,7 @@ class DirectRenderer{
   get inflight(){return this.pendingCount>0;}
   begin(){
     if(this.disposed||this.paused||this.contextLost)return false;
-    const g=this.gl;g.viewport(0,0,this.canvas.width,this.canvas.height);g.clear(g.COLOR_BUFFER_BIT);g.blendFunc(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA);
+    const g=this.gl;g.viewport(0,0,this.canvas.width,this.canvas.height);g.clear(g.COLOR_BUFFER_BIT);g.blendFuncSeparate(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA,g.ONE,g.ONE_MINUS_SRC_ALPHA);
     this.stats.frames++;this.stats.drawCalls=0;this.desired.clear();return true;
   }
   bind(program,buffer=this.quad,size=2){
@@ -527,6 +530,7 @@ class DirectRenderer{
     this.frames.set(job.id,{job,image:{width:Math.round(radius*2*this.dpr),height:Math.round(radius*2*this.dpr),gpu:true}});return true;
   }
   end(){for(const id of this.frames.keys())if(!this.desired.has(id))this.frames.delete(id);}
+  flush(){if(!this.disposed&&!this.contextLost)this.gl.flush();}
   get(id){return this.frames.get(id)?.image;}
   invalidate(){this.generation++;this.loadQueue=[];this.pendingCount=0;for(const record of this.textures.values())record.pending=false;}
   pause(){this.paused=true;}

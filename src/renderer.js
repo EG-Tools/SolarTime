@@ -1,4 +1,4 @@
-/* Solar Time v0.33 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.34 — dependency-free, depth-projected Canvas renderer.
    Credited photographic maps are embedded for Earth, Pluto, Uranus and Europa. */
 (function () {
   'use strict';
@@ -14,6 +14,7 @@
   // the vertical composition, lens and orbit angle come from the approved view.
   const DEFAULT_CAMERA=Object.freeze({azimuth:5.393597172693909,elevation:.620064911444322,zoom:1.1853048513203654,dolly:1,focus:null,panY:.033915866075961185,panX:0});
   const AUTO_ROTATE_SPEED=2*DEG; // radians per real second; independent of orbital time
+  const ORBIT_REVEAL=Object.freeze({duration:1400});
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
   const TRUE_RADIUS_KM=Object.freeze({sun:696340,mercury:2439.7,venus:6051.8,earth:6371,mars:3389.5,jupiter:69911,saturn:58232,uranus:25362,neptune:24622,pluto:1188.3,moon:1737.4,europa:1560.8});
   const TRUE_SCALE_SUN_SIZE=67.2;
@@ -45,6 +46,7 @@
       this.orbitCache=new WeakMap();this.frameCache=new Map();this.starSprites=new Map();
       this.stats={orbitProjections:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
       this.selected=null;this.hover=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
+      this.orbitRevealStart=performance.now();
       this.lastSurfaceSubmit=-Infinity;this.lastSurfaceSimMs=NaN;this.lastSurfaceMono=NaN;
       this.sky=new window.SolarSky(background);
       this.resize();
@@ -60,6 +62,14 @@
       this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
       this.gpu?.resize(this.w,this.h,this.dpr);
       this.sky.resize(this.w,this.h,this.dpr);this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate(false);this.clearLabels();
+    }
+    startOrbitReveal(mono=performance.now()) {
+      this.orbitRevealStart=Number.isFinite(mono)?mono:performance.now();
+    }
+    orbitRevealAlpha(mono=performance.now()) {
+      if(!Number.isFinite(this.orbitRevealStart)||(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches))return 1;
+      const p=clamp((mono-this.orbitRevealStart)/ORBIT_REVEAL.duration,0,1);
+      return p*p*(3-2*p);
     }
     starGlow(c,x,y,r,alpha) {
       if(!(r>0)||!(alpha>0))return;
@@ -376,6 +386,7 @@
         this.lastSurfaceSubmit=-Infinity;return;
       }
       this.options[key]=value;this.dirty=true;if(key==='quality')this.resize();
+      if(key==='orbits'&&value)this.startOrbitReveal();
       if((key==='labels'&&!value)||key==='avoidLabels')this.clearLabels();
       if(key==='moon'&&!value&&SATELLITES.some(body=>body.id===this.camera.focus))this.resetCamera();
       if(key==='pluto'&&!value&&this.camera.focus==='pluto')this.resetCamera();
@@ -608,7 +619,7 @@
       item={a,e,lens,projectionKey,source:path.points,xyz,minX,maxX,minY,maxY,scale:NaN,passes:null};cache.set(path,item);
       if(this.stats)this.stats.orbitProjections+=path.points.length;return item;
     }
-    orbit(c,path,highlight) {
+    orbit(c,path,highlight,reveal=1) {
       const item=this.projectOrbit(path),xyz=item.xyz,scale=this.scale;
       const rgb=path.body.id==='earth'?'110,174,212':path.body.id==='pluto'?'155,140,127':'138,151,168';
       c.lineWidth=highlight?1.25:.72;if(path.body.id==='pluto')c.setLineDash([2,5]);
@@ -628,7 +639,7 @@
         }
         if(this.stats)this.stats.orbitPaths+=2;
       }
-      c.save();c.translate(this.cx,this.cy);
+      c.save();c.globalAlpha*=reveal;c.translate(this.cx,this.cy);
       for(let pass=0;pass<2;pass++){
         c.strokeStyle=`rgba(${rgb},${highlight?.64:pass?.32:.17})`;
         if(cached)c.stroke(item.passes[pass]);
@@ -914,14 +925,15 @@
       for(const body of bodies){body.screen=this.project(body.world);if(perspectiveActive)body.r*=body.screen.perspective;}
       const direct=!!this.gpu&&this.gpu.begin();
       if(this.options.orbits) {
+        const reveal=this.orbitRevealAlpha(mono);
         if(direct){
           for(const path of this.paths){const item=this.projectOrbit(path),selected=this.selected===path.body.id;
-            this.gpu.orbit(item.xyz,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],selected?.64:.22);}
-        }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id);
+            this.gpu.orbit(item.xyz,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],(selected?.64:.22)*reveal);}
+        }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id,reveal);
         for(const satellite of satelliteLayouts) {
           const points=A.satelliteOrbit(satellite.body,ms,satellite.orbitRadius,90),parent=satellite.parent.world;
-          if(direct){const xyz=new Float32Array(points.length*3);for(let i=0;i<points.length;i++){const p=points[i],v=this.projectView({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});xyz[i*3]=v.x;xyz[i*3+1]=v.y;xyz[i*3+2]=v.behind?NaN:v.z;}this.gpu.orbit(xyz,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],.26);}
-          else if(!this.gpu){c.strokeStyle=satellite.body.id==='moon'?'rgba(115,155,189,.26)':'rgba(171,158,117,.26)';c.lineWidth=.65;c.beginPath();for(let i=0;i<points.length;i++){const p=points[i],s=this.project({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();}
+          if(direct){const xyz=new Float32Array(points.length*3);for(let i=0;i<points.length;i++){const p=points[i],v=this.projectView({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});xyz[i*3]=v.x;xyz[i*3+1]=v.y;xyz[i*3+2]=v.behind?NaN:v.z;}this.gpu.orbit(xyz,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],.26*reveal);}
+          else if(!this.gpu){c.save();c.globalAlpha*=reveal;c.strokeStyle=satellite.body.id==='moon'?'rgba(115,155,189,.26)':'rgba(171,158,117,.26)';c.lineWidth=.65;c.beginPath();for(let i=0;i<points.length;i++){const p=points[i],s=this.project({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();c.restore();}
         }
       }
       bodies.sort((a,b)=>a.screen.z-b.screen.z);

@@ -1,13 +1,17 @@
-/* v0.33: the website works as supplied. This optional build makes one offline HTML. */
+/* v0.34: the website works as supplied. This optional build makes one offline HTML. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function atomicWrite(file,text){const tmp=file+'.tmp';try{fs.writeFileSync(tmp,text,'utf8');fs.renameSync(tmp,file);}finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}}
 try{
  const pkg=JSON.parse(read('package.json')),version=pkg.version.split('.').slice(1).join('.');
- if(version!=='0.33')throw Error('This builder requires package version 0.0.33.');
+ if(version!=='0.34')throw Error('This builder requires package version 0.0.34.');
+ const release=JSON.parse(read('version.json'));
+ if(release.version!==version)throw Error('version.json must match package version '+version+'.');
+ const assetRevision=JSON.parse(read('assets/revision.json')).version;
  const names=['assets','sky-asset','materials','astro','surface','sky','renderer','app'];
  const tags=new Map();let html=read('index.html');
+ if(!html.includes('src/assets.js?v='+assetRevision)||!html.includes('src/sky-asset.js?v='+assetRevision))throw Error('Asset script URLs must match assets/revision.json.');
  for(const name of names){
   const matches=[...html.matchAll(new RegExp('<script\\b[^>]*\\bsrc="src/'+name+'\\.js(?:\\?[^"<>]*)?"[^>]*><\\/script>','g'))];
   if(matches.length!==1)throw Error('Expected one script entry for '+name);
@@ -28,6 +32,12 @@ try{
  }
  if(/<script\b[^>]*\bsrc\s*=/i.test(html))throw Error('Unbundled script remains');
  const out=path.join(root,'dist');fs.mkdirSync(out,{recursive:true});
- const file=path.join(out,'Solar-Time_v'+version+'.html');atomicWrite(file,html);
+ const fileName='Solar-Time_v'+version+'.html',file=path.join(out,fileName);
+ // A release replaces the preceding standalone build. Keep unrelated files and
+ // remove only older versioned Solar Time HTML bundles from this exact folder.
+ for(const entry of fs.readdirSync(out,{withFileTypes:true})){
+  if(entry.isFile()&&entry.name!==fileName&&/^Solar-Time_v\d+(?:\.\d+)*\.html$/i.test(entry.name))fs.unlinkSync(path.join(out,entry.name));
+ }
+ atomicWrite(file,html);
  console.log('Built '+file+' ('+Buffer.byteLength(html)+' bytes)');
 }catch(error){console.error('Build failed: '+error.message);process.exitCode=1;}

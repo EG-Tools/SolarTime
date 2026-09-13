@@ -1,4 +1,4 @@
-/* Solar Time v0.33 — clock, interaction and accessible UI. */
+/* Solar Time v0.34 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -143,8 +143,31 @@
   });
   const PHASE_COPY={en:{'삭 부근':'near new moon','초승달':'waxing crescent','상현달':'first quarter','차오르는 달':'waxing gibbous','보름달 부근':'near full moon','기우는 달':'waning gibbous','하현달':'last quarter','그믐달':'waning crescent'},chn:{'삭 부근':'接近新月','초승달':'娥眉月','상현달':'上弦月','차오르는 달':'盈凸月','보름달 부근':'接近满月','기우는 달':'亏凸月','하현달':'下弦月','그믐달':'残月'},jpn:{'삭 부근':'新月付近','초승달':'三日月','상현달':'上弦の月','차오르는 달':'満ちていく月','보름달 부근':'満月付近','기우는 달':'欠けていく月','하현달':'下弦の月','그믐달':'有明月'}};
   const interpolate=(text,values={})=>String(text).replace(/\{(\w+)\}/g,(_,key)=>values[key]??'');
+  // The scene is an application surface, not a document: suppress the browser
+  // context menu and accidental drag-selection without changing button controls.
+  document.addEventListener('contextmenu',event=>event.preventDefault());
+  document.addEventListener('selectstart',event=>event.preventDefault());
+  const UI_FADE_MS=1000,uiFadeTimers=new WeakMap();
+  const uiFadeDuration=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches?0:UI_FADE_MS;
+  const uiElementShown=element=>element.tagName==='DIALOG'?element.open:!element.hidden;
+  const uiElementVisible=element=>uiElementShown(element)&&!element.classList.contains('ui-fade-closing');
+  function showFading(element,show){
+    const timer=uiFadeTimers.get(element);if(timer)clearTimeout(timer);uiFadeTimers.delete(element);
+    const alreadyShown=uiElementShown(element);if(!alreadyShown){if(show)show();else element.hidden=false;}
+    element.classList.add('ui-fade');element.classList.remove('ui-fade-closing');
+    if(alreadyShown||!uiFadeDuration()){element.classList.add('ui-fade-visible');return;}
+    element.classList.remove('ui-fade-visible');void element.offsetWidth;
+    requestAnimationFrame(()=>{if(uiElementShown(element)&&!element.classList.contains('ui-fade-closing'))element.classList.add('ui-fade-visible');});
+  }
+  function hideFading(element,hide){
+    const timer=uiFadeTimers.get(element);if(timer)clearTimeout(timer);uiFadeTimers.delete(element);
+    if(!uiElementShown(element))return;
+    element.classList.add('ui-fade','ui-fade-closing');element.classList.remove('ui-fade-visible');
+    const finish=()=>{uiFadeTimers.delete(element);if(!element.classList.contains('ui-fade-closing'))return;if(hide)hide();else element.hidden=true;element.classList.remove('ui-fade','ui-fade-closing','ui-fade-visible');};
+    const duration=uiFadeDuration();if(!duration)finish();else uiFadeTimers.set(element,setTimeout(finish,duration));
+  }
   let toastTimer,awakeTimer;
-  function toast(message) { clearTimeout(toastTimer);$('toast').textContent=message;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,3400); }
+  function toast(message) { clearTimeout(toastTimer);$('toast').textContent=message;showFading($('toast'));toastTimer=setTimeout(()=>hideFading($('toast')),3400); }
   function fatal(error) { $('loading').hidden=true;$('fatal-error').hidden=false;$('fatal-message').textContent=error instanceof Error?error.message:String(error);console.error(error); }
   async function init() {
     try {
@@ -295,7 +318,7 @@
       }
       function closePresetDialog(restoreFocus=true) {
         const action=presetAction;presetAction=null;
-        if(presetDialog.open)presetDialog.close();
+        if(presetDialog.open)hideFading(presetDialog,()=>presetDialog.close());
         if(restoreFocus&&action)$('camera-preset-'+(action.index+1)).focus({preventScroll:true});
         if(action&&zen)wakePointer();
       }
@@ -306,7 +329,7 @@
         $('preset-title').textContent=t('presetTitle',{n:index+1});
         $('preset-note').textContent=t(value?'presetSavedNote':'presetEmptyNote');
         $('preset-apply').disabled=!value;$('preset-delete').disabled=!value;
-        presetDialog.showModal();
+        showFading(presetDialog,()=>presetDialog.showModal());
         const button=$('camera-preset-'+(index+1)).getBoundingClientRect();
         const keyboard=!event.clientX&&!event.clientY;
         const x=keyboard?button.left:event.clientX,y=keyboard?button.bottom:event.clientY;
@@ -423,11 +446,11 @@
         $('stat-gravity-ratio').textContent=t('earthGravityRatio',{value:gravityRatio.toFixed(gravityRatio>=10?1:2)});
       }
       function anchorBodyPanel(){const panel=$('body-panel');panel.style.removeProperty('top');panel.style.removeProperty('bottom');panel.style.removeProperty('--body-panel-top');const top=Math.max(8,panel.getBoundingClientRect().top);panel.style.top=top+'px';panel.style.bottom='auto';panel.style.setProperty('--body-panel-top',top+'px');}
-      function closeBody() {renderer.selected=null;$('body-panel').hidden=true;for(const button of navButtons.values()){button.classList.remove('active');button.setAttribute('aria-pressed','false');}}
+      function closeBody() {renderer.selected=null;hideFading($('body-panel'));for(const button of navButtons.values()){button.classList.remove('active');button.setAttribute('aria-pressed','false');}}
       function selectBody(id) {
         if(id===renderer.selected||!id){closeBody();return;}
         const b=bodies.find(v=>v.id===id);if(!b)return;
-        renderer.selected=id;$('body-panel').hidden=false;$('settings-panel').hidden=true;$('settings-button').setAttribute('aria-expanded','false');
+        renderer.selected=id;showFading($('body-panel'));settings(false);$('settings-button').setAttribute('aria-expanded','false');
         $('body-category').textContent=id==='sun'?'THE HEART OF OUR SYSTEM':id==='earth'?'OUR PALE BLUE HOME':id==='moon'?'EARTH’S COMPANION':id==='europa'?'JUPITER’S ICY MOON':id==='pluto'?'A DISTANT DWARF PLANET':'A WORLD IN MOTION';
         const copy=bodyCopy(b);$('body-name').textContent=copy.name;$('body-english').textContent=b.en;$('body-description').textContent=copy.description;
         for(const [key,button] of navButtons){button.classList.toggle('active',key===id);button.setAttribute('aria-pressed',String(key===id));}
@@ -485,7 +508,7 @@
       function pause() {renderer.invalidateSurfaces();clock.toggle(performance.now());uiNow();}
       $('pause-button').addEventListener('click',pause);
       $('timezone-button').addEventListener('click',()=>{timezone=timezone==='local'?'utc':'local';refreshTimeFormats();lastWallKey='';uiNow();persist();});
-      function settings(open) {const next=open===undefined?$('settings-panel').hidden:open;$('settings-panel').hidden=!next;$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
+      function settings(open) {const panel=$('settings-panel'),next=open===undefined?!uiElementVisible(panel):open;if(next)showFading(panel);else hideFading(panel);$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
       for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if(key==='actualScale'){syncOrbitSpacingControl();if(renderer.selected)syncBodySizeControl();}if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
       $('overview-orbit-gap').addEventListener('input',()=>{renderer.setOption('overviewOrbitGap',$('overview-orbit-gap').value);syncOrbitSpacingControl();});
@@ -494,7 +517,7 @@
       $('hour-cycle').addEventListener('change',()=>{hourCycle=$('hour-cycle').checked?'24':'12';lastWallKey='';uiNow();persist();});
       $('clock-font').addEventListener('change',()=>{const next=$('clock-font').value;if(!CLOCK_FONTS[next])return;clockFont=next;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);persist();});
       const resetDefaultsDialog=$('reset-defaults-dialog');
-      function closeResetDefaults(restoreFocus=true){if(resetDefaultsDialog.open)resetDefaultsDialog.close();if(restoreFocus)$('reset-defaults').focus({preventScroll:true});}
+      function closeResetDefaults(restoreFocus=true){if(resetDefaultsDialog.open)hideFading(resetDefaultsDialog,()=>resetDefaultsDialog.close());if(restoreFocus)$('reset-defaults').focus({preventScroll:true});}
       function applyFactoryDefaults(){
         const mono=performance.now();closeResetDefaults(false);renderer.cancelCameraMotion(mono);renderer.stopAutoRotate(mono);
         for(const [key,value] of Object.entries(FACTORY_OPTIONS))renderer.setOption(key,value,false);
@@ -506,7 +529,7 @@
         $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
         translateStatic();refreshTimeFormats();refreshNavLabels();syncOrbitSpacingControl();syncSpeedUi();cameraUi();navVisibility();closeBody();lastWallKey='';uiNow();persist();toast(t('resetComplete'));
       }
-      $('reset-defaults').addEventListener('click',()=>{if(!resetDefaultsDialog.open)resetDefaultsDialog.showModal();$('reset-defaults-no').focus({preventScroll:true});});
+      $('reset-defaults').addEventListener('click',()=>{showFading(resetDefaultsDialog,()=>resetDefaultsDialog.showModal());$('reset-defaults-no').focus({preventScroll:true});});
       $('reset-defaults-no').addEventListener('click',()=>closeResetDefaults());$('reset-defaults-yes').addEventListener('click',applyFactoryDefaults);
       resetDefaultsDialog.addEventListener('cancel',event=>{event.preventDefault();closeResetDefaults();});
       resetDefaultsDialog.addEventListener('click',event=>{if(event.target===resetDefaultsDialog)closeResetDefaults();});
@@ -580,13 +603,16 @@
         if(document.fullscreenElement){exitFullscreen();return;}
         if(resetDefaultsDialog.open){closeResetDefaults();return;}
         if(presetDialog.open){closePresetDialog();return;}
-        if($('help-dialog').open){$('help-dialog').close();return;}
+        if($('help-dialog').open){help(false);return;}
         settings(false);closeBody();
       }
       // A single idle owner controls the cursor, complete toolbar and hit/tab targets.
       const viewControls=$('view-controls'),idleDelay=1800;
       function showAwake(value) {
         const awake=zen&&value&&!disposed&&!document.hidden;
+        // Prepare the lens number before the toolbar becomes visible; otherwise
+        // the output can miss the first compositor paint of the fade-in.
+        if(awake)cameraUi();
         document.body.classList.toggle('pointer-awake',awake);
         // Move keyboard focus out before hiding/inerting the action group. The
         // programmatic canvas focus below must not wake it again (see focusin).
@@ -610,7 +636,7 @@
         // One timezone element is shared by both modes, so SEOUL/UTC never swaps or disappears.
         for(const el of document.querySelectorAll('.ui,#timezone-button'))el.inert=zen;
         renderer.hover=null;
-        if(zen){closeBody();settings(false);clearTimeout(toastTimer);$('toast').hidden=true;$('universe').focus({preventScroll:true});wakePointer();}
+        if(zen){closeBody();settings(false);clearTimeout(toastTimer);hideFading($('toast'));$('universe').focus({preventScroll:true});wakePointer();}
         else {$('zen-toggle').focus({preventScroll:true});viewControls.inert=false;viewControls.setAttribute('aria-hidden','false');}
       }
       $('zen-toggle').addEventListener('click',()=>setZen(!zen));
@@ -623,14 +649,15 @@
         helpDialog.classList.toggle('can-scroll-down',remaining>3);
       }
       function help(open){
-        const next=open===undefined?!helpDialog.open:open;
+        const next=open===undefined?!uiElementVisible(helpDialog):open;
         if(next&&!helpDialog.open){
-          helpDialog.show();helpScroll.scrollTop=0;updateHelpScrollCues();requestAnimationFrame(updateHelpScrollCues);
+          showFading(helpDialog,()=>helpDialog.show());helpScroll.scrollTop=0;updateHelpScrollCues();requestAnimationFrame(updateHelpScrollCues);
           $('help-button').focus({preventScroll:true});
-        }else if(!next&&helpDialog.open)helpDialog.close();
+        }else if(next)showFading(helpDialog);else if(helpDialog.open)hideFading(helpDialog,()=>helpDialog.close());
         $('help-button').setAttribute('aria-expanded',String(next));
       }
       $('help-button').addEventListener('click',()=>help());
+      helpDialog.querySelector('form').addEventListener('submit',event=>{event.preventDefault();help(false);});
       helpScroll.addEventListener('scroll',updateHelpScrollCues,{passive:true});
       window.addEventListener('resize',()=>{if(helpDialog.open)updateHelpScrollCues();},{passive:true});
       helpDialog.addEventListener('close',()=>$('help-button').setAttribute('aria-expanded','false'));
@@ -721,7 +748,7 @@
         if(key==='f'||key==='h'||key==='0'){
           event.preventDefault();event.stopPropagation();
           if(key==='f')fullscreen();else if(key==='h'){
-            if($('help-dialog').open)$('help-dialog').close();
+            if($('help-dialog').open)help(false);
             setZen(!zen);
           }else reset();return;
         }
@@ -756,13 +783,36 @@
         },2200);
       }
       // Optional public planet maps refresh quietly after the first interactive window.
-      let resizeFrame=0;
+      let resizeFrame=0,viewportRevision=0;
+      const viewportLayers=[$('planet-layer'),$('universe')];
+      function holdViewportLayers(){for(const layer of viewportLayers)layer.classList.add('viewport-resizing');}
+      function revealViewportLayers(){for(const layer of viewportLayers)layer.classList.remove('viewport-resizing');}
+      function prepareViewportFrame(mono){
+        // Resize, fully redraw and submit the GPU layer while both foreground
+        // canvases are hidden. This prevents an old-size ring/orbit buffer from
+        // becoming visible for one frame during browser-level F11 transitions.
+        renderer.resize();renderer.draw(clock.value(mono,Date.now()),effectTime,mono);renderer.gpu?.flush?.();cameraUi();
+      }
+      function scheduleViewportSettle(){
+        if(resizeFrame)return;
+        let paintedRevision=-1,stablePaints=0;
+        const paint=mono=>{
+          resizeFrame=0;if(disposed)return;
+          const revision=viewportRevision;prepareViewportFrame(mono);
+          if(revision===paintedRevision)stablePaints++;else {paintedRevision=revision;stablePaints=1;}
+          if(stablePaints<2||revision!==viewportRevision){resizeFrame=requestAnimationFrame(paint);return;}
+          // Wait one compositor frame after two complete same-size renders. Any
+          // late F11 resize restarts settling instead of revealing stale buffers.
+          resizeFrame=requestAnimationFrame(()=>{
+            resizeFrame=0;if(disposed)return;
+            if(paintedRevision!==viewportRevision){scheduleViewportSettle();return;}
+            revealViewportLayers();
+          });
+        };
+        resizeFrame=requestAnimationFrame(paint);
+      }
       function refreshViewport(){
-        // Fullscreen geometry can settle just after its event. Resize immediately,
-        // then verify once on the next paint instead of leaving old orbits visible
-        // behind a 70 ms debounce.
-        renderer.resize();
-        if(!resizeFrame)resizeFrame=requestAnimationFrame(()=>{resizeFrame=0;renderer.resize();});
+        holdViewportLayers();viewportRevision++;renderer.resize();cameraUi();scheduleViewportSettle();
       }
       window.addEventListener('resize',refreshViewport,{passive:true});
       function frame(mono) {
@@ -777,6 +827,9 @@
         try {
           const wasTransitioning=!!renderer.cameraTween;
           renderer.draw(ms,effectTime,mono);
+          // Keep the lens readout on the same painted camera frame. The broader
+          // clock/card refresh remains throttled, but zoom must not trail presets.
+          if(wasTransitioning||renderer.cameraTween)cameraUi();
           if(wasTransitioning&&!renderer.cameraTween)persist();
           if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);}
         } catch(error){disposed=true;renderer.dispose();materials.dispose();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
@@ -788,11 +841,11 @@
       window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.33',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.34',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();
-      if(!disposed){renderer.draw(clock.value(performance.now()),0,performance.now());$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);scheduleMaterialRefresh();}
+      if(!disposed){const revealMono=performance.now();renderer.startOrbitReveal(revealMono);renderer.draw(clock.value(revealMono),0,revealMono);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);scheduleMaterialRefresh();}
       if(!document.hidden&&!disposed)raf=requestAnimationFrame(frame);
     } catch(error){fatal(error);}
   }
