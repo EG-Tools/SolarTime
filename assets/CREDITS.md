@@ -1,12 +1,18 @@
 # Solar Time v0.25 — image sources and licenses
 
+The exact built-in ImageGen prompts used for the v0.25 Sun and Pluto reconstructions are recorded in `assets/IMAGEGEN_PROMPTS.md`.
+
 ## Already embedded in this package
 
 **Earth:** NASA Blue Marble Next Generation. Visualization by Reto Stöckli and Robert Simmon / NASA Earth Observatory. Converted from the Basemap-distributed `bmng.jpg` and resampled to 4096×2048 WebP in v0.06. Earth bytes are unchanged in v0.07. This is not live weather.
 
 https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation-5935/
 
-**Pluto:** NASA/JHUAPL/SwRI, New Horizons Ralph/MVIC global color mosaic. The 5926×2963 source was resized to 4096×2048 WebP. The source's unobserved black southern wedge is filled only for continuous spherical display: nearby measured color is softened into the cap and low-contrast detail comes from Solar Time's pre-existing continuous procedural relief so photographed features are not stretched toward the pole. The reconstructed cap must not be treated as measured southern terrain. The old relief layer is not packed as a separate bump map with this photograph.
+**Sun:** NASA/GSFC/Solar Dynamics Observatory, SDO/AIA 171 Å full-disk image captured 2025-09-10 was used as the visual reference. Solar Time's 4096×2048 WebP is an OpenAI ImageGen artistic re-creation of the reference's golden plasma filaments and active-region vocabulary, generated as a complete seamless spherical texture rather than stretching the photographed disk. The antimeridian and pole texels were then converged for spherical display. The off-limb corona and image caption are excluded because Solar Time renders its own separate corona effect. This generated surface is not a current or instantaneous full-Sun scientific map.
+
+https://science.nasa.gov/photojournal/image-of-sun-from-nasas-solar-dynamics-observatory/
+
+**Pluto:** NASA/JHUAPL/SwRI, New Horizons Ralph/MVIC global color mosaic was used as the visual reference. Solar Time's 4096×2048 WebP is an AI-assisted artistic re-creation made with OpenAI ImageGen: the observed broad color and landmark identity guided the generated full-globe albedo map, while the poorly observed southern hemisphere was newly synthesized rather than mirrored or stretched. The antimeridian and pole texels were then converged for spherical display. The generated map, especially the southern terrain, must not be treated as measured scientific data. The old relief layer is not packed as a separate bump map with this texture.
 
 https://science.nasa.gov/resource/pluto-global-color-map/
 

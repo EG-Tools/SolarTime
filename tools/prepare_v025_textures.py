@@ -26,6 +26,17 @@ def finish_equirectangular(image: Image.Image, size: tuple[int, int]) -> Image.I
     """Use the same longitude and pole convention as existing spherical maps."""
     image = image.resize(size, Image.Resampling.LANCZOS)
     pixels = np.asarray(image, dtype=np.float32).copy()
+    # Blend a narrow wrapped band at the antimeridian. Matching only the two
+    # endpoint columns can still leave a visible vertical change in an AI map.
+    seam_band = max(2, min(64, round(size[0] * 0.015)))
+    for i in range(seam_band):
+        t = i / max(1, seam_band - 1)
+        weight = (1 - t) ** 2 * (1 + 2 * t)
+        left = pixels[:, i].copy()
+        right = pixels[:, -1 - i].copy()
+        shared = (left + right) * 0.5
+        pixels[:, i] = left * (1 - weight) + shared * weight
+        pixels[:, -1 - i] = right * (1 - weight) + shared * weight
     # Every longitude meets at a pole. Converging only the last few texel rows
     # prevents a fan-shaped pinch without moving mid-latitude landmarks.
     pole_rows = max(2, min(24, size[1] // 64))
@@ -41,6 +52,13 @@ def finish_equirectangular(image: Image.Image, size: tuple[int, int]) -> Image.I
     pixels[:, 0] = edge
     pixels[:, -1] = edge
     return Image.fromarray(np.uint8(np.clip(pixels, 0, 255)))
+
+
+def prepare_pluto_ai(source: Path, target: Path) -> None:
+    """Finish an ImageGen-completed artistic Pluto albedo map for the sphere."""
+    source_image = Image.open(source).convert("RGB")
+    require_equirectangular(source_image, "AI Pluto")
+    save_webp(finish_equirectangular(source_image, (4096, 2048)), target)
 
 
 def prepare_pluto(source: Path, target: Path) -> None:
@@ -132,6 +150,44 @@ def bilinear(source: np.ndarray, x: np.ndarray, y: np.ndarray) -> np.ndarray:
             + (source[y1, x0] * (1 - wx) + source[y1, x1] * wx) * wy)
 
 
+def prepare_sun(source: Path, target: Path) -> None:
+    """Wrap the detailed inner disk of an SDO/AIA image around the Sun sphere."""
+    original = Image.open(source).convert("RGB")
+    if original.width != original.height:
+        raise ValueError(
+            f"Sun source must be a square full-disk image, got "
+            f"{original.width}x{original.height}"
+        )
+    source_pixels = np.asarray(original, dtype=np.float32)
+    out_width, out_height = 4096, 2048
+    longitude = np.linspace(-np.pi, np.pi, out_width, endpoint=False)[None, :]
+    latitude = np.linspace(np.pi / 2, -np.pi / 2, out_height)[:, None]
+    # The SDO frame includes an off-limb corona and caption. Sample only the
+    # detailed inner disk; sin(longitude) repeats the observed hemisphere on
+    # the unseen side while meeting continuously at the antimeridian.
+    cx, cy = original.width * 0.5, original.height * 0.495
+    radius = min(original.size) * 0.37
+    sample_x = cx + radius * np.cos(latitude) * np.sin(longitude)
+    sample_y = cy - radius * np.sin(latitude) + np.zeros_like(longitude)
+    sampled = bilinear(source_pixels, sample_x, sample_y)
+    # AIA 171 Å is false-colour scientific imagery. Lift its exposure for the
+    # small UI sphere but keep the observed filament and active-region detail.
+    luminance = sampled[..., 0] * 0.55 + sampled[..., 1] * 0.40 + sampled[..., 2] * 0.05
+    lo, hi = np.percentile(luminance, (2, 99.5))
+    detail = np.clip((luminance - lo) / max(1, hi - lo), 0, 1) ** 0.72
+    dark = np.array([126, 55, 4], dtype=np.float32)
+    light = np.array([255, 205, 61], dtype=np.float32)
+    rgb = dark + detail[..., None] * (light - dark)
+    save_webp(finish_equirectangular(Image.fromarray(np.uint8(rgb)), (4096, 2048)), target)
+
+
+def prepare_sun_ai(source: Path, target: Path) -> None:
+    """Finish an ImageGen-recreated SDO-inspired Sun map for the sphere."""
+    source_image = Image.open(source).convert("RGB")
+    require_equirectangular(source_image, "AI Sun")
+    save_webp(finish_equirectangular(source_image, (4096, 2048)), target)
+
+
 def prepare_uranus(source: Path, target: Path) -> None:
     original = Image.open(source).convert("RGB")
     array = np.asarray(original, dtype=np.float32)
@@ -159,11 +215,21 @@ def prepare_uranus(source: Path, target: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pluto", type=Path, required=True)
+    parser.add_argument("--pluto-ai", type=Path)
+    parser.add_argument("--sun", type=Path)
+    parser.add_argument("--sun-ai", type=Path)
     parser.add_argument("--uranus", type=Path, required=True)
     parser.add_argument("--europa", type=Path, required=True)
     parser.add_argument("--assets", type=Path, required=True)
     args = parser.parse_args()
-    prepare_pluto(args.pluto, args.assets / "pluto.webp")
+    if args.pluto_ai:
+        prepare_pluto_ai(args.pluto_ai, args.assets / "pluto.webp")
+    else:
+        prepare_pluto(args.pluto, args.assets / "pluto.webp")
+    if args.sun_ai:
+        prepare_sun_ai(args.sun_ai, args.assets / "sun.webp")
+    elif args.sun:
+        prepare_sun(args.sun, args.assets / "sun.webp")
     prepare_uranus(args.uranus, args.assets / "uranus.webp")
     prepare_europa(args.europa, args.assets / "europa.webp")
 

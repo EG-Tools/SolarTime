@@ -1,10 +1,18 @@
 {
+  "sun": {
+    "revision": "embedded-ai-assisted-sdo-v025b",
+    "url": "https://science.nasa.gov/photojournal/image-of-sun-from-nasas-solar-dynamics-observatory/",
+    "width": 4096,
+    "height": 2048,
+    "credit": "NASA/GSFC/SDO reference · OpenAI ImageGen artistic reconstruction",
+    "feature": null
+  },
   "pluto": {
-    "revision": "embedded-nasa-v025",
+    "revision": "embedded-ai-assisted-v025b",
     "url": "https://science.nasa.gov/resource/pluto-global-color-map/",
     "width": 4096,
     "height": 2048,
-    "credit": "NASA/JHUAPL/SwRI · New Horizons Ralph/MVIC",
+    "credit": "NASA/JHUAPL/SwRI reference · OpenAI ImageGen artistic reconstruction",
     "feature": null
   },
   "uranus": {

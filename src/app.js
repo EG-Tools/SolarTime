@@ -369,8 +369,16 @@
       }
       $('zen-toggle').addEventListener('click',()=>setZen(!zen));
       for(const event of ['pointermove','pointerdown','pointerup','pointercancel','wheel','keydown','focusin'])document.addEventListener(event,wakePointer,{passive:true});
-      $('help-button').addEventListener('click',()=>{$('help-dialog').showModal();});
       const helpDialog=$('help-dialog');
+      const helpScroll=$('help-scroll');
+      function updateHelpScrollCues(){
+        const remaining=helpScroll.scrollHeight-helpScroll.clientHeight-helpScroll.scrollTop;
+        helpDialog.classList.toggle('can-scroll-up',helpScroll.scrollTop>3);
+        helpDialog.classList.toggle('can-scroll-down',remaining>3);
+      }
+      $('help-button').addEventListener('click',()=>{helpDialog.showModal();helpScroll.scrollTop=0;updateHelpScrollCues();requestAnimationFrame(updateHelpScrollCues);});
+      helpScroll.addEventListener('scroll',updateHelpScrollCues,{passive:true});
+      window.addEventListener('resize',()=>{if(helpDialog.open)updateHelpScrollCues();},{passive:true});
       helpDialog.addEventListener('click',event=>{if(event.target!==helpDialog)return;const r=helpDialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)helpDialog.close();});
       helpDialog.addEventListener('cancel',event=>{event.preventDefault();handleEscape();});
       const canvas=$('universe'),pointers=new Map();
