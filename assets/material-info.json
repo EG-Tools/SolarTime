@@ -74,11 +74,11 @@
     "feature": null
   },
   "europa": {
-    "revision": "embedded-nasa-v025",
+    "revision": "artistic-imagegen-v036",
     "url": "https://science.nasa.gov/3d-resources/jupiter-europa/",
-    "width": 2048,
-    "height": 1024,
-    "credit": "USGS / NASA-JPL-Caltech · Voyager mosaic",
+    "width": 4096,
+    "height": 2048,
+    "credit": "NASA/JPL/USGS reference · OpenAI ImageGen reconstruction",
     "feature": null
   },
   "moon": {

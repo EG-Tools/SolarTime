@@ -1,4 +1,4 @@
-/* Solar Time v0.35 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.36 — dependency-free, depth-projected Canvas renderer.
    Credited spherical maps are packaged in resolution tiers for every body. */
 (function () {
   'use strict';

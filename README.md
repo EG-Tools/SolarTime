@@ -1,8 +1,14 @@
 # Solar Time
 
-**Life User • Solar Time v0.35 • Lyrikey@Naver.com**
+**Life User • Solar Time v0.36 • Lyrikey@Naver.com**
 
 실제 기기 시각으로 움직이는 감상용 태양계 시계입니다. 관측·항법용 정밀 천문력이 아닙니다.
+
+## v0.36 변경
+
+- 유로파의 혼합 해상도 지도를 전 영역이 균일한 4096×2048 ImageGen 얼음 표면으로 재창조하고, 구면 이음선과 극점을 별도로 마감했습니다.
+- 달과 수성의 고해상도 사진 위에 중복되던 합성 요철을 제거해 분화구 음영이 과장되지 않게 했습니다.
+- 도움말에 CSS 커피잔과 두 줄 후원 문구를 추가하고 원화·달러 후원 링크 및 하단 크레딧을 가운데 정렬했습니다.
 
 ## v0.35 변경
 
@@ -91,7 +97,7 @@
 
 로컬 개발 화면과 GitHub Pages의 온라인 화면은 루트 `index.html`을 사용합니다. 공개 주소는 `https://solartime.app/`이며, 기존 `https://eg-tools.github.io/SolarTime/` 주소도 GitHub Pages 원본으로 유지됩니다. HTML·CSS·JavaScript는 GitHub Pages가 전송하고, 음악과 해상도별 재질은 Cloudflare가 전송합니다.
 
-단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.35.html`을 사용합니다.
+단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.36.html`을 사용합니다.
 
 ## 배포와 대용량 미디어
 

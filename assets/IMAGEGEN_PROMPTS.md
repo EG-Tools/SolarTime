@@ -1,6 +1,6 @@
-# Solar Time v0.3 ImageGen prompts
+# Solar Time v0.36 ImageGen prompts
 
-The final `assets/pluto.webp`, `assets/sun.webp`, and `assets/uranus.webp` maps were created with the built-in OpenAI ImageGen tool. `tools/prepare_v025_textures.py` closes the left/right seam, stabilizes pole rows, and normalizes them to the documented 2:1 WebP sizes.
+The final `assets/pluto.webp`, `assets/sun.webp`, `assets/uranus.webp`, and `assets/europa.webp` maps were created with the built-in OpenAI ImageGen tool. The project finishing tools close the left/right seam, stabilize pole rows, and normalize them to the documented 2:1 WebP sizes.
 
 ## Pluto
 
@@ -27,4 +27,18 @@ Use case: scientific-educational visual material. Asset type: production albedo/
 
 ```text
 Create a brand-new scientific-inspired WebGL asset using the attached NASA Uranus observation only as visual mood and color reference, not as a literal crop or reconstruction. Output a seamless 2:1 equirectangular diffuse/albedo texture map covering the full 360-degree atmosphere of Uranus. The entire canvas must be the flat map: no spherical planet disk, no rings, no black space, no stars, no text, no labels, no watermark, no vignette, no limb darkening, no cast shadow, and no specular highlight. Use smooth cyan, turquoise, and blue-green cloud layers like the reference, with very subtle low-contrast latitudinal atmospheric banding, a restrained pale cyan band, fine soft cloud haze, and a few faint elongated white-cyan cloud traces. Uranus should remain calm and mostly featureless, not stormy like Neptune or Jupiter. Use even neutral illumination, texture detail that wraps naturally around a sphere, pole-safe distortion, and make the left and right edges visually seamless. High-resolution production texture, wide 2:1 composition, clean continuous surface with no seams.
+```
+
+## Europa
+
+```text
+Use case: scientific-educational
+Asset type: production-ready spherical surface texture for Jupiter's moon Europa in the Solar Time WebGL application
+Input images: Image 1 is a visual reference for Europa's pale cream ice, reddish-brown lineae, branching fractures, and mottled chaos terrain; use it as identity and palette guidance, not as a layout that must be preserved pixel-for-pixel.
+Primary request: recreate Europa as a new, uniformly high-detail full-globe 2:1 equirectangular texture. Every longitude and latitude must have equally crisp, coherent fine ice grain, thin intersecting reddish-brown fractures, subtle ridges, and occasional restrained chaos-terrain patches. Eliminate the reference's blurry, stretched, low-resolution central zones and any visible difference in detail density.
+Composition/framing: exact flat longitude-latitude world map covering the full rectangular canvas edge to edge; intended to wrap once around a sphere. Left and right edges must join seamlessly, and polar regions must converge cleanly without radial pinching artifacts.
+Lighting/mood: neutral diffuse albedo only, evenly lit everywhere; no directional light, terminator, shadow, glow, atmosphere, specular highlight, vignette, or three-dimensional sphere shading.
+Color palette: natural Europa ivory, pale warm beige ice, restrained ochre and rusty brown fracture lines; avoid yellow saturation and black cracks.
+Materials/textures: crisp but natural fine-scale ice texture, layered lineae of varying width, subtle mottling, consistent sharpness across the entire map.
+Constraints: one continuous seamless 2:1 equirectangular surface; no circular planet, no background, no horizon, no labels, no text, no grid, no borders, no stars, no watermark. Do not leave empty or smooth blurry areas. No obvious repeated tile, mirrored continent, seam, or single giant focal feature.
 ```

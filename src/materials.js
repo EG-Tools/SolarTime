@@ -1,4 +1,4 @@
-/* Solar Time v0.35: packaged, resolution-tiered materials.
+/* Solar Time v0.36: packaged, resolution-tiered materials.
  * Browsers no longer download public 8K photographs, resize them or store
  * Base64 copies in IndexedDB. The release manifest is the single authority. */
 (function(root){'use strict';
