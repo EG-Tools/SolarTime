@@ -1,4 +1,4 @@
-/* Solar Time v0.34 — clock, interaction and accessible UI. */
+/* Solar Time v0.35 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -70,7 +70,7 @@
       playbackControls:'공전 재생 조절',realTime:'실제 시간',orbitSpeed:'공전 속도',speedSlider:'1초당 진행하는 시간',sources:'출처',bodySelect:'천체 선택',scaleNoteLineOne:'크기·거리 축척 조정 · 평균 궤도 근사',scaleNoteLineTwo:'자전·공전 시간 연동',
       apply:'이동',save:'저장',delete:'삭제',cancel:'취소',helpClose:'도움말 닫기',helpTitle:'사용 방법과 계산 기준',basicControls:'기본 조작',supportLink:'Solar Time 후원하기',supportNote:'후원금은 서버 운영비와 Solar Time의 지속적인 개발 비용으로 사용됩니다.',
       basicHelp:'좌클릭 드래그는 위아래 제한 없이 시점을 한 바퀴 계속 회전합니다. 가운데 버튼 드래그는 화면을 상하좌우 ±80% 이동합니다. 우측 맨 위 버튼에서 휠을 평면적인 줌 또는 원근감이 생기는 실제 카메라 이동으로 전환할 수 있습니다. 천체를 더블클릭하거나 «가까이 보기»를 누르면 추적합니다. 0은 기본 시점, 1·2·3은 줌/이동 방식까지 함께 저장하는 시점입니다.',
-      releaseHelp:'승인된 화면 구도와 모든 표시 옵션을 초기 설정으로 확정하고, 초기화할 때 카메라 1·2·3 저장값은 유지하도록 했습니다. 토성과 천왕성의 고리는 거리에 따라 세부 띠를 부드럽게 합쳐 모아레를 줄입니다.',
+      releaseHelp:'지구를 제외한 천체 재질을 다시 점검하고 수성·금성·화성·목성·토성·해왕성·달을 고해상도 구면 원본으로 교체했습니다. 화면에서 크게 보이거나 선택·추적한 천체는 실제 화면 크기에 맞춰 2K·4K 재질을 사용합니다.',
       timeAndCalculation:'시간과 계산',timeHelp:'상단 시계는 선택한 언어·지역에 맞춰 현지 실제 시간을 표시합니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.',
       orbitHelp:'행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.',
       pause:'일시정지',fullscreen:'전체 화면',zenMode:'감상 모드',savedViews:'저장 시점',stepExit:'단계별 종료',loading:'작은 우주를 펼치는 중',fatalTitle:'화면을 시작하지 못했습니다.',fatalRetry:'최신 Edge 또는 Chrome에서 다시 열어 주세요.',loadingTime:'시간을 불러오는 중',
@@ -92,7 +92,7 @@
       playbackControls:'Orbit playback controls',realTime:'Real time',orbitSpeed:'Orbit speed',speedSlider:'Time advanced per second',sources:'Sources',bodySelect:'Select body',scaleNoteLineOne:'Adjusted size and distance scale · Mean orbit approximation',scaleNoteLineTwo:'Rotation and orbit linked to time',
       apply:'Move',save:'Save',delete:'Delete',cancel:'Cancel',helpClose:'Close help',helpTitle:'Guide and calculation notes',basicControls:'Basic controls',supportLink:'Support Solar Time',supportNote:'Donations help cover server costs and ongoing development.',
       basicHelp:'Left-drag rotates continuously through a full turn without a vertical stop. Middle-drag pans up, down, left or right by ±80%. The top button on the right switches the wheel between flat zoom and true camera travel with perspective. Double-click a body or choose “Closer view” to track it. 0 restores the default view; 1·2·3 save the view together with its Zoom/Move mode.',
-      releaseHelp:'The approved composition and display options now form the factory preset, while reset keeps camera slots 1–3. Saturn and Uranus rings blend subpixel bands by distance to reduce moiré.',
+      releaseHelp:'All non-Earth materials were reviewed, and Mercury, Venus, Mars, Jupiter, Saturn, Neptune and the Moon now use high-resolution spherical sources. Large, selected or tracked bodies receive 2K or 4K textures based on their actual screen coverage.',
       timeAndCalculation:'Time and calculation',timeHelp:'The upper clock follows the real local time of the selected language and region. Turn off Real time below to adjust simulation speed in hours, days or years. The ranges are 1 minute–24 hours, 1–365 days, and 1–20 years per second.',
       orbitHelp:'Planets move on elliptical orbits, faster near perihelion and slower near aphelion. Moon and Europa are children of Earth and Jupiter, with positions calculated for the simulation time and eccentricities of 0.05 and 0.01. Long-term perturbations and minute distance changes are omitted, so this is not a precision ephemeris for observation, navigation or eclipse prediction.',
       pause:'Pause',fullscreen:'Fullscreen',zenMode:'Viewing mode',savedViews:'Saved views',stepExit:'Step-by-step exit',loading:'Opening a small cosmos',fatalTitle:'Unable to start the view.',fatalRetry:'Open it again in the latest Edge or Chrome.',loadingTime:'Loading time',
@@ -114,7 +114,7 @@
       playbackControls:'公转播放控制',realTime:'实时',orbitSpeed:'公转速度',speedSlider:'每秒推进的时间',sources:'来源',bodySelect:'选择天体',scaleNoteLineOne:'大小与距离比例已调整 · 平均轨道近似',scaleNoteLineTwo:'自转和公转与时间联动',
       apply:'移动',save:'保存',delete:'删除',cancel:'取消',helpClose:'关闭帮助',helpTitle:'使用方法与计算说明',basicControls:'基本操作',supportLink:'支持 Solar Time',supportNote:'赞助资金将用于服务器运行和持续开发。',
       basicHelp:'按住左键拖动可不受上下限制地连续旋转一周；按住中键拖动可向上下左右平移 ±80%。右侧最上方按钮可在平面缩放与具有透视感的真实相机移动之间切换滚轮模式。双击天体或选择“近距离查看”可跟踪天体。0 恢复默认视角，1·2·3 会连同缩放/移动模式一起保存。',
-      releaseHelp:'已将确认后的画面构图和显示选项设为初始设置，重置时会保留相机 1·2·3。土星与天王星的细环会按距离平滑合并，以减少摩尔纹。',
+      releaseHelp:'已重新检查除地球外的天体材质，水星、金星、火星、木星、土星、海王星和月球改用高清球面原图。画面中较大、已选择或正在跟踪的天体会按实际显示大小使用 2K 或 4K 纹理。',
       timeAndCalculation:'时间与计算',timeHelp:'上方时钟会显示所选语言和地区的当地实际时间。关闭下方“实时”后，可按小时、日或年调整模拟速度。范围为每秒 1 分钟–24 小时、1–365 日或 1–20 年。',
       orbitHelp:'行星沿椭圆轨道运行，靠近近日点时较快，靠近远日点时较慢。月球和木卫二分别作为地球和木星的子天体，按模拟时间计算位置，离心率仅采用 0.05 和 0.01。未计算长期摄动和细微距离变化，因此不可用于观测、导航或日月食预测等精密星历用途。',
       pause:'暂停',fullscreen:'全屏',zenMode:'观赏模式',savedViews:'保存视角',stepExit:'逐步退出',loading:'正在展开一片小宇宙',fatalTitle:'无法启动画面。',fatalRetry:'请使用最新版 Edge 或 Chrome 重新打开。',loadingTime:'正在读取时间',
@@ -136,7 +136,7 @@
       playbackControls:'公転再生コントロール',realTime:'リアルタイム',orbitSpeed:'公転速度',speedSlider:'1秒あたりに進む時間',sources:'出典',bodySelect:'天体を選択',scaleNoteLineOne:'大きさ・距離の縮尺を調整 · 平均軌道による近似',scaleNoteLineTwo:'自転と公転を時間に連動',
       apply:'移動',save:'保存',delete:'削除',cancel:'キャンセル',helpClose:'ヘルプを閉じる',helpTitle:'操作方法と計算基準',basicControls:'基本操作',supportLink:'Solar Timeを支援',supportNote:'ご支援はサーバー運営費と継続的な開発費に充てられます。',
       basicHelp:'左ドラッグは上下で止まらず一周連続して回転します。中ボタンドラッグは上下左右へ ±80% 移動します。右側最上部のボタンで、平面的なズームと遠近感のある実カメラ移動を切り替えられます。天体をダブルクリックするか「近くで見る」で追跡します。0 は標準視点、1・2・3 はズーム/移動方式も一緒に保存します。',
-      releaseHelp:'確定した画面構図と表示オプションを初期設定にし、リセット時もカメラ1・2・3は保持します。土星と天王星の細いリングは距離に応じて滑らかに統合し、モアレを抑えます。',
+      releaseHelp:'地球以外の天体マテリアルを再点検し、水星・金星・火星・木星・土星・海王星・月を高解像度の球面画像に更新しました。大きく表示された天体や選択・追跡中の天体には、画面上の大きさに応じて2Kまたは4Kテクスチャを使用します。',
       timeAndCalculation:'時刻と計算',timeHelp:'上部の時計は選択した言語と地域の現地時刻を表示します。下部のリアルタイムをオフにすると、時・日・年単位でシミュレーション速度を調整できます。範囲は1秒あたり1分〜24時間、1〜365日、1〜20年です。',
       orbitHelp:'惑星は楕円軌道を進み、近日点では速く、遠日点では遅くなります。月とエウロパは地球と木星の子天体としてシミュレーション時刻の位置を計算し、離心率は 0.05 と 0.01 のみを適用します。長期摂動や微小な距離変化は省略しているため、観測・航法・食予測用の精密暦ではありません。',
       pause:'一時停止',fullscreen:'全画面',zenMode:'鑑賞モード',savedViews:'保存視点',stepExit:'段階的に終了',loading:'小さな宇宙を開いています',fatalTitle:'画面を開始できませんでした。',fatalRetry:'最新の Edge または Chrome で開き直してください。',loadingTime:'時刻を読み込み中',
@@ -160,7 +160,7 @@
       playbackControls:'कक्षा प्लेबैक नियंत्रण',realTime:'वास्तविक समय',orbitSpeed:'कक्षा गति',speedSlider:'प्रति सेकंड आगे बढ़ने वाला समय',sources:'स्रोत',bodySelect:'पिंड चुनें',scaleNoteLineOne:'आकार और दूरी का समायोजित पैमाना · औसत कक्षा अनुमान',scaleNoteLineTwo:'घूर्णन और कक्षा समय से जुड़े हैं',
       apply:'जाएँ',save:'सहेजें',delete:'हटाएँ',cancel:'रद्द करें',helpClose:'सहायता बंद करें',helpTitle:'उपयोग और गणना मार्गदर्शिका',basicControls:'मूल नियंत्रण',supportLink:'Solar Time का समर्थन करें',supportNote:'दान सर्वर लागत और निरंतर विकास में सहायता करता है।',
       basicHelp:'बायाँ ड्रैग दृश्य को बिना ऊर्ध्व सीमा के पूरा घुमाता है। मध्य ड्रैग स्क्रीन को ऊपर, नीचे, बाएँ या दाएँ ±80% खिसकाता है। दाएँ ऊपर का बटन व्हील को सपाट ज़ूम और परिप्रेक्ष्य वाले वास्तविक कैमरा मूव के बीच बदलता है। किसी पिंड पर डबल-क्लिक करें या “पास से देखें” चुनें। 0 मूल दृश्य लौटाता है; 1·2·3 ज़ूम/मूव मोड सहित दृश्य सहेजते हैं।',
-      releaseHelp:'स्वीकृत रचना और प्रदर्शन विकल्प आरंभिक सेटिंग हैं; रीसेट कैमरा 1–3 को बनाए रखता है। शनि और यूरेनस के छल्ले दूरी के अनुसार महीन पट्टियों को मिलाकर मोइरे कम करते हैं।',
+      releaseHelp:'पृथ्वी को छोड़कर सभी पिंडों की सामग्री दोबारा जाँची गई है। बुध, शुक्र, मंगल, बृहस्पति, शनि, नेपच्यून और चंद्रमा अब उच्च-रिज़ॉल्यूशन गोलाकार स्रोतों का उपयोग करते हैं। बड़े, चुने या ट्रैक किए गए पिंड स्क्रीन आकार के अनुसार 2K या 4K टेक्सचर लेते हैं।',
       timeAndCalculation:'समय और गणना',timeHelp:'ऊपरी घड़ी चुने गए क्षेत्र का वास्तविक समय दिखाती है। नीचे वास्तविक समय बंद करके घंटे, दिन या वर्ष में सिमुलेशन गति बदली जा सकती है।',
       orbitHelp:'ग्रह दीर्घवृत्ताकार कक्षाओं में उपसौर पर तेज़ और अपसौर पर धीमे चलते हैं। चंद्रमा और यूरोपा पृथ्वी और बृहस्पति की संतान संरचना में हैं। दीर्घकालीन सूक्ष्म बदलाव शामिल नहीं हैं, इसलिए यह सटीक खगोलीय पंचांग नहीं है।',
       pause:'रोकें',fullscreen:'पूर्ण स्क्रीन',zenMode:'दर्शन मोड',savedViews:'सहेजे दृश्य',stepExit:'क्रमिक निकास',loading:'छोटा ब्रह्मांड खोला जा रहा है',fatalTitle:'दृश्य शुरू नहीं हो सका।',fatalRetry:'नवीनतम Edge या Chrome में फिर खोलें।',loadingTime:'समय लोड हो रहा है',
@@ -181,7 +181,7 @@
       playbackControls:'Controles de órbita',realTime:'Tiempo real',orbitSpeed:'Velocidad orbital',speedSlider:'Tiempo avanzado por segundo',sources:'Fuentes',bodySelect:'Seleccionar cuerpo',scaleNoteLineOne:'Escala de tamaño y distancia ajustada · Órbita media aproximada',scaleNoteLineTwo:'Rotación y órbita vinculadas al tiempo',
       apply:'Mover',save:'Guardar',delete:'Eliminar',cancel:'Cancelar',helpClose:'Cerrar ayuda',helpTitle:'Guía y criterios de cálculo',basicControls:'Controles básicos',supportLink:'Apoyar Solar Time',supportNote:'Las donaciones ayudan a cubrir el servidor y el desarrollo continuo.',
       basicHelp:'Arrastrar con el botón izquierdo gira sin límite vertical. El botón central desplaza la pantalla hasta ±80%. El botón superior derecho cambia la rueda entre zoom plano y movimiento real de cámara con perspectiva. Haz doble clic en un cuerpo o elige «Vista cercana» para seguirlo. 0 restaura la vista inicial; 1·2·3 guardan la vista y su modo Zoom/Mover.',
-      releaseHelp:'La composición y las opciones aprobadas forman la configuración inicial; restablecer conserva las cámaras 1–3. Los anillos de Saturno y Urano suavizan las bandas finas según la distancia para reducir el muaré.',
+      releaseHelp:'Se revisaron todos los materiales salvo el de la Tierra. Mercurio, Venus, Marte, Júpiter, Saturno, Neptuno y la Luna usan ahora fuentes esféricas de alta resolución. Los cuerpos grandes, seleccionados o seguidos reciben texturas 2K o 4K según su tamaño real en pantalla.',
       timeAndCalculation:'Tiempo y cálculo',timeHelp:'El reloj superior muestra la hora real de la región elegida. Desactiva Tiempo real para ajustar la simulación por horas, días o años.',
       orbitHelp:'Los planetas recorren órbitas elípticas, más rápido cerca del perihelio y más lento cerca del afelio. La Luna y Europa son hijos de la Tierra y Júpiter. No se incluyen perturbaciones a largo plazo, por lo que no es una efeméride de precisión.',
       pause:'Pausa',fullscreen:'Pantalla completa',zenMode:'Modo contemplación',savedViews:'Vistas guardadas',stepExit:'Salida por pasos',loading:'Abriendo un pequeño cosmos',fatalTitle:'No se pudo iniciar la vista.',fatalRetry:'Ábrelo de nuevo en la versión más reciente de Edge o Chrome.',loadingTime:'Cargando hora',
@@ -202,7 +202,7 @@
       playbackControls:'Bahnwiedergabe',realTime:'Echtzeit',orbitSpeed:'Bahngeschwindigkeit',speedSlider:'Fortschritt pro Sekunde',sources:'Quellen',bodySelect:'Himmelskörper auswählen',scaleNoteLineOne:'Angepasster Größen- und Entfernungsmaßstab · Mittlere Bahnnäherung',scaleNoteLineTwo:'Rotation und Umlauf an Zeit gekoppelt',
       apply:'Bewegen',save:'Speichern',delete:'Löschen',cancel:'Abbrechen',helpClose:'Hilfe schließen',helpTitle:'Bedienung und Berechnungsgrundlagen',basicControls:'Grundsteuerung',supportLink:'Solar Time unterstützen',supportNote:'Spenden helfen bei Serverkosten und der laufenden Entwicklung.',
       basicHelp:'Ziehen mit der linken Maustaste dreht die Ansicht ohne vertikale Begrenzung. Die mittlere Taste verschiebt um bis zu ±80%. Die obere rechte Taste wechselt das Mausrad zwischen flachem Zoom und echter Kamerafahrt mit Perspektive. Doppelklick oder „Nahansicht“ verfolgt einen Körper. 0 stellt die Ausgangsansicht her; 1·2·3 speichern Ansicht und Zoom/Bewegen-Modus.',
-      releaseHelp:'Die freigegebene Komposition und Anzeige bilden die Ausgangseinstellung; Zurücksetzen behält Kamera 1–3. Saturn- und Uranusringe glätten feine Bänder je nach Entfernung, um Moiré zu verringern.',
+      releaseHelp:'Alle Materialien außer der Erde wurden geprüft. Merkur, Venus, Mars, Jupiter, Saturn, Neptun und Mond verwenden nun hochauflösende Kugelquellen. Große, ausgewählte oder verfolgte Körper erhalten je nach tatsächlicher Bildschirmgröße 2K- oder 4K-Texturen.',
       timeAndCalculation:'Zeit und Berechnung',timeHelp:'Die obere Uhr zeigt die Echtzeit der gewählten Region. Echtzeit kann ausgeschaltet werden, um die Simulation in Stunden, Tagen oder Jahren zu steuern.',
       orbitHelp:'Planeten bewegen sich auf elliptischen Bahnen, am Perihel schneller und am Aphel langsamer. Mond und Europa sind der Erde bzw. Jupiter untergeordnet. Langfristige Störungen fehlen; dies ist daher keine Präzisionsephemeride.',
       pause:'Pause',fullscreen:'Vollbild',zenMode:'Betrachtungsmodus',savedViews:'Gespeicherte Ansichten',stepExit:'Schrittweise beenden',loading:'Ein kleiner Kosmos öffnet sich',fatalTitle:'Die Ansicht konnte nicht gestartet werden.',fatalRetry:'Bitte erneut im neuesten Edge oder Chrome öffnen.',loadingTime:'Zeit wird geladen',
@@ -223,7 +223,7 @@
       playbackControls:'Commandes des orbites',realTime:'Temps réel',orbitSpeed:'Vitesse orbitale',speedSlider:'Temps écoulé par seconde',sources:'Sources',bodySelect:'Sélectionner un astre',scaleNoteLineOne:'Échelle de taille et de distance ajustée · Orbite moyenne approximative',scaleNoteLineTwo:'Rotation et orbite liées au temps',
       apply:'Déplacer',save:'Enregistrer',delete:'Supprimer',cancel:'Annuler',helpClose:'Fermer l’aide',helpTitle:'Guide et principes de calcul',basicControls:'Commandes de base',supportLink:'Soutenir Solar Time',supportNote:'Les dons contribuent aux frais de serveur et au développement continu.',
       basicHelp:'Le glissement gauche fait tourner la vue sans limite verticale. Le bouton central déplace l’écran jusqu’à ±80 %. Le bouton supérieur droit alterne la molette entre zoom plat et déplacement réel de la caméra avec perspective. Double-cliquez sur un astre ou choisissez « Vue rapprochée » pour le suivre. 0 restaure la vue initiale ; 1·2·3 enregistrent la vue avec son mode Zoom/Déplacement.',
-      releaseHelp:'La composition et les options validées constituent les réglages initiaux ; la réinitialisation conserve les caméras 1–3. Les anneaux de Saturne et d’Uranus fondent les bandes fines selon la distance pour réduire le moiré.',
+      releaseHelp:'Tous les matériaux sauf celui de la Terre ont été vérifiés. Mercure, Vénus, Mars, Jupiter, Saturne, Neptune et la Lune utilisent désormais des sources sphériques haute résolution. Les astres grands, sélectionnés ou suivis reçoivent des textures 2K ou 4K selon leur taille réelle à l’écran.',
       timeAndCalculation:'Temps et calcul',timeHelp:'L’horloge supérieure affiche l’heure réelle de la région choisie. Désactivez Temps réel pour régler la simulation en heures, jours ou années.',
       orbitHelp:'Les planètes suivent des orbites elliptiques, plus vite au périhélie et plus lentement à l’aphélie. La Lune et Europe sont rattachées à la Terre et à Jupiter. Les perturbations à long terme sont omises : ce n’est pas une éphéméride de précision.',
       pause:'Pause',fullscreen:'Plein écran',zenMode:'Mode contemplation',savedViews:'Vues enregistrées',stepExit:'Sortie par étapes',loading:'Ouverture d’un petit cosmos',fatalTitle:'Impossible de démarrer la vue.',fatalRetry:'Ouvrez-la à nouveau dans la dernière version d’Edge ou Chrome.',loadingTime:'Chargement de l’heure',
@@ -546,7 +546,7 @@
       function presetUi() {
         cameraPresets.forEach((value,i)=>{
           const b=$('camera-preset-'+(i+1));b.classList.toggle('saved',!!value);b.dataset.saved=String(!!value);
-          const mode=value?t(value.mode==='move'?'moveMode':'zoomMode'):'';b.dataset.modeShort=value?.mode==='move'?'M':value?'Z':'';
+          const mode=value?t(value.mode==='move'?'moveMode':'zoomMode'):'';
           b.title=t('presetButtonTitle',{n:i+1})+(mode?' · '+mode:'');
           b.setAttribute('aria-label',t('presetAria',{n:i+1,state:t(value?'saved':'empty')})+(mode?' · '+mode:''));
         });
@@ -639,7 +639,13 @@
         if(b.parent){button.dataset.parent=b.parent;button.classList.add('satellite');}
         const copy=bodyCopy(b);button.setAttribute('aria-pressed','false');button.setAttribute('aria-label',t('bodyInfo',{name:copy.name}));
         const dot=document.createElement('i');dot.setAttribute('aria-hidden','true');button.append(dot,document.createTextNode(copy.name));
-        button.addEventListener('click',()=>selectBody(b.id));$('planet-nav').append(button);navButtons.set(b.id,button);
+        button.addEventListener('click',event=>{if(event.detail<2)selectBody(b.id);});
+        button.addEventListener('dblclick',event=>{
+          event.preventDefault();
+          if(renderer.selected!==b.id)selectBody(b.id);
+          focusBody(b.id);
+        });
+        $('planet-nav').append(button);navButtons.set(b.id,button);
       }
       function refreshNavLabels(){
         for(const b of bodies){const button=navButtons.get(b.id),copy=bodyCopy(b);button.lastChild.textContent=copy.name;button.setAttribute('aria-label',t('bodyInfo',{name:copy.name}));}
@@ -1087,7 +1093,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.34',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,musicEnabled,musicTrack:MUSIC_TRACKS[musicIndex]?.title||null,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.35',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,musicEnabled,musicTrack:MUSIC_TRACKS[musicIndex]?.title||null,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

@@ -7,6 +7,56 @@
     "credit": "NASA/GSFC/SDO reference · OpenAI ImageGen artistic reconstruction",
     "feature": null
   },
+  "mercury": {
+    "revision": "embedded-sss-4k-v035",
+    "url": "https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_mercury.jpg",
+    "width": 4096,
+    "height": 2048,
+    "credit": "Solar System Scope / INOVE · CC BY 4.0",
+    "feature": null
+  },
+  "venus": {
+    "revision": "embedded-sss-4k-v035",
+    "url": "https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_4k_venus_atmosphere.jpg",
+    "width": 4096,
+    "height": 2048,
+    "credit": "Solar System Scope / INOVE · CC BY 4.0",
+    "feature": null
+  },
+  "mars": {
+    "revision": "embedded-sss-4k-v035",
+    "url": "https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_mars.jpg",
+    "width": 4096,
+    "height": 2048,
+    "credit": "Solar System Scope / INOVE · CC BY 4.0",
+    "feature": null
+  },
+  "jupiter": {
+    "revision": "embedded-sss-4k-v035",
+    "url": "https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_jupiter.jpg",
+    "width": 4096,
+    "height": 2048,
+    "credit": "Solar System Scope / INOVE · CC BY 4.0",
+    "feature": {
+      "longitude": 70
+    }
+  },
+  "saturn": {
+    "revision": "embedded-sss-4k-v035",
+    "url": "https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_saturn.jpg",
+    "width": 4096,
+    "height": 2048,
+    "credit": "Solar System Scope / INOVE · CC BY 4.0",
+    "feature": null
+  },
+  "neptune": {
+    "revision": "embedded-sss-2k-v035",
+    "url": "https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_2k_neptune.jpg",
+    "width": 2048,
+    "height": 1024,
+    "credit": "Solar System Scope / INOVE · CC BY 4.0",
+    "feature": null
+  },
   "pluto": {
     "revision": "embedded-ai-assisted-v025b",
     "url": "https://science.nasa.gov/resource/pluto-global-color-map/",
@@ -29,6 +79,14 @@
     "width": 2048,
     "height": 1024,
     "credit": "USGS / NASA-JPL-Caltech · Voyager mosaic",
+    "feature": null
+  },
+  "moon": {
+    "revision": "embedded-sss-4k-v035",
+    "url": "https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_moon.jpg",
+    "width": 4096,
+    "height": 2048,
+    "credit": "Solar System Scope / INOVE · CC BY 4.0",
     "feature": null
   }
 }

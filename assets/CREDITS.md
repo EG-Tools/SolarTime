@@ -1,4 +1,4 @@
-# Solar Time v0.34 — image sources and licenses
+# Solar Time v0.35 — image sources and licenses
 
 The exact built-in ImageGen prompts used for the current Sun and Pluto reconstructions are recorded in `assets/IMAGEGEN_PROMPTS.md`.
 
@@ -28,35 +28,26 @@ https://science.nasa.gov/3d-resources/jupiter-europa/
 
 No font file or third-party stock Saturn photograph from a reference screenshot is redistributed here. The user-provided Saturn view is a visual reference, not a spherical texture copied from an unknown license source.
 
-## Optional replacement maps fetched by the application
+## Packaged high-resolution maps — Solar System Scope / INOVE
 
-These maps are **not pre-downloaded in the distributed source package**. Their exact approved URLs and immutable mirror versions are in `src/materials.js`. Once received in a user's browser, the app can cache them and embed them into an exported standalone HTML.
+Solar Time v0.35 packages the high-resolution 2:1 maps for Mercury, Venus's atmosphere, Mars, Jupiter, Saturn, Neptune and the Moon. They are converted to WebP and published as immutable 512/1024/2048/4096 width tiers through the Solar Time media service; the application chooses a tier from the body's real on-screen coverage. The 8192-pixel rocky-body and Moon sources are reduced to 4096 pixels with Lanczos resampling. Neptune remains at its native 2048-pixel width rather than being falsely advertised as a 4K map.
 
-### Solar System Scope / INOVE
-
-Textures courtesy of Solar System Scope, developed by INOVE.
+Textures courtesy of Solar System Scope, developed by INOVE. The source pack combines NASA imagery/elevation, artist-adjusted colors and fictional terrain in unmapped gaps, so it is not a current or perfectly calibrated scientific data set.
 
 Source and attribution: https://www.solarsystemscope.com/textures/
+
+Archived source files and individual license pages:
+- Mercury: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_mercury.jpg
+- Venus atmosphere: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_4k_venus_atmosphere.jpg
+- Mars: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_mars.jpg
+- Jupiter: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_jupiter.jpg
+- Saturn: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_saturn.jpg
+- Neptune: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_2k_neptune.jpg
+- Moon: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_moon.jpg
+
 License: Creative Commons Attribution 4.0 International — https://creativecommons.org/licenses/by/4.0/
 
-Maps used: Saturn, Neptune, Venus atmosphere, Jupiter, Mars and Mercury; Moon only as a fallback if the NASA source fails. Uranus is excluded from this replacement catalogue because v0.3 carries its dedicated AI-recreated embedded map. The source pack uses NASA imagery/elevation, artist-adjusted colors, and fictional terrain in unmapped gaps. It is not a set of current, perfectly calibrated scientific observations.
-
-Changes made after receipt: image decoding, maximum-width reduction to 4096 while retaining 2:1 projection, WebP re-encoding at quality 0.95. Native 2048 maps remain 2048. Existing unrelated synthetic relief maps are removed from the corresponding material. Actual received source URL, credit and dimensions are recorded in the exported app.
-
-Published mirror locations (not authors of the original textures):
-- `Whitebee7/solarsystem` at commit `235e72c02e825e0c8d0792ec0aa6be43e1a14f68`, under `textures/`, served by jsDelivr. Its LICENSE-textures.md separately attributes these maps to Solar System Scope under CC BY 4.0.
-- `Shriisoot/Planets-texture` at commit `9c2aedaeb89f35814401873f22ce78bb02421dea`: `4k_venus_atmosphere.jpg`, served by jsDelivr.
-
-The mirrors do not change the source pack's attribution requirement. No Pluto or Europa map from these repositories is used.
-
-### NASA Scientific Visualization Studio — Moon
-
-NASA's Scientific Visualization Studio / LRO / LROC. Visualization by Ernie Wright (USRA). Scientist: Noah Petro (NASA/GSFC). The global color mosaic comes from Lunar Reconnaissance Orbiter camera data assembled by the instrument teams.
-
-Source: https://svs.gsfc.nasa.gov/4720/
-Image: https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg
-
-2025 color-map version, 2048×1024 JPEG. The source describes these maps as optimized for aesthetics rather than scientific use. After receipt, Solar Time re-encodes to WebP without increasing its native dimensions. The NASA attribution is used only when this NASA image supplied the material; a Solar System Scope fallback carries Solar System Scope attribution instead.
+Uranus, Pluto, the Sun and Europa continue to use their separately credited maps above. Earth remains unchanged.
 
 ## Orbit reference for the displayed satellites
 

@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "revision": "assetpack-20260914-r2",
-  "generatedAt": "2026-09-14T05:23:03.488Z",
+  "revision": "assetpack-20260914-r3",
+  "generatedAt": "2026-09-14T10:41:43.534Z",
   "materials": {
     "clouds": {
       "source": "clouds.webp",
@@ -109,30 +109,30 @@
         {
           "width": 512,
           "height": 256,
-          "path": "releases/content/textures/jupiter-512.e164be9334d22f9d.webp",
-          "bytes": 5388,
-          "sha256": "e164be9334d22f9d49fac251c396683965116a028bb964b951e8c5a07ce5eb1f"
+          "path": "releases/content/textures/jupiter-512.e6726fc19ded72d9.webp",
+          "bytes": 19228,
+          "sha256": "e6726fc19ded72d92180617a5c6808a7728eec01ddec684717645872ba4fd065"
         },
         {
           "width": 1024,
           "height": 512,
-          "path": "releases/content/textures/jupiter-1024.2aa69a7e4d14f67e.webp",
-          "bytes": 26410,
-          "sha256": "2aa69a7e4d14f67e244dad996872a8f64ff5d7eca41992360f07ad8ab7ae11c3"
+          "path": "releases/content/textures/jupiter-1024.efae425e35c0f8e5.webp",
+          "bytes": 64504,
+          "sha256": "efae425e35c0f8e5df0307742fbff959051bb93c99cd1a0ab962f3a29f798d0a"
         },
         {
           "width": 2048,
           "height": 1024,
-          "path": "releases/content/textures/jupiter-2048.972bf63412b9eadf.webp",
-          "bytes": 94518,
-          "sha256": "972bf63412b9eadf2a13771e21a2ac459a6dadd2978ae1bf4cf366b8848c5b22"
+          "path": "releases/content/textures/jupiter-2048.454ad8f81d081f78.webp",
+          "bytes": 198332,
+          "sha256": "454ad8f81d081f7872d55157d0ec4fa5c61cdf1c1ac998b510c58ba842071f93"
         },
         {
           "width": 4096,
           "height": 2048,
-          "path": "releases/content/textures/jupiter-4096.8d944ae47f260c66.webp",
-          "bytes": 418090,
-          "sha256": "8d944ae47f260c66f837a4660c65a2e36c479ec2212ebc226bd391f2a9688c70"
+          "path": "releases/content/textures/jupiter-4096.9302d00ab626810b.webp",
+          "bytes": 1106086,
+          "sha256": "9302d00ab626810b2ffe1bfa3af9030bbb68f53547ca3c6294aa9498cc4fa0d4"
         }
       ]
     },
@@ -179,30 +179,30 @@
         {
           "width": 512,
           "height": 256,
-          "path": "releases/content/textures/mars-512.d65ec0cd71cb1741.webp",
-          "bytes": 9646,
-          "sha256": "d65ec0cd71cb17417a5273f88554a1b2c5e9e3be7f9daeef88a1ead26367ba3c"
+          "path": "releases/content/textures/mars-512.0c9cc8780445a182.webp",
+          "bytes": 27898,
+          "sha256": "0c9cc8780445a182f04f5592eac3082106ef4cf57567cbacaae9174c61af45a2"
         },
         {
           "width": 1024,
           "height": 512,
-          "path": "releases/content/textures/mars-1024.80c8df515e54ecaf.webp",
-          "bytes": 24170,
-          "sha256": "80c8df515e54ecaff999a9451a21fd3b11cb3c53be60189c88d4855005d3adb0"
+          "path": "releases/content/textures/mars-1024.e0399a339e21d64c.webp",
+          "bytes": 98720,
+          "sha256": "e0399a339e21d64c23a536a67102b66622c16d3533ece87bc4fccae7bb15ae76"
         },
         {
           "width": 2048,
           "height": 1024,
-          "path": "releases/content/textures/mars-2048.7c3a9a780836ddbe.webp",
-          "bytes": 59370,
-          "sha256": "7c3a9a780836ddbe9034f34df94f17ca68e86bef191169cfe23e3d20965a5914"
+          "path": "releases/content/textures/mars-2048.849c77c10e3b0007.webp",
+          "bytes": 367384,
+          "sha256": "849c77c10e3b00079bb9d00b2451272c0871a1456bbaffcfcc2e4822864430f2"
         },
         {
           "width": 4096,
           "height": 2048,
-          "path": "releases/content/textures/mars-4096.63d87024ee78f3f0.webp",
-          "bytes": 241452,
-          "sha256": "63d87024ee78f3f01274fdb53ac97dde5a218ef44239b614b5545bc9d7d74f6d"
+          "path": "releases/content/textures/mars-4096.de456a751b578af0.webp",
+          "bytes": 1948290,
+          "sha256": "de456a751b578af0289955833eeb4834c72b680e475fc406a656d2c7acb10728"
         }
       ]
     },
@@ -249,30 +249,30 @@
         {
           "width": 512,
           "height": 256,
-          "path": "releases/content/textures/mercury-512.bee40d2342f3a973.webp",
-          "bytes": 10564,
-          "sha256": "bee40d2342f3a973de796063fa7798bf4b14da65b6f50beaa3fdde19c2b94b08"
+          "path": "releases/content/textures/mercury-512.23ff13da7b8abbd0.webp",
+          "bytes": 31598,
+          "sha256": "23ff13da7b8abbd079a27e365f3804ed639cdfe5375b8be845fbf91357891766"
         },
         {
           "width": 1024,
           "height": 512,
-          "path": "releases/content/textures/mercury-1024.4ca7a4374260afba.webp",
-          "bytes": 26562,
-          "sha256": "4ca7a4374260afbac637851dc2d3902ddb8daff1ec165d028915734d85308ca2"
+          "path": "releases/content/textures/mercury-1024.de120ebae101f869.webp",
+          "bytes": 137464,
+          "sha256": "de120ebae101f8695db6120cdc4623283c6b17c83439e24b9c12254d14f1eedc"
         },
         {
           "width": 2048,
           "height": 1024,
-          "path": "releases/content/textures/mercury-2048.1afcaf176f4a99f4.webp",
-          "bytes": 69414,
-          "sha256": "1afcaf176f4a99f4cdfa4602db883f37dc85ae030990712f3cfcb238636f1cb3"
+          "path": "releases/content/textures/mercury-2048.28db6f813417ebba.webp",
+          "bytes": 596810,
+          "sha256": "28db6f813417ebba8dc0a3c269f2b29fd891f0461054faeaafd52a2f389b5f51"
         },
         {
           "width": 4096,
           "height": 2048,
-          "path": "releases/content/textures/mercury-4096.f4062df0042d2450.webp",
-          "bytes": 243918,
-          "sha256": "f4062df0042d2450b00c8027244f4f1cb2f39b98954465b533cdc6a1b920a41a"
+          "path": "releases/content/textures/mercury-4096.093433e135c4e2f1.webp",
+          "bytes": 3338562,
+          "sha256": "093433e135c4e2f1c8c0b40dde8ba1a8354eb3b0cad1998a563c9cc43d02be89"
         }
       ]
     },
@@ -319,65 +319,58 @@
         {
           "width": 512,
           "height": 256,
-          "path": "releases/content/textures/moon-512.e82037f5afd62d59.webp",
-          "bytes": 8508,
-          "sha256": "e82037f5afd62d595dcfb4f819139c4a1daf156025e6db27925c35722eed1452"
+          "path": "releases/content/textures/moon-512.056f7cf930865e71.webp",
+          "bytes": 40578,
+          "sha256": "056f7cf930865e711d5a7c9d9d0ef67f88f98fdcd355e4f6a444512498b3d4b0"
         },
         {
           "width": 1024,
           "height": 512,
-          "path": "releases/content/textures/moon-1024.1f499d7363e6c2a3.webp",
-          "bytes": 23634,
-          "sha256": "1f499d7363e6c2a367e7935ad81874da1f4a5fda5cd5f03fff46ec68b133e4dc"
+          "path": "releases/content/textures/moon-1024.f1c9ab2b813b392f.webp",
+          "bytes": 172080,
+          "sha256": "f1c9ab2b813b392f0f46e1af2ed6445f1542e65554f06a5bd13db6160d115dcb"
         },
         {
           "width": 2048,
           "height": 1024,
-          "path": "releases/content/textures/moon-2048.313a7175efdd7180.webp",
-          "bytes": 59432,
-          "sha256": "313a7175efdd71800ab68490d0199d887ac0559e840bc7c33c23777be9cb8fd1"
+          "path": "releases/content/textures/moon-2048.5eb938940049587a.webp",
+          "bytes": 724748,
+          "sha256": "5eb938940049587a81c5939b691e740148bc1c0ee1f577598124fd75b85aa4a5"
         },
         {
           "width": 4096,
           "height": 2048,
-          "path": "releases/content/textures/moon-4096.07ad31403f47a874.webp",
-          "bytes": 213216,
-          "sha256": "07ad31403f47a874f20365e5fb6cb25e108efe0a4d254e932eb36b3abcfdc3d4"
+          "path": "releases/content/textures/moon-4096.8a5b4b55c9fa7939.webp",
+          "bytes": 3748446,
+          "sha256": "8a5b4b55c9fa793979abda2ef162335b57ec550ccd2059a4425e63a45efc659b"
         }
       ]
     },
     "neptune": {
       "source": "neptune.webp",
-      "width": 4096,
-      "height": 2048,
+      "width": 2048,
+      "height": 1024,
       "tiers": [
         {
           "width": 512,
           "height": 256,
-          "path": "releases/content/textures/neptune-512.c5a4027ae9c6d731.webp",
-          "bytes": 6236,
-          "sha256": "c5a4027ae9c6d731520f8db323de55331d3567ead61a811ea699f4c62d00a701"
+          "path": "releases/content/textures/neptune-512.ffa8a892fdcb540b.webp",
+          "bytes": 2808,
+          "sha256": "ffa8a892fdcb540ba873f8716cd6b896b6bcb715f435418008b2b2d6c1dbaa81"
         },
         {
           "width": 1024,
           "height": 512,
-          "path": "releases/content/textures/neptune-1024.b782d4f3800eeebf.webp",
-          "bytes": 14450,
-          "sha256": "b782d4f3800eeebf19062bf255ebae9043f99bd990021722a0c7257b41cb9cd3"
+          "path": "releases/content/textures/neptune-1024.8aad41e454d6a0b0.webp",
+          "bytes": 9840,
+          "sha256": "8aad41e454d6a0b0ea8c8ba301fdee04acf2d8a92fba5f708653fa1125ec9461"
         },
         {
           "width": 2048,
           "height": 1024,
-          "path": "releases/content/textures/neptune-2048.4152962ebca8d9bc.webp",
-          "bytes": 38668,
-          "sha256": "4152962ebca8d9bcc7238a46e49de6bc676ef6535bc8c21e8180611aacd2c8cc"
-        },
-        {
-          "width": 4096,
-          "height": 2048,
-          "path": "releases/content/textures/neptune-4096.d97031e26221bfee.webp",
-          "bytes": 139578,
-          "sha256": "d97031e26221bfee8b176615d9f842acaf3f0b027e85d058b3244405edb44626"
+          "path": "releases/content/textures/neptune-2048.80ebfee4cd46c704.webp",
+          "bytes": 46272,
+          "sha256": "80ebfee4cd46c7049ef7e0bbd9f8f622d0747eed848b8778ae27d213c9c9a277"
         }
       ]
     },
@@ -424,30 +417,30 @@
         {
           "width": 512,
           "height": 256,
-          "path": "releases/content/textures/saturn-512.3406d33e465140a9.webp",
-          "bytes": 9986,
-          "sha256": "3406d33e465140a95b7c5f3c36ffd71117c83f33ee1662fb55921d64128d1f75"
+          "path": "releases/content/textures/saturn-512.80bda997b80e7645.webp",
+          "bytes": 4782,
+          "sha256": "80bda997b80e76450717d8d8f155e9ed037110053e3b8f1f9ba3fe9fcec2fca3"
         },
         {
           "width": 1024,
           "height": 512,
-          "path": "releases/content/textures/saturn-1024.700236b0b075b3b4.webp",
-          "bytes": 25686,
-          "sha256": "700236b0b075b3b4acd96f9cb617cb9c0d912e98005eb12da7e6f3296d45d586"
+          "path": "releases/content/textures/saturn-1024.22ed1ca6854b0bd9.webp",
+          "bytes": 15302,
+          "sha256": "22ed1ca6854b0bd9d27f735c7d485e3018d44d63ae9282c4624381253659b55d"
         },
         {
           "width": 2048,
           "height": 1024,
-          "path": "releases/content/textures/saturn-2048.2c14009d04913431.webp",
-          "bytes": 61476,
-          "sha256": "2c14009d049134313515d6a85c401dd069d04ae037ae7b2212f706629e65bb10"
+          "path": "releases/content/textures/saturn-2048.ce37f2ce4b5085bb.webp",
+          "bytes": 54318,
+          "sha256": "ce37f2ce4b5085bb694d6064711b039e7fab05cff27b76ff31f69e62631d1ff5"
         },
         {
           "width": 4096,
           "height": 2048,
-          "path": "releases/content/textures/saturn-4096.fc7448ae2d4b73b1.webp",
-          "bytes": 190162,
-          "sha256": "fc7448ae2d4b73b11cbedf78408fa4f05d9bc8ba133e016af56f81e1d5f717cf"
+          "path": "releases/content/textures/saturn-4096.22aa274098ad6e94.webp",
+          "bytes": 250494,
+          "sha256": "22aa274098ad6e9424073f130857279d0b5597effeede1c22e6309fd4cb9ca36"
         }
       ]
     },
@@ -522,30 +515,30 @@
         {
           "width": 512,
           "height": 256,
-          "path": "releases/content/textures/venus-512.ed8e57d80c1ce50e.webp",
-          "bytes": 6426,
-          "sha256": "ed8e57d80c1ce50e35b313eafb1ca676d890d8563008f56d5c32293f0390fcea"
+          "path": "releases/content/textures/venus-512.15a80e8c9a51c228.webp",
+          "bytes": 6872,
+          "sha256": "15a80e8c9a51c22863f3a34b5189479776f79b239f8267d6affce82636402964"
         },
         {
           "width": 1024,
           "height": 512,
-          "path": "releases/content/textures/venus-1024.ca0a1fbb7f43885e.webp",
-          "bytes": 16466,
-          "sha256": "ca0a1fbb7f43885e75f5378c5744562861409a9901e446141c449a1ada65778e"
+          "path": "releases/content/textures/venus-1024.880f8861cb916343.webp",
+          "bytes": 17970,
+          "sha256": "880f8861cb916343abff63e70e3c72493de717187d47fa6cba86e6831b9613a5"
         },
         {
           "width": 2048,
           "height": 1024,
-          "path": "releases/content/textures/venus-2048.c1dfabcaf0de90f0.webp",
-          "bytes": 43800,
-          "sha256": "c1dfabcaf0de90f0f4a5849fc453e76ef63ed1449107bb9f5793859650e8a5a8"
+          "path": "releases/content/textures/venus-2048.813d1331c23427e2.webp",
+          "bytes": 56144,
+          "sha256": "813d1331c23427e2a1ad573155080853ca0f9acb1196eceff7e4e9f623dffd46"
         },
         {
           "width": 4096,
           "height": 2048,
-          "path": "releases/content/textures/venus-4096.340695802bece0bb.webp",
-          "bytes": 136712,
-          "sha256": "340695802bece0bbfe32f2d60cf0de66f422a299251025941948f40727e1706a"
+          "path": "releases/content/textures/venus-4096.42fe7026f0be7303.webp",
+          "bytes": 340000,
+          "sha256": "42fe7026f0be73036985b7f115a75410a1c49d447fb26b10d4f70fe8f261ec9b"
         }
       ]
     }

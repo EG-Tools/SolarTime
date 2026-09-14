@@ -1,5 +1,5 @@
-/* Solar Time v0.34 — dependency-free, depth-projected Canvas renderer.
-   Credited photographic maps are embedded for Earth, Pluto, Uranus and Europa. */
+/* Solar Time v0.35 — dependency-free, depth-projected Canvas renderer.
+   Credited spherical maps are packaged in resolution tiers for every body. */
 (function () {
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
@@ -10,6 +10,7 @@
   const VIEW=Object.freeze({minZoom:.6,maxZoom:2048,detailZoom:64,lowerBy:.05,minPanY:-.8,maxPanY:.8,minPanX:-.8,maxPanX:.8,minElevation:-Math.PI,maxElevation:Math.PI,fillRadius:1.10,detailFillRadius:.34});
   const DOLLY=Object.freeze({baseDistance:5000,nearRatio:.002,maxPerspective:32});
   const SURFACE=Object.freeze({detailWidth:4096,maxRaster:1024,lowRaster:384});
+  const TEXTURE_TIERS=Object.freeze([128,256,512,1024,2048,4096]);
   // User-approved normal-view baseline. Horizontal pan is intentionally zero;
   // the vertical composition, lens and orbit angle come from the approved view.
   const DEFAULT_CAMERA=Object.freeze({azimuth:5.393597172693909,elevation:.620064911444322,zoom:1.1853048513203654,dolly:1,focus:null,panY:.033915866075961185,panX:0});
@@ -160,8 +161,8 @@
       const jupiterSize=A.BODIES.find(value=>value.id==='jupiter')?.size??29;
       const min=LARGE_BODIES.has(body.id)?Math.ceil(earthSize/body.size*100)/100:1;
       // Every planet can reach the same visual ceiling as Jupiter at 200%.
-      // The Sun retains its dedicated 200% range because it is not a planet.
-      const max=body.id==='sun'?2:Math.ceil(jupiterSize*2/body.size*100)/100;
+      // The Sun retains its dedicated 300% range because it is not a planet.
+      const max=body.id==='sun'?3:Math.ceil(jupiterSize*2/body.size*100)/100;
       return {min,max};
     }
     effectiveBodySizeScale(body) {const p=Number.isFinite(this.actualScaleMix)?this.actualScaleMix:0;return mix(this.bodySizeScale(body),1,p);}
@@ -657,14 +658,20 @@
     // All bodies submit to the same bounded surface owner; no CPU pixel loop here.
     surfaceJob(body,world,r,ms,seconds,mono) {
       const focused=body.id===this.camera.focus;
-      const maximum=focused?SURFACE.maxRaster:256;
-      const wanted=Math.min(maximum,Math.max(32,r*2*this.dpr));
+      const selected=body.id===this.selected,priority=focused||selected;
+      const screenDiameter=Math.max(32,r*2*this.dpr);
+      const maximum=priority?SURFACE.maxRaster:384;
+      const wanted=Math.min(maximum,screenDiameter);
       const diam=[32,64,128,192,256,384,512,768,1024].find(n=>n>=wanted)||1024;
       // Stable detail while dragging and on tab return. No flat->256->4096
-      // ladder: decode the chosen image once and reuse it across camera angles.
+      // ladder: choose from actual screen coverage rather than the raster cap,
+      // then reuse that image across camera angles. A selected body is warmed at
+      // 2K and a focused close-up always receives the native tier.
       const nativeWidth=window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth;
-      const textureTarget=this.gpu?([128,256,512,1024,2048,4096].find(n=>n>=diam*4)||4096):(focused?SURFACE.detailWidth:1024);
-      const textureWidth=Math.min(nativeWidth,focused?textureTarget:Math.min(1024,textureTarget));
+      const detailFloor=focused?SURFACE.detailWidth:selected?2048:0;
+      const textureDemand=Math.max(screenDiameter*4,detailFloor);
+      const textureTarget=this.gpu?(TEXTURE_TIERS.find(n=>n>=textureDemand)||SURFACE.detailWidth):(priority?SURFACE.detailWidth:1024);
+      const textureWidth=Math.min(nativeWidth,textureTarget);
       // One parent body frame owns every visual child (surface, rings, markers).
       // There is intentionally no independently rotatable ring transform.
       const vectors=this.bodyFrame(body),frame=vectors.gpu||(vectors.gpu=Object.fromEntries(Object.entries(vectors).filter(([k])=>k!=='gpu').map(([k,v])=>[k,new Float32Array([v.x,v.y,v.z])])));
