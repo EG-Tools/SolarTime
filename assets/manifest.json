@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "revision": "assetpack-20260914-r3",
-  "generatedAt": "2026-09-14T10:41:43.534Z",
+  "revision": "assetpack-20260914-r4",
+  "generatedAt": "2026-09-14T11:17:05.351Z",
   "materials": {
     "clouds": {
       "source": "clouds.webp",
@@ -206,41 +206,6 @@
         }
       ]
     },
-    "mercury-relief": {
-      "source": "mercury-relief.webp",
-      "width": 4096,
-      "height": 2048,
-      "tiers": [
-        {
-          "width": 512,
-          "height": 256,
-          "path": "releases/content/textures/mercury-relief-512.66789284f307ae55.webp",
-          "bytes": 9012,
-          "sha256": "66789284f307ae558fc1302864c422d09fa3f36c44560f8e646c98613336063b"
-        },
-        {
-          "width": 1024,
-          "height": 512,
-          "path": "releases/content/textures/mercury-relief-1024.2eacbc8aa405857b.webp",
-          "bytes": 26270,
-          "sha256": "2eacbc8aa405857b94a7df34bbc7ce028925b1cbfb52d03a1806f7ec58f5ea69"
-        },
-        {
-          "width": 2048,
-          "height": 1024,
-          "path": "releases/content/textures/mercury-relief-2048.eeaa3f890ca710fb.webp",
-          "bytes": 65316,
-          "sha256": "eeaa3f890ca710fbefa5a7835d137b547961d694e83da198e9086ea9cfd29ee8"
-        },
-        {
-          "width": 4096,
-          "height": 2048,
-          "path": "releases/content/textures/mercury-relief-4096.0b87bc0b849123ea.webp",
-          "bytes": 296500,
-          "sha256": "0b87bc0b849123ea8289ac0eb8f0e1bfde2af0c8ac4f7d35f32899144fae1b70"
-        }
-      ]
-    },
     "mercury": {
       "source": "mercury.webp",
       "width": 4096,
@@ -273,41 +238,6 @@
           "path": "releases/content/textures/mercury-4096.093433e135c4e2f1.webp",
           "bytes": 3338562,
           "sha256": "093433e135c4e2f1c8c0b40dde8ba1a8354eb3b0cad1998a563c9cc43d02be89"
-        }
-      ]
-    },
-    "moon-relief": {
-      "source": "moon-relief.webp",
-      "width": 4096,
-      "height": 2048,
-      "tiers": [
-        {
-          "width": 512,
-          "height": 256,
-          "path": "releases/content/textures/moon-relief-512.4ff171b2633b5cd3.webp",
-          "bytes": 11768,
-          "sha256": "4ff171b2633b5cd344e6f645ebf2ba45dd30516796d9cb5ff3b4aae8cc7a4d49"
-        },
-        {
-          "width": 1024,
-          "height": 512,
-          "path": "releases/content/textures/moon-relief-1024.299d44f99f7216f2.webp",
-          "bytes": 32110,
-          "sha256": "299d44f99f7216f255f0f4ef1acdb9272e57c88aeb02892700f7a31f43059656"
-        },
-        {
-          "width": 2048,
-          "height": 1024,
-          "path": "releases/content/textures/moon-relief-2048.76d27185cfe8124b.webp",
-          "bytes": 81652,
-          "sha256": "76d27185cfe8124bf0d7b8c71db96d4edb703e6e9441117a4b14f55a43953f57"
-        },
-        {
-          "width": 4096,
-          "height": 2048,
-          "path": "releases/content/textures/moon-relief-4096.b79267f971c04490.webp",
-          "bytes": 373098,
-          "sha256": "b79267f971c044906008db9b8a2337463d80f3574959f7faa8deb3cfc2cf2386"
         }
       ]
     },

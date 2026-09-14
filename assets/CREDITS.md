@@ -32,6 +32,8 @@ No font file or third-party stock Saturn photograph from a reference screenshot 
 
 Solar Time v0.35 packages the high-resolution 2:1 maps for Mercury, Venus's atmosphere, Mars, Jupiter, Saturn, Neptune and the Moon. They are converted to WebP and published as immutable 512/1024/2048/4096 width tiers through the Solar Time media service; the application chooses a tier from the body's real on-screen coverage. The 8192-pixel rocky-body and Moon sources are reduced to 4096 pixels with Lanczos resampling. Neptune remains at its native 2048-pixel width rather than being falsely advertised as a 4K map.
 
+Mercury and the Moon use the photographed detail in these colour maps without the older procedural relief layer, avoiding duplicated or exaggerated crater shading. Venus uses its atmospheric colour map and ordinary spherical lighting; no crater relief map is applied.
+
 Textures courtesy of Solar System Scope, developed by INOVE. The source pack combines NASA imagery/elevation, artist-adjusted colors and fictional terrain in unmapped gaps, so it is not a current or perfectly calibrated scientific data set.
 
 Source and attribution: https://www.solarsystemscope.com/textures/
