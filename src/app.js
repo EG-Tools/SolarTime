@@ -899,18 +899,18 @@
       }
       const languageControl=$('language-control'),languageMenu=$('language-menu'),languageToggle=$('language-toggle');
       function openLanguageMenu(){
-        languageMenu.hidden=false;languageToggle.setAttribute('aria-expanded','true');
+        showFading(languageMenu);languageToggle.setAttribute('aria-expanded','true');
         const current=languageMenu.querySelector(`[data-language="${language}"]`);requestAnimationFrame(()=>current?.focus({preventScroll:true}));
       }
-      function closeLanguageMenu(returnFocus=false){languageMenu.hidden=true;languageToggle.setAttribute('aria-expanded','false');if(returnFocus)languageToggle.focus({preventScroll:true});}
-      languageToggle.addEventListener('click',()=>languageMenu.hidden?openLanguageMenu():closeLanguageMenu());
+      function closeLanguageMenu(returnFocus=false){hideFading(languageMenu);languageToggle.setAttribute('aria-expanded','false');if(returnFocus)languageToggle.focus({preventScroll:true});}
+      languageToggle.addEventListener('click',()=>uiElementVisible(languageMenu)?closeLanguageMenu():openLanguageMenu());
       for(const option of languageMenu.querySelectorAll('[data-language]'))option.addEventListener('click',()=>{setLanguage(option.dataset.language);closeLanguageMenu(true);});
       languageMenu.addEventListener('keydown',event=>{
         const options=[...languageMenu.querySelectorAll('[data-language]')],index=options.indexOf(document.activeElement);let next=-1;
         if(event.key==='ArrowDown')next=(index+1)%options.length;else if(event.key==='ArrowUp')next=(index-1+options.length)%options.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=options.length-1;else return;
         event.preventDefault();options[next].focus({preventScroll:true});
       });
-      document.addEventListener('pointerdown',event=>{if(!languageMenu.hidden&&!languageControl.contains(event.target))closeLanguageMenu();});
+      document.addEventListener('pointerdown',event=>{if(uiElementVisible(languageMenu)&&!languageControl.contains(event.target))closeLanguageMenu();});
       const canvas=$('universe'),pointers=new Map();
       let drag=null,pinchDistance=0,pinchLevel=1,pinched=false,clickGestures=0;
       function cancelGesture() {
