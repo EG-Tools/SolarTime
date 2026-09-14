@@ -328,11 +328,11 @@
   const uiElementVisible=element=>uiElementShown(element)&&!element.classList.contains('ui-fade-closing');
   function showFading(element,show){
     const timer=uiFadeTimers.get(element);if(timer)clearTimeout(timer);uiFadeTimers.delete(element);
-    const alreadyShown=uiElementShown(element);if(!alreadyShown){if(show)show();else element.hidden=false;}
     element.classList.add('ui-fade');element.classList.remove('ui-fade-closing');
+    const alreadyShown=uiElementShown(element);if(!alreadyShown){if(show)show();else element.hidden=false;}
     if(alreadyShown||!uiFadeDuration()){element.classList.add('ui-fade-visible');return;}
     element.classList.remove('ui-fade-visible');void element.offsetWidth;
-    requestAnimationFrame(()=>{if(uiElementShown(element)&&!element.classList.contains('ui-fade-closing'))element.classList.add('ui-fade-visible');});
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{if(uiElementShown(element)&&!element.classList.contains('ui-fade-closing'))element.classList.add('ui-fade-visible');}));
   }
   function hideFading(element,hide){
     const timer=uiFadeTimers.get(element);if(timer)clearTimeout(timer);uiFadeTimers.delete(element);
@@ -373,13 +373,18 @@
       function fadeMusicVolume(target,duration,token){
         const from=musicAudio.volume,start=performance.now();
         return new Promise(resolve=>{
+          let raf=0,settled=false;
+          const finish=value=>{if(settled)return;settled=true;if(raf)cancelAnimationFrame(raf);document.removeEventListener('visibilitychange',onVisibilityChange);resolve(value);};
+          const onVisibilityChange=()=>{if(!document.hidden)return;if(token!==musicToken){finish(false);return;}musicAudio.volume=target;finish(true);};
           const tick=now=>{
-            if(token!==musicToken){resolve(false);return;}
+            if(token!==musicToken){finish(false);return;}
+            if(document.hidden){musicAudio.volume=target;finish(true);return;}
             const progress=Math.min(1,(now-start)/duration),ease=progress*progress*(3-2*progress);
             musicAudio.volume=from+(target-from)*ease;
-            if(progress<1)requestAnimationFrame(tick);else resolve(true);
+            if(progress<1)raf=requestAnimationFrame(tick);else finish(true);
           };
-          requestAnimationFrame(tick);
+          document.addEventListener('visibilitychange',onVisibilityChange);
+          if(document.hidden)onVisibilityChange();else raf=requestAnimationFrame(tick);
         });
       }
       function prepareMusicOrder(){
