@@ -68,15 +68,15 @@
       [0,0,0,360*36525/90560,0,0]]
   ];
   const descriptions = {
-    mercury:'태양에 가장 가까운 작은 암석 행성. 빠른 공전이 이 태양계의 가장 짧은 한 해를 만듭니다.',
-    venus:'두꺼운 구름으로 덮인 금성. 다른 행성 대부분과 반대 방향으로 아주 천천히 자전합니다.',
-    earth:'우리가 시간을 세는 푸른 행성. 곁의 달은 지구와 함께 태양 주위를 여행합니다.',
-    mars:'산화철이 붉게 물들인 이웃 행성. 지구보다 긴 한 해를 가집니다.',
-    jupiter:'태양계에서 가장 큰 행성. 띠 모양의 구름과 거대한 소용돌이를 표현했습니다.',
-    saturn:'얼음과 암석 입자의 고리가 둘러싼 행성. 고리의 앞뒤가 행성과 함께 입체적으로 겹칩니다.',
-    uranus:'청록색 얼음 거대 행성. 옆으로 누운 듯한 자전축과 옅은 고리가 특징입니다.',
-    neptune:'짙은 푸른색의 가장 바깥쪽 행성. 한 번의 공전에 약 165년이 걸립니다.',
-    pluto:'행성이 아닌 왜행성입니다. 기울어진 타원 궤도는 고정된 평균 요소로 개략적으로 표현합니다.'
+    mercury:'금속성 핵이 매우 큰 암석 행성. 물은 대부분 영구 그늘의 극지 분화구에 얼음 형태로 남아 있습니다.',
+    venus:'규산염 암석으로 된 행성. 이산화탄소 대기와 황산 구름이 두껍게 덮고 있어 표면에 액체 물은 없습니다.',
+    earth:'규산염 암석과 금속 핵으로 된 행성. 표면 대부분을 액체 물의 바다가 덮고, 대기는 질소와 산소가 중심입니다.',
+    mars:'철 산화물이 섞인 암석과 먼지로 붉게 보이는 행성. 물은 주로 극관과 지하에 얼음으로 남아 있습니다.',
+    jupiter:'수소와 헬륨이 대부분인 가스 거대 행성. 단단한 표면 없이 깊은 대기와 구름층, 거대한 폭풍을 가집니다.',
+    saturn:'수소와 헬륨이 대부분인 가스 거대 행성. 고리는 물얼음이 주성분이며 암석과 먼지가 섞여 있습니다.',
+    uranus:'수소·헬륨 대기 아래 물·암모니아·메테인 계열 물질이 많은 얼음 거대 행성. 기울어진 자전축과 옅은 고리가 특징입니다.',
+    neptune:'수소·헬륨 대기 아래 물·암모니아·메테인 계열 물질이 많은 얼음 거대 행성. 메테인이 푸른빛에 영향을 줍니다.',
+    pluto:'암석과 물얼음으로 된 왜행성. 표면은 질소·메테인·일산화탄소 얼음이 덮고 있습니다.'
   };
   // The normal overview gives Mercury extra clearance from the Sun, then uses
   // one user-adjustable interval for every neighboring heliocentric orbit.
@@ -114,14 +114,14 @@
     return {x:point.x*scale,y:point.y*scale,z:point.z*scale,physicalDistance:radius};
   }
   const SUN = Object.freeze({id:'sun',ko:'태양',en:'SUN',size:28,color:'#ffb753',spin:25.38,spinSeconds:2192832,referenceSpinDays:25.38,tilt:7.25,
-    description:'태양계의 중심. 표면의 입상 조직과 부드러운 샤인은 감상을 위한 시각 효과입니다.'});
+    description:'수소와 헬륨이 대부분인 항성. 중심의 핵융합 에너지가 뜨거운 플라스마와 빛으로 방출됩니다.'});
   // Satellite display-orbit radii are reference-screen values. The renderer keeps
   // them illustrative normally and scales each local system with its parent when
   // actual-size presentation is enabled.
   const MOON = Object.freeze({id:'moon',ko:'달',en:'MOON',size:3.9,displayOrbit:30,color:'#d0ced0',period:2360591.51/86400,periodSeconds:2360591.51,spin:2360591.51/86400,spinSeconds:2360591.51,referenceSpinDays:27.321661,tilt:6.68,
-    parent:'earth',description:'지구를 약 27.32일에 한 바퀴 도는 유일한 자연 위성. 현재 시뮬레이션 시각의 공전 위치를 표시하며 거리와 크기는 보기 편하게 확대했습니다.'});
+    parent:'earth',description:'규산염 암석으로 된 지구의 자연 위성. 물은 주로 영구 그늘의 극지 토양과 분화구에 얼음으로 존재합니다.'});
   const EUROPA = Object.freeze({id:'europa',ko:'유로파',en:'EUROPA',size:3.8,displayOrbit:45,color:'#d8c89c',period:3.551181,periodSeconds:306822.04,spin:3.551181,spinSeconds:306822.04,referenceSpinDays:3.551181,tilt:.1,
-    parent:'jupiter',description:'갈릴레오 위성 중 하나인 얼음 세계. 목성을 약 3.55일에 돌며 현재 시뮬레이션 시각의 공전 위치를 표시합니다.'});
+    parent:'jupiter',description:'물얼음 지각으로 덮인 목성의 갈릴레이 위성. 얼음 아래에는 염분을 포함한 거대한 액체 바다가 있을 가능성이 큽니다.'});
   const SATELLITES=Object.freeze([MOON,EUROPA]);
   // One local reference owner. A frame does not numerically integrate its predecessor:
   // any timestamp (seek, reopen, sleep, leap year) gives the same phase directly.

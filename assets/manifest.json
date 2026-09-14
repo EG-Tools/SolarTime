@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "revision": "assetpack-20260914-r5",
-  "generatedAt": "2026-09-14T12:01:35.988Z",
+  "revision": "assetpack-20260914-r6",
+  "generatedAt": "2026-09-14T12:48:12.183Z",
   "materials": {
     "clouds": {
       "source": "clouds.webp",
@@ -140,41 +140,6 @@
           "path": "releases/content/textures/jupiter-4096.9302d00ab626810b.webp",
           "bytes": 1106086,
           "sha256": "9302d00ab626810b2ffe1bfa3af9030bbb68f53547ca3c6294aa9498cc4fa0d4"
-        }
-      ]
-    },
-    "mars-relief": {
-      "source": "mars-relief.webp",
-      "width": 4096,
-      "height": 2048,
-      "tiers": [
-        {
-          "width": 512,
-          "height": 256,
-          "path": "releases/content/textures/mars-relief-512.a5f4089463d3d364.webp",
-          "bytes": 8386,
-          "sha256": "a5f4089463d3d3644c5da5db1f02f1215a238b29a31f58f96b5816f7baa9095d"
-        },
-        {
-          "width": 1024,
-          "height": 512,
-          "path": "releases/content/textures/mars-relief-1024.393a23deacc42e16.webp",
-          "bytes": 23828,
-          "sha256": "393a23deacc42e165ef0d9fbe2d9aeabb2066d9160ca29637c1d859f0118f151"
-        },
-        {
-          "width": 2048,
-          "height": 1024,
-          "path": "releases/content/textures/mars-relief-2048.0454814de50351ed.webp",
-          "bytes": 64252,
-          "sha256": "0454814de50351edc36400f493f58c9e2c9ac04d153a0e49a2c304233ee80f10"
-        },
-        {
-          "width": 4096,
-          "height": 2048,
-          "path": "releases/content/textures/mars-relief-4096.2ae3913b7946806e.webp",
-          "bytes": 292968,
-          "sha256": "2ae3913b7946806e876f3983bfafe28ae9814f32918dbbb471ccd30506ee9fd8"
         }
       ]
     },

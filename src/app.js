@@ -1,4 +1,4 @@
-/* Solar Time v0.36 — clock, interaction and accessible UI. */
+/* Solar Time v0.37 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
@@ -70,7 +70,7 @@
       playbackControls:'공전 재생 조절',realTime:'실제 시간',orbitSpeed:'공전 속도',speedSlider:'1초당 진행하는 시간',sources:'출처',bodySelect:'천체 선택',scaleNoteLineOne:'크기·거리 축척 조정 · 평균 궤도 근사',scaleNoteLineTwo:'자전·공전 시간 연동',
       apply:'이동',save:'저장',delete:'삭제',cancel:'취소',helpClose:'도움말 닫기',helpTitle:'사용 방법과 계산 기준',basicControls:'기본 조작',supportMessage:'이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!',supportDetail:'여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!',supportKrw:'원화로 후원',supportUsd:'달러로 후원',
       basicHelp:'좌클릭 드래그는 위아래 제한 없이 시점을 한 바퀴 계속 회전합니다. 가운데 버튼 드래그는 화면을 상하좌우 ±80% 이동합니다. 우측 맨 위 버튼에서 휠을 평면적인 줌 또는 원근감이 생기는 실제 카메라 이동으로 전환할 수 있습니다. 천체를 더블클릭하거나 «가까이 보기»를 누르면 추적합니다. 0은 기본 시점, 1·2·3은 줌/이동 방식까지 함께 저장하는 시점입니다.',
-      releaseHelp:'수성과 달은 고해상도 사진 위에 겹치던 합성 요철을 제거했습니다. 유로파는 전 영역이 균일한 4K 얼음 표면으로 재창조했고, 도움말 후원 영역을 통화별 링크와 커피잔 디자인으로 정리했습니다.',
+      releaseHelp:'화성의 고해상도 사진 위에 겹치던 합성 요철을 제거했습니다. 모든 천체 카드 설명을 암석·가스·얼음·물·대기 등 주요 구성 중심으로 갱신하고, 핵심 정보와 중복되던 공전주기 문장은 정리했습니다.',
       timeAndCalculation:'시간과 계산',timeHelp:'상단 시계는 선택한 언어·지역에 맞춰 현지 실제 시간을 표시합니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.',
       orbitHelp:'행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.',
       pause:'일시정지',fullscreen:'전체 화면',zenMode:'감상 모드',savedViews:'저장 시점',stepExit:'단계별 종료',loading:'작은 우주를 펼치는 중',fatalTitle:'화면을 시작하지 못했습니다.',fatalRetry:'최신 Edge 또는 Chrome에서 다시 열어 주세요.',loadingTime:'시간을 불러오는 중',
@@ -92,7 +92,7 @@
       playbackControls:'Orbit playback controls',realTime:'Real time',orbitSpeed:'Orbit speed',speedSlider:'Time advanced per second',sources:'Sources',bodySelect:'Select body',scaleNoteLineOne:'Adjusted size and distance scale · Mean orbit approximation',scaleNoteLineTwo:'Rotation and orbit linked to time',
       apply:'Move',save:'Save',delete:'Delete',cancel:'Cancel',helpClose:'Close help',helpTitle:'Guide and calculation notes',basicControls:'Basic controls',supportMessage:'If this program has been helpful, please support the developer with a cup of coffee!',supportDetail:'Your support makes a big difference in keeping the servers running and development going!',supportKrw:'Support in KRW',supportUsd:'Support in USD',
       basicHelp:'Left-drag rotates continuously through a full turn without a vertical stop. Middle-drag pans up, down, left or right by ±80%. The top button on the right switches the wheel between flat zoom and true camera travel with perspective. Double-click a body or choose “Closer view” to track it. 0 restores the default view; 1·2·3 save the view together with its Zoom/Move mode.',
-      releaseHelp:'Synthetic relief no longer duplicates the photographic detail on Mercury and the Moon. Europa now uses a uniformly detailed re-created 4K ice surface, and the support area has clear currency links and a refined coffee-cup design.',
+      releaseHelp:'Synthetic relief no longer duplicates the high-resolution detail on Mars. Every body card now explains its main rock, gas, ice, water, and atmospheric composition without repeating orbital periods already shown in the key facts.',
       timeAndCalculation:'Time and calculation',timeHelp:'The upper clock follows the real local time of the selected language and region. Turn off Real time below to adjust simulation speed in hours, days or years. The ranges are 1 minute–24 hours, 1–365 days, and 1–20 years per second.',
       orbitHelp:'Planets move on elliptical orbits, faster near perihelion and slower near aphelion. Moon and Europa are children of Earth and Jupiter, with positions calculated for the simulation time and eccentricities of 0.05 and 0.01. Long-term perturbations and minute distance changes are omitted, so this is not a precision ephemeris for observation, navigation or eclipse prediction.',
       pause:'Pause',fullscreen:'Fullscreen',zenMode:'Viewing mode',savedViews:'Saved views',stepExit:'Step-by-step exit',loading:'Opening a small cosmos',fatalTitle:'Unable to start the view.',fatalRetry:'Open it again in the latest Edge or Chrome.',loadingTime:'Loading time',
@@ -114,7 +114,7 @@
       playbackControls:'公转播放控制',realTime:'实时',orbitSpeed:'公转速度',speedSlider:'每秒推进的时间',sources:'来源',bodySelect:'选择天体',scaleNoteLineOne:'大小与距离比例已调整 · 平均轨道近似',scaleNoteLineTwo:'自转和公转与时间联动',
       apply:'移动',save:'保存',delete:'删除',cancel:'取消',helpClose:'关闭帮助',helpTitle:'使用方法与计算说明',basicControls:'基本操作',supportMessage:'如果这个程序对您有所帮助，欢迎请开发者喝杯咖啡！',supportDetail:'您的支持将为服务器维护和持续开发提供莫大的帮助！',supportKrw:'韩元赞助',supportUsd:'美元赞助',
       basicHelp:'按住左键拖动可不受上下限制地连续旋转一周；按住中键拖动可向上下左右平移 ±80%。右侧最上方按钮可在平面缩放与具有透视感的真实相机移动之间切换滚轮模式。双击天体或选择“近距离查看”可跟踪天体。0 恢复默认视角，1·2·3 会连同缩放/移动模式一起保存。',
-      releaseHelp:'水星和月球不再在高清图像上叠加合成凹凸。木卫二现采用全区域细节一致的全新 4K 冰面纹理，赞助区域也改为清晰的币种链接和咖啡杯设计。',
+      releaseHelp:'火星的高清图像不再叠加重复的合成凹凸。所有天体卡片均改为说明岩石、气体、冰、水和大气等主要成分，并移除了与核心信息重复的公转周期描述。',
       timeAndCalculation:'时间与计算',timeHelp:'上方时钟会显示所选语言和地区的当地实际时间。关闭下方“实时”后，可按小时、日或年调整模拟速度。范围为每秒 1 分钟–24 小时、1–365 日或 1–20 年。',
       orbitHelp:'行星沿椭圆轨道运行，靠近近日点时较快，靠近远日点时较慢。月球和木卫二分别作为地球和木星的子天体，按模拟时间计算位置，离心率仅采用 0.05 和 0.01。未计算长期摄动和细微距离变化，因此不可用于观测、导航或日月食预测等精密星历用途。',
       pause:'暂停',fullscreen:'全屏',zenMode:'观赏模式',savedViews:'保存视角',stepExit:'逐步退出',loading:'正在展开一片小宇宙',fatalTitle:'无法启动画面。',fatalRetry:'请使用最新版 Edge 或 Chrome 重新打开。',loadingTime:'正在读取时间',
@@ -136,7 +136,7 @@
       playbackControls:'公転再生コントロール',realTime:'リアルタイム',orbitSpeed:'公転速度',speedSlider:'1秒あたりに進む時間',sources:'出典',bodySelect:'天体を選択',scaleNoteLineOne:'大きさ・距離の縮尺を調整 · 平均軌道による近似',scaleNoteLineTwo:'自転と公転を時間に連動',
       apply:'移動',save:'保存',delete:'削除',cancel:'キャンセル',helpClose:'ヘルプを閉じる',helpTitle:'操作方法と計算基準',basicControls:'基本操作',supportMessage:'このプログラムがお役に立てたら、開発者にコーヒー一杯分のご支援をお願いします！',supportDetail:'皆さまのご支援が、サーバーの維持と継続的な開発の大きな力になります！',supportKrw:'韓国ウォンで支援',supportUsd:'米ドルで支援',
       basicHelp:'左ドラッグは上下で止まらず一周連続して回転します。中ボタンドラッグは上下左右へ ±80% 移動します。右側最上部のボタンで、平面的なズームと遠近感のある実カメラ移動を切り替えられます。天体をダブルクリックするか「近くで見る」で追跡します。0 は標準視点、1・2・3 はズーム/移動方式も一緒に保存します。',
-      releaseHelp:'水星と月では高解像度画像に重なっていた合成凹凸を取り除きました。エウロパは全域の精細度をそろえた新しい4K氷面に更新し、支援欄も通貨別リンクとコーヒーカップのデザインに整えました。',
+      releaseHelp:'火星の高解像度画像に重なっていた合成凹凸を取り除きました。すべての天体カードを岩石・ガス・氷・水・大気などの主成分中心に更新し、主要情報と重複する公転周期の説明を整理しました。',
       timeAndCalculation:'時刻と計算',timeHelp:'上部の時計は選択した言語と地域の現地時刻を表示します。下部のリアルタイムをオフにすると、時・日・年単位でシミュレーション速度を調整できます。範囲は1秒あたり1分〜24時間、1〜365日、1〜20年です。',
       orbitHelp:'惑星は楕円軌道を進み、近日点では速く、遠日点では遅くなります。月とエウロパは地球と木星の子天体としてシミュレーション時刻の位置を計算し、離心率は 0.05 と 0.01 のみを適用します。長期摂動や微小な距離変化は省略しているため、観測・航法・食予測用の精密暦ではありません。',
       pause:'一時停止',fullscreen:'全画面',zenMode:'鑑賞モード',savedViews:'保存視点',stepExit:'段階的に終了',loading:'小さな宇宙を開いています',fatalTitle:'画面を開始できませんでした。',fatalRetry:'最新の Edge または Chrome で開き直してください。',loadingTime:'時刻を読み込み中',
@@ -160,7 +160,7 @@
       playbackControls:'कक्षा प्लेबैक नियंत्रण',realTime:'वास्तविक समय',orbitSpeed:'कक्षा गति',speedSlider:'प्रति सेकंड आगे बढ़ने वाला समय',sources:'स्रोत',bodySelect:'पिंड चुनें',scaleNoteLineOne:'आकार और दूरी का समायोजित पैमाना · औसत कक्षा अनुमान',scaleNoteLineTwo:'घूर्णन और कक्षा समय से जुड़े हैं',
       apply:'जाएँ',save:'सहेजें',delete:'हटाएँ',cancel:'रद्द करें',helpClose:'सहायता बंद करें',helpTitle:'उपयोग और गणना मार्गदर्शिका',basicControls:'मूल नियंत्रण',supportMessage:'यदि यह प्रोग्राम उपयोगी रहा है, तो डेवलपर को एक कॉफ़ी के साथ सहयोग दें!',supportDetail:'आपका सहयोग सर्वर को चालू रखने और विकास जारी रखने में बहुत मदद करता है!',supportKrw:'KRW में सहयोग',supportUsd:'USD में सहयोग',
       basicHelp:'बायाँ ड्रैग दृश्य को बिना ऊर्ध्व सीमा के पूरा घुमाता है। मध्य ड्रैग स्क्रीन को ऊपर, नीचे, बाएँ या दाएँ ±80% खिसकाता है। दाएँ ऊपर का बटन व्हील को सपाट ज़ूम और परिप्रेक्ष्य वाले वास्तविक कैमरा मूव के बीच बदलता है। किसी पिंड पर डबल-क्लिक करें या “पास से देखें” चुनें। 0 मूल दृश्य लौटाता है; 1·2·3 ज़ूम/मूव मोड सहित दृश्य सहेजते हैं।',
-      releaseHelp:'बुध और चंद्रमा की उच्च-रिज़ॉल्यूशन तस्वीरों पर दोहराया गया कृत्रिम उभार हटा दिया गया है। यूरोपा को समान विवरण वाली नई 4K बर्फीली सतह मिली है और सहयोग अनुभाग में मुद्रा लिंक व कॉफ़ी-कप डिज़ाइन जोड़ा गया है।',
+      releaseHelp:'मंगल की उच्च-रिज़ॉल्यूशन छवि पर दोहराया गया कृत्रिम उभार हटा दिया गया है। सभी खगोलीय कार्ड अब चट्टान, गैस, बर्फ, पानी और वायुमंडल की मुख्य संरचना बताते हैं और मुख्य तथ्यों में पहले से दिए कक्षीय काल को नहीं दोहराते।',
       timeAndCalculation:'समय और गणना',timeHelp:'ऊपरी घड़ी चुने गए क्षेत्र का वास्तविक समय दिखाती है। नीचे वास्तविक समय बंद करके घंटे, दिन या वर्ष में सिमुलेशन गति बदली जा सकती है।',
       orbitHelp:'ग्रह दीर्घवृत्ताकार कक्षाओं में उपसौर पर तेज़ और अपसौर पर धीमे चलते हैं। चंद्रमा और यूरोपा पृथ्वी और बृहस्पति की संतान संरचना में हैं। दीर्घकालीन सूक्ष्म बदलाव शामिल नहीं हैं, इसलिए यह सटीक खगोलीय पंचांग नहीं है।',
       pause:'रोकें',fullscreen:'पूर्ण स्क्रीन',zenMode:'दर्शन मोड',savedViews:'सहेजे दृश्य',stepExit:'क्रमिक निकास',loading:'छोटा ब्रह्मांड खोला जा रहा है',fatalTitle:'दृश्य शुरू नहीं हो सका।',fatalRetry:'नवीनतम Edge या Chrome में फिर खोलें।',loadingTime:'समय लोड हो रहा है',
@@ -181,7 +181,7 @@
       playbackControls:'Controles de órbita',realTime:'Tiempo real',orbitSpeed:'Velocidad orbital',speedSlider:'Tiempo avanzado por segundo',sources:'Fuentes',bodySelect:'Seleccionar cuerpo',scaleNoteLineOne:'Escala de tamaño y distancia ajustada · Órbita media aproximada',scaleNoteLineTwo:'Rotación y órbita vinculadas al tiempo',
       apply:'Mover',save:'Guardar',delete:'Eliminar',cancel:'Cancelar',helpClose:'Cerrar ayuda',helpTitle:'Guía y criterios de cálculo',basicControls:'Controles básicos',supportMessage:'Si este programa te ha resultado útil, invita al desarrollador a un café.',supportDetail:'Tu apoyo es de gran ayuda para mantener los servidores y continuar el desarrollo.',supportKrw:'Apoyar en KRW',supportUsd:'Apoyar en USD',
       basicHelp:'Arrastrar con el botón izquierdo gira sin límite vertical. El botón central desplaza la pantalla hasta ±80%. El botón superior derecho cambia la rueda entre zoom plano y movimiento real de cámara con perspectiva. Haz doble clic en un cuerpo o elige «Vista cercana» para seguirlo. 0 restaura la vista inicial; 1·2·3 guardan la vista y su modo Zoom/Mover.',
-      releaseHelp:'Se eliminó el relieve sintético que duplicaba el detalle fotográfico de Mercurio y la Luna. Europa estrena una superficie helada 4K recreada con detalle uniforme y la sección de apoyo incorpora enlaces por moneda y una taza de café refinada.',
+      releaseHelp:'Se eliminó el relieve sintético que duplicaba el detalle de alta resolución de Marte. Todas las fichas describen ahora su composición principal de roca, gas, hielo, agua y atmósfera sin repetir los periodos orbitales de los datos clave.',
       timeAndCalculation:'Tiempo y cálculo',timeHelp:'El reloj superior muestra la hora real de la región elegida. Desactiva Tiempo real para ajustar la simulación por horas, días o años.',
       orbitHelp:'Los planetas recorren órbitas elípticas, más rápido cerca del perihelio y más lento cerca del afelio. La Luna y Europa son hijos de la Tierra y Júpiter. No se incluyen perturbaciones a largo plazo, por lo que no es una efeméride de precisión.',
       pause:'Pausa',fullscreen:'Pantalla completa',zenMode:'Modo contemplación',savedViews:'Vistas guardadas',stepExit:'Salida por pasos',loading:'Abriendo un pequeño cosmos',fatalTitle:'No se pudo iniciar la vista.',fatalRetry:'Ábrelo de nuevo en la versión más reciente de Edge o Chrome.',loadingTime:'Cargando hora',
@@ -202,7 +202,7 @@
       playbackControls:'Bahnwiedergabe',realTime:'Echtzeit',orbitSpeed:'Bahngeschwindigkeit',speedSlider:'Fortschritt pro Sekunde',sources:'Quellen',bodySelect:'Himmelskörper auswählen',scaleNoteLineOne:'Angepasster Größen- und Entfernungsmaßstab · Mittlere Bahnnäherung',scaleNoteLineTwo:'Rotation und Umlauf an Zeit gekoppelt',
       apply:'Bewegen',save:'Speichern',delete:'Löschen',cancel:'Abbrechen',helpClose:'Hilfe schließen',helpTitle:'Bedienung und Berechnungsgrundlagen',basicControls:'Grundsteuerung',supportMessage:'Wenn dieses Programm hilfreich war, spendiere dem Entwickler einen Kaffee.',supportDetail:'Deine Unterstützung hilft sehr dabei, die Server zu betreiben und die Entwicklung fortzusetzen.',supportKrw:'In KRW unterstützen',supportUsd:'In USD unterstützen',
       basicHelp:'Ziehen mit der linken Maustaste dreht die Ansicht ohne vertikale Begrenzung. Die mittlere Taste verschiebt um bis zu ±80%. Die obere rechte Taste wechselt das Mausrad zwischen flachem Zoom und echter Kamerafahrt mit Perspektive. Doppelklick oder „Nahansicht“ verfolgt einen Körper. 0 stellt die Ausgangsansicht her; 1·2·3 speichern Ansicht und Zoom/Bewegen-Modus.',
-      releaseHelp:'Das künstliche Relief über den hochauflösenden Bildern von Merkur und Mond wurde entfernt. Europa nutzt eine neu geschaffene, durchgehend detaillierte 4K-Eisoberfläche; der Unterstützungsbereich erhielt Währungslinks und ein verfeinertes Tassendesign.',
+      releaseHelp:'Das künstliche Relief, das die hochauflösenden Marsdetails doppelte, wurde entfernt. Alle Himmelskörper-Karten erklären nun ihre wichtigsten Gesteins-, Gas-, Eis-, Wasser- und Atmosphärenbestandteile, ohne die Umlaufzeiten aus den Kerndaten zu wiederholen.',
       timeAndCalculation:'Zeit und Berechnung',timeHelp:'Die obere Uhr zeigt die Echtzeit der gewählten Region. Echtzeit kann ausgeschaltet werden, um die Simulation in Stunden, Tagen oder Jahren zu steuern.',
       orbitHelp:'Planeten bewegen sich auf elliptischen Bahnen, am Perihel schneller und am Aphel langsamer. Mond und Europa sind der Erde bzw. Jupiter untergeordnet. Langfristige Störungen fehlen; dies ist daher keine Präzisionsephemeride.',
       pause:'Pause',fullscreen:'Vollbild',zenMode:'Betrachtungsmodus',savedViews:'Gespeicherte Ansichten',stepExit:'Schrittweise beenden',loading:'Ein kleiner Kosmos öffnet sich',fatalTitle:'Die Ansicht konnte nicht gestartet werden.',fatalRetry:'Bitte erneut im neuesten Edge oder Chrome öffnen.',loadingTime:'Zeit wird geladen',
@@ -223,7 +223,7 @@
       playbackControls:'Commandes des orbites',realTime:'Temps réel',orbitSpeed:'Vitesse orbitale',speedSlider:'Temps écoulé par seconde',sources:'Sources',bodySelect:'Sélectionner un astre',scaleNoteLineOne:'Échelle de taille et de distance ajustée · Orbite moyenne approximative',scaleNoteLineTwo:'Rotation et orbite liées au temps',
       apply:'Déplacer',save:'Enregistrer',delete:'Supprimer',cancel:'Annuler',helpClose:'Fermer l’aide',helpTitle:'Guide et principes de calcul',basicControls:'Commandes de base',supportMessage:'Si ce programme vous a été utile, offrez un café au développeur.',supportDetail:'Votre soutien contribue grandement au maintien des serveurs et à la poursuite du développement.',supportKrw:'Soutenir en KRW',supportUsd:'Soutenir en USD',
       basicHelp:'Le glissement gauche fait tourner la vue sans limite verticale. Le bouton central déplace l’écran jusqu’à ±80 %. Le bouton supérieur droit alterne la molette entre zoom plat et déplacement réel de la caméra avec perspective. Double-cliquez sur un astre ou choisissez « Vue rapprochée » pour le suivre. 0 restaure la vue initiale ; 1·2·3 enregistrent la vue avec son mode Zoom/Déplacement.',
-      releaseHelp:'Le relief synthétique qui doublait les détails photographiques de Mercure et de la Lune a été retiré. Europe dispose d’une nouvelle surface glacée 4K uniformément détaillée, et la zone de soutien propose des liens par devise et une tasse redessinée.',
+      releaseHelp:'Le relief synthétique qui doublait les détails haute résolution de Mars a été retiré. Toutes les fiches décrivent désormais leur composition principale en roche, gaz, glace, eau et atmosphère sans répéter les périodes orbitales déjà affichées.',
       timeAndCalculation:'Temps et calcul',timeHelp:'L’horloge supérieure affiche l’heure réelle de la région choisie. Désactivez Temps réel pour régler la simulation en heures, jours ou années.',
       orbitHelp:'Les planètes suivent des orbites elliptiques, plus vite au périhélie et plus lentement à l’aphélie. La Lune et Europe sont rattachées à la Terre et à Jupiter. Les perturbations à long terme sont omises : ce n’est pas une éphéméride de précision.',
       pause:'Pause',fullscreen:'Plein écran',zenMode:'Mode contemplation',savedViews:'Vues enregistrées',stepExit:'Sortie par étapes',loading:'Ouverture d’un petit cosmos',fatalTitle:'Impossible de démarrer la vue.',fatalRetry:'Ouvrez-la à nouveau dans la dernière version d’Edge ou Chrome.',loadingTime:'Chargement de l’heure',
@@ -237,66 +237,66 @@
     }
   });
   const BODY_COPY={
-    en:{sun:['Sun','The center of the solar system. Granular surface detail and soft shine are visual effects.'],mercury:['Mercury','A small rocky planet closest to the Sun. Its rapid orbit makes the shortest year in this solar system.'],venus:['Venus','Venus is wrapped in thick clouds and rotates very slowly in the opposite direction to most planets.'],earth:['Earth','The blue planet by which we keep time. Its Moon travels around the Sun together with Earth.'],moon:['Moon','Earth’s only natural satellite, orbiting in about 27.32 days. Its position follows the current simulation time; distance and size are enlarged for clarity.'],mars:['Mars','Our neighboring planet colored red by iron oxide, with a longer year than Earth.'],jupiter:['Jupiter','The largest planet in the solar system, shown with cloud bands and its giant storm.'],europa:['Europa','An icy Galilean moon. It orbits Jupiter in about 3.55 days and follows the current simulation time.'],saturn:['Saturn','A planet surrounded by rings of ice and rock particles, layered in 3D in front of and behind the planet.'],uranus:['Uranus','A cyan ice giant distinguished by its nearly sideways rotation axis and faint rings.'],neptune:['Neptune','The deep-blue outer planet, taking about 165 years to complete one orbit.'],pluto:['Pluto','A dwarf planet rather than a planet. Its tilted elliptical orbit is approximated with fixed mean elements.']},
-    chn:{sun:['太阳','太阳系的中心。表面颗粒与柔和光芒为观赏用视觉效果。'],mercury:['水星','最靠近太阳的小型岩石行星，快速公转形成太阳系中最短的一年。'],venus:['金星','被浓厚云层覆盖，并以与多数行星相反的方向缓慢自转。'],earth:['地球','我们用来计量时间的蓝色行星，月球与地球一同绕太阳旅行。'],moon:['月球','地球唯一的天然卫星，约 27.32 日绕行一周。位置随当前模拟时间变化，距离和大小为便于观看而放大。'],mars:['火星','被氧化铁染红的邻近行星，一年比地球更长。'],jupiter:['木星','太阳系最大的行星，画面表现了条带状云层与巨大风暴。'],europa:['木卫二','伽利略卫星之一的冰世界，约 3.55 日绕木星一周，位置随当前模拟时间变化。'],saturn:['土星','由冰与岩石颗粒组成的光环环绕其周围，光环前后与行星呈立体交叠。'],uranus:['天王星','青色冰巨星，近乎横躺的自转轴与淡薄光环是其特点。'],neptune:['海王星','深蓝色的外侧行星，完成一次公转约需 165 年。'],pluto:['冥王星','它是矮行星而非行星，倾斜的椭圆轨道以固定平均轨道要素近似呈现。']},
-    jpn:{sun:['太陽','太陽系の中心。粒状の表面と柔らかな輝きは鑑賞用の視覚効果です。'],mercury:['水星','太陽に最も近い小さな岩石惑星で、速い公転によって太陽系で最も短い一年を持ちます。'],venus:['金星','厚い雲に覆われ、多くの惑星とは逆向きに非常にゆっくり自転します。'],earth:['地球','私たちが時間の基準にする青い惑星。月とともに太陽の周りを進みます。'],moon:['月','地球唯一の天然衛星で、約27.32日で一周します。位置は現在のシミュレーション時刻に従い、見やすさのため距離と大きさを拡大しています。'],mars:['火星','酸化鉄によって赤く見える隣の惑星で、一年は地球より長くなります。'],jupiter:['木星','太陽系最大の惑星。縞状の雲と巨大な嵐を表現しています。'],europa:['エウロパ','ガリレオ衛星の一つである氷の世界。約3.55日で木星を一周し、現在のシミュレーション時刻に従います。'],saturn:['土星','氷と岩石の粒子からなる環に囲まれ、環は惑星の前後に立体的に重なります。'],uranus:['天王星','ほぼ横倒しの自転軸と淡い環が特徴のシアン色の氷巨星です。'],neptune:['海王星','深い青色の外惑星で、一周の公転に約165年かかります。'],pluto:['冥王星','惑星ではなく準惑星です。傾いた楕円軌道を固定平均要素で近似しています。']}
+    en:{sun:['Sun','A star made mostly of hydrogen and helium. Fusion in its core releases energy as hot plasma and light.'],mercury:['Mercury','A rocky planet with an unusually large metallic core. Its water survives mainly as ice in permanently shadowed polar craters.'],venus:['Venus','A silicate-rock planet beneath a dense carbon-dioxide atmosphere and sulfuric-acid clouds; liquid water is absent from the surface.'],earth:['Earth','A planet of silicate rock and a metallic core. Liquid-water oceans cover most of its surface, beneath a nitrogen- and oxygen-rich atmosphere.'],moon:['Moon','Earth’s rocky, silicate-rich natural satellite. Water occurs mainly as ice in permanently shadowed polar soil and craters.'],mars:['Mars','A rocky planet reddened by iron-oxide dust. Most known water remains as ice in the polar caps and subsurface.'],jupiter:['Jupiter','A gas giant made mostly of hydrogen and helium, with no solid surface—only deep atmosphere, cloud layers, and giant storms.'],europa:['Europa','A Galilean moon covered by a water-ice crust. A vast, likely salty liquid ocean may lie beneath the ice.'],saturn:['Saturn','A gas giant made mostly of hydrogen and helium. Its rings are dominated by water ice mixed with rock and dust.'],uranus:['Uranus','An ice giant with hydrogen and helium above a deep interior rich in water-, ammonia-, and methane-bearing material; it also has a tipped axis and faint rings.'],neptune:['Neptune','An ice giant with hydrogen and helium above water-, ammonia-, and methane-rich material. Atmospheric methane contributes to its blue appearance.'],pluto:['Pluto','A dwarf planet of rock and water ice, with a surface coated in nitrogen, methane, and carbon-monoxide ices.']},
+    chn:{sun:['太阳','一颗主要由氢和氦组成的恒星。核心核聚变产生的能量以高温等离子体和光的形式释放。'],mercury:['水星','一颗拥有巨大金属核的岩石行星。水主要以冰的形式保存在极地永久阴影陨石坑中。'],venus:['金星','一颗硅酸盐岩石行星。浓密的二氧化碳大气和硫酸云覆盖全球，表面没有液态水。'],earth:['地球','一颗由硅酸盐岩石和金属核组成的行星。液态海洋覆盖大部分表面，大气以氮和氧为主。'],moon:['月球','地球的天然岩石卫星，主要由硅酸盐组成。水主要以冰的形式存在于极地永久阴影土壤和陨石坑中。'],mars:['火星','一颗因含氧化铁的岩石和尘埃而呈红色的行星。已知水主要以冰的形式存在于极冠和地下。'],jupiter:['木星','一颗主要由氢和氦组成的气态巨行星，没有固体表面，只有深厚大气、云层和巨大风暴。'],europa:['木卫二','一颗表面覆盖水冰地壳的伽利略卫星。冰层下可能存在巨大的含盐液态海洋。'],saturn:['土星','一颗主要由氢和氦组成的气态巨行星。光环以水冰为主，并混有岩石和尘埃。'],uranus:['天王星','一颗冰巨星，氢氦大气下富含水、氨和甲烷类物质，并具有倾斜的自转轴与淡薄光环。'],neptune:['海王星','一颗冰巨星，氢氦大气下富含水、氨和甲烷类物质。大气中的甲烷影响其蓝色外观。'],pluto:['冥王星','一颗由岩石和水冰构成的矮行星，表面覆盖氮、甲烷和一氧化碳冰。']},
+    jpn:{sun:['太陽','主に水素とヘリウムからなる恒星です。中心部の核融合エネルギーが高温のプラズマと光として放出されます。'],mercury:['水星','非常に大きな金属核を持つ岩石惑星です。水は主に、極域の永久影にあるクレーター内に氷として残っています。'],venus:['金星','ケイ酸塩岩石からなる惑星です。濃い二酸化炭素大気と硫酸の雲に覆われ、表面に液体の水はありません。'],earth:['地球','ケイ酸塩岩石と金属核からなる惑星です。表面の大部分を液体の海が覆い、大気は主に窒素と酸素です。'],moon:['月','ケイ酸塩岩石を主体とする地球の天然衛星です。水は主に、極域の永久影にある土壌やクレーター内に氷として存在します。'],mars:['火星','酸化鉄を含む岩石とちりで赤く見える惑星です。水は主に極冠と地下に氷として残っています。'],jupiter:['木星','主に水素とヘリウムからなるガス巨大惑星です。固体表面はなく、深い大気と雲層、巨大な嵐があります。'],europa:['エウロパ','水の氷からなる地殻に覆われたガリレオ衛星です。氷の下には巨大な塩水の液体海洋が存在する可能性が高いと考えられます。'],saturn:['土星','主に水素とヘリウムからなるガス巨大惑星です。環は水の氷が主体で、岩石とちりが混じっています。'],uranus:['天王星','水素・ヘリウム大気の下に水・アンモニア・メタン系物質を多く含む氷巨大惑星で、傾いた自転軸と淡い環を持ちます。'],neptune:['海王星','水素・ヘリウム大気の下に水・アンモニア・メタン系物質を多く含む氷巨大惑星です。大気中のメタンが青い外観に影響します。'],pluto:['冥王星','岩石と水の氷からなる準惑星で、表面は窒素・メタン・一酸化炭素の氷に覆われています。']}
   };
   Object.assign(BODY_COPY,{
     hi:{
-      sun:['सूर्य','सौरमंडल का केंद्र। दानेदार सतह और कोमल चमक दृश्य प्रभाव हैं।'],
-      mercury:['बुध','सूर्य के सबसे पास छोटा पथरीला ग्रह, जिसकी तेज़ कक्षा सबसे छोटा वर्ष बनाती है।'],
-      venus:['शुक्र','घने बादलों से ढका ग्रह, जो अधिकांश ग्रहों की विपरीत दिशा में बहुत धीरे घूमता है।'],
-      earth:['पृथ्वी','हमारे समय का आधार नीला ग्रह। चंद्रमा पृथ्वी के साथ सूर्य की परिक्रमा करता है।'],
-      moon:['चंद्रमा','पृथ्वी का एकमात्र प्राकृतिक उपग्रह, जो लगभग 27.32 दिनों में परिक्रमा करता है।'],
-      mars:['मंगल','लौह ऑक्साइड से लाल दिखने वाला पड़ोसी ग्रह, जिसका वर्ष पृथ्वी से लंबा है।'],
-      jupiter:['बृहस्पति','सौरमंडल का सबसे बड़ा ग्रह, बादलों की पट्टियों और विशाल तूफ़ान सहित।'],
-      europa:['यूरोपा','बर्फीला गैलीलियन उपग्रह, जो लगभग 3.55 दिनों में बृहस्पति की परिक्रमा करता है।'],
-      saturn:['शनि','बर्फ और चट्टानी कणों के छल्लों से घिरा ग्रह।'],
-      uranus:['यूरेनस','लगभग आड़ी घूर्णन धुरी और हल्के छल्लों वाला सियान हिम दानव।'],
-      neptune:['नेपच्यून','गहरा नीला बाहरी ग्रह, जिसकी एक परिक्रमा में लगभग 165 वर्ष लगते हैं।'],
-      pluto:['प्लूटो','झुकी हुई दीर्घवृत्ताकार कक्षा वाला बौना ग्रह।']
+      sun:['सूर्य','मुख्यतः हाइड्रोजन और हीलियम से बना तारा। इसके केंद्र का नाभिकीय संलयन गर्म प्लाज़्मा और प्रकाश के रूप में ऊर्जा छोड़ता है।'],
+      mercury:['बुध','असामान्य रूप से बड़े धात्विक केंद्र वाला पथरीला ग्रह। पानी मुख्यतः ध्रुवों के स्थायी छाया वाले गड्ढों में बर्फ के रूप में बचा है।'],
+      venus:['शुक्र','सिलिकेट चट्टानों का ग्रह। घना कार्बन-डाइऑक्साइड वायुमंडल और सल्फ्यूरिक-अम्ल के बादल इसे ढकते हैं; सतह पर तरल पानी नहीं है।'],
+      earth:['पृथ्वी','सिलिकेट चट्टानों और धात्विक केंद्र वाला ग्रह। तरल पानी के महासागर अधिकांश सतह को ढकते हैं और वायुमंडल में मुख्यतः नाइट्रोजन व ऑक्सीजन है।'],
+      moon:['चंद्रमा','सिलिकेट-समृद्ध चट्टानों से बना पृथ्वी का प्राकृतिक उपग्रह। पानी मुख्यतः ध्रुवों की स्थायी छाया वाली मिट्टी और गड्ढों में बर्फ के रूप में है।'],
+      mars:['मंगल','लौह-ऑक्साइड वाली चट्टान और धूल से लाल दिखने वाला ग्रह। ज्ञात पानी मुख्यतः ध्रुवीय टोपियों और भूमिगत भाग में बर्फ के रूप में है।'],
+      jupiter:['बृहस्पति','मुख्यतः हाइड्रोजन और हीलियम का गैस दानव। इसकी ठोस सतह नहीं, बल्कि गहरा वायुमंडल, बादलों की परतें और विशाल तूफ़ान हैं।'],
+      europa:['यूरोपा','पानी की बर्फ की पपड़ी से ढका गैलीलियन उपग्रह। बर्फ के नीचे विशाल, संभवतः खारा तरल महासागर हो सकता है।'],
+      saturn:['शनि','मुख्यतः हाइड्रोजन और हीलियम का गैस दानव। इसके छल्लों में पानी की बर्फ प्रमुख है, जिसमें चट्टान और धूल मिली है।'],
+      uranus:['यूरेनस','हाइड्रोजन-हीलियम वायुमंडल के नीचे पानी, अमोनिया और मीथेन-समृद्ध पदार्थ वाला हिम दानव; इसकी धुरी झुकी और छल्ले हल्के हैं।'],
+      neptune:['नेपच्यून','हाइड्रोजन-हीलियम वायुमंडल के नीचे पानी, अमोनिया और मीथेन-समृद्ध पदार्थ वाला हिम दानव। वायुमंडलीय मीथेन इसके नीले रंग में योगदान देती है।'],
+      pluto:['प्लूटो','चट्टान और पानी की बर्फ से बना बौना ग्रह, जिसकी सतह नाइट्रोजन, मीथेन और कार्बन-मोनोऑक्साइड की बर्फ से ढकी है।']
     },
     es:{
-      sun:['Sol','Centro del sistema solar. La superficie granular y el brillo suave son efectos visuales.'],
-      mercury:['Mercurio','Pequeño planeta rocoso más cercano al Sol; su órbita rápida crea el año más corto.'],
-      venus:['Venus','Cubierto por nubes densas, gira muy lentamente en sentido contrario a la mayoría de los planetas.'],
-      earth:['Tierra','El planeta azul con el que medimos el tiempo. La Luna viaja alrededor del Sol junto a la Tierra.'],
-      moon:['Luna','Único satélite natural de la Tierra, con una órbita de unos 27,32 días.'],
-      mars:['Marte','Nuestro vecino rojizo por el óxido de hierro, con un año más largo que el terrestre.'],
-      jupiter:['Júpiter','El planeta más grande del sistema solar, con bandas de nubes y una tormenta gigante.'],
-      europa:['Europa','Luna galileana helada que orbita Júpiter en unos 3,55 días.'],
-      saturn:['Saturno','Planeta rodeado de anillos de partículas de hielo y roca.'],
-      uranus:['Urano','Gigante de hielo cian, caracterizado por su eje casi horizontal y anillos tenues.'],
-      neptune:['Neptuno','Planeta exterior azul profundo que tarda unos 165 años en completar una órbita.'],
-      pluto:['Plutón','Planeta enano con una órbita elíptica e inclinada representada mediante elementos medios.']
+      sun:['Sol','Estrella compuesta principalmente por hidrógeno y helio. La fusión de su núcleo libera energía como plasma caliente y luz.'],
+      mercury:['Mercurio','Planeta rocoso con un núcleo metálico excepcionalmente grande. El agua subsiste sobre todo como hielo en cráteres polares en sombra permanente.'],
+      venus:['Venus','Planeta de roca silicatada bajo una densa atmósfera de dióxido de carbono y nubes de ácido sulfúrico; no hay agua líquida en la superficie.'],
+      earth:['Tierra','Planeta de roca silicatada y núcleo metálico. Océanos de agua líquida cubren la mayor parte de la superficie bajo una atmósfera rica en nitrógeno y oxígeno.'],
+      moon:['Luna','Satélite natural rocoso y rico en silicatos de la Tierra. El agua aparece principalmente como hielo en suelo y cráteres polares en sombra permanente.'],
+      mars:['Marte','Planeta rocoso enrojecido por polvo de óxido de hierro. La mayor parte del agua conocida permanece como hielo en los casquetes polares y el subsuelo.'],
+      jupiter:['Júpiter','Gigante gaseoso compuesto principalmente por hidrógeno y helio, sin superficie sólida: solo atmósfera profunda, capas de nubes y tormentas gigantes.'],
+      europa:['Europa','Luna galileana cubierta por una corteza de hielo de agua. Bajo el hielo podría existir un enorme océano líquido, probablemente salado.'],
+      saturn:['Saturno','Gigante gaseoso compuesto principalmente por hidrógeno y helio. Sus anillos son sobre todo hielo de agua mezclado con roca y polvo.'],
+      uranus:['Urano','Gigante de hielo con hidrógeno y helio sobre un interior rico en agua, amoníaco y metano; también posee un eje inclinado y anillos tenues.'],
+      neptune:['Neptuno','Gigante de hielo con hidrógeno y helio sobre material rico en agua, amoníaco y metano. El metano atmosférico contribuye a su aspecto azul.'],
+      pluto:['Plutón','Planeta enano de roca y hielo de agua, con una superficie cubierta de hielos de nitrógeno, metano y monóxido de carbono.']
     },
     de:{
-      sun:['Sonne','Zentrum des Sonnensystems. Körnige Oberfläche und sanfter Glanz sind visuelle Effekte.'],
-      mercury:['Merkur','Kleiner Gesteinsplanet nahe der Sonne; seine schnelle Bahn ergibt das kürzeste Jahr.'],
-      venus:['Venus','Von dichten Wolken umhüllt und sehr langsam entgegen der Drehrichtung der meisten Planeten.'],
-      earth:['Erde','Der blaue Planet, nach dem wir die Zeit messen. Der Mond reist mit der Erde um die Sonne.'],
-      moon:['Mond','Der einzige natürliche Satellit der Erde mit einer Umlaufzeit von etwa 27,32 Tagen.'],
-      mars:['Mars','Unser durch Eisenoxid rot gefärbter Nachbar mit einem längeren Jahr als die Erde.'],
-      jupiter:['Jupiter','Der größte Planet des Sonnensystems mit Wolkenbändern und riesigem Sturm.'],
-      europa:['Europa','Ein eisiger Galileischer Mond, der Jupiter in etwa 3,55 Tagen umkreist.'],
-      saturn:['Saturn','Ein Planet, umgeben von Ringen aus Eis- und Gesteinspartikeln.'],
-      uranus:['Uranus','Cyanfarbener Eisriese mit fast liegender Rotationsachse und schwachen Ringen.'],
-      neptune:['Neptun','Tiefblauer äußerer Planet mit einer Umlaufzeit von etwa 165 Jahren.'],
-      pluto:['Pluto','Zwergplanet mit geneigter elliptischer Bahn aus festen mittleren Elementen.']
+      sun:['Sonne','Ein Stern, der überwiegend aus Wasserstoff und Helium besteht. Kernfusion setzt Energie als heißes Plasma und Licht frei.'],
+      mercury:['Merkur','Ein Gesteinsplanet mit ungewöhnlich großem Metallkern. Wasser bleibt vor allem als Eis in dauerhaft verschatteten Polkratern erhalten.'],
+      venus:['Venus','Ein Planet aus Silikatgestein unter einer dichten Kohlendioxidatmosphäre und Schwefelsäurewolken; flüssiges Wasser fehlt an der Oberfläche.'],
+      earth:['Erde','Ein Planet aus Silikatgestein mit Metallkern. Ozeane aus flüssigem Wasser bedecken den größten Teil der Oberfläche; die Atmosphäre besteht vor allem aus Stickstoff und Sauerstoff.'],
+      moon:['Mond','Der felsige, silikatreiche natürliche Satellit der Erde. Wasser kommt vor allem als Eis in dauerhaft verschattetem Polboden und in Kratern vor.'],
+      mars:['Mars','Ein durch Eisenoxidstaub rot gefärbter Gesteinsplanet. Das bekannte Wasser liegt vor allem als Eis in den Polkappen und im Untergrund vor.'],
+      jupiter:['Jupiter','Ein Gasriese hauptsächlich aus Wasserstoff und Helium, ohne feste Oberfläche – nur mit tiefer Atmosphäre, Wolkenschichten und riesigen Stürmen.'],
+      europa:['Europa','Ein Galileischer Mond mit einer Kruste aus Wassereis. Unter dem Eis könnte ein gewaltiger, wahrscheinlich salzhaltiger flüssiger Ozean liegen.'],
+      saturn:['Saturn','Ein Gasriese hauptsächlich aus Wasserstoff und Helium. Seine Ringe bestehen überwiegend aus Wassereis, vermischt mit Gestein und Staub.'],
+      uranus:['Uranus','Ein Eisriese mit Wasserstoff und Helium über einem an Wasser, Ammoniak und Methan reichen Inneren; hinzu kommen eine gekippte Achse und schwache Ringe.'],
+      neptune:['Neptun','Ein Eisriese mit Wasserstoff und Helium über wasser-, ammoniak- und methanreichem Material. Atmosphärisches Methan trägt zu seinem blauen Aussehen bei.'],
+      pluto:['Pluto','Ein Zwergplanet aus Gestein und Wassereis, dessen Oberfläche von Stickstoff-, Methan- und Kohlenmonoxideis bedeckt ist.']
     },
     fr:{
-      sun:['Soleil','Centre du système solaire. La surface granuleuse et la douce lueur sont des effets visuels.'],
-      mercury:['Mercure','Petite planète rocheuse la plus proche du Soleil ; son orbite rapide crée l’année la plus courte.'],
-      venus:['Vénus','Enveloppée de nuages épais, elle tourne très lentement dans le sens opposé à la plupart des planètes.'],
-      earth:['Terre','La planète bleue qui nous sert à mesurer le temps. La Lune voyage autour du Soleil avec la Terre.'],
-      moon:['Lune','Unique satellite naturel de la Terre, avec une orbite d’environ 27,32 jours.'],
-      mars:['Mars','Notre voisine colorée en rouge par l’oxyde de fer, avec une année plus longue que celle de la Terre.'],
-      jupiter:['Jupiter','La plus grande planète du système solaire, avec ses bandes nuageuses et sa tempête géante.'],
-      europa:['Europe','Lune galiléenne glacée qui orbite Jupiter en environ 3,55 jours.'],
-      saturn:['Saturne','Planète entourée d’anneaux de particules de glace et de roche.'],
-      uranus:['Uranus','Géante de glace cyan caractérisée par son axe presque couché et ses anneaux ténus.'],
-      neptune:['Neptune','Planète extérieure bleu profond qui met environ 165 ans à accomplir une orbite.'],
-      pluto:['Pluton','Planète naine à l’orbite elliptique inclinée, représentée par des éléments moyens fixes.']
+      sun:['Soleil','Une étoile composée surtout d’hydrogène et d’hélium. La fusion de son cœur libère de l’énergie sous forme de plasma chaud et de lumière.'],
+      mercury:['Mercure','Une planète rocheuse dotée d’un noyau métallique exceptionnellement grand. L’eau subsiste surtout sous forme de glace dans les cratères polaires toujours à l’ombre.'],
+      venus:['Vénus','Une planète de roches silicatées sous une dense atmosphère de dioxyde de carbone et des nuages d’acide sulfurique ; sa surface ne porte pas d’eau liquide.'],
+      earth:['Terre','Une planète de roches silicatées et à noyau métallique. Des océans d’eau liquide couvrent la majeure partie de sa surface sous une atmosphère riche en azote et en oxygène.'],
+      moon:['Lune','Le satellite naturel rocheux et riche en silicates de la Terre. L’eau se trouve surtout sous forme de glace dans les sols et cratères polaires toujours à l’ombre.'],
+      mars:['Mars','Une planète rocheuse rougie par la poussière d’oxyde de fer. L’eau connue subsiste surtout sous forme de glace dans les calottes polaires et le sous-sol.'],
+      jupiter:['Jupiter','Une géante gazeuse composée surtout d’hydrogène et d’hélium, sans surface solide : seulement une atmosphère profonde, des couches nuageuses et d’immenses tempêtes.'],
+      europa:['Europe','Une lune galiléenne couverte d’une croûte de glace d’eau. Un immense océan liquide, probablement salé, pourrait se trouver sous la glace.'],
+      saturn:['Saturne','Une géante gazeuse composée surtout d’hydrogène et d’hélium. Ses anneaux sont dominés par la glace d’eau mêlée de roche et de poussière.'],
+      uranus:['Uranus','Une géante de glace avec de l’hydrogène et de l’hélium au-dessus d’un intérieur riche en eau, ammoniac et méthane ; elle possède aussi un axe incliné et de faibles anneaux.'],
+      neptune:['Neptune','Une géante de glace avec de l’hydrogène et de l’hélium au-dessus de matière riche en eau, ammoniac et méthane. Le méthane atmosphérique contribue à son aspect bleu.'],
+      pluto:['Pluton','Une planète naine de roche et de glace d’eau, dont la surface est couverte de glaces d’azote, de méthane et de monoxyde de carbone.']
     }
   });
   // NASA/NSSDCA representative values. Gas- and ice-giant temperatures refer
@@ -1093,7 +1093,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.36',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,musicEnabled,musicTrack:MUSIC_TRACKS[musicIndex]?.title||null,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.37',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,musicEnabled,musicTrack:MUSIC_TRACKS[musicIndex]?.title||null,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

@@ -1,4 +1,4 @@
-/* v0.36: the website works as supplied. This optional build makes one offline HTML. */
+/* v0.37: the website works as supplied. This optional build makes one offline HTML. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
@@ -6,7 +6,7 @@ const {offlineAssetScript}=require('./asset-pipeline.cjs');
 function atomicWrite(file,text){const tmp=file+'.tmp';try{fs.writeFileSync(tmp,text,'utf8');fs.renameSync(tmp,file);}finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}}
 try{
  const pkg=JSON.parse(read('package.json')),version=pkg.version.split('.').slice(1).join('.');
- if(version!=='0.36')throw Error('This builder requires package version 0.0.36.');
+ if(version!=='0.37')throw Error('This builder requires package version 0.0.37.');
  const release=JSON.parse(read('version.json'));
  if(release.version!==version)throw Error('version.json must match package version '+version+'.');
  const assetRevision=JSON.parse(read('assets/revision.json')).version;

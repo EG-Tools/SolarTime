@@ -6,7 +6,7 @@ const SKY_FILE='universe-optimized.webp';
 const REQUIRED=Object.freeze(['sun','mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','pluto','moon','europa','clouds']);
 // High-resolution colour maps already carry their photographed surface detail.
 // Reapplying the older synthetic relief maps would exaggerate the same craters.
-const EXCLUDED=new Set(['universe.webp',SKY_FILE,'pluto-relief.webp','mercury-relief.webp','moon-relief.webp']);
+const EXCLUDED=new Set(['universe.webp',SKY_FILE,'pluto-relief.webp','mercury-relief.webp','moon-relief.webp','mars-relief.webp']);
 
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
 const slash=value=>value.split(path.sep).join('/');
