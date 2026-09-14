@@ -1,16 +1,17 @@
 'use strict';
-const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
 const {catalog,revision,valid}=require('../src/materials.js');
-const entry=catalog.find(e=>e.id==='saturn');
-const row=()=>({id:entry.id,revision,url:entry.urls[0],width:2048,height:1024,created:Date.now(),data:'data:image/webp;base64,dGVzdA=='});
-test('Public photo catalog covers requested Saturn, Neptune, Venus, Moon and other planets with credits',()=>{
- assert.deepEqual(catalog.map(e=>e.id),['saturn','neptune','venus','moon','jupiter','mars','mercury']);
- for(const e of catalog){assert.ok(e.credit);assert.ok(e.urls.length<=3);for(const url of e.urls)assert.ok(url.startsWith('https://'));}
- assert.ok(!catalog.some(e=>e.id==='earth'));
+const root=path.resolve(__dirname,'..'),manifest=JSON.parse(fs.readFileSync(path.join(root,'assets/manifest.json'),'utf8'));
+const asset=()=>({base:'https://assets.example/',fallback:'file:///earth.webp',tiers:[{width:512,path:'release/earth.webp'}]});
+test('Packaged catalog covers every visual body without third-party runtime downloads',()=>{
+ assert.deepEqual(catalog.map(e=>e.id),['sun','mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','pluto','moon','europa','clouds']);
+ assert.equal(revision,'offline');
+ const source=fs.readFileSync(path.join(root,'src/materials.js'),'utf8');assert.doesNotMatch(source,/fetch\(|indexedDB|8k_/);
 });
-test('Cache rejects old revisions, alien sources, malformed dimensions, future dates and expired rows',()=>{
- assert.ok(valid(row(),entry));
- for(const change of [{revision:'old'},{url:'https://example.org/tracker.jpg'},{width:8192},{height:24},{id:'earth'},{created:Date.now()+86400000},{created:Date.now()-366*86400000},{data:'data:text/javascript;base64,test'}])assert.ok(!valid({...row(),...change},entry),JSON.stringify(change));
+test('Manifest assets require bounded resolution tiers and a local fallback',()=>{
+ assert.ok(valid(asset()));assert.ok(valid('data:image/webp;base64,dGVzdA=='));
+ for(const bad of [{...asset(),fallback:''},{...asset(),tiers:[]},{...asset(),tiers:[{width:128,path:'tiny.webp'}]},{...asset(),tiers:[{width:512,path:7}]},'https://example.org/map.webp'])assert.equal(valid(bad),false);
+ for(const entry of Object.values(manifest.materials)){assert.ok(valid({base:'',fallback:entry.source,tiers:entry.tiers}));assert.ok(entry.tiers.length>=3);for(const tier of entry.tiers){assert.equal(tier.height,tier.width/2);assert.match(tier.path,/\.[a-f0-9]{16}\.webp$/);}}
 });
 test('Background comet is a bounded curved cubic, with exact endpoint directions',()=>{
  const sandbox={window:{}};vm.runInNewContext(fs.readFileSync(require.resolve('../src/sky.js'),'utf8'),sandbox);
@@ -22,7 +23,7 @@ test('Background comet is a bounded curved cubic, with exact endpoint directions
 test('Surface raster is limited to 1024 independently of detailed input maps',()=>{
  const renderer=fs.readFileSync(require.resolve('../src/renderer.js'),'utf8'),surface=fs.readFileSync(require.resolve('../src/surface.js'),'utf8');
  assert.ok(renderer.includes('detailWidth:4096,maxRaster:1024'));assert.ok(surface.includes('Math.min(1024,job.diam)'));
- assert.ok(renderer.includes('materialRevision'));assert.ok(surface.includes('t.source!==source'));
+ assert.ok(renderer.includes('materialRevision'));assert.ok(surface.includes('t.source!==source.key'));
 });
 test('Viewing mode exposes the single complete toolbar only while awake',()=>{
  const css=fs.readFileSync(require.resolve('../styles.css'),'utf8');

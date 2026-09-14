@@ -83,9 +83,21 @@
 
 ## 실행
 
-GitHub Pages는 루트 `index.html`을 사용합니다. 변경 ZIP을 기존 SolarTime 프로젝트 루트에 같은 경로로 덮어쓰고 GitHub에 올리면 됩니다. 웹 버전은 별도 빌드가 필요 없습니다.
+로컬 개발 화면과 GitHub Pages의 온라인 화면은 루트 `index.html`을 사용합니다. 공개 주소는 기존과 동일한 `https://eg-tools.github.io/SolarTime/`입니다. HTML·CSS·JavaScript는 GitHub Pages가 전송하고, 음악과 해상도별 재질은 Cloudflare가 전송합니다.
 
 단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.34.html`을 사용합니다.
+
+## 배포와 대용량 미디어
+
+- `npm run build:cloudflare`: 재질을 512/1024/2048/4096 단계의 WebP로 만들고 배포 폴더를 준비합니다.
+- `npm run publish:media`: 미디어가 변경됐을 때만 해상도별 파일과 검증용 묶음을 `solar-time-media` R2 버킷에 올립니다.
+- `npm run fetch:assets`: 새로 받은 저장소에서 R2의 검증된 미디어 묶음을 내려받아 로컬 원본을 복원합니다.
+- `npm run build:git`: R2의 검증된 미디어 묶음을 받아 선택적인 Cloudflare 미러 배포 폴더를 준비합니다.
+- `npm run deploy:cloudflare`: 로컬 원본으로 정적 폴더를 만든 뒤 Worker를 배포합니다. R2를 다시 업로드하지 않습니다.
+
+일반 코드 배포는 이전과 같이 `main` 브랜치에 올리면 GitHub Pages가 루트에서 자동 배포합니다. 대용량 원본과 음악은 Git에서 제외되므로 미디어가 바뀐 경우에만 먼저 `npm run publish:media`를 실행합니다.
+
+재질 주소에는 파일 내용의 해시가 들어가므로 내용이 바뀌지 않은 파일은 새 버전에서도 같은 객체를 재사용합니다. 브라우저는 화면 크기에 맞는 해상도만 요청합니다. 로컬 단일 HTML은 필요한 원본을 문서 안에 포함하므로 인터넷 없이도 실행할 수 있고, 자동 복원과 미러 빌드는 R2 묶음의 SHA-256을 확인한 뒤에만 진행합니다.
 
 ## 조작
 

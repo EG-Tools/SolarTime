@@ -2,6 +2,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const {offlineAssetScript}=require('./asset-pipeline.cjs');
 function atomicWrite(file,text){const tmp=file+'.tmp';try{fs.writeFileSync(tmp,text,'utf8');fs.renameSync(tmp,file);}finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}}
 try{
  const pkg=JSON.parse(read('package.json')),version=pkg.version.split('.').slice(1).join('.');
@@ -21,12 +22,11 @@ try{
  const overlay=[...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="styles-v016\.css(?:\?[^"<>]*)?"[^>]*>/g)];
  if(styles.length!==1||overlay.length!==1)throw Error('Expected styles.css and styles-v016.css entries');
  const css=read('styles.css')+'\n'+read('styles-v016.css');
- require('./pack_assets.cjs');
  html=html.replace(styles[0][0],()=>'<style>\n'+css+'\n</style>').replace(overlay[0][0],'');
  for(const name of names){
   // The packed SolarAssets already contains the new sky. Do not embed it twice.
   if(name==='sky-asset'){html=html.replace(tags.get(name),'');continue;}
-  const code=read('src/'+name+'.js').replace(/<\/script/gi,'<\\/script');
+  const code=(name==='assets'?offlineAssetScript(root):read('src/'+name+'.js')).replace(/<\/script/gi,'<\\/script');
   const id=name==='assets'?' id="solar-assets"':'';
   html=html.replace(tags.get(name),()=>'<script'+id+'>\n'+code+'\n</script>');
  }

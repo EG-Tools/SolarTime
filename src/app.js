@@ -22,6 +22,15 @@
   const FACTORY_BODY_SCALES=Object.freeze({sun:1.54,mercury:3.79,venus:3.06,earth:5.05,mars:4.28,jupiter:2,saturn:2.42,uranus:3.04,neptune:2.32,pluto:5.23,moon:3.7,europa:3.44});
   const FACTORY_ORBIT_SCALES=Object.freeze({sun:.16,earth:.43,jupiter:1});
   const FACTORY_AUTO_ROTATE=1;
+  const MUSIC_TRACKS=Object.freeze([
+    {title:'Celestial Drift',file:'01 - Celestial Drift.mp3'},
+    {title:'Cosmic Drift',file:'02 - Cosmic Drift.mp3'},
+    {title:'Cosmic Hum',file:'03 - Cosmic Hum.mp3'},
+    {title:'Cosmic Silence',file:'04 - Cosmic Silence.mp3'},
+    {title:'Infinite Drift',file:'05 - Infinite Drift.mp3'},
+    {title:'Near-Silence',file:'06 - Near-Silence.mp3'},
+    {title:'Weightless Emptiness',file:'07 - Weightless Emptiness.mp3'}
+  ]);
   function detectedLanguage(){
     const zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'',languages=(navigator.languages?.length?navigator.languages:[navigator.language||'']).map(value=>String(value).toLowerCase());
     if(/(?:shanghai|chongqing|urumqi|hong_kong|macau)/i.test(zone))return 'chn';
@@ -39,7 +48,7 @@
     kor:{
       metaDescription:'별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주.',
       universeAria:'태양계. 좌클릭 드래그로 시점을 자유 회전하고, 가운데 버튼 드래그로 상하좌우 이동합니다. 우측 줌·이동 버튼으로 휠 작동 방식을 바꿀 수 있습니다.',
-      languageChange:'언어 변경',languageCurrent:'현재 한국어',helpLabel:'사용 방법과 계산 기준',settings:'화면 설정',settingsClose:'설정 닫기',
+      languageChange:'언어 변경',languageCurrent:'현재 한국어',musicOn:'배경음악 켜기',musicOff:'배경음악 끄기',musicPrevious:'이전 음악',musicNext:'다음 음악',musicUnavailable:'배경음악을 재생할 수 없습니다.',helpLabel:'사용 방법과 계산 기준',settings:'화면 설정',settingsClose:'설정 닫기',
       actualScale:'실제 크기 비율',orbitSpacing:'일반 보기 궤도 간격',orbitSpacingAria:'일반 보기의 행성 궤도 간격',displaySize:'화면 표시 크기',displaySizeAria:'선택한 천체의 화면 표시 크기',satelliteOrbitSpacing:'위성 궤도 간격',satelliteOrbitSpacingAria:'선택한 행성의 위성 궤도 간격',solarOrbitSpacing:'수성 궤도 간격',solarOrbitSpacingAria:'태양을 기준으로 수성과 바깥 행성 전체의 궤도 간격',resetSize:'크기, 궤도 리셋',actualSizeLocked:'실제 크기 비율에서는 크기와 궤도를 조절할 수 없습니다.',resetDefaults:'초기화',resetDefaultsTitle:'초기 설정으로 돌아갈까요?',resetDefaultsPrompt:'옵션과 천체 크기, 궤도 및 일반 시점이 초기값으로 돌아갑니다. 카메라 1·2·3 저장값은 유지됩니다.',resetComplete:'초기 설정으로 돌아왔습니다.',yes:'예',no:'아니오',orbits:'궤도선',bodyNames:'천체 이름',avoidLabels:'이름 겹침 자동 정리',showSeconds:'시계 초 표시',hourCycle:'24시간 표기',hourCycleAria:'24시간 표기. 켜면 24시간, 끄면 12시간',hour24:'24시간',hour12:'12시간',clockFont:'시계 숫자 폰트',sunShine:'태양 샤인',satellites:'주요 위성 · 달과 유로파',pluto:'명왕성',dwarfPlanet:'왜행성',comets:'멀리 지나는 혜성',
       selectedBody:'선택한 천체 정보',bodyClose:'천체 정보 닫기',focusBody:'가까이 보기 · 천체 추적',viewControls:'시점 조절',zoomIn:'확대',zoomOut:'축소',moveCloser:'앞으로 이동',moveFarther:'뒤로 이동',zoomValue:'화면 확대 배율',moveValue:'카메라 이동 배율',zoomMode:'줌',moveMode:'이동',cameraMode:'휠 작동 방식 · {mode}',cameraModeAria:'휠 모드: {mode}. 누르면 다른 방식으로 전환',homeView:'기본 시점',cameraPresets:'카메라 시점 저장',
       playbackControls:'공전 재생 조절',realTime:'실제 시간',orbitSpeed:'공전 속도',speedSlider:'1초당 진행하는 시간',sources:'출처',bodySelect:'천체 선택',scaleNoteLineOne:'크기·거리 축척 조정 · 평균 궤도 근사',scaleNoteLineTwo:'자전·공전 시간 연동',
@@ -56,12 +65,12 @@
       hourUnit:'시간',minuteUnit:'분',secondUnit:'초',dayUnit:'일',yearUnit:'년',timesPerSecond:'초당 {value}회',secondsPerTurn:'{value}초에 1회',paused:'일시정지',rotationSummary:'자전 주기 약 {period}{retrograde} · {playback} · 공전과 같은 시간 배율',retrograde:' · 역행 자전',
       meanTemperature:'평균 기온',temperatureRange:'최저 {min} · 최고 {max} °C',surfaceGravity:'표면 중력',earthGravityRatio:'지구 대비 {value}배',
       representation:'표현',star:'항성',systemCenter:'태양계의 중심',sunNote:'표면은 자전하며 밝고 어두운 플라스마 결이 미세하게 흐릅니다. 주변 샤인과 표면 움직임은 관상용이며 실시간 태양 관측 데이터가 아닙니다.',earthOrbitPeriod:'지구 공전 주기',brightSide:'지구에서 본 밝은 면 · 근사',approximately:'약 {value}',moonNote:'{phase} · JPL 기준 시각에 맞춘 평균 궤도 위치 · 평균 거리는 고정입니다.',jupiterOrbitPeriod:'목성 공전 주기',jupiterDistance:'목성까지 평균 거리',europaNote:'JPL 기준 시각에 맞춘 현재 공전 위치 · 평균 거리는 고정이며 장기적인 미세 변화는 계산하지 않습니다.',orbitPeriod:'공전 주기',sunDistance:'태양까지 거리 · 근사',plutoNote:'고정된 평균 궤도 · 정밀 위치 예측용이 아닙니다.',earthNote:'{region} · {city} 기준 {dayNight} / 태양 고도 약 {altitude}° · 간단한 근사',day:'낮',night:'밤',auNote:'1 AU는 지구와 태양 사이의 평균 거리입니다. 크기와 거리는 화면에서 축척을 조정했습니다.',koreaView:'{region} 보기 · 낮/밤 확인',stormView:'붉은 소용돌이 보기',
-      speedUnitActive:'속도 단위 {unit}. 누르면 다음 단위로 전환',speedUnitReady:'속도 단위 {unit} 대기. 누르면 이 단위로 배속 시작',orbitPlay:'공전 재생',orbitPause:'공전 일시정지',returnedNow:'현재 시각의 태양계로 돌아왔습니다.',escapePermission:'ESC 순차 해제에는 키보드 권한이 필요합니다. 권한이 없으면 브라우저가 전체 화면을 먼저 종료할 수 있습니다.',fullscreenExitFailed:'전체 화면을 종료하지 못했습니다. ESC를 길게 누르세요.',fullscreenUnsupported:'이 브라우저는 전체 화면을 지원하지 않습니다.',fullscreenOpenFailed:'전체 화면을 열지 못했습니다. 브라우저의 전체 화면 권한을 확인하세요.',fullscreenExit:'전체 화면 종료',zenOff:'감상 모드 끄기',zenOn:'감상 모드 켜기',normalMode:'일반 모드',yearLimit:'2999년 끝에 도달해 정지했습니다. 실제 시간으로 돌아갈 수 있습니다.'
+      speedUnitActive:'속도 단위 {unit}. 누르면 다음 단위로 전환',speedUnitReady:'속도 단위 {unit} 대기. 누르면 이 단위로 배속 시작',orbitPlay:'공전 재생',orbitPause:'공전 일시정지',returnedNow:'현재 시각의 태양계로 돌아왔습니다.',escapePermission:'ESC 순차 해제에는 키보드 권한이 필요합니다. 권한이 없으면 브라우저가 전체 화면을 먼저 종료할 수 있습니다.',fullscreenExitFailed:'전체 화면을 종료하지 못했습니다. ESC를 다시 누르세요.',fullscreenUnsupported:'이 브라우저는 전체 화면을 지원하지 않습니다.',fullscreenOpenFailed:'전체 화면을 열지 못했습니다. 브라우저의 전체 화면 권한을 확인하세요.',fullscreenExit:'전체 화면 종료',zenOff:'감상 모드 끄기',zenOn:'감상 모드 켜기',normalMode:'일반 모드',yearLimit:'2999년 끝에 도달해 정지했습니다. 실제 시간으로 돌아갈 수 있습니다.'
     },
     en:{
       metaDescription:'A solar-system clock flowing with the stars—real time, planetary orbits, Earth and Moon in a small cosmos.',
       universeAria:'Solar system. Left-drag rotates freely, middle-drag pans, and the top-right Zoom/Move control changes the wheel camera mode.',
-      languageChange:'Change language',languageCurrent:'English selected',helpLabel:'Guide and calculation notes',settings:'Display settings',settingsClose:'Close settings',
+      languageChange:'Change language',languageCurrent:'English selected',musicOn:'Play background music',musicOff:'Stop background music',musicPrevious:'Previous track',musicNext:'Next track',musicUnavailable:'Background music could not be played.',helpLabel:'Guide and calculation notes',settings:'Display settings',settingsClose:'Close settings',
       actualScale:'True size ratio',orbitSpacing:'Overview orbit spacing',orbitSpacingAria:'Planet orbit spacing in overview mode',displaySize:'Display size',displaySizeAria:'Display size of the selected body',satelliteOrbitSpacing:'Moon orbit spacing',satelliteOrbitSpacingAria:'Orbit spacing for the selected planet’s moon',solarOrbitSpacing:'Mercury orbit spacing',solarOrbitSpacingAria:'Orbit spacing of Mercury and every outer planet relative to the Sun',resetSize:'Reset size & orbit',actualSizeLocked:'Size and orbit adjustment is unavailable in true-size mode.',resetDefaults:'Reset',resetDefaultsTitle:'Return to the initial setup?',resetDefaultsPrompt:'Options, body sizes, orbits and the normal view will return to their initial values. Camera slots 1–3 will be kept.',resetComplete:'Initial setup restored.',yes:'Yes',no:'No',orbits:'Orbit lines',bodyNames:'Body names',avoidLabels:'Prevent label overlap',showSeconds:'Show clock seconds',hourCycle:'24-hour clock',hourCycleAria:'24-hour clock. On is 24-hour, off is 12-hour',hour24:'24 hour',hour12:'12 hour',clockFont:'Clock numeral font',sunShine:'Solar shine',satellites:'Major moons · Moon and Europa',pluto:'Pluto',dwarfPlanet:'Dwarf planet',comets:'Distant comets',
       selectedBody:'Selected body information',bodyClose:'Close body information',focusBody:'Closer view · Track body',viewControls:'View controls',zoomIn:'Zoom in',zoomOut:'Zoom out',moveCloser:'Move closer',moveFarther:'Move farther',zoomValue:'View zoom level',moveValue:'Camera travel level',zoomMode:'ZOOM',moveMode:'MOVE',cameraMode:'Wheel mode · {mode}',cameraModeAria:'Wheel mode: {mode}. Press to switch modes.',homeView:'Default view',cameraPresets:'Saved camera views',
       playbackControls:'Orbit playback controls',realTime:'Real time',orbitSpeed:'Orbit speed',speedSlider:'Time advanced per second',sources:'Sources',bodySelect:'Select body',scaleNoteLineOne:'Adjusted size and distance scale · Mean orbit approximation',scaleNoteLineTwo:'Rotation and orbit linked to time',
@@ -78,12 +87,12 @@
       hourUnit:'Hour',minuteUnit:'min',secondUnit:'sec',dayUnit:'Day',yearUnit:'Year',timesPerSecond:'{value} rotations per second',secondsPerTurn:'one rotation every {value} seconds',paused:'Paused',rotationSummary:'Rotation period about {period}{retrograde} · {playback} · same time scale as orbit',retrograde:' · retrograde rotation',
       meanTemperature:'Mean temperature',temperatureRange:'Low {min} · high {max} °C',surfaceGravity:'Surface gravity',earthGravityRatio:'{value}× Earth',
       representation:'Type',star:'Star',systemCenter:'Center of the solar system',sunNote:'Bright and dark plasma detail drifts subtly across the rotating surface. Its motion and surrounding shine are visual effects.',earthOrbitPeriod:'Orbit around Earth',brightSide:'Illuminated side seen from Earth · approximate',approximately:'about {value}',moonNote:'{phase} · mean orbit position aligned to a JPL reference time',jupiterOrbitPeriod:'Orbit around Jupiter',jupiterDistance:'Mean distance to Jupiter',europaNote:'Current orbital position aligned to a JPL reference time',orbitPeriod:'Orbital period',sunDistance:'Distance from Sun · approximate',plutoNote:'Fixed mean orbit',earthNote:'{region} · {city}',day:'daylight',night:'night',auNote:'',koreaView:'View {region} · day/night',stormView:'View the Great Red Spot',
-      speedUnitActive:'Speed unit: {unit}. Press to cycle units.',speedUnitReady:'Speed unit {unit} ready. Press to start at this unit.',orbitPlay:'Play orbits',orbitPause:'Pause orbits',returnedNow:'Returned to the solar system at the current time.',escapePermission:'Sequential ESC handling needs keyboard permission. Without it, the browser may exit fullscreen first.',fullscreenExitFailed:'Could not exit fullscreen. Hold ESC.',fullscreenUnsupported:'This browser does not support fullscreen.',fullscreenOpenFailed:'Could not open fullscreen. Check the browser fullscreen permission.',fullscreenExit:'Exit fullscreen',zenOff:'Turn off viewing mode',zenOn:'Turn on viewing mode',normalMode:'Normal mode',yearLimit:'Stopped at the end of year 2999. You can return to Real time.'
+      speedUnitActive:'Speed unit: {unit}. Press to cycle units.',speedUnitReady:'Speed unit {unit} ready. Press to start at this unit.',orbitPlay:'Play orbits',orbitPause:'Pause orbits',returnedNow:'Returned to the solar system at the current time.',escapePermission:'Sequential ESC handling needs keyboard permission. Without it, the browser may exit fullscreen first.',fullscreenExitFailed:'Could not exit fullscreen. Press ESC again.',fullscreenUnsupported:'This browser does not support fullscreen.',fullscreenOpenFailed:'Could not open fullscreen. Check the browser fullscreen permission.',fullscreenExit:'Exit fullscreen',zenOff:'Turn off viewing mode',zenOn:'Turn on viewing mode',normalMode:'Normal mode',yearLimit:'Stopped at the end of year 2999. You can return to Real time.'
     },
     chn:{
       metaDescription:'伴随星光流动的太阳系时钟，在小宇宙中呈现实时时间、行星公转、地球与月球。',
       universeAria:'太阳系。按住左键可自由旋转，按住中键可平移，右上角的缩放/移动按钮可切换滚轮相机模式。',
-      languageChange:'切换语言',languageCurrent:'当前为中文',helpLabel:'使用方法与计算说明',settings:'显示设置',settingsClose:'关闭设置',
+      languageChange:'切换语言',languageCurrent:'当前为中文',musicOn:'播放背景音乐',musicOff:'停止背景音乐',musicPrevious:'上一首',musicNext:'下一首',musicUnavailable:'无法播放背景音乐。',helpLabel:'使用方法与计算说明',settings:'显示设置',settingsClose:'关闭设置',
       actualScale:'真实大小比例',orbitSpacing:'普通视图轨道间距',orbitSpacingAria:'普通视图中的行星轨道间距',displaySize:'显示大小',displaySizeAria:'所选天体的显示大小',satelliteOrbitSpacing:'卫星轨道间距',satelliteOrbitSpacingAria:'所选行星的卫星轨道间距',solarOrbitSpacing:'水星轨道间距',solarOrbitSpacingAria:'以太阳为中心的水星及所有外侧行星轨道间距',resetSize:'重置大小与轨道',actualSizeLocked:'真实大小比例下无法调整大小与轨道。',resetDefaults:'重置',resetDefaultsTitle:'恢复初始设置吗？',resetDefaultsPrompt:'选项、天体大小、轨道和普通视角将恢复初始值。相机 1–3 的保存内容会保留。',resetComplete:'已恢复初始设置。',yes:'是',no:'否',orbits:'轨道线',bodyNames:'天体名称',avoidLabels:'自动避免名称重叠',showSeconds:'显示时钟秒数',hourCycle:'24小时制',hourCycleAria:'24小时制。开启为24小时，关闭为12小时',hour24:'24小时',hour12:'12小时',clockFont:'时钟数字字体',sunShine:'太阳光芒',satellites:'主要卫星 · 月球与木卫二',pluto:'冥王星',dwarfPlanet:'矮行星',comets:'远方彗星',
       selectedBody:'所选天体信息',bodyClose:'关闭天体信息',focusBody:'近距离查看 · 跟踪天体',viewControls:'视角控制',zoomIn:'放大',zoomOut:'缩小',moveCloser:'向前移动',moveFarther:'向后移动',zoomValue:'视图缩放倍率',moveValue:'相机移动倍率',zoomMode:'缩放',moveMode:'移动',cameraMode:'滚轮模式 · {mode}',cameraModeAria:'滚轮模式：{mode}。点击可切换。',homeView:'默认视角',cameraPresets:'保存的相机视角',
       playbackControls:'公转播放控制',realTime:'实时',orbitSpeed:'公转速度',speedSlider:'每秒推进的时间',sources:'来源',bodySelect:'选择天体',scaleNoteLineOne:'大小与距离比例已调整 · 平均轨道近似',scaleNoteLineTwo:'自转和公转与时间联动',
@@ -100,12 +109,12 @@
       hourUnit:'小时',minuteUnit:'分',secondUnit:'秒',dayUnit:'日',yearUnit:'年',timesPerSecond:'每秒 {value} 圈',secondsPerTurn:'每 {value} 秒 1 圈',paused:'暂停',rotationSummary:'自转周期约 {period}{retrograde} · {playback} · 与公转使用相同时间倍率',retrograde:' · 逆行自转',
       meanTemperature:'平均温度',temperatureRange:'最低 {min} · 最高 {max} °C',surfaceGravity:'表面重力',earthGravityRatio:'地球的 {value} 倍',
       representation:'类型',star:'恒星',systemCenter:'太阳系中心',sunNote:'明暗等离子纹理会在自转表面上轻微流动。其运动与周围光芒均为观赏效果，并非实时太阳观测数据。',earthOrbitPeriod:'绕地球公转周期',brightSide:'从地球看到的亮面 · 近似',approximately:'约 {value}',moonNote:'{phase} · 与 JPL 参考时刻对齐的平均轨道位置 · 平均距离固定',jupiterOrbitPeriod:'绕木星公转周期',jupiterDistance:'到木星的平均距离',europaNote:'与 JPL 参考时刻对齐的当前公转位置 · 平均距离固定，不计算长期细微变化。',orbitPeriod:'公转周期',sunDistance:'距太阳距离 · 近似',plutoNote:'固定平均轨道 · 不用于精确位置预测。',earthNote:'{region} · {city}当前为{dayNight} / 太阳高度约 {altitude}° · 简单近似',day:'白昼',night:'夜晚',auNote:'1 AU 是地球与太阳之间的平均距离。大小和距离已为画面显示调整比例。',koreaView:'查看{region} · 昼夜',stormView:'查看大红斑',
-      speedUnitActive:'速度单位：{unit}。点击切换下一单位。',speedUnitReady:'速度单位 {unit} 待用。点击以该单位开始倍速。',orbitPlay:'播放公转',orbitPause:'暂停公转',returnedNow:'已返回当前时刻的太阳系。',escapePermission:'ESC 逐步退出需要键盘权限；若无权限，浏览器可能先退出全屏。',fullscreenExitFailed:'无法退出全屏，请长按 ESC。',fullscreenUnsupported:'此浏览器不支持全屏。',fullscreenOpenFailed:'无法打开全屏，请检查浏览器的全屏权限。',fullscreenExit:'退出全屏',zenOff:'关闭观赏模式',zenOn:'开启观赏模式',normalMode:'普通模式',yearLimit:'已在 2999 年末停止，可返回实时模式。'
+      speedUnitActive:'速度单位：{unit}。点击切换下一单位。',speedUnitReady:'速度单位 {unit} 待用。点击以该单位开始倍速。',orbitPlay:'播放公转',orbitPause:'暂停公转',returnedNow:'已返回当前时刻的太阳系。',escapePermission:'ESC 逐步退出需要键盘权限；若无权限，浏览器可能先退出全屏。',fullscreenExitFailed:'无法退出全屏，请再次按 ESC。',fullscreenUnsupported:'此浏览器不支持全屏。',fullscreenOpenFailed:'无法打开全屏，请检查浏览器的全屏权限。',fullscreenExit:'退出全屏',zenOff:'关闭观赏模式',zenOn:'开启观赏模式',normalMode:'普通模式',yearLimit:'已在 2999 年末停止，可返回实时模式。'
     },
     jpn:{
       metaDescription:'星明かりとともに流れる太陽系時計。リアルタイムの惑星軌道と、地球・月を小さな宇宙に描きます。',
       universeAria:'太陽系。左ドラッグで自由回転、中ボタンドラッグで平行移動し、右上のズーム・移動ボタンでホイールのカメラ方式を切り替えます。',
-      languageChange:'言語を変更',languageCurrent:'日本語を選択中',helpLabel:'操作方法と計算基準',settings:'表示設定',settingsClose:'設定を閉じる',
+      languageChange:'言語を変更',languageCurrent:'日本語を選択中',musicOn:'BGMを再生',musicOff:'BGMを停止',musicPrevious:'前の曲',musicNext:'次の曲',musicUnavailable:'BGMを再生できません。',helpLabel:'操作方法と計算基準',settings:'表示設定',settingsClose:'設定を閉じる',
       actualScale:'実際の大きさの比率',orbitSpacing:'通常表示の軌道間隔',orbitSpacingAria:'通常表示での惑星軌道の間隔',displaySize:'表示サイズ',displaySizeAria:'選択した天体の表示サイズ',satelliteOrbitSpacing:'衛星の軌道間隔',satelliteOrbitSpacingAria:'選択した惑星の衛星軌道間隔',solarOrbitSpacing:'水星の軌道間隔',solarOrbitSpacingAria:'太陽を基準にした水星と外側の全惑星の軌道間隔',resetSize:'サイズ・軌道をリセット',actualSizeLocked:'実際の大きさの比率ではサイズと軌道を調整できません。',resetDefaults:'初期化',resetDefaultsTitle:'初期設定に戻しますか？',resetDefaultsPrompt:'オプション、天体サイズ、軌道、通常視点を初期値へ戻します。カメラ1・2・3の保存内容は維持されます。',resetComplete:'初期設定に戻しました。',yes:'はい',no:'いいえ',orbits:'軌道線',bodyNames:'天体名',avoidLabels:'ラベルの重なりを自動調整',showSeconds:'時計に秒を表示',hourCycle:'24時間表示',hourCycleAria:'24時間表示。オンは24時間、オフは12時間',hour24:'24時間',hour12:'12時間',clockFont:'時計の数字フォント',sunShine:'太陽の輝き',satellites:'主な衛星 · 月とエウロパ',pluto:'冥王星',dwarfPlanet:'準惑星',comets:'遠方を通る彗星',
       selectedBody:'選択した天体の情報',bodyClose:'天体情報を閉じる',focusBody:'近くで見る · 天体を追跡',viewControls:'視点調整',zoomIn:'拡大',zoomOut:'縮小',moveCloser:'前へ移動',moveFarther:'後ろへ移動',zoomValue:'画面の拡大率',moveValue:'カメラ移動倍率',zoomMode:'ズーム',moveMode:'移動',cameraMode:'ホイール方式 · {mode}',cameraModeAria:'ホイール方式：{mode}。押すと切り替わります。',homeView:'標準視点',cameraPresets:'保存したカメラ視点',
       playbackControls:'公転再生コントロール',realTime:'リアルタイム',orbitSpeed:'公転速度',speedSlider:'1秒あたりに進む時間',sources:'出典',bodySelect:'天体を選択',scaleNoteLineOne:'大きさ・距離の縮尺を調整 · 平均軌道による近似',scaleNoteLineTwo:'自転と公転を時間に連動',
@@ -122,7 +131,7 @@
       hourUnit:'時間',minuteUnit:'分',secondUnit:'秒',dayUnit:'日',yearUnit:'年',timesPerSecond:'1秒あたり {value} 回転',secondsPerTurn:'{value}秒で1回転',paused:'一時停止',rotationSummary:'自転周期 約{period}{retrograde} · {playback} · 公転と同じ時間倍率',retrograde:' · 逆行自転',
       meanTemperature:'平均気温',temperatureRange:'最低 {min} · 最高 {max} °C',surfaceGravity:'表面重力',earthGravityRatio:'地球の {value} 倍',
       representation:'分類',star:'恒星',systemCenter:'太陽系の中心',sunNote:'明暗のプラズマ模様が自転する表面を微かに流れます。表面の動きと周囲の輝きは鑑賞用で、リアルタイムの太陽観測データではありません。',earthOrbitPeriod:'地球の周りの公転周期',brightSide:'地球から見た明るい面 · 近似',approximately:'約 {value}',moonNote:'{phase} · JPL 基準時刻に合わせた平均軌道位置 · 平均距離は固定',jupiterOrbitPeriod:'木星の周りの公転周期',jupiterDistance:'木星までの平均距離',europaNote:'JPL 基準時刻に合わせた現在の公転位置 · 平均距離は固定し、長期的な微小変化は省略します。',orbitPeriod:'公転周期',sunDistance:'太陽までの距離 · 近似',plutoNote:'固定平均軌道 · 精密な位置予測用ではありません。',earthNote:'{region} · {city} は{dayNight} / 太陽高度 約{altitude}° · 簡易近似',day:'昼',night:'夜',auNote:'1 AU は地球と太陽の平均距離です。大きさと距離は画面表示用に調整しています。',koreaView:'{region}を見る · 昼/夜',stormView:'大赤斑を見る',
-      speedUnitActive:'速度単位：{unit}。押すと次の単位へ切り替えます。',speedUnitReady:'速度単位 {unit} を待機中。押すとこの単位で倍速を開始します。',orbitPlay:'公転を再生',orbitPause:'公転を一時停止',returnedNow:'現在時刻の太陽系に戻りました。',escapePermission:'ESC の段階的な解除にはキーボード権限が必要です。権限がない場合、ブラウザが先に全画面を終了することがあります。',fullscreenExitFailed:'全画面を終了できませんでした。ESC を長押ししてください。',fullscreenUnsupported:'このブラウザは全画面表示に対応していません。',fullscreenOpenFailed:'全画面を開始できませんでした。ブラウザの全画面権限を確認してください。',fullscreenExit:'全画面を終了',zenOff:'鑑賞モードを終了',zenOn:'鑑賞モードを開始',normalMode:'通常モード',yearLimit:'2999年末に達したため停止しました。リアルタイムへ戻れます。'
+      speedUnitActive:'速度単位：{unit}。押すと次の単位へ切り替えます。',speedUnitReady:'速度単位 {unit} を待機中。押すとこの単位で倍速を開始します。',orbitPlay:'公転を再生',orbitPause:'公転を一時停止',returnedNow:'現在時刻の太陽系に戻りました。',escapePermission:'ESC の段階的な解除にはキーボード権限が必要です。権限がない場合、ブラウザが先に全画面を終了することがあります。',fullscreenExitFailed:'全画面を終了できませんでした。もう一度 ESC を押してください。',fullscreenUnsupported:'このブラウザは全画面表示に対応していません。',fullscreenOpenFailed:'全画面を開始できませんでした。ブラウザの全画面権限を確認してください。',fullscreenExit:'全画面を終了',zenOff:'鑑賞モードを終了',zenOn:'鑑賞モードを開始',normalMode:'通常モード',yearLimit:'2999年末に達したため停止しました。リアルタイムへ戻れます。'
     }
   };
   const BODY_COPY={
@@ -187,6 +196,73 @@
       const bodyCopy=body=>copyLanguage()==='kor'?{name:body.ko,description:body.description}:{name:BODY_COPY[copyLanguage()]?.[body.id]?.[0]||body.en,description:BODY_COPY[copyLanguage()]?.[body.id]?.[1]||body.description};
       const phaseCopy=name=>copyLanguage()==='kor'?name:(PHASE_COPY[copyLanguage()]?.[name]||name);
       const quantity=(value,unit)=>copyLanguage()==='en'?`${value} ${t(unit)}`:`${value}${t(unit)}`;
+      const musicAudio=$('background-music'),musicFolder=/\/dist\/[^/]+\.html$/i.test(location.pathname)?'../assets/music/':'assets/music/';
+      let musicEnabled=false,musicIndex=-1,musicOrder=[],musicPosition=-1,musicToken=0,musicFailures=0,lastMusicFailure=-1;
+      musicAudio.volume=.55;musicAudio.muted=true;
+      function musicAssetUrl(file,fallback=false){
+        const asset=window.SolarAssets?.music?.[file];
+        if(asset){if(fallback||!asset.base)return asset.fallback;return new URL(asset.path,asset.base).href;}
+        return new URL(musicFolder+encodeURIComponent(file),location.href).href;
+      }
+      function fadeMusicVolume(target,duration,token){
+        const from=musicAudio.volume,start=performance.now();
+        return new Promise(resolve=>{
+          const tick=now=>{
+            if(token!==musicToken){resolve(false);return;}
+            const progress=Math.min(1,(now-start)/duration),ease=progress*progress*(3-2*progress);
+            musicAudio.volume=from+(target-from)*ease;
+            if(progress<1)requestAnimationFrame(tick);else resolve(true);
+          };
+          requestAnimationFrame(tick);
+        });
+      }
+      function prepareMusicOrder(){
+        const next=MUSIC_TRACKS.map((_,index)=>index);
+        for(let i=next.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[next[i],next[j]]=[next[j],next[i]];}
+        musicOrder=next;musicPosition=0;
+      }
+      function musicUi(){
+        const button=$('music-toggle'),track=MUSIC_TRACKS[musicIndex],label=t(musicEnabled?'musicOff':'musicOn');
+        button.setAttribute('aria-pressed',String(musicEnabled));button.setAttribute('aria-label',label);button.title=label;
+        $('music-title').textContent=track?.title||'';$('music-now').hidden=!(musicEnabled&&track);
+        for(const [id,key] of [['music-previous','musicPrevious'],['music-next','musicNext']]){$(id).setAttribute('aria-label',t(key));$(id).title=t(key);}
+      }
+      function musicFailure(token){
+        if(!musicEnabled||token!==musicToken||lastMusicFailure===token)return;
+        lastMusicFailure=token;
+        if(++musicFailures<MUSIC_TRACKS.length){stepMusic(1,false);return;}
+        setMusicEnabled(false);toast(t('musicUnavailable'));
+      }
+      async function playMusicAt(position,useFallback=false){
+        if(!musicEnabled)return;
+        if(!musicOrder.length)prepareMusicOrder();
+        musicPosition=(position+musicOrder.length)%musicOrder.length;musicIndex=musicOrder[musicPosition];
+        const track=MUSIC_TRACKS[musicIndex],token=++musicToken;
+        musicUi();
+        if(!musicAudio.paused&&!musicAudio.ended&&musicAudio.currentTime>0){
+          if(!await fadeMusicVolume(0,90,token))return;
+          musicAudio.pause();
+        }
+        if(token!==musicToken||!musicEnabled)return;
+        musicAudio.src=musicAssetUrl(track.file,useFallback);musicAudio.volume=0;musicAudio.muted=false;musicAudio.load();
+        try{
+          await musicAudio.play();
+          if(token===musicToken){musicFailures=0;await fadeMusicVolume(.55,180,token);}
+        }catch(_){const primary=musicAssetUrl(track.file),fallback=musicAssetUrl(track.file,true);if(!useFallback&&primary!==fallback){playMusicAt(position,true);return;}musicFailure(token);}
+      }
+      function stepMusic(direction,resetFailures=true){if(!musicEnabled)return;if(!musicOrder.length)prepareMusicOrder();if(resetFailures)musicFailures=0;playMusicAt(musicPosition+direction);}
+      function playFirstMusic(){prepareMusicOrder();playMusicAt(0);}
+      function setMusicEnabled(value){
+        const next=!!value;if(next===musicEnabled)return;musicEnabled=next;
+        if(!next){++musicToken;musicAudio.pause();musicAudio.muted=true;musicUi();return;}
+        musicAudio.muted=false;musicFailures=0;lastMusicFailure=-1;
+        if(musicIndex>=0&&musicAudio.src&&!musicAudio.ended&&!musicAudio.error){const token=++musicToken;musicUi();musicAudio.volume=0;musicAudio.play().then(()=>fadeMusicVolume(.55,180,token)).catch(()=>musicFailure(token));}
+        else playFirstMusic();
+      }
+      musicAudio.addEventListener('ended',()=>stepMusic(1));
+      $('music-toggle').addEventListener('click',()=>setMusicEnabled(!musicEnabled));
+      $('music-previous').addEventListener('click',()=>stepMusic(-1));
+      $('music-next').addEventListener('click',()=>stepMusic(1));
       function translateStatic(){
         document.documentElement.lang=LANG_META[language].html;
         for(const el of document.querySelectorAll('[data-i18n]'))el.textContent=t(el.dataset.i18n);
@@ -199,6 +275,7 @@
         $('fullscreen-button').setAttribute('aria-label',t(document.fullscreenElement?'fullscreenExit':'fullscreen'));$('fullscreen-button').title=t(document.fullscreenElement?'fullscreenExit':'fullscreen')+' · F';
         $('zen-toggle').setAttribute('aria-label',t(zen?'zenOff':'zenOn'));$('zen-toggle').title=t(zen?'normalMode':'zenMode')+' · H';
         $('timezone-button').title=t('timezoneTitle');
+        musicUi();
       }
       const CLOCK_FONTS=Object.freeze({
         aptos:'"Aptos Display","Segoe UI Light","Segoe UI",Arial,sans-serif',
@@ -508,7 +585,14 @@
       function pause() {renderer.invalidateSurfaces();clock.toggle(performance.now());uiNow();}
       $('pause-button').addEventListener('click',pause);
       $('timezone-button').addEventListener('click',()=>{timezone=timezone==='local'?'utc':'local';refreshTimeFormats();lastWallKey='';uiNow();persist();});
-      function settings(open) {const panel=$('settings-panel'),next=open===undefined?!uiElementVisible(panel):open;if(next)showFading(panel);else hideFading(panel);$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
+      const scrollCueUpdates=[];
+      function bindScrollCues(container,scroller){
+        const update=()=>{const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;container.classList.toggle('can-scroll-up',scroller.scrollTop>3);container.classList.toggle('can-scroll-down',remaining>3);};
+        scroller.addEventListener('scroll',update,{passive:true});scrollCueUpdates.push(update);return update;
+      }
+      const settingsPanel=$('settings-panel'),settingsScroll=$('settings-scroll');
+      const updateSettingsScrollCues=bindScrollCues(settingsPanel,settingsScroll);
+      function settings(open) {const next=open===undefined?!uiElementVisible(settingsPanel):open;if(next){showFading(settingsPanel);updateSettingsScrollCues();requestAnimationFrame(updateSettingsScrollCues);}else hideFading(settingsPanel);$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
       for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if(key==='actualScale'){syncOrbitSpacingControl();if(renderer.selected)syncBodySizeControl();}if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
       $('overview-orbit-gap').addEventListener('input',()=>{renderer.setOption('overviewOrbitGap',$('overview-orbit-gap').value);syncOrbitSpacingControl();});
@@ -552,34 +636,13 @@
       for(const [id,direction] of [['rotate-left',-1],['rotate-right',1]])$(id).addEventListener('click',()=>{
         renderer.setAutoRotate(renderer.autoRotateDirection===direction?0:direction,performance.now());cameraUi();persist();
       });
-      let fullscreenBusy=false,keyboardEpoch=0,escapeLock='inactive';
-      function unlockEscape() {
-        keyboardEpoch++;escapeLock='inactive';
-        try{navigator.keyboard?.unlock?.();}catch(_){/* Already released by the browser. */}
-      }
-      async function lockEscape() {
-        if(!document.fullscreenElement||disposed)return;
-        const ticket=++keyboardEpoch;
-        if(!navigator.keyboard?.lock){escapeLock='unsupported';return;}
-        escapeLock='pending';
-        try {
-          // Capture ESC only, never Ctrl/Alt/OS shortcuts. Long ESC is still a browser escape hatch.
-          await navigator.keyboard.lock(['Escape']);
-          if(ticket!==keyboardEpoch){if(disposed||!document.fullscreenElement){try{navigator.keyboard?.unlock?.();}catch(_){}}return;}
-          if(disposed||!document.fullscreenElement){unlockEscape();return;}
-          escapeLock='locked';
-        } catch(_) {
-          if(ticket!==keyboardEpoch)return;
-          escapeLock='denied';
-          toast(t('escapePermission'));
-        }
-      }
+      let fullscreenBusy=false;
       async function exitFullscreen() {
         if(!document.fullscreenElement||fullscreenBusy)return;
         fullscreenBusy=true;
         try{await document.exitFullscreen();}
         catch(_){toast(t('fullscreenExitFailed'));}
-        finally{fullscreenBusy=false;if(!document.fullscreenElement)unlockEscape();}
+        finally{fullscreenBusy=false;}
       }
       async function fullscreen() {
         if(document.fullscreenElement)return exitFullscreen();
@@ -594,13 +657,12 @@
       document.addEventListener('fullscreenchange',()=>{
         $('fullscreen-button').setAttribute('aria-label',t(document.fullscreenElement?'fullscreenExit':'fullscreen'));
         $('fullscreen-button').title=t(document.fullscreenElement?'fullscreenExit':'fullscreen')+' · F';
-        if(document.fullscreenElement)lockEscape();else unlockEscape();
         refreshViewport();
       });
       function handleEscape() {
-        // Exactly one state change per key press. Never toggle into fullscreen here.
-        if(zen){setZen(false);return;}
+        // Fullscreen always exits on the first short press; remaining UI closes step by step.
         if(document.fullscreenElement){exitFullscreen();return;}
+        if(zen){setZen(false);return;}
         if(resetDefaultsDialog.open){closeResetDefaults();return;}
         if(presetDialog.open){closePresetDialog();return;}
         if($('help-dialog').open){help(false);return;}
@@ -643,11 +705,7 @@
       for(const event of ['pointermove','pointerdown','pointerup','pointercancel','wheel','keydown','focusin'])document.addEventListener(event,wakePointer,{passive:true});
       const helpDialog=$('help-dialog');
       const helpScroll=$('help-scroll');
-      function updateHelpScrollCues(){
-        const remaining=helpScroll.scrollHeight-helpScroll.clientHeight-helpScroll.scrollTop;
-        helpDialog.classList.toggle('can-scroll-up',helpScroll.scrollTop>3);
-        helpDialog.classList.toggle('can-scroll-down',remaining>3);
-      }
+      const updateHelpScrollCues=bindScrollCues(helpDialog,helpScroll);
       function help(open){
         const next=open===undefined?!uiElementVisible(helpDialog):open;
         if(next&&!helpDialog.open){
@@ -658,8 +716,7 @@
       }
       $('help-button').addEventListener('click',()=>help());
       helpDialog.querySelector('form').addEventListener('submit',event=>{event.preventDefault();help(false);});
-      helpScroll.addEventListener('scroll',updateHelpScrollCues,{passive:true});
-      window.addEventListener('resize',()=>{if(helpDialog.open)updateHelpScrollCues();},{passive:true});
+      window.addEventListener('resize',()=>{for(const update of scrollCueUpdates)update();},{passive:true});
       helpDialog.addEventListener('close',()=>$('help-button').setAttribute('aria-expanded','false'));
       helpDialog.addEventListener('cancel',event=>{event.preventDefault();handleEscape();});
       function setLanguage(next){
@@ -729,7 +786,9 @@
       window.addEventListener('keydown',event=>{
         if(disposed)return;
         if(event.key==='Escape'||event.code==='Escape'){
-          event.preventDefault();event.stopImmediatePropagation();
+          // Outside the Web Fullscreen API, leave the native Escape action available.
+          // This lets Chrome/Edge exit --start-fullscreen with one short press.
+          if(document.fullscreenElement){event.preventDefault();event.stopImmediatePropagation();}
           if(!event.repeat)handleEscape();return;
         }
         // Do not take OS/browser shortcut combinations or interrupt an IME composition.
@@ -832,16 +891,16 @@
           if(wasTransitioning||renderer.cameraTween)cameraUi();
           if(wasTransitioning&&!renderer.cameraTween)persist();
           if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);}
-        } catch(error){disposed=true;renderer.dispose();materials.dispose();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
+        } catch(error){disposed=true;setMusicEnabled(false);renderer.dispose();materials.dispose();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
       }
       document.addEventListener('visibilitychange',()=>{
         if(document.hidden){closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
         else if(!raf&&!disposed){renderer.resume();lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
       });
-      window.addEventListener('pagehide',event=>{unlockEscape();closePresetDialog(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
+      window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.34',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.34',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,musicEnabled,musicTrack:MUSIC_TRACKS[musicIndex]?.title||null,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

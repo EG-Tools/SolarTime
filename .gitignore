@@ -2,6 +2,13 @@
 Thumbs.db
 node_modules/
 assets/*.zip
+assets/*.png
+assets/*.webp
+assets/music/
+.cloudflare/
+.wrangler/
+.wrangler-read.log
+worker-configuration.d.ts
 __pycache__/
 playwright-report/
 

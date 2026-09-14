@@ -1,0 +1,625 @@
+{
+  "schema": 1,
+  "revision": "assetpack-20260914-r2",
+  "generatedAt": "2026-09-14T05:23:03.488Z",
+  "materials": {
+    "clouds": {
+      "source": "clouds.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/clouds-512.af71ddc38ee8c3fb.webp",
+          "bytes": 19946,
+          "sha256": "af71ddc38ee8c3fb839b0d271c7fa43a8c01ce4099282f5b18eb81bfe056b239"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/clouds-1024.cd215fc3d411cefc.webp",
+          "bytes": 41760,
+          "sha256": "cd215fc3d411cefc8919586be19a36fd34fdb6f0152a6706cec19a6b54c169dd"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/clouds-2048.d90308a49700184d.webp",
+          "bytes": 88808,
+          "sha256": "d90308a49700184d4c5dd2f4e833f03b5bb9e45a05bbf547b932082be3f92410"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/clouds-4096.bdf02434df194621.webp",
+          "bytes": 203476,
+          "sha256": "bdf02434df19462170561b4aaf39a5d19de6ae1e70f13d15647d39cee5870e45"
+        }
+      ]
+    },
+    "earth": {
+      "source": "earth.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/earth-512.dad7e32136f713f8.webp",
+          "bytes": 29062,
+          "sha256": "dad7e32136f713f898aec2b17b1067f0d82d0d1d37d2f1b82c50455330d0e77d"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/earth-1024.769b57e2cb6948d6.webp",
+          "bytes": 92208,
+          "sha256": "769b57e2cb6948d69b2f595260dfebfed7ad75e57f2f3a619613a6a60419cb2d"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/earth-2048.27fa6fa233f4d6c6.webp",
+          "bytes": 287334,
+          "sha256": "27fa6fa233f4d6c6d244a25e3e3264c8ec369a7311218db30cf0dbd16a9a992d"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/earth-4096.a74b72c728508af8.webp",
+          "bytes": 1352502,
+          "sha256": "a74b72c728508af81c8f8a930ad052a7d6d3ac93b15236b58d739d0c6fe76aaf"
+        }
+      ]
+    },
+    "europa": {
+      "source": "europa.webp",
+      "width": 2048,
+      "height": 1024,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/europa-512.0a298ef13b428bc4.webp",
+          "bytes": 20910,
+          "sha256": "0a298ef13b428bc459e77ac6276d74e24ff246e5b8d3e75dbe02486c38b302ae"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/europa-1024.8aba58890815cdda.webp",
+          "bytes": 60566,
+          "sha256": "8aba58890815cddae70300a4cb3e79fba57a8f2451e87dd205258751501cde81"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/europa-2048.04bbb9cabf8183d2.webp",
+          "bytes": 301226,
+          "sha256": "04bbb9cabf8183d2479ea51d3db591a997c231ea15e1a4a4e395a20d6eff874b"
+        }
+      ]
+    },
+    "jupiter": {
+      "source": "jupiter.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/jupiter-512.e164be9334d22f9d.webp",
+          "bytes": 5388,
+          "sha256": "e164be9334d22f9d49fac251c396683965116a028bb964b951e8c5a07ce5eb1f"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/jupiter-1024.2aa69a7e4d14f67e.webp",
+          "bytes": 26410,
+          "sha256": "2aa69a7e4d14f67e244dad996872a8f64ff5d7eca41992360f07ad8ab7ae11c3"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/jupiter-2048.972bf63412b9eadf.webp",
+          "bytes": 94518,
+          "sha256": "972bf63412b9eadf2a13771e21a2ac459a6dadd2978ae1bf4cf366b8848c5b22"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/jupiter-4096.8d944ae47f260c66.webp",
+          "bytes": 418090,
+          "sha256": "8d944ae47f260c66f837a4660c65a2e36c479ec2212ebc226bd391f2a9688c70"
+        }
+      ]
+    },
+    "mars-relief": {
+      "source": "mars-relief.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/mars-relief-512.a5f4089463d3d364.webp",
+          "bytes": 8386,
+          "sha256": "a5f4089463d3d3644c5da5db1f02f1215a238b29a31f58f96b5816f7baa9095d"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/mars-relief-1024.393a23deacc42e16.webp",
+          "bytes": 23828,
+          "sha256": "393a23deacc42e165ef0d9fbe2d9aeabb2066d9160ca29637c1d859f0118f151"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/mars-relief-2048.0454814de50351ed.webp",
+          "bytes": 64252,
+          "sha256": "0454814de50351edc36400f493f58c9e2c9ac04d153a0e49a2c304233ee80f10"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/mars-relief-4096.2ae3913b7946806e.webp",
+          "bytes": 292968,
+          "sha256": "2ae3913b7946806e876f3983bfafe28ae9814f32918dbbb471ccd30506ee9fd8"
+        }
+      ]
+    },
+    "mars": {
+      "source": "mars.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/mars-512.d65ec0cd71cb1741.webp",
+          "bytes": 9646,
+          "sha256": "d65ec0cd71cb17417a5273f88554a1b2c5e9e3be7f9daeef88a1ead26367ba3c"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/mars-1024.80c8df515e54ecaf.webp",
+          "bytes": 24170,
+          "sha256": "80c8df515e54ecaff999a9451a21fd3b11cb3c53be60189c88d4855005d3adb0"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/mars-2048.7c3a9a780836ddbe.webp",
+          "bytes": 59370,
+          "sha256": "7c3a9a780836ddbe9034f34df94f17ca68e86bef191169cfe23e3d20965a5914"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/mars-4096.63d87024ee78f3f0.webp",
+          "bytes": 241452,
+          "sha256": "63d87024ee78f3f01274fdb53ac97dde5a218ef44239b614b5545bc9d7d74f6d"
+        }
+      ]
+    },
+    "mercury-relief": {
+      "source": "mercury-relief.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/mercury-relief-512.66789284f307ae55.webp",
+          "bytes": 9012,
+          "sha256": "66789284f307ae558fc1302864c422d09fa3f36c44560f8e646c98613336063b"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/mercury-relief-1024.2eacbc8aa405857b.webp",
+          "bytes": 26270,
+          "sha256": "2eacbc8aa405857b94a7df34bbc7ce028925b1cbfb52d03a1806f7ec58f5ea69"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/mercury-relief-2048.eeaa3f890ca710fb.webp",
+          "bytes": 65316,
+          "sha256": "eeaa3f890ca710fbefa5a7835d137b547961d694e83da198e9086ea9cfd29ee8"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/mercury-relief-4096.0b87bc0b849123ea.webp",
+          "bytes": 296500,
+          "sha256": "0b87bc0b849123ea8289ac0eb8f0e1bfde2af0c8ac4f7d35f32899144fae1b70"
+        }
+      ]
+    },
+    "mercury": {
+      "source": "mercury.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/mercury-512.bee40d2342f3a973.webp",
+          "bytes": 10564,
+          "sha256": "bee40d2342f3a973de796063fa7798bf4b14da65b6f50beaa3fdde19c2b94b08"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/mercury-1024.4ca7a4374260afba.webp",
+          "bytes": 26562,
+          "sha256": "4ca7a4374260afbac637851dc2d3902ddb8daff1ec165d028915734d85308ca2"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/mercury-2048.1afcaf176f4a99f4.webp",
+          "bytes": 69414,
+          "sha256": "1afcaf176f4a99f4cdfa4602db883f37dc85ae030990712f3cfcb238636f1cb3"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/mercury-4096.f4062df0042d2450.webp",
+          "bytes": 243918,
+          "sha256": "f4062df0042d2450b00c8027244f4f1cb2f39b98954465b533cdc6a1b920a41a"
+        }
+      ]
+    },
+    "moon-relief": {
+      "source": "moon-relief.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/moon-relief-512.4ff171b2633b5cd3.webp",
+          "bytes": 11768,
+          "sha256": "4ff171b2633b5cd344e6f645ebf2ba45dd30516796d9cb5ff3b4aae8cc7a4d49"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/moon-relief-1024.299d44f99f7216f2.webp",
+          "bytes": 32110,
+          "sha256": "299d44f99f7216f255f0f4ef1acdb9272e57c88aeb02892700f7a31f43059656"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/moon-relief-2048.76d27185cfe8124b.webp",
+          "bytes": 81652,
+          "sha256": "76d27185cfe8124bf0d7b8c71db96d4edb703e6e9441117a4b14f55a43953f57"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/moon-relief-4096.b79267f971c04490.webp",
+          "bytes": 373098,
+          "sha256": "b79267f971c044906008db9b8a2337463d80f3574959f7faa8deb3cfc2cf2386"
+        }
+      ]
+    },
+    "moon": {
+      "source": "moon.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/moon-512.e82037f5afd62d59.webp",
+          "bytes": 8508,
+          "sha256": "e82037f5afd62d595dcfb4f819139c4a1daf156025e6db27925c35722eed1452"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/moon-1024.1f499d7363e6c2a3.webp",
+          "bytes": 23634,
+          "sha256": "1f499d7363e6c2a367e7935ad81874da1f4a5fda5cd5f03fff46ec68b133e4dc"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/moon-2048.313a7175efdd7180.webp",
+          "bytes": 59432,
+          "sha256": "313a7175efdd71800ab68490d0199d887ac0559e840bc7c33c23777be9cb8fd1"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/moon-4096.07ad31403f47a874.webp",
+          "bytes": 213216,
+          "sha256": "07ad31403f47a874f20365e5fb6cb25e108efe0a4d254e932eb36b3abcfdc3d4"
+        }
+      ]
+    },
+    "neptune": {
+      "source": "neptune.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/neptune-512.c5a4027ae9c6d731.webp",
+          "bytes": 6236,
+          "sha256": "c5a4027ae9c6d731520f8db323de55331d3567ead61a811ea699f4c62d00a701"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/neptune-1024.b782d4f3800eeebf.webp",
+          "bytes": 14450,
+          "sha256": "b782d4f3800eeebf19062bf255ebae9043f99bd990021722a0c7257b41cb9cd3"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/neptune-2048.4152962ebca8d9bc.webp",
+          "bytes": 38668,
+          "sha256": "4152962ebca8d9bcc7238a46e49de6bc676ef6535bc8c21e8180611aacd2c8cc"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/neptune-4096.d97031e26221bfee.webp",
+          "bytes": 139578,
+          "sha256": "d97031e26221bfee8b176615d9f842acaf3f0b027e85d058b3244405edb44626"
+        }
+      ]
+    },
+    "pluto": {
+      "source": "pluto.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/pluto-512.a9be32b64225e63c.webp",
+          "bytes": 44592,
+          "sha256": "a9be32b64225e63cafa48c1c67106b333665c6bd61a7b18e5d6f490832163a4f"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/pluto-1024.b475aa2eea055579.webp",
+          "bytes": 180492,
+          "sha256": "b475aa2eea055579cf0581e0346be036b6f328e4001e8321e0fa3365ff55d80f"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/pluto-2048.d5e88abdfe5ef744.webp",
+          "bytes": 544066,
+          "sha256": "d5e88abdfe5ef7446032aaec86c1b0db110a6d8328c38a488a77893c1761a00d"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/pluto-4096.3a73b780707b5ebf.webp",
+          "bytes": 1821558,
+          "sha256": "3a73b780707b5ebf68069c4c7d8fc4c5b23cc1616957746bfe72538f039cd39f"
+        }
+      ]
+    },
+    "saturn": {
+      "source": "saturn.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/saturn-512.3406d33e465140a9.webp",
+          "bytes": 9986,
+          "sha256": "3406d33e465140a95b7c5f3c36ffd71117c83f33ee1662fb55921d64128d1f75"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/saturn-1024.700236b0b075b3b4.webp",
+          "bytes": 25686,
+          "sha256": "700236b0b075b3b4acd96f9cb617cb9c0d912e98005eb12da7e6f3296d45d586"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/saturn-2048.2c14009d04913431.webp",
+          "bytes": 61476,
+          "sha256": "2c14009d049134313515d6a85c401dd069d04ae037ae7b2212f706629e65bb10"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/saturn-4096.fc7448ae2d4b73b1.webp",
+          "bytes": 190162,
+          "sha256": "fc7448ae2d4b73b11cbedf78408fa4f05d9bc8ba133e016af56f81e1d5f717cf"
+        }
+      ]
+    },
+    "sun": {
+      "source": "sun.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/sun-512.de546b79a99ee62d.webp",
+          "bytes": 51298,
+          "sha256": "de546b79a99ee62dccf41225ada9e0f4d7c51bb724de1ab558f4a87a3c363eac"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/sun-1024.9a801e13dc178df7.webp",
+          "bytes": 178544,
+          "sha256": "9a801e13dc178df7febc3f9891b8b3978768647df2fe394cdf82f1a38ce616be"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/sun-2048.bb7fb550c36d5468.webp",
+          "bytes": 494234,
+          "sha256": "bb7fb550c36d5468b811633085b214276a4e2d3b3596f7a3fdfb86c5a1703b49"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/sun-4096.10443a1470dbde16.webp",
+          "bytes": 1661972,
+          "sha256": "10443a1470dbde1625eb068d1610e2a2cbd85eea362534a6400fd76008385be1"
+        }
+      ]
+    },
+    "uranus": {
+      "source": "uranus.webp",
+      "width": 2048,
+      "height": 1024,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/uranus-512.59cd3a1a4ed1974a.webp",
+          "bytes": 7912,
+          "sha256": "59cd3a1a4ed1974a649be16bc528b11aec54085e9cbbbe9362cfd3d6e60eb70c"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/uranus-1024.a943d090e6217da3.webp",
+          "bytes": 23924,
+          "sha256": "a943d090e6217da3d418bab9974d14ce27362f61dba1af4f83bba76ab2ee29fb"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/uranus-2048.17448187c5713129.webp",
+          "bytes": 128328,
+          "sha256": "17448187c5713129ee4044654581bab423c2d45a4c8e37c4efbd8c8fa712eaa4"
+        }
+      ]
+    },
+    "venus": {
+      "source": "venus.webp",
+      "width": 4096,
+      "height": 2048,
+      "tiers": [
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/venus-512.ed8e57d80c1ce50e.webp",
+          "bytes": 6426,
+          "sha256": "ed8e57d80c1ce50e35b313eafb1ca676d890d8563008f56d5c32293f0390fcea"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/venus-1024.ca0a1fbb7f43885e.webp",
+          "bytes": 16466,
+          "sha256": "ca0a1fbb7f43885e75f5378c5744562861409a9901e446141c449a1ada65778e"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/venus-2048.c1dfabcaf0de90f0.webp",
+          "bytes": 43800,
+          "sha256": "c1dfabcaf0de90f0f4a5849fc453e76ef63ed1449107bb9f5793859650e8a5a8"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/venus-4096.340695802bece0bb.webp",
+          "bytes": 136712,
+          "sha256": "340695802bece0bbfe32f2d60cf0de66f422a299251025941948f40727e1706a"
+        }
+      ]
+    }
+  },
+  "sky": {
+    "source": "universe-optimized.webp",
+    "width": 2048,
+    "height": 1024,
+    "tiers": [
+      {
+        "width": 512,
+        "height": 256,
+        "path": "releases/content/backgrounds/universe-optimized-512.23ee4fe172530887.webp",
+        "bytes": 3120,
+        "sha256": "23ee4fe17253088715aea862e429aa3016be94727d5d93a55bec645a5e9e6aec"
+      },
+      {
+        "width": 1024,
+        "height": 512,
+        "path": "releases/content/backgrounds/universe-optimized-1024.6d5e4a92bb748a5b.webp",
+        "bytes": 18664,
+        "sha256": "6d5e4a92bb748a5ba007828f833f3f0885e858e37a4ea57aacaca886337d6f22"
+      },
+      {
+        "width": 2048,
+        "height": 1024,
+        "path": "releases/content/backgrounds/universe-optimized-2048.473eea7a6908b35b.webp",
+        "bytes": 94742,
+        "sha256": "473eea7a6908b35b4bcf6f63ade9ccda332698a196f90fe96e8cd848209122cb"
+      }
+    ]
+  },
+  "music": {
+    "01 - Celestial Drift.mp3": {
+      "source": "music/01 - Celestial Drift.mp3",
+      "path": "releases/content/music/01 - Celestial Drift.2d06e6cb8ab0321b.mp3",
+      "bytes": 4952608,
+      "sha256": "2d06e6cb8ab0321b6dd3905a7387ecf768865e1b80c8573731e184e893e6d627"
+    },
+    "02 - Cosmic Drift.mp3": {
+      "source": "music/02 - Cosmic Drift.mp3",
+      "path": "releases/content/music/02 - Cosmic Drift.ced4c504e3f1f94d.mp3",
+      "bytes": 4878471,
+      "sha256": "ced4c504e3f1f94de3832d49d73e0e17e755d4dedf53763986301fee23ee3693"
+    },
+    "03 - Cosmic Hum.mp3": {
+      "source": "music/03 - Cosmic Hum.mp3",
+      "path": "releases/content/music/03 - Cosmic Hum.49e4b71bcd6eb228.mp3",
+      "bytes": 4651132,
+      "sha256": "49e4b71bcd6eb228ae18eb4a6d4767fd55943a23b98f194067fa79e663859a38"
+    },
+    "04 - Cosmic Silence.mp3": {
+      "source": "music/04 - Cosmic Silence.mp3",
+      "path": "releases/content/music/04 - Cosmic Silence.cd28f150598cb968.mp3",
+      "bytes": 4731538,
+      "sha256": "cd28f150598cb96868b0b29355cab3e7d6056f4279cb5bbf9ac61b446bd17abf"
+    },
+    "05 - Infinite Drift.mp3": {
+      "source": "music/05 - Infinite Drift.mp3",
+      "path": "releases/content/music/05 - Infinite Drift.eeae0f1b95d466b6.mp3",
+      "bytes": 6467263,
+      "sha256": "eeae0f1b95d466b67e2c62d1d719c58f5bb42d29fa4e392c9ac294425cdb077c"
+    },
+    "06 - Near-Silence.mp3": {
+      "source": "music/06 - Near-Silence.mp3",
+      "path": "releases/content/music/06 - Near-Silence.d295066b105db777.mp3",
+      "bytes": 4818541,
+      "sha256": "d295066b105db777b5c0e85d2a25f77c3c114f9181914c2756a09e2b062577fe"
+    },
+    "07 - Weightless Emptiness.mp3": {
+      "source": "music/07 - Weightless Emptiness.mp3",
+      "path": "releases/content/music/07 - Weightless Emptiness.624d595db3cf990c.mp3",
+      "bytes": 4911127,
+      "sha256": "624d595db3cf990c68a76f270b40517cf5a0c08827d4eb270e191be8eacd1afc"
+    }
+  }
+}

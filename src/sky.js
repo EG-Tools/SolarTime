@@ -64,11 +64,21 @@ function shader(g,type,source){
  return s;
 }
 function rotate(p,angle,axis){const c=Math.cos(angle),s=Math.sin(angle);return axis==='z'?{x:p.x*c-p.y*s,y:p.x*s+p.y*c,z:p.z}:{x:p.x,y:p.y*c-p.z*s,z:p.y*s+p.z*c};}
-function rasterSize(w,h,moving){
+ function rasterSize(w,h,moving){
  const desired=moving?320:512,budget=moving?90000:160000;
  const width=Math.max(1,Math.floor(Math.min(desired,Math.sqrt(budget*w/h))));
- return [width,Math.max(1,Math.floor(Math.min(budget/width,width*h/w)))];
-}
+  return [width,Math.max(1,Math.floor(Math.min(budget/width,width*h/w)))];
+ }
+ function skySources(asset,width=2048){
+  if(typeof asset==='string')return [asset];
+  const tiers=asset?.tiers||[],tier=tiers.find(row=>row.width>=width)||tiers[tiers.length-1],remote=tier&&asset.base?new URL(tier.path,asset.base).href:'';
+  return [remote,asset?.fallback].filter((url,index,list)=>url&&list.indexOf(url)===index);
+ }
+ async function loadSkyImage(asset){
+  let lastError;
+  for(const url of skySources(asset))try{const image=new Image();image.decoding='async';if(!url.startsWith('file:')&&!url.startsWith('data:'))image.crossOrigin='anonymous';image.src=url;await image.decode();return image;}catch(error){lastError=error;}
+  throw lastError||Error('Sky asset could not be decoded.');
+ }
 class Sky{
  constructor(canvas){
    this.canvas=canvas;this.ready=false;this.disposed=false;this.paused=false;
@@ -91,7 +101,7 @@ class Sky{
   async initialize(){
   const ticket=++this.initTicket;
   try{
-   if(!this.image){const image=new Image();image.src=root.SolarAssets?.sky||'';await image.decode();if(this.disposed||ticket!==this.initTicket)return;this.image=image;}
+    if(!this.image){const image=await loadSkyImage(root.SolarAssets?.sky);if(this.disposed||ticket!==this.initTicket)return;this.image=image;}
    if(this.disposed||ticket!==this.initTicket)return;
    // The visible canvas is retained on unchanged poses, so a preserved buffer
    // is intentional. Disabling it while skipping draws produces a black sky.

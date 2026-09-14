@@ -41,8 +41,10 @@ test('Korean solar side is day near local noon and night near local midnight thr
  for(const month of [0,2,5,8,11]){const noon=Date.UTC(2026,month,15,3),midnight=Date.UTC(2026,month,15,15);
  A.calibrateAt(noon);assert.ok(A.siteSun(noon).altitude>10);assert.ok(A.siteSun(midnight).altitude< -10);}
 });
-test('Runtime contains no network calculation request or online-only dependency',()=>{
+test('Astronomy stays local while network access is limited to versioned visual assets',()=>{
  const root=path.resolve(__dirname,'..');
- for(const name of ['astro','app','renderer','surface','sky']){const s=fs.readFileSync(path.join(root,'src',name+'.js'),'utf8');assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|navigator\.onLine/);}
+ for(const name of ['astro','app','renderer']){const s=fs.readFileSync(path.join(root,'src',name+'.js'),'utf8');assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|navigator\.onLine/);}
+ const materials=fs.readFileSync(path.join(root,'src/materials.js'),'utf8');assert.doesNotMatch(materials,/\bfetch\s*\(|indexedDB|solarsystemscope|jsdelivr/);
+ const surface=fs.readFileSync(path.join(root,'src/surface.js'),'utf8');assert.match(surface,/fetch\(url,\{mode:'cors',credentials:'omit',cache:'force-cache'\}\)/);
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');assert.doesNotMatch(html,/<(?:script|img)[^>]+src=["']https?:/);assert.doesNotMatch(html,/<link[^>]+href=["']https?:/);
 });

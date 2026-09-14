@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),{spawnSync}=require('node:child_process'),{atomicWrite,projectConfig}=require('./asset-pipeline.cjs');
+const root=path.resolve(__dirname,'..'),media=path.join(root,'.cloudflare/media'),bundleDir=path.join(root,'.cloudflare/bundles');
+if(!fs.existsSync(media))throw Error('Run npm run build:assets before packing media.');
+fs.rmSync(bundleDir,{recursive:true,force:true});fs.mkdirSync(bundleDir,{recursive:true});
+const temporary=path.join(bundleDir,'media.tar.gz'),result=spawnSync('tar',['-czf',temporary,'-C',media,'.'],{cwd:root,stdio:'inherit'});
+if(result.error)throw result.error;if(result.status!==0)process.exit(result.status||1);
+const bytes=fs.readFileSync(temporary),sha256=crypto.createHash('sha256').update(bytes).digest('hex'),{revision,deployment}=projectConfig(root);
+const name=`${revision}.${sha256.slice(0,16)}.tar.gz`,finalFile=path.join(bundleDir,name);fs.renameSync(temporary,finalFile);
+deployment.bundle={path:`${deployment.prefix}/bundles/${name}`,sha256,bytes:bytes.length};
+atomicWrite(path.join(root,'assets/deployment.json'),JSON.stringify(deployment,null,2)+'\n');
+console.log(`Packed ${name} (${(bytes.length/1048576).toFixed(2)} MiB).`);

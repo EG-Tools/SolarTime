@@ -7,7 +7,22 @@ function surfaceKernel(){
   let assets={};
   const TAU=Math.PI*2,clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),smooth=(a,b,n)=>{const t=clamp((n-a)/(b-a),0,1);return t*t*(3-2*t);};
   const setAssets=value=>{if(value)assets=value;};
-  function blob(url){const [meta,data]=url.split(','),raw=atob(data),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return new Blob([bytes],{type:meta.split(':')[1].split(';')[0]});}
+  function dataBlob(url){const [meta,data]=url.split(','),raw=atob(data),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return new Blob([bytes],{type:meta.split(':')[1].split(';')[0]});}
+  function sourceFor(asset,width){
+    if(typeof asset==='string')return {url:asset,fallback:'',key:asset};
+    const tiers=asset?.tiers||[],tier=tiers.find(row=>row.width>=width)||tiers[tiers.length-1];if(!tier)return null;
+    const remote=asset.base?new URL(tier.path,asset.base).href:'',url=remote||asset.fallback;
+    return {url,fallback:remote&&asset.fallback!==remote?asset.fallback:'',key:url+'|'+(remote?asset.fallback:'')};
+  }
+  async function bitmapFor(source,width,height){
+    let lastError;
+    for(const url of [source.url,source.fallback].filter(Boolean))try{
+      if(url.startsWith('data:'))return await createImageBitmap(dataBlob(url),{resizeWidth:width,resizeHeight:height,resizeQuality:'high'});
+      if(!url.startsWith('file:')){const response=await fetch(url,{mode:'cors',credentials:'omit',cache:'force-cache'});if(!response.ok)throw Error('HTTP '+response.status);return await createImageBitmap(await response.blob(),{resizeWidth:width,resizeHeight:height,resizeQuality:'high'});}
+      if(typeof document==='object'){const image=new Image();image.decoding='async';image.src=url;await image.decode();return await createImageBitmap(image,{resizeWidth:width,resizeHeight:height,resizeQuality:'high'});}
+    }catch(error){lastError=error;}
+    throw lastError||Error('Material asset could not be decoded.');
+  }
   function makeCanvas(n){const c=typeof OffscreenCanvas==='function'?new OffscreenCanvas(n,n):document.createElement('canvas');c.width=c.height=n;return c;}
   // One material-boundary repair shared by GPU/CPU, embedded and downloaded
   // maps. Only a narrow antimeridian strip changes; Korea/the visible continents
@@ -105,9 +120,9 @@ function surfaceKernel(){
       }catch(error){if(this.gl){this.gl.getExtension('WEBGL_lose_context')?.loseContext();this.gl=null;}this.canvas=makeCanvas(32);this.ctx=this.canvas.getContext('2d');this.stats.fallback=error.message;}
     }
     async texture(id,width){
-      const source=assets[id]||assets.moon;if(!source)throw Error('Material asset missing: '+id);
-      const key=id+':'+width;let t=this.textures.get(key);if(t&&t.source!==source){if(this.gl)this.gl.deleteTexture(t.handle);this.textures.delete(key);t=null;}if(t){this.textures.delete(key);this.textures.set(key,t);return t;}
-      const bitmap=await createImageBitmap(blob(source),{resizeWidth:width,resizeHeight:width/2,resizeQuality:'high'});
+      const asset=assets[id]||assets.moon,source=sourceFor(asset,width);if(!source)throw Error('Material asset missing: '+id);
+      const key=id+':'+width;let t=this.textures.get(key);if(t&&t.source!==source.key){if(this.gl)this.gl.deleteTexture(t.handle);this.textures.delete(key);t=null;}if(t){this.textures.delete(key);this.textures.set(key,t);return t;}
+      const bitmap=await bitmapFor(source,width,width/2);
       if(this.disposed){bitmap.close();throw Error('Surface disposed');}
       const prepared=materialCanvas(bitmap,width,width/2);bitmap.close();
       if(this.gl){
@@ -120,7 +135,7 @@ function surfaceKernel(){
       }else{
         t={width,height:width/2,data:prepared.image.data};
       }
-      t.source=source;this.textures.set(key,t);this.stats.texturesBuilt++;
+      t.source=source.key;this.textures.set(key,t);this.stats.texturesBuilt++;
       // Bounded by pixels, not the number of times a body was visited.
       while(this.texturePixels>4096*2048*4&&this.textures.size>3){const oldest=this.textures.keys().next().value;const old=this.textures.get(oldest);if(this.gl)this.gl.deleteTexture(old.handle);this.textures.delete(oldest);}
       return t;
@@ -403,10 +418,25 @@ function directProgram(gl,vertex,fragment,uniforms){
   if(!gl.getProgramParameter(program,gl.LINK_STATUS)){const message=gl.getProgramInfoLog(program)||'GPU program link failed';gl.deleteProgram(program);throw Error(message);}
   return {program,a:gl.getAttribLocation(program,'a'),u:Object.fromEntries(uniforms.map(name=>[name,gl.getUniformLocation(program,name)]))};
 }
-function directBlob(url){
+function directDataBlob(url){
   const comma=url.indexOf(','),meta=url.slice(0,comma),raw=atob(url.slice(comma+1)),bytes=new Uint8Array(raw.length);
   for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
   return new Blob([bytes],{type:(meta.match(/^data:([^;]+)/)||[])[1]||'image/webp'});
+}
+function directSource(asset,width){
+  if(typeof asset==='string')return {url:asset,fallback:'',key:asset};
+  const tiers=asset?.tiers||[],tier=tiers.find(row=>row.width>=width)||tiers[tiers.length-1];if(!tier)return null;
+  const remote=asset.base?new URL(tier.path,asset.base).href:'',url=remote||asset.fallback;
+  return {url,fallback:remote&&asset.fallback!==remote?asset.fallback:'',key:url+'|'+(remote?asset.fallback:'')};
+}
+async function directBitmap(source){
+  let lastError;
+  for(const url of [source.url,source.fallback].filter(Boolean))try{
+    if(url.startsWith('data:'))return await createImageBitmap(directDataBlob(url));
+    if(!url.startsWith('file:')){const response=await fetch(url,{mode:'cors',credentials:'omit',cache:'force-cache'});if(!response.ok)throw Error('HTTP '+response.status);return await createImageBitmap(await response.blob());}
+    const image=new Image();image.decoding='async';image.src=url;await image.decode();return await createImageBitmap(image);
+  }catch(error){lastError=error;}
+  throw lastError||Error('Material asset could not be decoded.');
 }
 function directPower(value){return Math.max(128,Math.min(4096,2**Math.round(Math.log2(Math.max(128,value)))));}
 class DirectRenderer{
@@ -460,15 +490,15 @@ class DirectRenderer{
     if(this.disposed||this.contextLost)return;
     while(this.activeLoads<2&&this.loadQueue.length){
       const task=this.loadQueue.shift(),record=this.textures.get(task.name);
-      if(task.generation!==this.generation||!record||record.token!==task.token||record.source!==task.source){if(task.generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);continue;}
+      if(task.generation!==this.generation||!record||record.token!==task.token||record.source.key!==task.source.key){if(task.generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);continue;}
       this.activeLoads++;this.loadTexture(task.name,task.source,task.target,task.token,task.generation).finally(()=>{this.activeLoads=Math.max(0,this.activeLoads-1);this.pumpTextureQueue();});
     }
   }
   async loadTexture(name,source,target,token,generation){
     let bitmap,canvas,texture;
     try{
-      const requested=this.textures.get(name);if(!requested||requested.token!==token||requested.source!==source||generation!==this.generation)return;
-      bitmap=await createImageBitmap(directBlob(source));if(this.disposed||generation!==this.generation)return;
+      const requested=this.textures.get(name);if(!requested||requested.token!==token||requested.source.key!==source.key||generation!==this.generation)return;
+      bitmap=await directBitmap(source);if(this.disposed||generation!==this.generation)return;
       const natural=2**Math.floor(Math.log2(Math.max(2,bitmap.width))),width=Math.max(2,Math.min(target,natural)),height=width/2;
       canvas=typeof OffscreenCanvas==='function'?new OffscreenCanvas(width,height):document.createElement('canvas');canvas.width=width;canvas.height=height;
       const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0,width,height);bitmap.close();bitmap=null;
@@ -486,17 +516,17 @@ class DirectRenderer{
       // Explicit screen-size texture tiers provide LOD without the longitude
       // derivative seam that implicit mip selection creates on a sphere.
       g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
-      const record=this.textures.get(name);if(!record||record.token!==token||record.source!==source){g.deleteTexture(texture);texture=null;this.stats.discarded++;return;}
+      const record=this.textures.get(name);if(!record||record.token!==token||record.source.key!==source.key){g.deleteTexture(texture);texture=null;this.stats.discarded++;return;}
       if(record.texture){g.deleteTexture(record.texture);this.stats.texturePixels-=record.width*record.height;}
       Object.assign(record,{texture,width,height,pending:false,error:null,retryAt:0});texture=null;this.stats.accepted++;this.stats.texturesLoaded++;this.stats.texturePixels+=width*height;
     }catch(error){const record=this.textures.get(name);if(record&&record.token===token){record.pending=false;record.error=error.message;record.retryAt=Date.now()+30000;this.stats.error=error.message;}}
     finally{bitmap?.close?.();if(generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);}
   }
   texture(name,target){
-    const source=root.SolarAssets?.materials?.[name];if(!source)return null;
-    target=directPower(Math.min(target,this.maxTextureSize));let record=this.textures.get(name);
-    const sourceChanged=!record||record.source!==source,upgrade=!record?.texture||record.width<target,downgrade=record?.texture&&record.width>target*2,retryReady=sourceChanged||!record?.retryAt||Date.now()>=record.retryAt;
-    if(retryReady&&(sourceChanged||upgrade||downgrade)&&(!record?.pending||record.pendingTarget!==target||record.source!==source)){
+    const asset=root.SolarAssets?.materials?.[name];if(!asset)return null;
+    target=directPower(Math.min(target,this.maxTextureSize));const source=directSource(asset,target);if(!source)return null;let record=this.textures.get(name);
+    const sourceChanged=!record||record.source.key!==source.key,upgrade=!record?.texture||record.width<target,downgrade=record?.texture&&record.width>target*2,retryReady=sourceChanged||!record?.retryAt||Date.now()>=record.retryAt;
+    if(retryReady&&(sourceChanged||upgrade||downgrade)&&(!record?.pending||record.pendingTarget!==target||record.source.key!==source.key)){
       const old=record?.texture||null,token=++this.textureToken,generation=this.generation;
       record={source,texture:old,width:record?.width||0,height:record?.height||0,pending:true,pendingTarget:target,token};
       this.textures.set(name,record);this.queueTexture({name,source,target,token,generation});

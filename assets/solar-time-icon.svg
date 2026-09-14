@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="background" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#0b1521"/>
+      <stop offset="1" stop-color="#03060b"/>
+    </radialGradient>
+    <radialGradient id="sun" cx="38%" cy="32%" r="70%">
+      <stop offset="0" stop-color="#ffe2a2"/>
+      <stop offset=".55" stop-color="#efb85e"/>
+      <stop offset="1" stop-color="#c87928"/>
+    </radialGradient>
+    <radialGradient id="planet" cx="35%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#e4f5ff"/>
+      <stop offset=".55" stop-color="#9ec2dc"/>
+      <stop offset="1" stop-color="#537188"/>
+    </radialGradient>
+    <filter id="sun-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="54" fill="url(#background)"/>
+  <g transform="rotate(-25 128 128)">
+    <ellipse cx="128" cy="128" rx="102" ry="50" fill="none" stroke="#b9a06c" stroke-opacity=".55" stroke-width="4"/>
+    <circle cx="229" cy="128" r="10" fill="url(#planet)" stroke="#d8edf9" stroke-opacity=".45" stroke-width="1.5"/>
+  </g>
+  <circle cx="128" cy="128" r="27" fill="#e9a94a" opacity=".28" filter="url(#sun-glow)"/>
+  <circle cx="128" cy="128" r="24" fill="url(#sun)"/>
+</svg>

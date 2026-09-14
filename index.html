@@ -62,6 +62,16 @@
     </div>
     <div class="top-actions">
       <button id="language-toggle" class="icon-button language-toggle" type="button" aria-label="언어 변경. 현재 한국어" title="언어 변경 · KOR">KOR</button>
+      <div class="music-control">
+        <button id="music-toggle" class="icon-button" type="button" aria-label="배경음악 켜기" aria-pressed="false" aria-controls="music-title" title="배경음악 켜기">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h3l4-3v10l-4-3H4z"/><path class="music-on-mark" d="M15 9.5a3.5 3.5 0 0 1 0 5M17.8 7a7 7 0 0 1 0 10"/><path class="music-off-mark" d="m15.5 10 4 4m0-4-4 4"/></svg>
+        </button>
+        <div id="music-now" class="music-now" hidden>
+          <button id="music-previous" type="button" aria-label="이전 음악" title="이전 음악">&lt;</button>
+          <span id="music-title" class="music-title" aria-live="polite"></span>
+          <button id="music-next" type="button" aria-label="다음 음악" title="다음 음악">&gt;</button>
+        </div>
+      </div>
       <button id="help-button" class="icon-button" aria-label="사용 방법과 계산 기준" aria-expanded="false" aria-controls="help-dialog" title="사용 방법과 계산 기준" data-i18n-aria="helpLabel" data-i18n-title="helpLabel">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.8 9a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.7-2.2 3.4M12 16v.1"/></svg>
       </button>
@@ -73,6 +83,7 @@
       </button>
     </div>
   </header>
+  <audio id="background-music" preload="none" hidden></audio>
 
   <main class="clock-face">
     <p class="eyebrow">EVERY MOMENT, IN ORBIT</p>
@@ -85,6 +96,8 @@
   </div>
 
   <aside id="settings-panel" class="panel settings-panel ui" hidden aria-label="화면 설정" data-i18n-aria="settings">
+    <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+    <div id="settings-scroll" class="settings-scroll">
     <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2 data-i18n="settings">화면 설정</h2></div><button id="settings-close" class="close-button" aria-label="설정 닫기" data-i18n-aria="settingsClose">×</button></div>
     <div class="setting-row"><label for="actual-scale" data-i18n="actualScale">실제 크기 비율</label><input id="actual-scale" type="checkbox" role="switch"></div>
     <div id="overview-orbit-gap-control" class="setting-range"><label for="overview-orbit-gap"><span data-i18n="orbitSpacing">일반 보기 궤도 간격</span><output id="overview-orbit-gap-output" for="overview-orbit-gap">90</output></label><input id="overview-orbit-gap" type="range" min="50" max="200" step="1" value="90" aria-label="일반 보기의 행성 궤도 간격" data-i18n-aria="orbitSpacingAria"></div>
@@ -105,6 +118,8 @@
     <div class="setting-row"><label for="show-pluto"><span data-i18n="pluto">명왕성</span> <small data-i18n="dwarfPlanet">왜행성</small></label><input id="show-pluto" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-comets" data-i18n="comets">멀리 지나는 혜성</label><input id="show-comets" type="checkbox" checked role="switch"></div>
     <button id="reset-defaults" type="button" class="text-button settings-reset" data-i18n="resetDefaults">초기화</button>
+    </div>
+    <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </aside>
 
   <aside id="body-panel" class="panel body-panel ui" hidden aria-label="선택한 천체 정보" data-i18n-aria="selectedBody">
@@ -210,7 +225,7 @@
       <p data-i18n="timeHelp">상단 시계는 기기 실제 시간입니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.</p>
       <p data-i18n="orbitHelp">행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.</p>
       <div class="shortcuts"><span><kbd>Space</kbd> <span data-i18n="pause">일시정지</span></span><span><kbd>R</kbd> <span data-i18n="realTime">실제 시간</span></span><span><kbd>F</kbd> <span data-i18n="fullscreen">전체 화면</span></span><span><kbd>H</kbd> <span data-i18n="zenMode">감상 모드</span></span><span><kbd>0</kbd> <span data-i18n="homeView">기본 시점</span></span><span><kbd>1 · 2 · 3</kbd> <span data-i18n="savedViews">저장 시점</span></span><span><kbd>Esc</kbd> <span data-i18n="stepExit">단계별 종료</span></span></div>
-      <p class="modal-note">Life User • Solar Time v0.34 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
+      <p class="modal-note"><span class="music-credit">BACKGROUND MUSIC · SUNO AI</span><br>Life User • Solar Time v0.34 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </dialog>
@@ -228,8 +243,8 @@
   </div>
   <div id="fatal-error" class="fatal-error" role="alert" hidden><h2 data-i18n="fatalTitle">화면을 시작하지 못했습니다.</h2><p id="fatal-message"></p><p data-i18n="fatalRetry">최신 Edge 또는 Chrome에서 다시 열어 주세요.</p></div>
   <noscript><div class="fatal-error">태양계 시계를 실행하려면 브라우저의 JavaScript를 켜 주세요.</div></noscript>
-  <script id="solar-assets" src="src/assets.js?v=assetpack-20260913"></script>
-  <script src="src/sky-asset.js?v=assetpack-20260913"></script>
+  <script id="solar-assets" src="src/assets.js?v=assetpack-20260914-r2"></script>
+  <script src="src/sky-asset.js?v=assetpack-20260914-r2"></script>
   <script src="src/materials.js?v=0.34"></script>
   <script src="src/astro.js?v=0.34"></script>
   <script src="src/surface.js?v=0.34"></script>
