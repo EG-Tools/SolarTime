@@ -80,7 +80,7 @@
   };
   // The normal overview gives Mercury extra clearance from the Sun, then uses
   // one user-adjustable interval for every neighboring heliocentric orbit.
-  const OVERVIEW_ORBIT=Object.freeze({start:defs[0][3]*2,gap:90,minGap:50,maxGap:200});
+  const OVERVIEW_ORBIT=Object.freeze({start:defs[0][3]*2,gap:90,minGap:50,maxGap:400});
   const BODIES = defs.map(([id,ko,en,orbit,size,color,period,spin,tilt,base,rates,correction],index) =>
     Object.freeze({id,ko,en,orbit,overviewOrbit:OVERVIEW_ORBIT.start+OVERVIEW_ORBIT.gap*index,size,color,period:round2(period*86400)/86400,
       periodSeconds:round2(period*86400),spin:round2(spin*86400)/86400,spinSeconds:round2(spin*86400),

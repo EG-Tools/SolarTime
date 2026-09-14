@@ -32,7 +32,7 @@ test('All orbit paths close without a visible seam',()=>{for(const b of A.BODIES
 test('Normal overview orbit anchors have one equal gap from Mercury through Pluto',()=>{
   const gaps=A.BODIES.slice(1).map((body,index)=>body.overviewOrbit-A.BODIES[index].overviewOrbit);
   close(A.BODIES[0].overviewOrbit,190);for(const gap of gaps)close(gap,90);
-  for(const gap of [50,90,200])for(const [index,body] of A.BODIES.entries())close(A.displayDistance(body.base[0],0,gap),190+gap*index);
+  for(const gap of [50,90,200,400])for(const [index,body] of A.BODIES.entries())close(A.displayDistance(body.base[0],0,gap),190+gap*index);
   for(const body of A.BODIES){close(A.displayDistance(body.base[0]),body.overviewOrbit);close(A.displayDistance(body.base[0],1,200),body.orbit);}
 });
 test('Pluto overview keeps its real Neptune crossing without falsely reaching Uranus',()=>{

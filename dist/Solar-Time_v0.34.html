@@ -135,6 +135,22 @@ body.zen #preset-dialog[open] button{visibility:visible!important;pointer-events
 /* A permanent ninth toolbar control must not overlap playback on short phones. */
 @media(max-width:680px) and (max-height:700px){.view-controls{top:calc(50% - 28px)}}
 
+/* Keep the date and active-region label readable beneath the clock. */
+.date-line{font-size:12px}
+.date-line button{font-size:11px}
+@media(max-width:680px){.date-line{font-size:11px}.date-line button{font-size:10px}}
+@media(max-height:630px) and (min-width:681px){.date-line{font-size:11px}}
+
+.language-control{position:relative;display:grid;place-items:center}
+.language-menu{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);width:142px;max-height:min(410px,calc(100vh - 95px));padding:6px;overflow:auto;scrollbar-width:none;border:1px solid rgba(171,188,212,.17);border-radius:12px;background:rgba(8,13,21,.88);box-shadow:0 18px 55px rgba(0,0,0,.42);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);z-index:20}
+.language-menu::-webkit-scrollbar{display:none}
+.language-menu button{display:grid;grid-template-columns:37px minmax(0,1fr);align-items:center;width:100%;min-height:34px;padding:7px 8px;border-radius:7px;background:transparent;color:#909cab;text-align:left}
+.language-menu button:hover,.language-menu button:focus-visible{background:rgba(165,183,204,.10);color:#e8d8ba}
+.language-menu button[aria-checked=true]{background:rgba(205,175,121,.12);color:#e7cd9b}
+.language-menu strong{font-size:10px;font-weight:500;letter-spacing:.8px}
+.language-menu span{font-size:10px;white-space:nowrap}
+@media(max-width:680px){.language-menu{left:0;transform:none;width:134px}.language-menu button{grid-template-columns:34px minmax(0,1fr)}}
+
 /* Solar Time v0.33 compact UI overlay */
 .clock-face,body.zen .clock-face{top:56px}
 .playback-caption{justify-content:flex-end}
@@ -249,7 +265,20 @@ html[lang="ja"] .body-panel>p{word-break:normal;overflow-wrap:anywhere;line-brea
       <div><h1>SOLAR TIME</h1><p>A LITTLE CLOSER TO THE COSMOS</p></div>
     </div>
     <div class="top-actions">
-      <button id="language-toggle" class="icon-button language-toggle" type="button" aria-label="언어 변경. 현재 한국어" title="언어 변경 · KOR">KOR</button>
+      <div id="language-control" class="language-control">
+        <button id="language-toggle" class="icon-button language-toggle" type="button" aria-label="언어 변경. 현재 한국어" aria-expanded="false" aria-controls="language-menu" title="언어 변경 · KOR">KOR</button>
+        <div id="language-menu" class="language-menu" role="menu" aria-label="언어 선택" hidden>
+          <button type="button" role="menuitemradio" data-language="kor"><strong>KOR</strong><span>한국어</span></button>
+          <button type="button" role="menuitemradio" data-language="en"><strong>EN</strong><span>English</span></button>
+          <button type="button" role="menuitemradio" data-language="chn"><strong>CHN</strong><span>中文</span></button>
+          <button type="button" role="menuitemradio" data-language="jpn"><strong>JPN</strong><span>日本語</span></button>
+          <button type="button" role="menuitemradio" data-language="eu"><strong>EU</strong><span>Europe</span></button>
+          <button type="button" role="menuitemradio" data-language="hi"><strong>HI</strong><span>हिन्दी</span></button>
+          <button type="button" role="menuitemradio" data-language="es"><strong>ES</strong><span>Español</span></button>
+          <button type="button" role="menuitemradio" data-language="de"><strong>DE</strong><span>Deutsch</span></button>
+          <button type="button" role="menuitemradio" data-language="fr"><strong>FR</strong><span>Français</span></button>
+        </div>
+      </div>
       <div class="music-control">
         <button id="music-toggle" class="icon-button" type="button" aria-label="배경음악 켜기" aria-pressed="false" aria-controls="music-title" title="배경음악 켜기">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h3l4-3v10l-4-3H4z"/><path class="music-on-mark" d="M15 9.5a3.5 3.5 0 0 1 0 5M17.8 7a7 7 0 0 1 0 10"/><path class="music-off-mark" d="m15.5 10 4 4m0-4-4 4"/></svg>
@@ -288,7 +317,7 @@ html[lang="ja"] .body-panel>p{word-break:normal;overflow-wrap:anywhere;line-brea
     <div id="settings-scroll" class="settings-scroll">
     <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2 data-i18n="settings">화면 설정</h2></div><button id="settings-close" class="close-button" aria-label="설정 닫기" data-i18n-aria="settingsClose">×</button></div>
     <div class="setting-row"><label for="actual-scale" data-i18n="actualScale">실제 크기 비율</label><input id="actual-scale" type="checkbox" role="switch"></div>
-    <div id="overview-orbit-gap-control" class="setting-range"><label for="overview-orbit-gap"><span data-i18n="orbitSpacing">일반 보기 궤도 간격</span><output id="overview-orbit-gap-output" for="overview-orbit-gap">90</output></label><input id="overview-orbit-gap" type="range" min="50" max="200" step="1" value="90" aria-label="일반 보기의 행성 궤도 간격" data-i18n-aria="orbitSpacingAria"></div>
+    <div id="overview-orbit-gap-control" class="setting-range"><label for="overview-orbit-gap"><span data-i18n="orbitSpacing">일반 보기 궤도 간격</span><output id="overview-orbit-gap-output" for="overview-orbit-gap">90</output></label><input id="overview-orbit-gap" type="range" min="50" max="400" step="1" value="90" aria-label="일반 보기의 행성 궤도 간격" data-i18n-aria="orbitSpacingAria"></div>
     <div class="setting-row"><label for="show-orbits" data-i18n="orbits">궤도선</label><input id="show-orbits" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-labels" data-i18n="bodyNames">천체 이름</label><input id="show-labels" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="avoid-labels" data-i18n="avoidLabels">이름 겹침 자동 정리</label><input id="avoid-labels" type="checkbox" role="switch"></div>
@@ -382,7 +411,7 @@ html[lang="ja"] .body-panel>p{word-break:normal;overflow-wrap:anywhere;line-brea
       <span class="credit-line"><span data-i18n="scaleNoteLineOne">크기·거리 축척 조정 · 평균 궤도 근사</span> ·</span>
       <span class="credit-line"><span data-i18n="scaleNoteLineTwo">자전·공전 시간 연동</span> · <a class="source-link" href="https://github.com/EG-Tools/SolarTime/blob/main/assets/CREDITS.md" target="_blank" rel="noopener" data-i18n="sources">출처</a></span>
       <span class="credit-line">Solar Time v0.34 · <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
-      <span class="credit-line">© 2026 EG-Tools. All rights reserved.</span>
+      <span class="credit-line">© 2026 Life User. All rights reserved.</span>
     </div>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택" data-i18n-aria="bodySelect"></nav>
   </footer>
@@ -545,7 +574,7 @@ if(typeof module==='object'&&module.exports)module.exports=root.SolarMaterials;
   };
   // The normal overview gives Mercury extra clearance from the Sun, then uses
   // one user-adjustable interval for every neighboring heliocentric orbit.
-  const OVERVIEW_ORBIT=Object.freeze({start:defs[0][3]*2,gap:90,minGap:50,maxGap:200});
+  const OVERVIEW_ORBIT=Object.freeze({start:defs[0][3]*2,gap:90,minGap:50,maxGap:400});
   const BODIES = defs.map(([id,ko,en,orbit,size,color,period,spin,tilt,base,rates,correction],index) =>
     Object.freeze({id,ko,en,orbit,overviewOrbit:OVERVIEW_ORBIT.start+OVERVIEW_ORBIT.gap*index,size,color,period:round2(period*86400)/86400,
       periodSeconds:round2(period*86400),spin:round2(spin*86400)/86400,spinSeconds:round2(spin*86400),
@@ -1711,7 +1740,7 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
 (function () {
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
-  const OVERVIEW_ORBIT=A.OVERVIEW_ORBIT||Object.freeze({gap:90,minGap:50,maxGap:200});
+  const OVERVIEW_ORBIT=A.OVERVIEW_ORBIT||Object.freeze({gap:90,minGap:50,maxGap:400});
   function random(seed) { return function() { let t=seed+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
   const mix=(a,b,t)=>a+(b-a)*t;
   const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
@@ -2717,20 +2746,28 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro;
   const STORAGE_KEY='eg.solar-time.v0.01';
-  const LANG_ORDER=['kor','en','chn','jpn','eu'];
+  const LANG_ORDER=['kor','en','chn','jpn','eu','hi','es','de','fr'];
   const LANG_META={
-    kor:{code:'KOR',locale:'ko-KR',html:'ko',copy:'kor'},
-    en:{code:'EN',locale:'en-US',html:'en',copy:'en'},
-    chn:{code:'CHN',locale:'zh-CN',html:'zh-Hans',copy:'chn'},
-    jpn:{code:'JPN',locale:'ja-JP',html:'ja',copy:'jpn'},
-    eu:{code:'EU',locale:'en-GB',html:'en-GB',copy:'en'}
+    kor:{code:'KOR',name:'한국어',locale:'ko-KR',html:'ko',copy:'kor'},
+    en:{code:'EN',name:'English',locale:'en-US',html:'en',copy:'en'},
+    chn:{code:'CHN',name:'中文',locale:'zh-CN',html:'zh-Hans',copy:'chn'},
+    jpn:{code:'JPN',name:'日本語',locale:'ja-JP',html:'ja',copy:'jpn'},
+    eu:{code:'EU',name:'Europe',locale:'en-GB',html:'en-GB',copy:'en'},
+    hi:{code:'HI',name:'हिन्दी',locale:'hi-IN',html:'hi',copy:'hi'},
+    es:{code:'ES',name:'Español',locale:'es-ES',html:'es',copy:'es'},
+    de:{code:'DE',name:'Deutsch',locale:'de-DE',html:'de',copy:'de'},
+    fr:{code:'FR',name:'Français',locale:'fr-FR',html:'fr',copy:'fr'}
   };
   const REGIONS={
     kor:{label:'KOREA',timeZone:'Asia/Seoul',latitude:37.5665,longitude:126.978,region:'한국',city:'서울'},
     en:{label:'USA',timeZone:'America/New_York',latitude:39.8283,longitude:-98.5795,region:'United States',city:'mainland center'},
     chn:{label:'CHINA',timeZone:'Asia/Shanghai',latitude:35.8617,longitude:104.1954,region:'中国',city:'国土中心'},
     jpn:{label:'JAPAN',timeZone:'Asia/Tokyo',latitude:35.6762,longitude:139.6503,region:'日本',city:'東京'},
-    eu:{label:'UK',timeZone:'Europe/London',latitude:54.0037,longitude:-2.5479,region:'United Kingdom',city:'geographic centre'}
+    eu:{label:'EUROPE',timeZone:'Europe/Berlin',latitude:50.1109,longitude:8.6821,region:'Europe',city:'central Europe'},
+    hi:{label:'INDIA',timeZone:'Asia/Kolkata',latitude:22.5937,longitude:78.9629,region:'भारत',city:'देश का केंद्र'},
+    es:{label:'SPAIN',timeZone:'Europe/Madrid',latitude:40.4637,longitude:-3.7492,region:'España',city:'centro geográfico'},
+    de:{label:'GERMANY',timeZone:'Europe/Berlin',latitude:51.1657,longitude:10.4515,region:'Deutschland',city:'geografische Mitte'},
+    fr:{label:'FRANCE',timeZone:'Europe/Paris',latitude:46.2276,longitude:2.2137,region:'France',city:'centre géographique'}
   };
   const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,dollyZoom:false,orbits:true,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
   const FACTORY_BODY_SCALES=Object.freeze({sun:1.54,mercury:3.79,venus:3.06,earth:5.05,mars:4.28,jupiter:2,saturn:2.42,uranus:3.04,neptune:2.32,pluto:5.23,moon:3.7,europa:3.44});
@@ -2751,11 +2788,19 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
     if(/tokyo/i.test(zone))return 'jpn';
     if(/seoul/i.test(zone))return 'kor';
     if(/london|belfast/i.test(zone))return 'eu';
+    if(/kolkata|calcutta/i.test(zone))return 'hi';
+    if(/madrid|canary/i.test(zone))return 'es';
+    if(/berlin|busingen/i.test(zone))return 'de';
+    if(/paris/i.test(zone))return 'fr';
     if(/^America\//i.test(zone))return 'en';
     if(languages.some(value=>/^zh(?:-|$)/.test(value)))return 'chn';
     if(languages.some(value=>/^ja(?:-|$)/.test(value)))return 'jpn';
     if(languages.some(value=>/^ko(?:-|$)/.test(value)))return 'kor';
     if(languages.some(value=>/^en-gb(?:-|$)/.test(value)))return 'eu';
+    if(languages.some(value=>/^hi(?:-|$)/.test(value)))return 'hi';
+    if(languages.some(value=>/^es(?:-|$)/.test(value)))return 'es';
+    if(languages.some(value=>/^de(?:-|$)/.test(value)))return 'de';
+    if(languages.some(value=>/^fr(?:-|$)/.test(value)))return 'fr';
     return 'en';
   }
   const COPY={
@@ -2769,7 +2814,7 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
       apply:'이동',save:'저장',delete:'삭제',cancel:'취소',helpClose:'도움말 닫기',helpTitle:'사용 방법과 계산 기준',basicControls:'기본 조작',supportLink:'Solar Time 후원하기',supportNote:'후원금은 서버 운영비와 Solar Time의 지속적인 개발 비용으로 사용됩니다.',
       basicHelp:'좌클릭 드래그는 위아래 제한 없이 시점을 한 바퀴 계속 회전합니다. 가운데 버튼 드래그는 화면을 상하좌우 ±80% 이동합니다. 우측 맨 위 버튼에서 휠을 평면적인 줌 또는 원근감이 생기는 실제 카메라 이동으로 전환할 수 있습니다. 천체를 더블클릭하거나 «가까이 보기»를 누르면 추적합니다. 0은 기본 시점, 1·2·3은 줌/이동 방식까지 함께 저장하는 시점입니다.',
       releaseHelp:'승인된 화면 구도와 모든 표시 옵션을 초기 설정으로 확정하고, 초기화할 때 카메라 1·2·3 저장값은 유지하도록 했습니다. 토성과 천왕성의 고리는 거리에 따라 세부 띠를 부드럽게 합쳐 모아레를 줄입니다.',
-      timeAndCalculation:'시간과 계산',timeHelp:'상단 시계는 선택한 지역에 맞춰 한국·미국 동부·중국·일본·영국의 실제 시간을 표시합니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.',
+      timeAndCalculation:'시간과 계산',timeHelp:'상단 시계는 선택한 언어·지역에 맞춰 현지 실제 시간을 표시합니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.',
       orbitHelp:'행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.',
       pause:'일시정지',fullscreen:'전체 화면',zenMode:'감상 모드',savedViews:'저장 시점',stepExit:'단계별 종료',loading:'작은 우주를 펼치는 중',fatalTitle:'화면을 시작하지 못했습니다.',fatalRetry:'최신 Edge 또는 Chrome에서 다시 열어 주세요.',loadingTime:'시간을 불러오는 중',
       rotateRight:'우회전',rotateLeft:'좌회전',start:'시작',stop:'정지',rotateRunning:'{direction} 중 · 누르면 정지',rotateRate:'{direction} · 초당 2°',
@@ -2791,7 +2836,7 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
       apply:'Move',save:'Save',delete:'Delete',cancel:'Cancel',helpClose:'Close help',helpTitle:'Guide and calculation notes',basicControls:'Basic controls',supportLink:'Support Solar Time',supportNote:'Donations help cover server costs and ongoing development.',
       basicHelp:'Left-drag rotates continuously through a full turn without a vertical stop. Middle-drag pans up, down, left or right by ±80%. The top button on the right switches the wheel between flat zoom and true camera travel with perspective. Double-click a body or choose “Closer view” to track it. 0 restores the default view; 1·2·3 save the view together with its Zoom/Move mode.',
       releaseHelp:'The approved composition and display options now form the factory preset, while reset keeps camera slots 1–3. Saturn and Uranus rings blend subpixel bands by distance to reduce moiré.',
-      timeAndCalculation:'Time and calculation',timeHelp:'The upper clock follows the selected region: Korea, U.S. Eastern, China, Japan, or the United Kingdom. Turn off Real time below to adjust simulation speed in hours, days or years. The ranges are 1 minute–24 hours, 1–365 days, and 1–20 years per second.',
+      timeAndCalculation:'Time and calculation',timeHelp:'The upper clock follows the real local time of the selected language and region. Turn off Real time below to adjust simulation speed in hours, days or years. The ranges are 1 minute–24 hours, 1–365 days, and 1–20 years per second.',
       orbitHelp:'Planets move on elliptical orbits, faster near perihelion and slower near aphelion. Moon and Europa are children of Earth and Jupiter, with positions calculated for the simulation time and eccentricities of 0.05 and 0.01. Long-term perturbations and minute distance changes are omitted, so this is not a precision ephemeris for observation, navigation or eclipse prediction.',
       pause:'Pause',fullscreen:'Fullscreen',zenMode:'Viewing mode',savedViews:'Saved views',stepExit:'Step-by-step exit',loading:'Opening a small cosmos',fatalTitle:'Unable to start the view.',fatalRetry:'Open it again in the latest Edge or Chrome.',loadingTime:'Loading time',
       rotateRight:'Rotate right',rotateLeft:'Rotate left',start:'start',stop:'stop',rotateRunning:'{direction} · click to stop',rotateRate:'{direction} · 2° per second',
@@ -2813,7 +2858,7 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
       apply:'移动',save:'保存',delete:'删除',cancel:'取消',helpClose:'关闭帮助',helpTitle:'使用方法与计算说明',basicControls:'基本操作',supportLink:'支持 Solar Time',supportNote:'赞助资金将用于服务器运行和持续开发。',
       basicHelp:'按住左键拖动可不受上下限制地连续旋转一周；按住中键拖动可向上下左右平移 ±80%。右侧最上方按钮可在平面缩放与具有透视感的真实相机移动之间切换滚轮模式。双击天体或选择“近距离查看”可跟踪天体。0 恢复默认视角，1·2·3 会连同缩放/移动模式一起保存。',
       releaseHelp:'已将确认后的画面构图和显示选项设为初始设置，重置时会保留相机 1·2·3。土星与天王星的细环会按距离平滑合并，以减少摩尔纹。',
-      timeAndCalculation:'时间与计算',timeHelp:'上方时钟会按所选地区显示韩国、美国东部、中国、日本或英国的实际时间。关闭下方“实时”后，可按小时、日或年调整模拟速度。范围为每秒 1 分钟–24 小时、1–365 日或 1–20 年。',
+      timeAndCalculation:'时间与计算',timeHelp:'上方时钟会显示所选语言和地区的当地实际时间。关闭下方“实时”后，可按小时、日或年调整模拟速度。范围为每秒 1 分钟–24 小时、1–365 日或 1–20 年。',
       orbitHelp:'行星沿椭圆轨道运行，靠近近日点时较快，靠近远日点时较慢。月球和木卫二分别作为地球和木星的子天体，按模拟时间计算位置，离心率仅采用 0.05 和 0.01。未计算长期摄动和细微距离变化，因此不可用于观测、导航或日月食预测等精密星历用途。',
       pause:'暂停',fullscreen:'全屏',zenMode:'观赏模式',savedViews:'保存视角',stepExit:'逐步退出',loading:'正在展开一片小宇宙',fatalTitle:'无法启动画面。',fatalRetry:'请使用最新版 Edge 或 Chrome 重新打开。',loadingTime:'正在读取时间',
       rotateRight:'向右旋转',rotateLeft:'向左旋转',start:'开始',stop:'停止',rotateRunning:'{direction}中 · 点击停止',rotateRate:'{direction} · 每秒 2°',
@@ -2835,7 +2880,7 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
       apply:'移動',save:'保存',delete:'削除',cancel:'キャンセル',helpClose:'ヘルプを閉じる',helpTitle:'操作方法と計算基準',basicControls:'基本操作',supportLink:'Solar Timeを支援',supportNote:'ご支援はサーバー運営費と継続的な開発費に充てられます。',
       basicHelp:'左ドラッグは上下で止まらず一周連続して回転します。中ボタンドラッグは上下左右へ ±80% 移動します。右側最上部のボタンで、平面的なズームと遠近感のある実カメラ移動を切り替えられます。天体をダブルクリックするか「近くで見る」で追跡します。0 は標準視点、1・2・3 はズーム/移動方式も一緒に保存します。',
       releaseHelp:'確定した画面構図と表示オプションを初期設定にし、リセット時もカメラ1・2・3は保持します。土星と天王星の細いリングは距離に応じて滑らかに統合し、モアレを抑えます。',
-      timeAndCalculation:'時刻と計算',timeHelp:'上部の時計は選択した地域に合わせて、韓国・米国東部・中国・日本・英国の現在時刻を表示します。下部のリアルタイムをオフにすると、時・日・年単位でシミュレーション速度を調整できます。範囲は1秒あたり1分〜24時間、1〜365日、1〜20年です。',
+      timeAndCalculation:'時刻と計算',timeHelp:'上部の時計は選択した言語と地域の現地時刻を表示します。下部のリアルタイムをオフにすると、時・日・年単位でシミュレーション速度を調整できます。範囲は1秒あたり1分〜24時間、1〜365日、1〜20年です。',
       orbitHelp:'惑星は楕円軌道を進み、近日点では速く、遠日点では遅くなります。月とエウロパは地球と木星の子天体としてシミュレーション時刻の位置を計算し、離心率は 0.05 と 0.01 のみを適用します。長期摂動や微小な距離変化は省略しているため、観測・航法・食予測用の精密暦ではありません。',
       pause:'一時停止',fullscreen:'全画面',zenMode:'鑑賞モード',savedViews:'保存視点',stepExit:'段階的に終了',loading:'小さな宇宙を開いています',fatalTitle:'画面を開始できませんでした。',fatalRetry:'最新の Edge または Chrome で開き直してください。',loadingTime:'時刻を読み込み中',
       rotateRight:'右回転',rotateLeft:'左回転',start:'開始',stop:'停止',rotateRunning:'{direction}中 · クリックで停止',rotateRate:'{direction} · 毎秒2°',
@@ -2848,11 +2893,155 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
       speedUnitActive:'速度単位：{unit}。押すと次の単位へ切り替えます。',speedUnitReady:'速度単位 {unit} を待機中。押すとこの単位で倍速を開始します。',orbitPlay:'公転を再生',orbitPause:'公転を一時停止',returnedNow:'現在時刻の太陽系に戻りました。',escapePermission:'ESC の段階的な解除にはキーボード権限が必要です。権限がない場合、ブラウザが先に全画面を終了することがあります。',fullscreenExitFailed:'全画面を終了できませんでした。もう一度 ESC を押してください。',fullscreenUnsupported:'このブラウザは全画面表示に対応していません。',fullscreenOpenFailed:'全画面を開始できませんでした。ブラウザの全画面権限を確認してください。',fullscreenExit:'全画面を終了',zenOff:'鑑賞モードを終了',zenOn:'鑑賞モードを開始',normalMode:'通常モード',yearLimit:'2999年末に達したため停止しました。リアルタイムへ戻れます。'
     }
   };
+  Object.assign(COPY,{
+    hi:{...COPY.en,
+      metaDescription:'तारों के साथ बहती सौरमंडल घड़ी—वास्तविक समय, ग्रहों की कक्षाएँ, पृथ्वी और चंद्रमा का एक छोटा ब्रह्मांड।',
+      universeAria:'सौरमंडल। बायाँ ड्रैग दृश्य घुमाता है, मध्य ड्रैग स्थान बदलता है और ऊपर-दाएँ ज़ूम/मूव नियंत्रण से व्हील का कैमरा मोड बदलता है।',
+      languageChange:'भाषा बदलें',languageCurrent:'हिन्दी चयनित',musicOn:'पृष्ठभूमि संगीत चलाएँ',musicOff:'पृष्ठभूमि संगीत बंद करें',musicPrevious:'पिछला संगीत',musicNext:'अगला संगीत',musicUnavailable:'पृष्ठभूमि संगीत नहीं चल सका।',helpLabel:'उपयोग और गणना मार्गदर्शिका',settings:'स्क्रीन सेटिंग',settingsClose:'सेटिंग बंद करें',
+      actualScale:'वास्तविक आकार अनुपात',orbitSpacing:'सामान्य दृश्य कक्षा अंतर',orbitSpacingAria:'सामान्य दृश्य में ग्रहों की कक्षा का अंतर',displaySize:'दिखाई देने वाला आकार',displaySizeAria:'चुने गए खगोलीय पिंड का आकार',satelliteOrbitSpacing:'उपग्रह कक्षा अंतर',satelliteOrbitSpacingAria:'चुने गए ग्रह के उपग्रह की कक्षा का अंतर',solarOrbitSpacing:'बुध कक्षा अंतर',solarOrbitSpacingAria:'सूर्य के सापेक्ष बुध और सभी बाहरी ग्रहों की कक्षा का अंतर',resetSize:'आकार और कक्षा रीसेट',actualSizeLocked:'वास्तविक आकार मोड में आकार और कक्षा बदले नहीं जा सकते।',resetDefaults:'रीसेट',resetDefaultsTitle:'आरंभिक सेटिंग पर लौटें?',resetDefaultsPrompt:'विकल्प, पिंडों के आकार, कक्षाएँ और सामान्य दृश्य आरंभिक मान पर लौटेंगे। कैमरा 1–3 सुरक्षित रहेंगे।',resetComplete:'आरंभिक सेटिंग बहाल हुई।',yes:'हाँ',no:'नहीं',orbits:'कक्षा रेखाएँ',bodyNames:'पिंडों के नाम',avoidLabels:'नामों का ओवरलैप रोकें',showSeconds:'घड़ी में सेकंड',hourCycle:'24 घंटे का समय',hourCycleAria:'24 घंटे का समय। चालू होने पर 24 घंटे, बंद होने पर 12 घंटे',hour24:'24 घंटे',hour12:'12 घंटे',clockFont:'घड़ी का अंक फ़ॉन्ट',sunShine:'सूर्य की चमक',satellites:'मुख्य उपग्रह · चंद्रमा और यूरोपा',pluto:'प्लूटो',dwarfPlanet:'बौना ग्रह',comets:'दूरस्थ धूमकेतु',
+      selectedBody:'चुने गए पिंड की जानकारी',bodyClose:'पिंड की जानकारी बंद करें',focusBody:'पास से देखें · पिंड का अनुसरण',viewControls:'दृश्य नियंत्रण',zoomIn:'ज़ूम इन',zoomOut:'ज़ूम आउट',moveCloser:'पास जाएँ',moveFarther:'दूर जाएँ',zoomValue:'दृश्य ज़ूम स्तर',moveValue:'कैमरा दूरी स्तर',zoomMode:'ज़ूम',moveMode:'मूव',cameraMode:'व्हील मोड · {mode}',cameraModeAria:'व्हील मोड: {mode}। बदलने के लिए दबाएँ।',homeView:'मूल दृश्य',cameraPresets:'सहेजे गए कैमरा दृश्य',
+      playbackControls:'कक्षा प्लेबैक नियंत्रण',realTime:'वास्तविक समय',orbitSpeed:'कक्षा गति',speedSlider:'प्रति सेकंड आगे बढ़ने वाला समय',sources:'स्रोत',bodySelect:'पिंड चुनें',scaleNoteLineOne:'आकार और दूरी का समायोजित पैमाना · औसत कक्षा अनुमान',scaleNoteLineTwo:'घूर्णन और कक्षा समय से जुड़े हैं',
+      apply:'जाएँ',save:'सहेजें',delete:'हटाएँ',cancel:'रद्द करें',helpClose:'सहायता बंद करें',helpTitle:'उपयोग और गणना मार्गदर्शिका',basicControls:'मूल नियंत्रण',supportLink:'Solar Time का समर्थन करें',supportNote:'दान सर्वर लागत और निरंतर विकास में सहायता करता है।',
+      basicHelp:'बायाँ ड्रैग दृश्य को बिना ऊर्ध्व सीमा के पूरा घुमाता है। मध्य ड्रैग स्क्रीन को ऊपर, नीचे, बाएँ या दाएँ ±80% खिसकाता है। दाएँ ऊपर का बटन व्हील को सपाट ज़ूम और परिप्रेक्ष्य वाले वास्तविक कैमरा मूव के बीच बदलता है। किसी पिंड पर डबल-क्लिक करें या “पास से देखें” चुनें। 0 मूल दृश्य लौटाता है; 1·2·3 ज़ूम/मूव मोड सहित दृश्य सहेजते हैं।',
+      releaseHelp:'स्वीकृत रचना और प्रदर्शन विकल्प आरंभिक सेटिंग हैं; रीसेट कैमरा 1–3 को बनाए रखता है। शनि और यूरेनस के छल्ले दूरी के अनुसार महीन पट्टियों को मिलाकर मोइरे कम करते हैं।',
+      timeAndCalculation:'समय और गणना',timeHelp:'ऊपरी घड़ी चुने गए क्षेत्र का वास्तविक समय दिखाती है। नीचे वास्तविक समय बंद करके घंटे, दिन या वर्ष में सिमुलेशन गति बदली जा सकती है।',
+      orbitHelp:'ग्रह दीर्घवृत्ताकार कक्षाओं में उपसौर पर तेज़ और अपसौर पर धीमे चलते हैं। चंद्रमा और यूरोपा पृथ्वी और बृहस्पति की संतान संरचना में हैं। दीर्घकालीन सूक्ष्म बदलाव शामिल नहीं हैं, इसलिए यह सटीक खगोलीय पंचांग नहीं है।',
+      pause:'रोकें',fullscreen:'पूर्ण स्क्रीन',zenMode:'दर्शन मोड',savedViews:'सहेजे दृश्य',stepExit:'क्रमिक निकास',loading:'छोटा ब्रह्मांड खोला जा रहा है',fatalTitle:'दृश्य शुरू नहीं हो सका।',fatalRetry:'नवीनतम Edge या Chrome में फिर खोलें।',loadingTime:'समय लोड हो रहा है',
+      rotateRight:'दाएँ घुमाएँ',rotateLeft:'बाएँ घुमाएँ',start:'शुरू',stop:'रोकें',rotateRunning:'{direction} · रोकने के लिए क्लिक करें',rotateRate:'{direction} · 2° प्रति सेकंड',
+      presetButtonTitle:'कैमरा {n} · लागू/सहेजें/हटाएँ/रद्द करें',presetAria:'कैमरा {n} {state} है। मेनू खोलने के लिए क्लिक करें।',saved:'सहेजा गया',empty:'खाली',emptyPreset:'कैमरा {n} खाली है। पहले दृश्य सहेजें।',hiddenBody:'सहेजे गए पिंड को चालू करके फिर प्रयास करें।',presetTitle:'कैमरा {n}',presetSavedNote:'सहेजा दृश्य लागू करें या वर्तमान दृश्य से बदलें।',presetEmptyNote:'यह कैमरा स्लॉट खाली है।',presetSaved:'कैमरा {n} सहेजा गया।',presetDeleted:'कैमरा {n} हटाया गया।',temporaryOnly:' यह केवल इस विंडो में रहेगा।',
+      wallClockAria:'वास्तविक समय {time}',timezoneTitle:'स्थानीय समय / UTC बदलें',timezoneAria:'{zone} दिख रहा है। समय क्षेत्र बदलने के लिए दबाएँ।',localTime:'स्थानीय समय',bodyInfo:'{name} की जानकारी',photoMap:'फोटो मानचित्र',builtInImage:'अंतर्निहित चित्र',builtInMaterial:'अंतर्निहित सामग्री',publicPhotoUnavailable:'सार्वजनिक चित्र उपलब्ध नहीं',
+      hourUnit:'घंटा',minuteUnit:'मिनट',secondUnit:'सेकंड',dayUnit:'दिन',yearUnit:'वर्ष',timesPerSecond:'प्रति सेकंड {value} चक्कर',secondsPerTurn:'हर {value} सेकंड में एक चक्कर',paused:'रुका हुआ',rotationSummary:'घूर्णन अवधि लगभग {period}{retrograde} · {playback} · कक्षा के समान समय पैमाना',retrograde:' · विपरीत घूर्णन',
+      meanTemperature:'औसत तापमान',temperatureRange:'न्यूनतम {min} · अधिकतम {max} °C',surfaceGravity:'सतही गुरुत्व',earthGravityRatio:'पृथ्वी का {value} गुना',
+      representation:'प्रकार',star:'तारा',systemCenter:'सौरमंडल का केंद्र',sunNote:'घूमती सतह पर चमकीली और गहरी प्लाज़्मा बनावट धीरे बहती है। गति और चमक दृश्य प्रभाव हैं।',earthOrbitPeriod:'पृथ्वी के चारों ओर अवधि',brightSide:'पृथ्वी से दिखने वाला प्रकाशित भाग · अनुमान',approximately:'लगभग {value}',moonNote:'{phase} · JPL संदर्भ समय से मेल खाती औसत कक्षा स्थिति',jupiterOrbitPeriod:'बृहस्पति के चारों ओर अवधि',jupiterDistance:'बृहस्पति से औसत दूरी',europaNote:'JPL संदर्भ समय से मेल खाती वर्तमान कक्षा स्थिति',orbitPeriod:'कक्षा अवधि',sunDistance:'सूर्य से दूरी · अनुमान',plutoNote:'स्थिर औसत कक्षा',earthNote:'{region} · {city}',day:'दिन',night:'रात',koreaView:'{region} देखें · दिन/रात',stormView:'महान लाल धब्बा देखें',
+      speedUnitActive:'गति इकाई {unit}। अगली इकाई के लिए दबाएँ।',speedUnitReady:'गति इकाई {unit} तैयार। शुरू करने के लिए दबाएँ।',orbitPlay:'कक्षाएँ चलाएँ',orbitPause:'कक्षाएँ रोकें',returnedNow:'वर्तमान समय के सौरमंडल पर लौट आए।',fullscreenExitFailed:'पूर्ण स्क्रीन बंद नहीं हुई। ESC फिर दबाएँ।',fullscreenUnsupported:'यह ब्राउज़र पूर्ण स्क्रीन समर्थित नहीं करता।',fullscreenOpenFailed:'पूर्ण स्क्रीन नहीं खुली। ब्राउज़र अनुमति जाँचें।',fullscreenExit:'पूर्ण स्क्रीन बंद करें',zenOff:'दर्शन मोड बंद करें',zenOn:'दर्शन मोड चालू करें',normalMode:'सामान्य मोड',yearLimit:'वर्ष 2999 के अंत पर रुक गया।'
+    },
+    es:{...COPY.en,
+      metaDescription:'Un reloj del sistema solar que fluye con las estrellas: hora real, órbitas planetarias, la Tierra y la Luna en un pequeño cosmos.',
+      universeAria:'Sistema solar. Arrastra con el botón izquierdo para girar, con el central para desplazar y usa el control Zoom/Mover para cambiar el modo de la rueda.',
+      languageChange:'Cambiar idioma',languageCurrent:'Español seleccionado',musicOn:'Reproducir música de fondo',musicOff:'Detener música de fondo',musicPrevious:'Pista anterior',musicNext:'Pista siguiente',musicUnavailable:'No se pudo reproducir la música de fondo.',helpLabel:'Guía y criterios de cálculo',settings:'Ajustes de pantalla',settingsClose:'Cerrar ajustes',
+      actualScale:'Proporción de tamaño real',orbitSpacing:'Separación orbital general',orbitSpacingAria:'Separación de las órbitas en la vista general',displaySize:'Tamaño mostrado',displaySizeAria:'Tamaño mostrado del cuerpo seleccionado',satelliteOrbitSpacing:'Separación de satélites',satelliteOrbitSpacingAria:'Separación orbital del satélite del planeta seleccionado',solarOrbitSpacing:'Separación de Mercurio',solarOrbitSpacingAria:'Separación de Mercurio y los planetas exteriores respecto al Sol',resetSize:'Restablecer tamaño y órbita',actualSizeLocked:'El tamaño y la órbita no se pueden ajustar en modo de tamaño real.',resetDefaults:'Restablecer',resetDefaultsTitle:'¿Volver a la configuración inicial?',resetDefaultsPrompt:'Las opciones, tamaños, órbitas y vista normal volverán a sus valores iniciales. Se conservarán las cámaras 1–3.',resetComplete:'Configuración inicial restaurada.',yes:'Sí',no:'No',orbits:'Líneas orbitales',bodyNames:'Nombres de los cuerpos',avoidLabels:'Evitar nombres superpuestos',showSeconds:'Mostrar segundos',hourCycle:'Formato de 24 horas',hourCycleAria:'Formato de 24 horas. Activado: 24 horas; desactivado: 12 horas',hour24:'24 horas',hour12:'12 horas',clockFont:'Fuente de los números',sunShine:'Brillo solar',satellites:'Satélites principales · Luna y Europa',pluto:'Plutón',dwarfPlanet:'Planeta enano',comets:'Cometas lejanos',
+      selectedBody:'Información del cuerpo',bodyClose:'Cerrar información',focusBody:'Vista cercana · Seguir cuerpo',viewControls:'Controles de vista',zoomIn:'Acercar',zoomOut:'Alejar',moveCloser:'Avanzar',moveFarther:'Retroceder',zoomValue:'Nivel de zoom',moveValue:'Nivel de desplazamiento',zoomMode:'ZOOM',moveMode:'MOVER',cameraMode:'Modo de rueda · {mode}',cameraModeAria:'Modo de rueda: {mode}. Pulsa para cambiar.',homeView:'Vista inicial',cameraPresets:'Vistas de cámara guardadas',
+      playbackControls:'Controles de órbita',realTime:'Tiempo real',orbitSpeed:'Velocidad orbital',speedSlider:'Tiempo avanzado por segundo',sources:'Fuentes',bodySelect:'Seleccionar cuerpo',scaleNoteLineOne:'Escala de tamaño y distancia ajustada · Órbita media aproximada',scaleNoteLineTwo:'Rotación y órbita vinculadas al tiempo',
+      apply:'Mover',save:'Guardar',delete:'Eliminar',cancel:'Cancelar',helpClose:'Cerrar ayuda',helpTitle:'Guía y criterios de cálculo',basicControls:'Controles básicos',supportLink:'Apoyar Solar Time',supportNote:'Las donaciones ayudan a cubrir el servidor y el desarrollo continuo.',
+      basicHelp:'Arrastrar con el botón izquierdo gira sin límite vertical. El botón central desplaza la pantalla hasta ±80%. El botón superior derecho cambia la rueda entre zoom plano y movimiento real de cámara con perspectiva. Haz doble clic en un cuerpo o elige «Vista cercana» para seguirlo. 0 restaura la vista inicial; 1·2·3 guardan la vista y su modo Zoom/Mover.',
+      releaseHelp:'La composición y las opciones aprobadas forman la configuración inicial; restablecer conserva las cámaras 1–3. Los anillos de Saturno y Urano suavizan las bandas finas según la distancia para reducir el muaré.',
+      timeAndCalculation:'Tiempo y cálculo',timeHelp:'El reloj superior muestra la hora real de la región elegida. Desactiva Tiempo real para ajustar la simulación por horas, días o años.',
+      orbitHelp:'Los planetas recorren órbitas elípticas, más rápido cerca del perihelio y más lento cerca del afelio. La Luna y Europa son hijos de la Tierra y Júpiter. No se incluyen perturbaciones a largo plazo, por lo que no es una efeméride de precisión.',
+      pause:'Pausa',fullscreen:'Pantalla completa',zenMode:'Modo contemplación',savedViews:'Vistas guardadas',stepExit:'Salida por pasos',loading:'Abriendo un pequeño cosmos',fatalTitle:'No se pudo iniciar la vista.',fatalRetry:'Ábrelo de nuevo en la versión más reciente de Edge o Chrome.',loadingTime:'Cargando hora',
+      rotateRight:'Girar a la derecha',rotateLeft:'Girar a la izquierda',start:'iniciar',stop:'detener',rotateRunning:'{direction} · pulsa para detener',rotateRate:'{direction} · 2° por segundo',
+      presetButtonTitle:'Cámara {n} · aplicar/guardar/eliminar/cancelar',presetAria:'La cámara {n} está {state}. Pulsa para abrir el menú.',saved:'guardada',empty:'vacía',emptyPreset:'La cámara {n} está vacía. Guarda primero una vista.',hiddenBody:'Activa el cuerpo guardado y vuelve a intentarlo.',presetTitle:'Cámara {n}',presetSavedNote:'Aplica la vista guardada o sustitúyela por la actual.',presetEmptyNote:'Esta cámara está vacía.',presetSaved:'Cámara {n} guardada.',presetDeleted:'Cámara {n} eliminada.',temporaryOnly:' Solo permanecerá en esta ventana.',
+      wallClockAria:'Hora real {time}',timezoneTitle:'Cambiar hora local / UTC',timezoneAria:'Mostrando {zone}. Pulsa para cambiar de zona horaria.',localTime:'hora local',bodyInfo:'Información de {name}',photoMap:'mapa fotográfico',builtInImage:'imagen integrada',builtInMaterial:'material integrado',publicPhotoUnavailable:'imagen pública no disponible',
+      hourUnit:'Hora',minuteUnit:'min',secondUnit:'s',dayUnit:'Día',yearUnit:'Año',timesPerSecond:'{value} vueltas por segundo',secondsPerTurn:'una vuelta cada {value} segundos',paused:'En pausa',rotationSummary:'Periodo de rotación aprox. {period}{retrograde} · {playback} · misma escala temporal que la órbita',retrograde:' · rotación retrógrada',
+      meanTemperature:'Temperatura media',temperatureRange:'Mín. {min} · máx. {max} °C',surfaceGravity:'Gravedad superficial',earthGravityRatio:'{value}× la Tierra',
+      representation:'Tipo',star:'Estrella',systemCenter:'Centro del sistema solar',sunNote:'Los detalles claros y oscuros del plasma se desplazan sutilmente por la superficie. El movimiento y el brillo son efectos visuales.',earthOrbitPeriod:'Órbita alrededor de la Tierra',brightSide:'Cara iluminada vista desde la Tierra · aproximada',approximately:'aprox. {value}',moonNote:'{phase} · posición orbital media alineada con una referencia JPL',jupiterOrbitPeriod:'Órbita alrededor de Júpiter',jupiterDistance:'Distancia media a Júpiter',europaNote:'Posición orbital actual alineada con una referencia JPL',orbitPeriod:'Periodo orbital',sunDistance:'Distancia al Sol · aproximada',plutoNote:'Órbita media fija',earthNote:'{region} · {city}',day:'día',night:'noche',koreaView:'Ver {region} · día/noche',stormView:'Ver la Gran Mancha Roja',
+      speedUnitActive:'Unidad de velocidad: {unit}. Pulsa para cambiar.',speedUnitReady:'Unidad {unit} preparada. Pulsa para iniciar.',orbitPlay:'Reproducir órbitas',orbitPause:'Pausar órbitas',returnedNow:'De vuelta al sistema solar en la hora actual.',fullscreenExitFailed:'No se pudo salir de pantalla completa. Pulsa ESC de nuevo.',fullscreenUnsupported:'Este navegador no admite pantalla completa.',fullscreenOpenFailed:'No se pudo abrir la pantalla completa. Revisa el permiso del navegador.',fullscreenExit:'Salir de pantalla completa',zenOff:'Desactivar modo contemplación',zenOn:'Activar modo contemplación',normalMode:'Modo normal',yearLimit:'Detenido al final del año 2999.'
+    },
+    de:{...COPY.en,
+      metaDescription:'Eine Sonnensystem-Uhr im Fluss der Sterne – Echtzeit, Planetenbahnen, Erde und Mond in einem kleinen Kosmos.',
+      universeAria:'Sonnensystem. Links ziehen dreht die Ansicht, mit der mittleren Taste verschieben; Zoom/Bewegen ändert den Modus des Mausrads.',
+      languageChange:'Sprache ändern',languageCurrent:'Deutsch ausgewählt',musicOn:'Hintergrundmusik abspielen',musicOff:'Hintergrundmusik stoppen',musicPrevious:'Vorheriger Titel',musicNext:'Nächster Titel',musicUnavailable:'Die Hintergrundmusik konnte nicht abgespielt werden.',helpLabel:'Bedienung und Berechnungsgrundlagen',settings:'Anzeigeeinstellungen',settingsClose:'Einstellungen schließen',
+      actualScale:'Reales Größenverhältnis',orbitSpacing:'Bahnabstand der Übersicht',orbitSpacingAria:'Abstand der Planetenbahnen in der Übersicht',displaySize:'Darstellungsgröße',displaySizeAria:'Darstellungsgröße des ausgewählten Körpers',satelliteOrbitSpacing:'Mondbahn-Abstand',satelliteOrbitSpacingAria:'Bahnabstand des Mondes des ausgewählten Planeten',solarOrbitSpacing:'Merkurbahn-Abstand',solarOrbitSpacingAria:'Abstand von Merkur und allen äußeren Planeten relativ zur Sonne',resetSize:'Größe und Bahn zurücksetzen',actualSizeLocked:'Im Modus mit realen Größen sind Größe und Bahn gesperrt.',resetDefaults:'Zurücksetzen',resetDefaultsTitle:'Zur Ausgangseinstellung zurückkehren?',resetDefaultsPrompt:'Optionen, Größen, Bahnen und Normalansicht werden zurückgesetzt. Kamera 1–3 bleiben erhalten.',resetComplete:'Ausgangseinstellung wiederhergestellt.',yes:'Ja',no:'Nein',orbits:'Bahnlinien',bodyNames:'Himmelskörpernamen',avoidLabels:'Überlappende Namen vermeiden',showSeconds:'Sekunden anzeigen',hourCycle:'24-Stunden-Anzeige',hourCycleAria:'24-Stunden-Anzeige. Ein: 24 Stunden, aus: 12 Stunden',hour24:'24 Stunden',hour12:'12 Stunden',clockFont:'Ziffernschrift',sunShine:'Sonnenschein',satellites:'Wichtige Monde · Mond und Europa',pluto:'Pluto',dwarfPlanet:'Zwergplanet',comets:'Ferne Kometen',
+      selectedBody:'Informationen zum Himmelskörper',bodyClose:'Informationen schließen',focusBody:'Nahansicht · Körper verfolgen',viewControls:'Ansichtssteuerung',zoomIn:'Vergrößern',zoomOut:'Verkleinern',moveCloser:'Näher bewegen',moveFarther:'Weiter entfernen',zoomValue:'Zoomstufe',moveValue:'Kamerafahrt',zoomMode:'ZOOM',moveMode:'BEWEGEN',cameraMode:'Mausradmodus · {mode}',cameraModeAria:'Mausradmodus: {mode}. Zum Wechseln drücken.',homeView:'Ausgangsansicht',cameraPresets:'Gespeicherte Kameraansichten',
+      playbackControls:'Bahnwiedergabe',realTime:'Echtzeit',orbitSpeed:'Bahngeschwindigkeit',speedSlider:'Fortschritt pro Sekunde',sources:'Quellen',bodySelect:'Himmelskörper auswählen',scaleNoteLineOne:'Angepasster Größen- und Entfernungsmaßstab · Mittlere Bahnnäherung',scaleNoteLineTwo:'Rotation und Umlauf an Zeit gekoppelt',
+      apply:'Bewegen',save:'Speichern',delete:'Löschen',cancel:'Abbrechen',helpClose:'Hilfe schließen',helpTitle:'Bedienung und Berechnungsgrundlagen',basicControls:'Grundsteuerung',supportLink:'Solar Time unterstützen',supportNote:'Spenden helfen bei Serverkosten und der laufenden Entwicklung.',
+      basicHelp:'Ziehen mit der linken Maustaste dreht die Ansicht ohne vertikale Begrenzung. Die mittlere Taste verschiebt um bis zu ±80%. Die obere rechte Taste wechselt das Mausrad zwischen flachem Zoom und echter Kamerafahrt mit Perspektive. Doppelklick oder „Nahansicht“ verfolgt einen Körper. 0 stellt die Ausgangsansicht her; 1·2·3 speichern Ansicht und Zoom/Bewegen-Modus.',
+      releaseHelp:'Die freigegebene Komposition und Anzeige bilden die Ausgangseinstellung; Zurücksetzen behält Kamera 1–3. Saturn- und Uranusringe glätten feine Bänder je nach Entfernung, um Moiré zu verringern.',
+      timeAndCalculation:'Zeit und Berechnung',timeHelp:'Die obere Uhr zeigt die Echtzeit der gewählten Region. Echtzeit kann ausgeschaltet werden, um die Simulation in Stunden, Tagen oder Jahren zu steuern.',
+      orbitHelp:'Planeten bewegen sich auf elliptischen Bahnen, am Perihel schneller und am Aphel langsamer. Mond und Europa sind der Erde bzw. Jupiter untergeordnet. Langfristige Störungen fehlen; dies ist daher keine Präzisionsephemeride.',
+      pause:'Pause',fullscreen:'Vollbild',zenMode:'Betrachtungsmodus',savedViews:'Gespeicherte Ansichten',stepExit:'Schrittweise beenden',loading:'Ein kleiner Kosmos öffnet sich',fatalTitle:'Die Ansicht konnte nicht gestartet werden.',fatalRetry:'Bitte erneut im neuesten Edge oder Chrome öffnen.',loadingTime:'Zeit wird geladen',
+      rotateRight:'Nach rechts drehen',rotateLeft:'Nach links drehen',start:'starten',stop:'stoppen',rotateRunning:'{direction} · zum Stoppen klicken',rotateRate:'{direction} · 2° pro Sekunde',
+      presetButtonTitle:'Kamera {n} · anwenden/speichern/löschen/abbrechen',presetAria:'Kamera {n} ist {state}. Klicken, um das Menü zu öffnen.',saved:'gespeichert',empty:'leer',emptyPreset:'Kamera {n} ist leer. Bitte zuerst eine Ansicht speichern.',hiddenBody:'Den gespeicherten Körper einschalten und erneut versuchen.',presetTitle:'Kamera {n}',presetSavedNote:'Gespeicherte Ansicht anwenden oder mit der aktuellen überschreiben.',presetEmptyNote:'Dieser Kameraplatz ist leer.',presetSaved:'Kamera {n} gespeichert.',presetDeleted:'Kamera {n} gelöscht.',temporaryOnly:' Bleibt nur in diesem Fenster erhalten.',
+      wallClockAria:'Aktuelle Zeit {time}',timezoneTitle:'Ortszeit / UTC umschalten',timezoneAria:'{zone} wird angezeigt. Zum Wechseln der Zeitzone drücken.',localTime:'Ortszeit',bodyInfo:'Informationen zu {name}',photoMap:'Fotokarte',builtInImage:'integriertes Bild',builtInMaterial:'integriertes Material',publicPhotoUnavailable:'öffentliches Bild nicht verfügbar',
+      hourUnit:'Stunde',minuteUnit:'Min.',secondUnit:'Sek.',dayUnit:'Tag',yearUnit:'Jahr',timesPerSecond:'{value} Umdrehungen pro Sekunde',secondsPerTurn:'eine Umdrehung alle {value} Sekunden',paused:'Pausiert',rotationSummary:'Rotationsdauer ca. {period}{retrograde} · {playback} · gleicher Zeitmaßstab wie Umlauf',retrograde:' · rückläufige Rotation',
+      meanTemperature:'Mittlere Temperatur',temperatureRange:'Min. {min} · max. {max} °C',surfaceGravity:'Oberflächengravitation',earthGravityRatio:'{value}× Erde',
+      representation:'Typ',star:'Stern',systemCenter:'Zentrum des Sonnensystems',sunNote:'Helle und dunkle Plasmastrukturen bewegen sich dezent über die Oberfläche. Bewegung und Glanz sind visuelle Effekte.',earthOrbitPeriod:'Umlauf um die Erde',brightSide:'Von der Erde sichtbare helle Seite · Näherung',approximately:'ca. {value}',moonNote:'{phase} · mittlere Bahnposition nach einer JPL-Referenzzeit',jupiterOrbitPeriod:'Umlauf um Jupiter',jupiterDistance:'Mittlere Entfernung zu Jupiter',europaNote:'Aktuelle Bahnposition nach einer JPL-Referenzzeit',orbitPeriod:'Umlaufzeit',sunDistance:'Entfernung zur Sonne · Näherung',plutoNote:'Feste mittlere Bahn',earthNote:'{region} · {city}',day:'Tag',night:'Nacht',koreaView:'{region} ansehen · Tag/Nacht',stormView:'Großen Roten Fleck ansehen',
+      speedUnitActive:'Geschwindigkeitseinheit {unit}. Zum Wechseln drücken.',speedUnitReady:'Einheit {unit} bereit. Zum Starten drücken.',orbitPlay:'Bahnen abspielen',orbitPause:'Bahnen pausieren',returnedNow:'Zum Sonnensystem der aktuellen Zeit zurückgekehrt.',fullscreenExitFailed:'Vollbild konnte nicht beendet werden. ESC erneut drücken.',fullscreenUnsupported:'Dieser Browser unterstützt kein Vollbild.',fullscreenOpenFailed:'Vollbild konnte nicht geöffnet werden. Browserberechtigung prüfen.',fullscreenExit:'Vollbild beenden',zenOff:'Betrachtungsmodus ausschalten',zenOn:'Betrachtungsmodus einschalten',normalMode:'Normalmodus',yearLimit:'Am Ende des Jahres 2999 angehalten.'
+    },
+    fr:{...COPY.en,
+      metaDescription:'Une horloge du système solaire au fil des étoiles : heure réelle, orbites planétaires, Terre et Lune dans un petit cosmos.',
+      universeAria:'Système solaire. Glissez à gauche pour tourner, avec le bouton central pour déplacer, et utilisez Zoom/Déplacement pour changer le mode de la molette.',
+      languageChange:'Changer de langue',languageCurrent:'Français sélectionné',musicOn:'Lire la musique de fond',musicOff:'Arrêter la musique de fond',musicPrevious:'Piste précédente',musicNext:'Piste suivante',musicUnavailable:'Impossible de lire la musique de fond.',helpLabel:'Guide et principes de calcul',settings:'Réglages d’affichage',settingsClose:'Fermer les réglages',
+      actualScale:'Rapport de taille réel',orbitSpacing:'Espacement orbital général',orbitSpacingAria:'Espacement des orbites dans la vue générale',displaySize:'Taille affichée',displaySizeAria:'Taille affichée de l’astre sélectionné',satelliteOrbitSpacing:'Espacement des satellites',satelliteOrbitSpacingAria:'Espacement orbital du satellite de la planète sélectionnée',solarOrbitSpacing:'Espacement de Mercure',solarOrbitSpacingAria:'Espacement de Mercure et des planètes extérieures par rapport au Soleil',resetSize:'Réinitialiser taille et orbite',actualSizeLocked:'La taille et l’orbite sont verrouillées en mode de taille réelle.',resetDefaults:'Réinitialiser',resetDefaultsTitle:'Revenir aux réglages initiaux ?',resetDefaultsPrompt:'Les options, tailles, orbites et la vue normale reviendront aux valeurs initiales. Les caméras 1–3 seront conservées.',resetComplete:'Réglages initiaux restaurés.',yes:'Oui',no:'Non',orbits:'Lignes orbitales',bodyNames:'Noms des astres',avoidLabels:'Éviter le chevauchement des noms',showSeconds:'Afficher les secondes',hourCycle:'Format 24 heures',hourCycleAria:'Format 24 heures. Activé : 24 heures, désactivé : 12 heures',hour24:'24 heures',hour12:'12 heures',clockFont:'Police des chiffres',sunShine:'Éclat solaire',satellites:'Satellites principaux · Lune et Europe',pluto:'Pluton',dwarfPlanet:'Planète naine',comets:'Comètes lointaines',
+      selectedBody:'Informations sur l’astre',bodyClose:'Fermer les informations',focusBody:'Vue rapprochée · Suivre l’astre',viewControls:'Commandes de vue',zoomIn:'Zoom avant',zoomOut:'Zoom arrière',moveCloser:'Avancer',moveFarther:'Reculer',zoomValue:'Niveau de zoom',moveValue:'Niveau de déplacement',zoomMode:'ZOOM',moveMode:'DÉPLACER',cameraMode:'Mode molette · {mode}',cameraModeAria:'Mode molette : {mode}. Appuyez pour changer.',homeView:'Vue initiale',cameraPresets:'Vues caméra enregistrées',
+      playbackControls:'Commandes des orbites',realTime:'Temps réel',orbitSpeed:'Vitesse orbitale',speedSlider:'Temps écoulé par seconde',sources:'Sources',bodySelect:'Sélectionner un astre',scaleNoteLineOne:'Échelle de taille et de distance ajustée · Orbite moyenne approximative',scaleNoteLineTwo:'Rotation et orbite liées au temps',
+      apply:'Déplacer',save:'Enregistrer',delete:'Supprimer',cancel:'Annuler',helpClose:'Fermer l’aide',helpTitle:'Guide et principes de calcul',basicControls:'Commandes de base',supportLink:'Soutenir Solar Time',supportNote:'Les dons contribuent aux frais de serveur et au développement continu.',
+      basicHelp:'Le glissement gauche fait tourner la vue sans limite verticale. Le bouton central déplace l’écran jusqu’à ±80 %. Le bouton supérieur droit alterne la molette entre zoom plat et déplacement réel de la caméra avec perspective. Double-cliquez sur un astre ou choisissez « Vue rapprochée » pour le suivre. 0 restaure la vue initiale ; 1·2·3 enregistrent la vue avec son mode Zoom/Déplacement.',
+      releaseHelp:'La composition et les options validées constituent les réglages initiaux ; la réinitialisation conserve les caméras 1–3. Les anneaux de Saturne et d’Uranus fondent les bandes fines selon la distance pour réduire le moiré.',
+      timeAndCalculation:'Temps et calcul',timeHelp:'L’horloge supérieure affiche l’heure réelle de la région choisie. Désactivez Temps réel pour régler la simulation en heures, jours ou années.',
+      orbitHelp:'Les planètes suivent des orbites elliptiques, plus vite au périhélie et plus lentement à l’aphélie. La Lune et Europe sont rattachées à la Terre et à Jupiter. Les perturbations à long terme sont omises : ce n’est pas une éphéméride de précision.',
+      pause:'Pause',fullscreen:'Plein écran',zenMode:'Mode contemplation',savedViews:'Vues enregistrées',stepExit:'Sortie par étapes',loading:'Ouverture d’un petit cosmos',fatalTitle:'Impossible de démarrer la vue.',fatalRetry:'Ouvrez-la à nouveau dans la dernière version d’Edge ou Chrome.',loadingTime:'Chargement de l’heure',
+      rotateRight:'Tourner à droite',rotateLeft:'Tourner à gauche',start:'démarrer',stop:'arrêter',rotateRunning:'{direction} · cliquer pour arrêter',rotateRate:'{direction} · 2° par seconde',
+      presetButtonTitle:'Caméra {n} · appliquer/enregistrer/supprimer/annuler',presetAria:'La caméra {n} est {state}. Cliquez pour ouvrir le menu.',saved:'enregistrée',empty:'vide',emptyPreset:'La caméra {n} est vide. Enregistrez d’abord une vue.',hiddenBody:'Activez l’astre enregistré puis réessayez.',presetTitle:'Caméra {n}',presetSavedNote:'Appliquez la vue enregistrée ou remplacez-la par la vue actuelle.',presetEmptyNote:'Cet emplacement caméra est vide.',presetSaved:'Caméra {n} enregistrée.',presetDeleted:'Caméra {n} supprimée.',temporaryOnly:' Elle restera uniquement dans cette fenêtre.',
+      wallClockAria:'Heure actuelle {time}',timezoneTitle:'Basculer heure locale / UTC',timezoneAria:'Affichage de {zone}. Appuyez pour changer de fuseau.',localTime:'heure locale',bodyInfo:'Informations sur {name}',photoMap:'carte photographique',builtInImage:'image intégrée',builtInMaterial:'matériau intégré',publicPhotoUnavailable:'image publique indisponible',
+      hourUnit:'Heure',minuteUnit:'min',secondUnit:'s',dayUnit:'Jour',yearUnit:'Année',timesPerSecond:'{value} rotations par seconde',secondsPerTurn:'une rotation toutes les {value} secondes',paused:'En pause',rotationSummary:'Période de rotation env. {period}{retrograde} · {playback} · même échelle de temps que l’orbite',retrograde:' · rotation rétrograde',
+      meanTemperature:'Température moyenne',temperatureRange:'Min. {min} · max. {max} °C',surfaceGravity:'Gravité de surface',earthGravityRatio:'{value}× la Terre',
+      representation:'Type',star:'Étoile',systemCenter:'Centre du système solaire',sunNote:'Les détails clairs et sombres du plasma dérivent subtilement sur la surface. Le mouvement et l’éclat sont des effets visuels.',earthOrbitPeriod:'Orbite autour de la Terre',brightSide:'Face éclairée vue depuis la Terre · approximation',approximately:'env. {value}',moonNote:'{phase} · position orbitale moyenne alignée sur une référence JPL',jupiterOrbitPeriod:'Orbite autour de Jupiter',jupiterDistance:'Distance moyenne à Jupiter',europaNote:'Position orbitale actuelle alignée sur une référence JPL',orbitPeriod:'Période orbitale',sunDistance:'Distance au Soleil · approximation',plutoNote:'Orbite moyenne fixe',earthNote:'{region} · {city}',day:'jour',night:'nuit',koreaView:'Voir {region} · jour/nuit',stormView:'Voir la Grande Tache rouge',
+      speedUnitActive:'Unité de vitesse : {unit}. Appuyez pour changer.',speedUnitReady:'Unité {unit} prête. Appuyez pour démarrer.',orbitPlay:'Lire les orbites',orbitPause:'Mettre les orbites en pause',returnedNow:'Retour au système solaire à l’heure actuelle.',fullscreenExitFailed:'Impossible de quitter le plein écran. Appuyez à nouveau sur ESC.',fullscreenUnsupported:'Ce navigateur ne prend pas en charge le plein écran.',fullscreenOpenFailed:'Impossible d’ouvrir le plein écran. Vérifiez l’autorisation du navigateur.',fullscreenExit:'Quitter le plein écran',zenOff:'Désactiver le mode contemplation',zenOn:'Activer le mode contemplation',normalMode:'Mode normal',yearLimit:'Arrêt à la fin de l’année 2999.'
+    }
+  });
   const BODY_COPY={
     en:{sun:['Sun','The center of the solar system. Granular surface detail and soft shine are visual effects.'],mercury:['Mercury','A small rocky planet closest to the Sun. Its rapid orbit makes the shortest year in this solar system.'],venus:['Venus','Venus is wrapped in thick clouds and rotates very slowly in the opposite direction to most planets.'],earth:['Earth','The blue planet by which we keep time. Its Moon travels around the Sun together with Earth.'],moon:['Moon','Earth’s only natural satellite, orbiting in about 27.32 days. Its position follows the current simulation time; distance and size are enlarged for clarity.'],mars:['Mars','Our neighboring planet colored red by iron oxide, with a longer year than Earth.'],jupiter:['Jupiter','The largest planet in the solar system, shown with cloud bands and its giant storm.'],europa:['Europa','An icy Galilean moon. It orbits Jupiter in about 3.55 days and follows the current simulation time.'],saturn:['Saturn','A planet surrounded by rings of ice and rock particles, layered in 3D in front of and behind the planet.'],uranus:['Uranus','A cyan ice giant distinguished by its nearly sideways rotation axis and faint rings.'],neptune:['Neptune','The deep-blue outer planet, taking about 165 years to complete one orbit.'],pluto:['Pluto','A dwarf planet rather than a planet. Its tilted elliptical orbit is approximated with fixed mean elements.']},
     chn:{sun:['太阳','太阳系的中心。表面颗粒与柔和光芒为观赏用视觉效果。'],mercury:['水星','最靠近太阳的小型岩石行星，快速公转形成太阳系中最短的一年。'],venus:['金星','被浓厚云层覆盖，并以与多数行星相反的方向缓慢自转。'],earth:['地球','我们用来计量时间的蓝色行星，月球与地球一同绕太阳旅行。'],moon:['月球','地球唯一的天然卫星，约 27.32 日绕行一周。位置随当前模拟时间变化，距离和大小为便于观看而放大。'],mars:['火星','被氧化铁染红的邻近行星，一年比地球更长。'],jupiter:['木星','太阳系最大的行星，画面表现了条带状云层与巨大风暴。'],europa:['木卫二','伽利略卫星之一的冰世界，约 3.55 日绕木星一周，位置随当前模拟时间变化。'],saturn:['土星','由冰与岩石颗粒组成的光环环绕其周围，光环前后与行星呈立体交叠。'],uranus:['天王星','青色冰巨星，近乎横躺的自转轴与淡薄光环是其特点。'],neptune:['海王星','深蓝色的外侧行星，完成一次公转约需 165 年。'],pluto:['冥王星','它是矮行星而非行星，倾斜的椭圆轨道以固定平均轨道要素近似呈现。']},
     jpn:{sun:['太陽','太陽系の中心。粒状の表面と柔らかな輝きは鑑賞用の視覚効果です。'],mercury:['水星','太陽に最も近い小さな岩石惑星で、速い公転によって太陽系で最も短い一年を持ちます。'],venus:['金星','厚い雲に覆われ、多くの惑星とは逆向きに非常にゆっくり自転します。'],earth:['地球','私たちが時間の基準にする青い惑星。月とともに太陽の周りを進みます。'],moon:['月','地球唯一の天然衛星で、約27.32日で一周します。位置は現在のシミュレーション時刻に従い、見やすさのため距離と大きさを拡大しています。'],mars:['火星','酸化鉄によって赤く見える隣の惑星で、一年は地球より長くなります。'],jupiter:['木星','太陽系最大の惑星。縞状の雲と巨大な嵐を表現しています。'],europa:['エウロパ','ガリレオ衛星の一つである氷の世界。約3.55日で木星を一周し、現在のシミュレーション時刻に従います。'],saturn:['土星','氷と岩石の粒子からなる環に囲まれ、環は惑星の前後に立体的に重なります。'],uranus:['天王星','ほぼ横倒しの自転軸と淡い環が特徴のシアン色の氷巨星です。'],neptune:['海王星','深い青色の外惑星で、一周の公転に約165年かかります。'],pluto:['冥王星','惑星ではなく準惑星です。傾いた楕円軌道を固定平均要素で近似しています。']}
   };
+  Object.assign(BODY_COPY,{
+    hi:{
+      sun:['सूर्य','सौरमंडल का केंद्र। दानेदार सतह और कोमल चमक दृश्य प्रभाव हैं।'],
+      mercury:['बुध','सूर्य के सबसे पास छोटा पथरीला ग्रह, जिसकी तेज़ कक्षा सबसे छोटा वर्ष बनाती है।'],
+      venus:['शुक्र','घने बादलों से ढका ग्रह, जो अधिकांश ग्रहों की विपरीत दिशा में बहुत धीरे घूमता है।'],
+      earth:['पृथ्वी','हमारे समय का आधार नीला ग्रह। चंद्रमा पृथ्वी के साथ सूर्य की परिक्रमा करता है।'],
+      moon:['चंद्रमा','पृथ्वी का एकमात्र प्राकृतिक उपग्रह, जो लगभग 27.32 दिनों में परिक्रमा करता है।'],
+      mars:['मंगल','लौह ऑक्साइड से लाल दिखने वाला पड़ोसी ग्रह, जिसका वर्ष पृथ्वी से लंबा है।'],
+      jupiter:['बृहस्पति','सौरमंडल का सबसे बड़ा ग्रह, बादलों की पट्टियों और विशाल तूफ़ान सहित।'],
+      europa:['यूरोपा','बर्फीला गैलीलियन उपग्रह, जो लगभग 3.55 दिनों में बृहस्पति की परिक्रमा करता है।'],
+      saturn:['शनि','बर्फ और चट्टानी कणों के छल्लों से घिरा ग्रह।'],
+      uranus:['यूरेनस','लगभग आड़ी घूर्णन धुरी और हल्के छल्लों वाला सियान हिम दानव।'],
+      neptune:['नेपच्यून','गहरा नीला बाहरी ग्रह, जिसकी एक परिक्रमा में लगभग 165 वर्ष लगते हैं।'],
+      pluto:['प्लूटो','झुकी हुई दीर्घवृत्ताकार कक्षा वाला बौना ग्रह।']
+    },
+    es:{
+      sun:['Sol','Centro del sistema solar. La superficie granular y el brillo suave son efectos visuales.'],
+      mercury:['Mercurio','Pequeño planeta rocoso más cercano al Sol; su órbita rápida crea el año más corto.'],
+      venus:['Venus','Cubierto por nubes densas, gira muy lentamente en sentido contrario a la mayoría de los planetas.'],
+      earth:['Tierra','El planeta azul con el que medimos el tiempo. La Luna viaja alrededor del Sol junto a la Tierra.'],
+      moon:['Luna','Único satélite natural de la Tierra, con una órbita de unos 27,32 días.'],
+      mars:['Marte','Nuestro vecino rojizo por el óxido de hierro, con un año más largo que el terrestre.'],
+      jupiter:['Júpiter','El planeta más grande del sistema solar, con bandas de nubes y una tormenta gigante.'],
+      europa:['Europa','Luna galileana helada que orbita Júpiter en unos 3,55 días.'],
+      saturn:['Saturno','Planeta rodeado de anillos de partículas de hielo y roca.'],
+      uranus:['Urano','Gigante de hielo cian, caracterizado por su eje casi horizontal y anillos tenues.'],
+      neptune:['Neptuno','Planeta exterior azul profundo que tarda unos 165 años en completar una órbita.'],
+      pluto:['Plutón','Planeta enano con una órbita elíptica e inclinada representada mediante elementos medios.']
+    },
+    de:{
+      sun:['Sonne','Zentrum des Sonnensystems. Körnige Oberfläche und sanfter Glanz sind visuelle Effekte.'],
+      mercury:['Merkur','Kleiner Gesteinsplanet nahe der Sonne; seine schnelle Bahn ergibt das kürzeste Jahr.'],
+      venus:['Venus','Von dichten Wolken umhüllt und sehr langsam entgegen der Drehrichtung der meisten Planeten.'],
+      earth:['Erde','Der blaue Planet, nach dem wir die Zeit messen. Der Mond reist mit der Erde um die Sonne.'],
+      moon:['Mond','Der einzige natürliche Satellit der Erde mit einer Umlaufzeit von etwa 27,32 Tagen.'],
+      mars:['Mars','Unser durch Eisenoxid rot gefärbter Nachbar mit einem längeren Jahr als die Erde.'],
+      jupiter:['Jupiter','Der größte Planet des Sonnensystems mit Wolkenbändern und riesigem Sturm.'],
+      europa:['Europa','Ein eisiger Galileischer Mond, der Jupiter in etwa 3,55 Tagen umkreist.'],
+      saturn:['Saturn','Ein Planet, umgeben von Ringen aus Eis- und Gesteinspartikeln.'],
+      uranus:['Uranus','Cyanfarbener Eisriese mit fast liegender Rotationsachse und schwachen Ringen.'],
+      neptune:['Neptun','Tiefblauer äußerer Planet mit einer Umlaufzeit von etwa 165 Jahren.'],
+      pluto:['Pluto','Zwergplanet mit geneigter elliptischer Bahn aus festen mittleren Elementen.']
+    },
+    fr:{
+      sun:['Soleil','Centre du système solaire. La surface granuleuse et la douce lueur sont des effets visuels.'],
+      mercury:['Mercure','Petite planète rocheuse la plus proche du Soleil ; son orbite rapide crée l’année la plus courte.'],
+      venus:['Vénus','Enveloppée de nuages épais, elle tourne très lentement dans le sens opposé à la plupart des planètes.'],
+      earth:['Terre','La planète bleue qui nous sert à mesurer le temps. La Lune voyage autour du Soleil avec la Terre.'],
+      moon:['Lune','Unique satellite naturel de la Terre, avec une orbite d’environ 27,32 jours.'],
+      mars:['Mars','Notre voisine colorée en rouge par l’oxyde de fer, avec une année plus longue que celle de la Terre.'],
+      jupiter:['Jupiter','La plus grande planète du système solaire, avec ses bandes nuageuses et sa tempête géante.'],
+      europa:['Europe','Lune galiléenne glacée qui orbite Jupiter en environ 3,55 jours.'],
+      saturn:['Saturne','Planète entourée d’anneaux de particules de glace et de roche.'],
+      uranus:['Uranus','Géante de glace cyan caractérisée par son axe presque couché et ses anneaux ténus.'],
+      neptune:['Neptune','Planète extérieure bleu profond qui met environ 165 ans à accomplir une orbite.'],
+      pluto:['Pluton','Planète naine à l’orbite elliptique inclinée, représentée par des éléments moyens fixes.']
+    }
+  });
   // NASA/NSSDCA representative values. Gas- and ice-giant temperatures refer
   // to a comparable atmospheric pressure level because they have no hard surface.
   const BODY_ENVIRONMENT=Object.freeze({
@@ -2865,6 +3054,12 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
     pluto:{mean:-225,min:-240,max:-226,gravity:.7}
   });
   const PHASE_COPY={en:{'삭 부근':'near new moon','초승달':'waxing crescent','상현달':'first quarter','차오르는 달':'waxing gibbous','보름달 부근':'near full moon','기우는 달':'waning gibbous','하현달':'last quarter','그믐달':'waning crescent'},chn:{'삭 부근':'接近新月','초승달':'娥眉月','상현달':'上弦月','차오르는 달':'盈凸月','보름달 부근':'接近满月','기우는 달':'亏凸月','하현달':'下弦月','그믐달':'残月'},jpn:{'삭 부근':'新月付近','초승달':'三日月','상현달':'上弦の月','차오르는 달':'満ちていく月','보름달 부근':'満月付近','기우는 달':'欠けていく月','하현달':'下弦の月','그믐달':'有明月'}};
+  Object.assign(PHASE_COPY,{
+    hi:{'삭 부근':'अमावस्या के पास','초승달':'बढ़ता अर्धचंद्र','상현달':'प्रथम चतुर्थांश','차오르는 달':'बढ़ता उभरा चंद्र','보름달 부근':'पूर्णिमा के पास','기우는 달':'घटता उभरा चंद्र','하현달':'अंतिम चतुर्थांश','그믐달':'घटता अर्धचंद्र'},
+    es:{'삭 부근':'cerca de luna nueva','초승달':'creciente','상현달':'cuarto creciente','차오르는 달':'gibosa creciente','보름달 부근':'cerca de luna llena','기우는 달':'gibosa menguante','하현달':'cuarto menguante','그믐달':'menguante'},
+    de:{'삭 부근':'nahe Neumond','초승달':'zunehmende Sichel','상현달':'erstes Viertel','차오르는 달':'zunehmender Mond','보름달 부근':'nahe Vollmond','기우는 달':'abnehmender Mond','하현달':'letztes Viertel','그믐달':'abnehmende Sichel'},
+    fr:{'삭 부근':'près de la nouvelle lune','초승달':'premier croissant','상현달':'premier quartier','차오르는 달':'gibbeuse croissante','보름달 부근':'près de la pleine lune','기우는 달':'gibbeuse décroissante','하현달':'dernier quartier','그믐달':'dernier croissant'}
+  });
   const interpolate=(text,values={})=>String(text).replace(/\{(\w+)\}/g,(_,key)=>values[key]??'');
   // The scene is an application surface, not a document: suppress the browser
   // context menu and accidental drag-selection without changing button controls.
@@ -2909,7 +3104,7 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
       const t=(key,values)=>interpolate(COPY[copyLanguage()]?.[key]??COPY.kor[key]??key,values);
       const bodyCopy=body=>copyLanguage()==='kor'?{name:body.ko,description:body.description}:{name:BODY_COPY[copyLanguage()]?.[body.id]?.[0]||body.en,description:BODY_COPY[copyLanguage()]?.[body.id]?.[1]||body.description};
       const phaseCopy=name=>copyLanguage()==='kor'?name:(PHASE_COPY[copyLanguage()]?.[name]||name);
-      const quantity=(value,unit)=>copyLanguage()==='en'?`${value} ${t(unit)}`:`${value}${t(unit)}`;
+      const quantity=(value,unit)=>['en','hi','es','de','fr'].includes(copyLanguage())?`${value} ${t(unit)}`:`${value}${t(unit)}`;
       const musicAudio=$('background-music'),musicFolder=/\/dist\/[^/]+\.html$/i.test(location.pathname)?'../assets/music/':'assets/music/';
       let musicEnabled=false,musicIndex=-1,musicOrder=[],musicPosition=-1,musicToken=0,musicFailures=0,lastMusicFailure=-1;
       musicAudio.volume=.55;musicAudio.muted=true;
@@ -2983,7 +3178,9 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
         for(const el of document.querySelectorAll('[data-i18n-aria]'))el.setAttribute('aria-label',t(el.dataset.i18nAria));
         for(const el of document.querySelectorAll('[data-i18n-title]'))el.title=t(el.dataset.i18nTitle);
         for(const el of document.querySelectorAll('[data-i18n-content]'))el.setAttribute('content',t(el.dataset.i18nContent));
-        const lang=$('language-toggle');lang.textContent=LANG_META[language].code;lang.setAttribute('aria-label',`${t('languageChange')}. ${t('languageCurrent')}`);lang.title=`${t('languageChange')} · ${LANG_META[language].code}`;
+        const lang=$('language-toggle');lang.textContent=LANG_META[language].code;lang.setAttribute('aria-label',`${t('languageChange')}. ${LANG_META[language].name}`);lang.title=`${t('languageChange')} · ${LANG_META[language].code}`;
+        const menu=$('language-menu');menu.setAttribute('aria-label',t('languageChange'));
+        for(const option of menu.querySelectorAll('[data-language]'))option.setAttribute('aria-checked',String(option.dataset.language===language));
         for(const [id,key] of [['zoom-in','zoomIn'],['zoom-out','zoomOut']]){$(id).setAttribute('aria-label',t(key));$(id).title=t(key);}
         $('fit-view').setAttribute('aria-label',t('homeView'));$('fit-view').title=t('homeView')+' · 0';
         $('fullscreen-button').setAttribute('aria-label',t(document.fullscreenElement?'fullscreenExit':'fullscreen'));$('fullscreen-button').title=t(document.fullscreenElement?'fullscreenExit':'fullscreen')+' · F';
@@ -3377,6 +3574,7 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
         // Fullscreen always exits on the first short press; remaining UI closes step by step.
         if(document.fullscreenElement){exitFullscreen();return;}
         if(zen){setZen(false);return;}
+        if(!$('language-menu').hidden){closeLanguageMenu();return;}
         if(resetDefaultsDialog.open){closeResetDefaults();return;}
         if(presetDialog.open){closePresetDialog();return;}
         if($('help-dialog').open){help(false);return;}
@@ -3442,7 +3640,20 @@ Sky.cometPoint=cometPoint;Sky.cometTail=cometTail;Sky.drawCometRibbon=drawCometR
         if(selected){const copy=bodyCopy(selected);$('body-name').textContent=copy.name;$('body-description').textContent=copy.description;$('feature-view').textContent=selected.id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');syncBodySizeControl(selected);updateBody(clock.value(performance.now()));}
         uiNow();persist();if(helpDialog.open)requestAnimationFrame(updateHelpScrollCues);
       }
-      $('language-toggle').addEventListener('click',()=>setLanguage(LANG_ORDER[(LANG_ORDER.indexOf(language)+1)%LANG_ORDER.length]));
+      const languageControl=$('language-control'),languageMenu=$('language-menu'),languageToggle=$('language-toggle');
+      function openLanguageMenu(){
+        languageMenu.hidden=false;languageToggle.setAttribute('aria-expanded','true');
+        const current=languageMenu.querySelector(`[data-language="${language}"]`);requestAnimationFrame(()=>current?.focus({preventScroll:true}));
+      }
+      function closeLanguageMenu(returnFocus=false){languageMenu.hidden=true;languageToggle.setAttribute('aria-expanded','false');if(returnFocus)languageToggle.focus({preventScroll:true});}
+      languageToggle.addEventListener('click',()=>languageMenu.hidden?openLanguageMenu():closeLanguageMenu());
+      for(const option of languageMenu.querySelectorAll('[data-language]'))option.addEventListener('click',()=>{setLanguage(option.dataset.language);closeLanguageMenu(true);});
+      languageMenu.addEventListener('keydown',event=>{
+        const options=[...languageMenu.querySelectorAll('[data-language]')],index=options.indexOf(document.activeElement);let next=-1;
+        if(event.key==='ArrowDown')next=(index+1)%options.length;else if(event.key==='ArrowUp')next=(index-1+options.length)%options.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=options.length-1;else return;
+        event.preventDefault();options[next].focus({preventScroll:true});
+      });
+      document.addEventListener('pointerdown',event=>{if(!languageMenu.hidden&&!languageControl.contains(event.target))closeLanguageMenu();});
       const canvas=$('universe'),pointers=new Map();
       let drag=null,pinchDistance=0,pinchLevel=1,pinched=false,clickGestures=0;
       function cancelGesture() {

@@ -61,7 +61,20 @@
       <div><h1>SOLAR TIME</h1><p>A LITTLE CLOSER TO THE COSMOS</p></div>
     </div>
     <div class="top-actions">
-      <button id="language-toggle" class="icon-button language-toggle" type="button" aria-label="언어 변경. 현재 한국어" title="언어 변경 · KOR">KOR</button>
+      <div id="language-control" class="language-control">
+        <button id="language-toggle" class="icon-button language-toggle" type="button" aria-label="언어 변경. 현재 한국어" aria-expanded="false" aria-controls="language-menu" title="언어 변경 · KOR">KOR</button>
+        <div id="language-menu" class="language-menu" role="menu" aria-label="언어 선택" hidden>
+          <button type="button" role="menuitemradio" data-language="kor"><strong>KOR</strong><span>한국어</span></button>
+          <button type="button" role="menuitemradio" data-language="en"><strong>EN</strong><span>English</span></button>
+          <button type="button" role="menuitemradio" data-language="chn"><strong>CHN</strong><span>中文</span></button>
+          <button type="button" role="menuitemradio" data-language="jpn"><strong>JPN</strong><span>日本語</span></button>
+          <button type="button" role="menuitemradio" data-language="eu"><strong>EU</strong><span>Europe</span></button>
+          <button type="button" role="menuitemradio" data-language="hi"><strong>HI</strong><span>हिन्दी</span></button>
+          <button type="button" role="menuitemradio" data-language="es"><strong>ES</strong><span>Español</span></button>
+          <button type="button" role="menuitemradio" data-language="de"><strong>DE</strong><span>Deutsch</span></button>
+          <button type="button" role="menuitemradio" data-language="fr"><strong>FR</strong><span>Français</span></button>
+        </div>
+      </div>
       <div class="music-control">
         <button id="music-toggle" class="icon-button" type="button" aria-label="배경음악 켜기" aria-pressed="false" aria-controls="music-title" title="배경음악 켜기">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h3l4-3v10l-4-3H4z"/><path class="music-on-mark" d="M15 9.5a3.5 3.5 0 0 1 0 5M17.8 7a7 7 0 0 1 0 10"/><path class="music-off-mark" d="m15.5 10 4 4m0-4-4 4"/></svg>
@@ -100,7 +113,7 @@
     <div id="settings-scroll" class="settings-scroll">
     <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2 data-i18n="settings">화면 설정</h2></div><button id="settings-close" class="close-button" aria-label="설정 닫기" data-i18n-aria="settingsClose">×</button></div>
     <div class="setting-row"><label for="actual-scale" data-i18n="actualScale">실제 크기 비율</label><input id="actual-scale" type="checkbox" role="switch"></div>
-    <div id="overview-orbit-gap-control" class="setting-range"><label for="overview-orbit-gap"><span data-i18n="orbitSpacing">일반 보기 궤도 간격</span><output id="overview-orbit-gap-output" for="overview-orbit-gap">90</output></label><input id="overview-orbit-gap" type="range" min="50" max="200" step="1" value="90" aria-label="일반 보기의 행성 궤도 간격" data-i18n-aria="orbitSpacingAria"></div>
+    <div id="overview-orbit-gap-control" class="setting-range"><label for="overview-orbit-gap"><span data-i18n="orbitSpacing">일반 보기 궤도 간격</span><output id="overview-orbit-gap-output" for="overview-orbit-gap">90</output></label><input id="overview-orbit-gap" type="range" min="50" max="400" step="1" value="90" aria-label="일반 보기의 행성 궤도 간격" data-i18n-aria="orbitSpacingAria"></div>
     <div class="setting-row"><label for="show-orbits" data-i18n="orbits">궤도선</label><input id="show-orbits" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-labels" data-i18n="bodyNames">천체 이름</label><input id="show-labels" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="avoid-labels" data-i18n="avoidLabels">이름 겹침 자동 정리</label><input id="avoid-labels" type="checkbox" role="switch"></div>
@@ -194,7 +207,7 @@
       <span class="credit-line"><span data-i18n="scaleNoteLineOne">크기·거리 축척 조정 · 평균 궤도 근사</span> ·</span>
       <span class="credit-line"><span data-i18n="scaleNoteLineTwo">자전·공전 시간 연동</span> · <a class="source-link" href="https://github.com/EG-Tools/SolarTime/blob/main/assets/CREDITS.md" target="_blank" rel="noopener" data-i18n="sources">출처</a></span>
       <span class="credit-line">Solar Time v0.34 · <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
-      <span class="credit-line">© 2026 EG-Tools. All rights reserved.</span>
+      <span class="credit-line">© 2026 Life User. All rights reserved.</span>
     </div>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택" data-i18n-aria="bodySelect"></nav>
   </footer>
