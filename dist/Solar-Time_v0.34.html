@@ -183,8 +183,10 @@ body.zen #preset-dialog[open] button{visibility:visible!important;pointer-events
 :root{--clock-font:"Aptos Display","Segoe UI Light","Segoe UI",Arial,sans-serif}
 .wall-clock{font-family:var(--clock-font)}
 body.zen .clock-face .eyebrow{color:#8d918f}
-.scene-status{top:214px}
-@media(min-width:1800px){.scene-status{top:248px}}
+.scene-status{top:204px}
+@media(min-width:1800px){.scene-status{top:224px}}
+@media(max-width:680px){.scene-status{top:191px}}
+@media(max-height:630px) and (min-width:681px){.scene-status{top:94px}}
 /* v0.22: keep the clock geometry identical in normal/zen and give the colon breathing room. */
 .wall-clock{font-family:var(--clock-font);font-variant-numeric:tabular-nums lining-nums}
 .wall-clock .colon{margin-left:10px;margin-right:10px}
