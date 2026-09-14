@@ -83,7 +83,7 @@
 
 ## 실행
 
-로컬 개발 화면과 GitHub Pages의 온라인 화면은 루트 `index.html`을 사용합니다. 공개 주소는 기존과 동일한 `https://eg-tools.github.io/SolarTime/`입니다. HTML·CSS·JavaScript는 GitHub Pages가 전송하고, 음악과 해상도별 재질은 Cloudflare가 전송합니다.
+로컬 개발 화면과 GitHub Pages의 온라인 화면은 루트 `index.html`을 사용합니다. 공개 주소는 `https://solartime.app/`이며, 기존 `https://eg-tools.github.io/SolarTime/` 주소도 GitHub Pages 원본으로 유지됩니다. HTML·CSS·JavaScript는 GitHub Pages가 전송하고, 음악과 해상도별 재질은 Cloudflare가 전송합니다.
 
 단일 HTML은 Node.js 18 이상에서 `npm run build` 후 `dist/Solar-Time_v0.34.html`을 사용합니다.
 
