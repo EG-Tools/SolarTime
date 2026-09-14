@@ -1,6 +1,6 @@
-# Solar Time v0.25 — image sources and licenses
+# Solar Time v0.34 — image sources and licenses
 
-The exact built-in ImageGen prompts used for the v0.25 Sun and Pluto reconstructions are recorded in `assets/IMAGEGEN_PROMPTS.md`.
+The exact built-in ImageGen prompts used for the current Sun and Pluto reconstructions are recorded in `assets/IMAGEGEN_PROMPTS.md`.
 
 ## Already embedded in this package
 
