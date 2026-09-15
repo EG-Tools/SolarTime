@@ -374,6 +374,34 @@ const DIRECT_PLANET_FRAGMENT=`precision highp float;
     }else if(kind==3.||kind==4.)col+=vec3(.18,.26,.33)*pow(1.-n.z,5.)*day*.16;
     float alpha=clamp((1.-sqrt(rr))*diameter,0.,1.);gl_FragColor=vec4(col,alpha);
   }`;
+// The corona keeps the established filament texture, but all per-frame
+// rotation, pulsing, halo composition and blending now run in this GPU pass.
+// One procedural texture upload replaces two large Canvas2D drawImage calls
+// and a radial-gradient allocation on every frame.
+const DIRECT_CORONA_FRAGMENT=`precision highp float;
+  varying vec2 p;uniform sampler2D coronaMap;uniform float effectTime;
+  vec2 rotatePoint(vec2 q,float angle){float c=cos(angle),s=sin(angle);return vec2(c*q.x-s*q.y,s*q.x+c*q.y);}
+  vec4 filament(vec2 q,float angle,float scale,float opacity){
+    vec2 uv=rotatePoint(q,-angle)/(6.6*scale)+.5;
+    if(any(lessThan(uv,vec2(0.)))||any(greaterThan(uv,vec2(1.))))return vec4(0.);
+    vec4 sample=texture2D(coronaMap,uv);sample.a*=opacity;return sample;
+  }
+  void over(inout vec3 premul,inout float alpha,vec3 color,float layerAlpha){
+    premul+=color*layerAlpha*(1.-alpha);alpha+=layerAlpha*(1.-alpha);
+  }
+  void main(){
+    vec2 q=p*5.1;float distanceFromSun=length(q);if(distanceFromSun<.98||distanceFromSun>5.1)discard;
+    float halo=distanceFromSun<1.63?mix(.25,.095,clamp((distanceFromSun-.92)/.71,0.,1.)):
+      distanceFromSun<3.01?mix(.095,.026,(distanceFromSun-1.63)/1.38):mix(.026,0.,(distanceFromSun-3.01)/2.09);
+    float t=effectTime*24.;
+    vec4 nearLayer=filament(q,t*.003,1.,.8*(1.+sin(t*.19)*.035));
+    vec4 farLayer=filament(q,1.73-t*.003,1.08,.37*(1.+sin(t*.19+1.)*.035));
+    vec3 premul=vec3(0.);float alpha=0.;
+    over(premul,alpha,vec3(1.,.655,.263),halo);
+    over(premul,alpha,nearLayer.rgb,nearLayer.a);
+    over(premul,alpha,farLayer.rgb,farLayer.a);
+    if(alpha<.001)discard;gl_FragColor=vec4(premul/alpha,alpha);
+  }`;
 // Orbit vertices stay in model space in STATIC_DRAW buffers. Camera rotation,
 // anamorphic lens stretch and dolly perspective are evaluated by the vertex
 // shader, so dragging the camera no longer projects and uploads every orbit
@@ -467,10 +495,10 @@ class DirectRenderer{
     this.canvas=canvas;this.gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:true,preserveDrawingBuffer:false});
     if(!this.gl)throw Error('WebGL is required for the direct planet renderer.');
     this.disposed=false;this.paused=false;this.generation=0;this.textureToken=0;this.width=1;this.height=1;this.dpr=1;
-    this.textures=new Map();this.frames=new Map();this.desired=new Map();this.orbitBuffers=new Map();this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
+    this.textures=new Map();this.frames=new Map();this.desired=new Map();this.orbitBuffers=new Map();this.coronaTexture=null;this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
     this.stats={backend:'gpu-direct',accepted:0,discarded:0,drawCalls:0,frames:0,texturesLoaded:0,texturePixels:0,orbitUploads:0,kernel:{backend:'gpu-direct'}};
     this.contextLost=false;this.onLost=event=>{event.preventDefault();this.contextLost=true;this.generation++;this.loadQueue=[];this.pendingCount=0;this.orbitBuffers.clear();this.stats.contextLost=true;};
-    this.onRestored=()=>{this.contextLost=false;this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.setup();};
+    this.onRestored=()=>{this.contextLost=false;this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.setup();};
     canvas.addEventListener('webglcontextlost',this.onLost,false);canvas.addEventListener('webglcontextrestored',this.onRestored,false);
     this.setup();
   }
@@ -479,6 +507,7 @@ class DirectRenderer{
     this.maxTextureSize=Math.min(4096,2**Math.floor(Math.log2(g.getParameter(g.MAX_TEXTURE_SIZE))));
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
     this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','effectTime','sunActivity']);
+    this.coronaProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
     this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','worldOffset','anchor','camera','lens','travel','scale','color']);
     this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor']);
     this.quad=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.quad);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
@@ -562,6 +591,20 @@ class DirectRenderer{
     g.uniform4f(p.u.camera,camera.ca,camera.sa,camera.ce,camera.se);g.uniform1f(p.u.lens,camera.lens);g.uniform1f(p.u.travel,camera.travel);g.uniform1f(p.u.scale,scale);g.uniform4f(p.u.color,color[0],color[1],color[2],alpha);
     g.drawArrays(g.LINE_STRIP,0,record.count);this.stats.drawCalls++;
   }
+  corona(source,screen,radius,time){
+    if(!source||radius<=0)return;
+    const g=this.gl;let record=this.coronaTexture;
+    if(!record||record.source!==source){
+      const texture=g.createTexture();g.bindTexture(g.TEXTURE_2D,texture);g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);
+      g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,source);
+      g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
+      g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
+      if(record?.texture)g.deleteTexture(record.texture);record=this.coronaTexture={source,texture,width:source.width};
+    }
+    const p=this.coronaProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius*5.1);g.uniform1f(p.u.effectTime,time);
+    g.activeTexture(g.TEXTURE3);g.bindTexture(g.TEXTURE_2D,record.texture);g.uniform1i(p.u.coronaMap,3);
+    g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
+  }
   rings(body,frame,screen,radius,front){
     const saturn=body.id==='saturn',inner=saturn?1.28:1.58,outer=saturn?2.26:1.94,g=this.gl,p=this.ring;
     this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform2f(p.u.axisU,frame.u[0],frame.u[1]);g.uniform2f(p.u.axisV,frame.v[0],frame.v[1]);g.uniform2f(p.u.depthAxis,frame.u[2],frame.v[2]);
@@ -594,10 +637,11 @@ class DirectRenderer{
     if(this.disposed)return;this.disposed=true;this.generation++;this.loadQueue=[];this.pendingCount=0;const g=this.gl;
     for(const record of this.textures.values())if(record.texture)g.deleteTexture(record.texture);
     for(const record of this.orbitBuffers.values())g.deleteBuffer(record.buffer);
-    for(const p of [this.planetProgram,this.line,this.ring])g.deleteProgram(p.program);
-    g.deleteTexture(this.black);g.deleteBuffer(this.quad);this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();
+    for(const p of [this.planetProgram,this.coronaProgram,this.line,this.ring])g.deleteProgram(p.program);
+    if(this.coronaTexture?.texture)g.deleteTexture(this.coronaTexture.texture);
+    g.deleteTexture(this.black);g.deleteBuffer(this.quad);this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;
     this.canvas.removeEventListener('webglcontextlost',this.onLost);this.canvas.removeEventListener('webglcontextrestored',this.onRestored);
   }
 }
-root.SolarSurface={kernel:surfaceKernel,Service:SurfaceService,DirectRenderer,effectRevision:'solar-surface-r22'};if(typeof module==='object'&&module.exports)module.exports=root.SolarSurface;
+root.SolarSurface={kernel:surfaceKernel,Service:SurfaceService,DirectRenderer,effectRevision:'solar-surface-r23'};if(typeof module==='object'&&module.exports)module.exports=root.SolarSurface;
 })(typeof window==='object'?window:globalThis);

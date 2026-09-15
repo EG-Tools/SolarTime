@@ -4,6 +4,12 @@
 
   const release=(version,date,items)=>Object.freeze({version,date,items:Object.freeze(items)});
   const RELEASES=Object.freeze([
+    release('0.40','2026.09.15',[
+      '태양 코로나와 홍염의 프레임별 합성을 GPU로 옮겼습니다.',
+      '웹과 로컬 실행본 모두 언어와 고해상도 재질을 Cloudflare에서 불러옵니다.',
+      '궤도 밝기 최대치를 높이고 로컬 직접 실행을 복구했습니다.',
+      '불필요한 대용량 단독 HTML 생성과 중복 정적 에셋 배포를 제거했습니다.'
+    ]),
     release('0.39','2026.09.15',[
       '궤도 좌표와 카메라 투영을 GPU 정적 버퍼·셰이더로 옮겨 프레임별 계산을 줄였습니다.',
       '언어·음악·저장·팝업 동작을 독립 모듈로 분리하고 스타일시트를 하나로 통합했습니다.',

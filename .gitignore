@@ -11,5 +11,4 @@ assets/music/
 worker-configuration.d.ts
 __pycache__/
 playwright-report/
-
 test-results/

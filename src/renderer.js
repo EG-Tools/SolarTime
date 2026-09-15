@@ -728,7 +728,8 @@
     resume() {if(!this.surface)this.surface=this.gpu||new window.SolarSurface.Service();this.surface.resume();this.sky?.resume?.();}
     dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets=[];this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.labelWidths.clear();this.orbitCache=new WeakMap();this.sky?.dispose();}
     makeCoronaTexture(size=384) {
-      // Exact public-site corona texture for the non-WebGL compatibility path.
+      // One shared public-site filament texture. Direct rendering uploads it once
+      // to WebGL; the compatibility renderer draws it directly.
       const extent=3.3,canvas=document.createElement('canvas');canvas.width=canvas.height=size;
       const ctx=canvas.getContext('2d'),image=ctx.createImageData(size,size),out=image.data;
       for(let y=0;y<size;y++)for(let x=0;x<size;x++) {
@@ -744,17 +745,18 @@
       }
       ctx.putImageData(image,0,0);return canvas;
     }
-    corona(c,x,y,r,seconds,maskDisk=false) {
+    coronaSource(r) {
+      const detail=r*this.dpr>128&&this.options.quality!=='low'?768:384;
+      if(!this.coronaTexture||this.coronaTexture.width<detail)this.coronaTexture=this.makeCoronaTexture(detail);
+      return this.coronaTexture;
+    }
+    corona(c,x,y,r,seconds) {
       // v0.19: activity is a true visibility toggle, not merely an animation freeze.
       if(!this.options.activity)return;
       // Public SolarTime timing and layer blend values.
       const t=seconds*24;
-      const detail=r*this.dpr>128&&this.options.quality!=='low'?768:384;
-      if(!this.coronaTexture||this.coronaTexture.width<detail)this.coronaTexture=this.makeCoronaTexture(detail);
+      const texture=this.coronaSource(r);
       c.save();c.translate(x,y);
-      // The direct-GPU Sun is on the layer below this Canvas. Keep the public
-      // effect around its limb without painting the halo over the solar disk.
-      if(maskDisk){c.beginPath();c.rect(-r*5.1,-r*5.1,r*10.2,r*10.2);c.arc(0,0,r*.99,0,TAU,true);c.clip('evenodd');}
       c.globalCompositeOperation='screen';
       const halo=c.createRadialGradient(0,0,r*.92,0,0,r*5.1);
       halo.addColorStop(0,'rgba(255,167,64,.25)');halo.addColorStop(.17,'rgba(216,102,25,.095)');
@@ -763,7 +765,7 @@
       for(let layer=0;layer<2;layer++) {
         c.save();c.rotate(layer*1.73+(layer?-1:1)*t*.003);
         c.globalAlpha=(layer?.37:.8)*(1+Math.sin(t*.19+layer)*.035);
-        const extent=r*3.3*(layer?1.08:1);c.drawImage(this.coronaTexture,-extent,-extent,extent*2,extent*2);c.restore();
+        const extent=r*3.3*(layer?1.08:1);c.drawImage(texture,-extent,-extent,extent*2,extent*2);c.restore();
       }
       c.restore();
     }
@@ -955,7 +957,7 @@
       }
       for(const body of bodies){body.screen=this.project(body.world);if(perspectiveActive)body.r*=body.screen.perspective;}
       const direct=!!this.gpu&&this.gpu.begin();
-      const orbitBrightness=clamp(Number(this.options.orbitBrightness)||0,0,1),orbitStrength=orbitBrightness*2;
+      const orbitBrightness=clamp(Number(this.options.orbitBrightness)||0,0,1),orbitStrength=orbitBrightness*3;
       if(orbitBrightness>0) {
         const reveal=this.orbitRevealAlpha(mono);
         if(direct){
@@ -988,6 +990,8 @@
       let directJobs=null,directBodies=[];
       if(direct){
         directJobs=new Map(surfaceBodies.map(p=>[p.body.id,this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)]));
+        const sun=bodies.find(p=>p.body.id==='sun');
+        if(sun&&this.options.activity&&this.visible(sun.screen,sun.r*5.1+16))this.gpu.corona(this.coronaSource(sun.r),sun.screen,sun.r,seconds);
         for(const p of bodies){const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;if(!this.visible(p.screen,p.r*extent+16))continue;
           const job=directJobs.get(p.body.id);if(job&&this.gpu.planet(job,p.body,p.screen,p.r,seconds,this.options.activity))directBodies.push(p);
         }
@@ -1006,10 +1010,8 @@
       for(const p of bodies) {
         const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;
         if(!this.visible(p.screen,p.r*extent+16))continue;
-        if(this.gpu){
-          if(p.body.id==='sun'&&this.options.activity)this.corona(c,p.screen.x,p.screen.y,p.r,seconds,true);
-          this.drawBodyOverlay(c,p.body,p.screen,p.r);
-        }else this.drawBody(c,p.body,p.world,p.screen,p.r,ms,seconds);
+        if(this.gpu)this.drawBodyOverlay(c,p.body,p.screen,p.r);
+        else this.drawBody(c,p.body,p.world,p.screen,p.r,ms,seconds);
         this.hitTargets.push({id:p.body.id,x:p.screen.x,y:p.screen.y,r:Math.max(p.r+6,11),z:p.screen.z});
       }
       if(this.camera.focus==='earth'&&earth.r>65){

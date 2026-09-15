@@ -1,11 +1,10 @@
 {
   "name": "eg-solar-time",
-  "version": "0.0.39",
+  "version": "0.0.40",
   "private": true,
-  "description": "Offline solar-system clock with smooth camera transitions and a spherical night sky.",
+  "description": "Cloud-backed solar-system clock with smooth camera transitions and a spherical night sky.",
   "scripts": {
     "test": "node --test tests/*.test.cjs",
-    "build": "node tools/build.cjs",
     "build:assets": "node tools/build-assets.cjs",
     "build:cloudflare": "node tools/build-cloudflare.cjs",
     "build:git": "node tools/build-git.cjs",
@@ -14,7 +13,7 @@
     "upload:r2": "node tools/upload-r2.cjs",
     "publish:media": "npm run build:assets && npm run pack:media && npm run upload:r2",
     "deploy:cloudflare": "node tools/deploy-cloudflare.cjs",
-    "test:v039": "node --test tests/v039-release.test.cjs"
+    "test:v040": "node --test tests/v040-release.test.cjs"
   },
   "engines": {
     "node": ">=18"

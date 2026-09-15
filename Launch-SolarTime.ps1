@@ -2,16 +2,9 @@ param([switch]$Inspect)
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSCommandPath
-$distPath = Join-Path $projectRoot 'dist'
-$entry = Get-ChildItem -LiteralPath $distPath -Filter 'Solar-Time_v*.html' -File |
-  Sort-Object { [version]($_.BaseName -replace '^Solar-Time_v', '') } -Descending |
-  Select-Object -First 1
-
-if (-not $entry) {
-  $fallback = Join-Path $projectRoot 'index.html'
-  if (-not (Test-Path -LiteralPath $fallback)) { throw 'Solar Time 실행 파일을 찾을 수 없습니다.' }
-  $entry = Get-Item -LiteralPath $fallback
-}
+$entryPath = Join-Path $projectRoot 'index.html'
+if (-not (Test-Path -LiteralPath $entryPath)) { throw 'Solar Time 실행 파일을 찾을 수 없습니다.' }
+$entry = Get-Item -LiteralPath $entryPath
 
 function Get-DefaultBrowserPath {
   $choicePath = 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice'

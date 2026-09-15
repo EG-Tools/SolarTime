@@ -2,7 +2,7 @@
  * Browsers no longer download public 8K photographs, resize them or store
  * Base64 copies in IndexedDB. The release manifest is the single authority. */
 (function(root){'use strict';
-const REV=root.SolarAssetManifest?.revision||root.SolarAssets?.materialRevision||'offline';
+const REV=root.SolarAssetManifest?.revision||root.SolarAssets?.materialRevision||'unavailable';
 const ids=Object.freeze(['sun','mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','pluto','moon','europa','clouds']);
 const catalog=Object.freeze(ids.map(id=>Object.freeze({id})));
 function valid(asset){
