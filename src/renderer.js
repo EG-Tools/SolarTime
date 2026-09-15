@@ -44,8 +44,8 @@
       this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.rotationGeneration=0;this.actualScaleMix=0;this.actualScaleTween=null;this.projectionAnchor=null;
       this.surface=this.gpu||new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
       this.labelStates=new Map();this.lastLabelMono=null;this.labelWidths=new Map();
-      this.orbitCache=new WeakMap();this.frameCache=new Map();this.starSprites=new Map();
-      this.stats={orbitProjections:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
+      this.orbitCache=new WeakMap();this.orbitModelCache=new WeakMap();this.satelliteOrbitCache=new Map();this.frameCache=new Map();this.starSprites=new Map();
+      this.stats={orbitProjections:0,orbitBufferBuilds:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
       this.selected=null;this.hover=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
       this.orbitRevealStart=performance.now();
       this.lastSurfaceSubmit=-Infinity;this.lastSurfaceSimMs=NaN;this.lastSurfaceMono=NaN;
@@ -624,6 +624,26 @@
       item={a,e,lens,projectionKey,source:path.points,xyz,minX,maxX,minY,maxY,scale:NaN,passes:null};cache.set(path,item);
       if(this.stats)this.stats.orbitProjections+=path.points.length;return item;
     }
+    orbitModel(path) {
+      const offset=this.solarOrbitOffset||0,hierarchy=this.solarOrbitHierarchyScale(),actual=this.actualScaleMix||0,gap=this.options.overviewOrbitGap??OVERVIEW_ORBIT.gap;
+      const key=[offset,hierarchy,actual,gap].map(value=>Number(value).toFixed(6)).join(':');
+      let item=this.orbitModelCache.get(path);
+      if(item&&item.source===path.points&&item.key===key)return item.xyz;
+      const xyz=new Float32Array(path.points.length*3);
+      for(let i=0;i<path.points.length;i++){const p=this.displaySolarPoint(path.points[i]);xyz[i*3]=p.x;xyz[i*3+1]=p.y;xyz[i*3+2]=p.z;}
+      this.orbitModelCache.set(path,{source:path.points,key,xyz});this.stats.orbitBufferBuilds+=path.points.length;return xyz;
+    }
+    satelliteOrbitModel(body,ms,radius) {
+      const key=Number(radius).toFixed(6),cached=this.satelliteOrbitCache.get(body.id);
+      if(cached&&cached.key===key)return cached.xyz;
+      const points=A.satelliteOrbit(body,ms,radius,90),xyz=new Float32Array(points.length*3);
+      for(let i=0;i<points.length;i++){xyz[i*3]=points[i].x;xyz[i*3+1]=points[i].y;xyz[i*3+2]=points[i].z;}
+      this.satelliteOrbitCache.set(body.id,{key,xyz});this.stats.orbitBufferBuilds+=points.length;return xyz;
+    }
+    gpuOrbitCamera() {
+      const {ca,sa,ce,se}=this.cameraBasis(),active=Math.abs((this.camera.dolly??1)-1)>1e-8;
+      return {ca,sa,ce,se,lens:this.lensStretch,travel:active?(this.camera.dolly??1)-1:0,anchor:active?(this.projectionAnchor||{x:0,y:0,z:0}):{x:0,y:0,z:0}};
+    }
     orbit(c,path,highlight,reveal=1,strength=1) {
       const item=this.projectOrbit(path),xyz=item.xyz,scale=this.scale;
       const rgb=path.body.id==='earth'?'110,174,212':path.body.id==='pluto'?'155,140,127':'138,151,168';
@@ -939,12 +959,13 @@
       if(orbitBrightness>0) {
         const reveal=this.orbitRevealAlpha(mono);
         if(direct){
-          for(const path of this.paths){const item=this.projectOrbit(path),selected=this.selected===path.body.id;
-            this.gpu.orbit(item.xyz,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],clamp((selected?.64:.22)*reveal*orbitStrength,0,1));}
+          const camera=this.gpuOrbitCamera(),origin={x:0,y:0,z:0};
+          for(const path of this.paths){const selected=this.selected===path.body.id;
+            this.gpu.orbit('solar:'+path.body.id,this.orbitModel(path),origin,camera,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],clamp((selected?.64:.22)*reveal*orbitStrength,0,1));}
         }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id,reveal,orbitStrength);
         for(const satellite of satelliteLayouts) {
-          const points=A.satelliteOrbit(satellite.body,ms,satellite.orbitRadius,90),parent=satellite.parent.world;
-          if(direct){const xyz=new Float32Array(points.length*3);for(let i=0;i<points.length;i++){const p=points[i],v=this.projectView({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});xyz[i*3]=v.x;xyz[i*3+1]=v.y;xyz[i*3+2]=v.behind?NaN:v.z;}this.gpu.orbit(xyz,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],clamp(.26*reveal*orbitStrength,0,1));}
+          const points=direct?null:A.satelliteOrbit(satellite.body,ms,satellite.orbitRadius,90),parent=satellite.parent.world;
+          if(direct){this.gpu.orbit('satellite:'+satellite.body.id,this.satelliteOrbitModel(satellite.body,ms,satellite.orbitRadius),parent,this.gpuOrbitCamera(),this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],clamp(.26*reveal*orbitStrength,0,1));}
           else if(!this.gpu){c.save();c.globalAlpha*=reveal;const alpha=clamp(.26*orbitStrength,0,1);c.strokeStyle=satellite.body.id==='moon'?`rgba(115,155,189,${alpha})`:`rgba(171,158,117,${alpha})`;c.lineWidth=.65;c.beginPath();for(let i=0;i<points.length;i++){const p=points[i],s=this.project({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();c.restore();}
         }
       }

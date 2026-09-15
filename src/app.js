@@ -1,7 +1,8 @@
-/* Solar Time v0.38 — clock, interaction and accessible UI. */
+/* Solar Time v0.39 — clock, interaction and accessible UI. */
 (function () {
   'use strict';
-  const $=id=>document.getElementById(id), A=window.SolarAstro;
+  const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
+  const Localization=Modules.Localization,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
   const LANG_ORDER=['kor','en','chn','jpn','eu','hi','es','de','fr'];
   const LANG_META={
@@ -39,27 +40,7 @@
     {title:'Near-Silence',file:'06 - Near-Silence.mp3'},
     {title:'Weightless Emptiness',file:'07 - Weightless Emptiness.mp3'}
   ]);
-  function detectedLanguage(){
-    const zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'',languages=(navigator.languages?.length?navigator.languages:[navigator.language||'']).map(value=>String(value).toLowerCase());
-    if(/(?:shanghai|chongqing|urumqi|hong_kong|macau)/i.test(zone))return 'chn';
-    if(/tokyo/i.test(zone))return 'jpn';
-    if(/seoul/i.test(zone))return 'kor';
-    if(/london|belfast/i.test(zone))return 'eu';
-    if(/kolkata|calcutta/i.test(zone))return 'hi';
-    if(/madrid|canary/i.test(zone))return 'es';
-    if(/berlin|busingen/i.test(zone))return 'de';
-    if(/paris/i.test(zone))return 'fr';
-    if(/^America\//i.test(zone))return 'en';
-    if(languages.some(value=>/^zh(?:-|$)/.test(value)))return 'chn';
-    if(languages.some(value=>/^ja(?:-|$)/.test(value)))return 'jpn';
-    if(languages.some(value=>/^ko(?:-|$)/.test(value)))return 'kor';
-    if(languages.some(value=>/^en-gb(?:-|$)/.test(value)))return 'eu';
-    if(languages.some(value=>/^hi(?:-|$)/.test(value)))return 'hi';
-    if(languages.some(value=>/^es(?:-|$)/.test(value)))return 'es';
-    if(languages.some(value=>/^de(?:-|$)/.test(value)))return 'de';
-    if(languages.some(value=>/^fr(?:-|$)/.test(value)))return 'fr';
-    return 'en';
-  }
+  const detectedLanguage=Localization.detect;
   const COPY={
     kor:{
       metaDescription:'별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주.',
@@ -69,7 +50,7 @@
       selectedBody:'선택한 천체 정보',bodyClose:'천체 정보 닫기',focusBody:'가까이 보기 · 천체 추적',viewControls:'시점 조절',zoomIn:'확대',zoomOut:'축소',moveCloser:'앞으로 이동',moveFarther:'뒤로 이동',zoomValue:'화면 확대 배율',moveValue:'카메라 이동 배율',zoomMode:'줌',moveMode:'이동',cameraMode:'휠 작동 방식 · {mode}',cameraModeAria:'휠 모드: {mode}. 누르면 다른 방식으로 전환',homeView:'기본 시점',cameraPresets:'카메라 시점 저장',
       playbackControls:'공전 재생 조절',realTime:'실제 시간',orbitSpeed:'공전 속도',speedSlider:'1초당 진행하는 시간',sources:'출처',bodySelect:'천체 선택',scaleNoteLineOne:'크기·거리 축척 조정 · 평균 궤도 근사',scaleNoteLineTwo:'자전·공전 시간 연동',
       apply:'이동',save:'저장',delete:'삭제',cancel:'취소',helpClose:'도움말 닫기',helpTitle:'사용 방법과 계산 기준',releaseNotes:'업데이트 내역',releaseNotesNewer:'최신 업데이트 내역',releaseNotesOlder:'과거 업데이트 내역',basicControls:'기본 조작',supportMessage:'이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!',supportDetail:'여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!',supportKrw:'원화로 후원',supportUsd:'달러로 후원',
-      basicHelp:'좌클릭 드래그는 위아래 제한 없이 시점을 한 바퀴 계속 회전합니다. 가운데 버튼 드래그는 화면을 상하좌우 ±80% 이동합니다. 우측 맨 위 버튼에서 휠을 평면적인 줌 또는 원근감이 생기는 실제 카메라 이동으로 전환할 수 있습니다. 천체를 더블클릭하거나 «가까이 보기»를 누르면 추적합니다. 0은 기본 시점, 1·2·3은 줌/이동 방식까지 함께 저장하는 시점입니다.',
+      basicHelp:'좌클릭 드래그는 위아래 제한 없이 시점을 한 바퀴 계속 회전합니다. 가운데 버튼 드래그는 화면을 상하좌우 ±80% 이동합니다. 우측 기본시점 아래 버튼에서 휠을 평면적인 줌 또는 원근감이 생기는 실제 카메라 이동으로 전환할 수 있습니다. 천체를 더블클릭하거나 «가까이 보기»를 누르면 추적합니다. 0은 기본 시점, 1·2·3은 줌/이동 방식까지 함께 저장하는 시점입니다.',
       timeAndCalculation:'시간과 계산',timeHelp:'상단 시계는 선택한 언어·지역에 맞춰 현지 실제 시간을 표시합니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.',
       orbitHelp:'행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.',
       pause:'일시정지',fullscreen:'전체 화면',zenMode:'감상 모드',savedViews:'저장 시점',stepExit:'단계별 종료',loading:'작은 우주를 펼치는 중',fatalTitle:'화면을 시작하지 못했습니다.',fatalRetry:'최신 Edge 또는 Chrome에서 다시 열어 주세요.',loadingTime:'시간을 불러오는 중',
@@ -90,7 +71,7 @@
       selectedBody:'Selected body information',bodyClose:'Close body information',focusBody:'Closer view · Track body',viewControls:'View controls',zoomIn:'Zoom in',zoomOut:'Zoom out',moveCloser:'Move closer',moveFarther:'Move farther',zoomValue:'View zoom level',moveValue:'Camera travel level',zoomMode:'ZOOM',moveMode:'MOVE',cameraMode:'Wheel mode · {mode}',cameraModeAria:'Wheel mode: {mode}. Press to switch modes.',homeView:'Default view',cameraPresets:'Saved camera views',
       playbackControls:'Orbit playback controls',realTime:'Real time',orbitSpeed:'Orbit speed',speedSlider:'Time advanced per second',sources:'Sources',bodySelect:'Select body',scaleNoteLineOne:'Adjusted size and distance scale · Mean orbit approximation',scaleNoteLineTwo:'Rotation and orbit linked to time',
       apply:'Move',save:'Save',delete:'Delete',cancel:'Cancel',helpClose:'Close help',helpTitle:'Guide and calculation notes',releaseNotes:'Update history',releaseNotesNewer:'Newer update',releaseNotesOlder:'Older update',basicControls:'Basic controls',supportMessage:'If this program has been helpful, please support the developer with a cup of coffee!',supportDetail:'Your support makes a big difference in keeping the servers running and development going!',supportKrw:'Support in KRW',supportUsd:'Support in USD',
-      basicHelp:'Left-drag rotates continuously through a full turn without a vertical stop. Middle-drag pans up, down, left or right by ±80%. The top button on the right switches the wheel between flat zoom and true camera travel with perspective. Double-click a body or choose “Closer view” to track it. 0 restores the default view; 1·2·3 save the view together with its Zoom/Move mode.',
+      basicHelp:'Left-drag rotates continuously through a full turn without a vertical stop. Middle-drag pans up, down, left or right by ±80%. The button below Default View on the right switches the wheel between flat zoom and true camera travel with perspective. Double-click a body or choose “Closer view” to track it. 0 restores the default view; 1·2·3 save the view together with its Zoom/Move mode.',
       timeAndCalculation:'Time and calculation',timeHelp:'The upper clock follows the real local time of the selected language and region. Turn off Real time below to adjust simulation speed in hours, days or years. The ranges are 1 minute–24 hours, 1–365 days, and 1–20 years per second.',
       orbitHelp:'Planets move on elliptical orbits, faster near perihelion and slower near aphelion. Moon and Europa are children of Earth and Jupiter, with positions calculated for the simulation time and eccentricities of 0.05 and 0.01. Long-term perturbations and minute distance changes are omitted, so this is not a precision ephemeris for observation, navigation or eclipse prediction.',
       pause:'Pause',fullscreen:'Fullscreen',zenMode:'Viewing mode',savedViews:'Saved views',stepExit:'Step-by-step exit',loading:'Opening a small cosmos',fatalTitle:'Unable to start the view.',fatalRetry:'Open it again in the latest Edge or Chrome.',loadingTime:'Loading time',
@@ -309,30 +290,8 @@
     de:{'삭 부근':'nahe Neumond','초승달':'zunehmende Sichel','상현달':'erstes Viertel','차오르는 달':'zunehmender Mond','보름달 부근':'nahe Vollmond','기우는 달':'abnehmender Mond','하현달':'letztes Viertel','그믐달':'abnehmende Sichel'},
     fr:{'삭 부근':'près de la nouvelle lune','초승달':'premier croissant','상현달':'premier quartier','차오르는 달':'gibbeuse croissante','보름달 부근':'près de la pleine lune','기우는 달':'gibbeuse décroissante','하현달':'dernier quartier','그믐달':'dernier croissant'}
   });
-  const interpolate=(text,values={})=>String(text).replace(/\{(\w+)\}/g,(_,key)=>values[key]??'');
-  // The scene is an application surface, not a document: suppress the browser
-  // context menu and accidental drag-selection without changing button controls.
-  document.addEventListener('contextmenu',event=>event.preventDefault());
-  document.addEventListener('selectstart',event=>event.preventDefault());
-  const UI_FADE_MS=1000,uiFadeTimers=new WeakMap();
-  const uiFadeDuration=()=>typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches?0:UI_FADE_MS;
-  const uiElementShown=element=>element.tagName==='DIALOG'?element.open:!element.hidden;
-  const uiElementVisible=element=>uiElementShown(element)&&!element.classList.contains('ui-fade-closing');
-  function showFading(element,show){
-    const timer=uiFadeTimers.get(element);if(timer)clearTimeout(timer);uiFadeTimers.delete(element);
-    element.classList.add('ui-fade');element.classList.remove('ui-fade-closing');
-    const alreadyShown=uiElementShown(element);if(!alreadyShown){if(show)show();else element.hidden=false;}
-    if(alreadyShown||!uiFadeDuration()){element.classList.add('ui-fade-visible');return;}
-    element.classList.remove('ui-fade-visible');void element.offsetWidth;
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{if(uiElementShown(element)&&!element.classList.contains('ui-fade-closing'))element.classList.add('ui-fade-visible');}));
-  }
-  function hideFading(element,hide){
-    const timer=uiFadeTimers.get(element);if(timer)clearTimeout(timer);uiFadeTimers.delete(element);
-    if(!uiElementShown(element))return;
-    element.classList.add('ui-fade','ui-fade-closing');element.classList.remove('ui-fade-visible');
-    const finish=()=>{uiFadeTimers.delete(element);if(!element.classList.contains('ui-fade-closing'))return;if(hide)hide();else element.hidden=true;element.classList.remove('ui-fade','ui-fade-closing','ui-fade-visible');};
-    const duration=uiFadeDuration();if(!duration)finish();else uiFadeTimers.set(element,setTimeout(finish,duration));
-  }
+  const interpolate=Localization.interpolate,showFading=UI.show,hideFading=UI.hide,uiElementVisible=UI.visible;
+  UI.installDocumentGuards(document);
   let toastTimer,awakeTimer;
   function toast(message) { clearTimeout(toastTimer);$('toast').textContent=message;showFading($('toast'));toastTimer=setTimeout(()=>hideFading($('toast')),3400); }
   function fatal(error) { $('loading').hidden=true;$('fatal-error').hidden=false;$('fatal-message').textContent=error instanceof Error?error.message:String(error);console.error(error); }
@@ -354,84 +313,15 @@
       const bodyCopy=body=>copyLanguage()==='kor'?{name:body.ko,description:body.description}:{name:BODY_COPY[copyLanguage()]?.[body.id]?.[0]||body.en,description:BODY_COPY[copyLanguage()]?.[body.id]?.[1]||body.description};
       const phaseCopy=name=>copyLanguage()==='kor'?name:(PHASE_COPY[copyLanguage()]?.[name]||name);
       const quantity=(value,unit)=>['en','hi','es','de','fr'].includes(copyLanguage())?`${value} ${t(unit)}`:`${value}${t(unit)}`;
-      const musicAudio=$('background-music'),musicFolder=/\/dist\/[^/]+\.html$/i.test(location.pathname)?'../assets/music/':'assets/music/';
-      let musicEnabled=false,musicIndex=-1,musicOrder=[],musicPosition=-1,musicToken=0,musicFailures=0,lastMusicFailure=-1;
-      musicAudio.volume=.55;musicAudio.muted=true;
-      function musicAssetUrl(file,fallback=false){
-        const asset=window.SolarAssets?.music?.[file];
-        if(asset){if(fallback||!asset.base)return asset.fallback;return new URL(asset.path,asset.base).href;}
-        return new URL(musicFolder+encodeURIComponent(file),location.href).href;
-      }
-      function fadeMusicVolume(target,duration,token){
-        const from=musicAudio.volume,start=performance.now();
-        return new Promise(resolve=>{
-          let raf=0,settled=false;
-          const finish=value=>{if(settled)return;settled=true;if(raf)cancelAnimationFrame(raf);document.removeEventListener('visibilitychange',onVisibilityChange);resolve(value);};
-          const onVisibilityChange=()=>{if(!document.hidden)return;if(token!==musicToken){finish(false);return;}musicAudio.volume=target;finish(true);};
-          const tick=now=>{
-            if(token!==musicToken){finish(false);return;}
-            if(document.hidden){musicAudio.volume=target;finish(true);return;}
-            const progress=Math.min(1,(now-start)/duration),ease=progress*progress*(3-2*progress);
-            musicAudio.volume=from+(target-from)*ease;
-            if(progress<1)raf=requestAnimationFrame(tick);else finish(true);
-          };
-          document.addEventListener('visibilitychange',onVisibilityChange);
-          if(document.hidden)onVisibilityChange();else raf=requestAnimationFrame(tick);
-        });
-      }
-      function prepareMusicOrder(){
-        const next=MUSIC_TRACKS.map((_,index)=>index);
-        for(let i=next.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[next[i],next[j]]=[next[j],next[i]];}
-        musicOrder=next;musicPosition=0;
-      }
-      function musicUi(){
-        const button=$('music-toggle'),track=MUSIC_TRACKS[musicIndex],label=t(musicEnabled?'musicOff':'musicOn');
-        button.setAttribute('aria-pressed',String(musicEnabled));button.setAttribute('aria-label',label);button.title=label;
-        $('music-title').textContent=track?.title||'';$('music-now').hidden=!(musicEnabled&&track);
-        for(const [id,key] of [['music-previous','musicPrevious'],['music-next','musicNext']]){$(id).setAttribute('aria-label',t(key));$(id).title=t(key);}
-      }
-      function musicFailure(token){
-        if(!musicEnabled||token!==musicToken||lastMusicFailure===token)return;
-        lastMusicFailure=token;
-        if(++musicFailures<MUSIC_TRACKS.length){stepMusic(1,false);return;}
-        setMusicEnabled(false);toast(t('musicUnavailable'));
-      }
-      async function playMusicAt(position,useFallback=false){
-        if(!musicEnabled)return;
-        if(!musicOrder.length)prepareMusicOrder();
-        musicPosition=(position+musicOrder.length)%musicOrder.length;musicIndex=musicOrder[musicPosition];
-        const track=MUSIC_TRACKS[musicIndex],token=++musicToken;
-        musicUi();
-        if(!musicAudio.paused&&!musicAudio.ended&&musicAudio.currentTime>0){
-          if(!await fadeMusicVolume(0,90,token))return;
-          musicAudio.pause();
-        }
-        if(token!==musicToken||!musicEnabled)return;
-        musicAudio.src=musicAssetUrl(track.file,useFallback);musicAudio.volume=0;musicAudio.muted=false;musicAudio.load();
-        try{
-          await musicAudio.play();
-          if(token===musicToken){musicFailures=0;await fadeMusicVolume(.55,180,token);}
-        }catch(_){const primary=musicAssetUrl(track.file),fallback=musicAssetUrl(track.file,true);if(!useFallback&&primary!==fallback){playMusicAt(position,true);return;}musicFailure(token);}
-      }
-      function stepMusic(direction,resetFailures=true){if(!musicEnabled)return;if(!musicOrder.length)prepareMusicOrder();if(resetFailures)musicFailures=0;playMusicAt(musicPosition+direction);}
-      function playFirstMusic(){prepareMusicOrder();playMusicAt(0);}
-      function setMusicEnabled(value){
-        const next=!!value;if(next===musicEnabled)return;musicEnabled=next;
-        if(!next){++musicToken;musicAudio.pause();musicAudio.muted=true;musicUi();return;}
-        musicAudio.muted=false;musicFailures=0;lastMusicFailure=-1;
-        if(musicIndex>=0&&musicAudio.src&&!musicAudio.ended&&!musicAudio.error){const token=++musicToken;musicUi();musicAudio.volume=0;musicAudio.play().then(()=>fadeMusicVolume(.55,180,token)).catch(()=>musicFailure(token));}
-        else playFirstMusic();
-      }
-      musicAudio.addEventListener('ended',()=>stepMusic(1));
-      $('music-toggle').addEventListener('click',()=>setMusicEnabled(!musicEnabled));
-      $('music-previous').addEventListener('click',()=>stepMusic(-1));
-      $('music-next').addEventListener('click',()=>stepMusic(1));
+      const music=Modules.MusicPlayer.create({
+        audio:$('background-music'),tracks:MUSIC_TRACKS,
+        folder:/\/dist\/[^/]+\.html$/i.test(location.pathname)?'../assets/music/':'assets/music/',
+        translate:t,notify:toast,button:$('music-toggle'),previous:$('music-previous'),next:$('music-next'),title:$('music-title'),now:$('music-now')
+      });
+      const musicUi=()=>music.refresh(),setMusicEnabled=value=>music.setEnabled(value);
       function translateStatic(){
         document.documentElement.lang=LANG_META[language].html;
-        for(const el of document.querySelectorAll('[data-i18n]'))el.textContent=t(el.dataset.i18n);
-        for(const el of document.querySelectorAll('[data-i18n-aria]'))el.setAttribute('aria-label',t(el.dataset.i18nAria));
-        for(const el of document.querySelectorAll('[data-i18n-title]'))el.title=t(el.dataset.i18nTitle);
-        for(const el of document.querySelectorAll('[data-i18n-content]'))el.setAttribute('content',t(el.dataset.i18nContent));
+        Localization.apply(document,t);
         const lang=$('language-toggle');lang.textContent=LANG_META[language].code;lang.setAttribute('aria-label',`${t('languageChange')}. ${LANG_META[language].name}`);lang.title=`${t('languageChange')} · ${LANG_META[language].code}`;
         const menu=$('language-menu');menu.setAttribute('aria-label',t('languageChange'));
         for(const option of menu.querySelectorAll('[data-language]'))option.setAttribute('aria-checked',String(option.dataset.language===language));
@@ -463,7 +353,7 @@
       renderer.options.twinkle=true;
       const validKeys={actualScale:'actual-scale',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
       try {
-        const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+        const saved=Preferences.read(STORAGE_KEY);
         if(saved&&typeof saved==='object') {
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
           if(Number.isFinite(saved.orbitBrightness))renderer.options.orbitBrightness=A.clamp(saved.orbitBrightness,0,1);
@@ -514,7 +404,7 @@
       }
       syncOrbitBrightnessControl();
       const zoneLabel=()=>timezone==='utc'?'UTC':activeRegion().label;
-      function persist() { try {const camera=renderer.cameraSnapshot();if(camera.focus===null)overviewCamera={...camera,focus:null};localStorage.setItem(STORAGE_KEY,JSON.stringify({...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockFont,speedMode,speedValues,language,camera:overviewCamera,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX})); } catch (_) {} }
+      function persist() {const camera=renderer.cameraSnapshot();if(camera.focus===null)overviewCamera={...camera,focus:null};Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockFont,speedMode,speedValues,language,camera:overviewCamera,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});}
       function cameraUi() {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
         const limits=renderer.zoomLimits,move=renderer.options.dollyZoom,level=move?(controlState.dolly??1):controlState.zoom;
@@ -536,7 +426,7 @@
       let cameraPresets=[null,null,null],presetAction=null,presetStorageAvailable=true;
       const presetDialog=$('preset-dialog');
       try {
-        const saved=JSON.parse(localStorage.getItem(PRESETS_KEY)||'null');
+        const saved=Preferences.read(PRESETS_KEY);
         if([1,2].includes(saved?.schema)&&Array.isArray(saved.slots))cameraPresets=cameraPresets.map((_,i)=>{
           const legacy=saved.slots[i],value=legacy&&{...legacy,dolly:Number.isFinite(legacy.dolly)?legacy.dolly:1,mode:legacy.mode||'zoom'};
           return window.SolarRenderer.validCamera(value)?value:null;
@@ -551,8 +441,7 @@
         });
       }
       function writePresets() {
-        try{localStorage.setItem(PRESETS_KEY,JSON.stringify({schema:2,slots:cameraPresets}));presetStorageAvailable=true;}
-        catch(_){presetStorageAvailable=false;}
+        presetStorageAvailable=Preferences.write(PRESETS_KEY,{schema:2,slots:cameraPresets});
         presetUi();
       }
       function recallPreset(index) {
@@ -766,12 +655,7 @@
       $('pause-button').addEventListener('click',pause);
       $('timezone-button').addEventListener('click',()=>{timezone=timezone==='local'?'utc':'local';refreshTimeFormats();lastWallKey='';uiNow();persist();});
       const scrollCueUpdates=[];
-      function bindScrollCues(container,scroller){
-        const update=()=>{const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;container.classList.toggle('can-scroll-up',scroller.scrollTop>3);container.classList.toggle('can-scroll-down',remaining>3);};
-        scroller.addEventListener('scroll',update,{passive:true});
-        if(typeof ResizeObserver==='function')new ResizeObserver(()=>requestAnimationFrame(update)).observe(scroller);
-        scrollCueUpdates.push(update);return update;
-      }
+      const bindScrollCues=(container,scroller)=>{const binding=UI.bindScrollCues(container,scroller);scrollCueUpdates.push(binding.update);return binding.update;};
       const settingsPanel=$('settings-panel'),settingsScroll=$('settings-scroll');
       const updateSettingsScrollCues=bindScrollCues(settingsPanel,settingsScroll);
       function settings(open) {const next=open===undefined?!uiElementVisible(settingsPanel):open;if(next){showFading(settingsPanel);updateSettingsScrollCues();requestAnimationFrame(updateSettingsScrollCues);}else hideFading(settingsPanel);$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
@@ -1121,7 +1005,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.38',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,musicEnabled,musicTrack:MUSIC_TRACKS[musicIndex]?.title||null,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.39',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

@@ -1,4 +1,4 @@
-/* v0.38: the website works as supplied. This optional build makes one offline HTML. */
+/* v0.39: the website works as supplied. This optional build makes one offline HTML. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
@@ -6,11 +6,11 @@ const {offlineAssetScript}=require('./asset-pipeline.cjs');
 function atomicWrite(file,text){const tmp=file+'.tmp';try{fs.writeFileSync(tmp,text,'utf8');fs.renameSync(tmp,file);}finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}}
 try{
  const pkg=JSON.parse(read('package.json')),version=pkg.version.split('.').slice(1).join('.');
- if(version!=='0.38')throw Error('This builder requires package version 0.0.38.');
+ if(version!=='0.39')throw Error('This builder requires package version 0.0.39.');
  const release=JSON.parse(read('version.json'));
  if(release.version!==version)throw Error('version.json must match package version '+version+'.');
  const assetRevision=JSON.parse(read('assets/revision.json')).version;
- const names=['assets','sky-asset','materials','astro','surface','sky','renderer','release-notes','app'];
+ const names=['assets','sky-asset','materials','astro','surface','sky','renderer','release-notes','localization','preferences','ui-runtime','music-player','app'];
  const tags=new Map();let html=read('index.html');
  if(!html.includes('src/assets.js?v='+assetRevision)||!html.includes('src/sky-asset.js?v='+assetRevision))throw Error('Asset script URLs must match assets/revision.json.');
  for(const name of names){
@@ -19,10 +19,9 @@ try{
   tags.set(name,matches[0][0]);if(name!=='assets')read('src/'+name+'.js');
  }
  const styles=[...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="styles\.css(?:\?[^"<>]*)?"[^>]*>/g)];
- const overlay=[...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="styles-v016\.css(?:\?[^"<>]*)?"[^>]*>/g)];
- if(styles.length!==1||overlay.length!==1)throw Error('Expected styles.css and styles-v016.css entries');
- const css=read('styles.css')+'\n'+read('styles-v016.css');
- html=html.replace(styles[0][0],()=>'<style>\n'+css+'\n</style>').replace(overlay[0][0],'');
+ if(styles.length!==1)throw Error('Expected one styles.css entry');
+ const css=read('styles.css');
+ html=html.replace(styles[0][0],()=>'<style>\n'+css+'\n</style>');
  for(const name of names){
   // The packed SolarAssets already contains the new sky. Do not embed it twice.
   if(name==='sky-asset'){html=html.replace(tags.get(name),'');continue;}
