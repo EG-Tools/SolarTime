@@ -1,4 +1,4 @@
-# Solar Time v0.37 — image sources and licenses
+# Solar Time v0.38 — image sources and licenses
 
 The exact built-in ImageGen prompts used for the current Sun, Pluto, Uranus and Europa reconstructions are recorded in `assets/IMAGEGEN_PROMPTS.md`.
 
@@ -30,7 +30,7 @@ No font file or third-party stock Saturn photograph from a reference screenshot 
 
 ## Packaged high-resolution maps — Solar System Scope / INOVE
 
-Solar Time v0.37 packages the high-resolution 2:1 maps for Mercury, Venus's atmosphere, Mars, Jupiter, Saturn, Neptune and the Moon. They are converted to WebP and published as immutable 512/1024/2048/4096 width tiers through the Solar Time media service; the application chooses a tier from the body's real on-screen coverage. The 8192-pixel rocky-body and Moon sources are reduced to 4096 pixels with Lanczos resampling. Neptune remains at its native 2048-pixel width rather than being falsely advertised as a 4K map.
+Solar Time v0.38 packages the high-resolution 2:1 maps for Mercury, Venus's atmosphere, Mars, Jupiter, Saturn, Neptune and the Moon. They are converted to WebP and published as immutable 512/1024/2048/4096 width tiers through the Solar Time media service; the application chooses a tier from the body's real on-screen coverage. The 8192-pixel rocky-body and Moon sources are reduced to 4096 pixels with Lanczos resampling. Neptune remains at its native 2048-pixel width rather than being falsely advertised as a 4K map.
 
 Mercury, the Moon and Mars use the photographed detail in these colour maps without the older synthetic relief layer, avoiding duplicated or exaggerated crater and terrain shading. Venus uses its atmospheric colour map and ordinary spherical lighting; no crater relief map is applied.
 

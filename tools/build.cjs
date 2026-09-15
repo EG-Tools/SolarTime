@@ -1,4 +1,4 @@
-/* v0.37: the website works as supplied. This optional build makes one offline HTML. */
+/* v0.38: the website works as supplied. This optional build makes one offline HTML. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
@@ -6,11 +6,11 @@ const {offlineAssetScript}=require('./asset-pipeline.cjs');
 function atomicWrite(file,text){const tmp=file+'.tmp';try{fs.writeFileSync(tmp,text,'utf8');fs.renameSync(tmp,file);}finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}}
 try{
  const pkg=JSON.parse(read('package.json')),version=pkg.version.split('.').slice(1).join('.');
- if(version!=='0.37')throw Error('This builder requires package version 0.0.37.');
+ if(version!=='0.38')throw Error('This builder requires package version 0.0.38.');
  const release=JSON.parse(read('version.json'));
  if(release.version!==version)throw Error('version.json must match package version '+version+'.');
  const assetRevision=JSON.parse(read('assets/revision.json')).version;
- const names=['assets','sky-asset','materials','astro','surface','sky','renderer','app'];
+ const names=['assets','sky-asset','materials','astro','surface','sky','renderer','release-notes','app'];
  const tags=new Map();let html=read('index.html');
  if(!html.includes('src/assets.js?v='+assetRevision)||!html.includes('src/sky-asset.js?v='+assetRevision))throw Error('Asset script URLs must match assets/revision.json.');
  for(const name of names){

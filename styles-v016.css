@@ -1,17 +1,21 @@
-/* Solar Time v0.33 compact UI overlay */
+/* Solar Time v0.38 compact UI overlay */
 .clock-face,body.zen .clock-face{top:56px}
 .playback-caption{justify-content:flex-end}
 .playback-bar{gap:7px;padding-left:8px;padding-right:8px}
 .speed-control{display:flex;align-items:center;gap:10px;min-width:292px}
-#speed-slider{appearance:none;-webkit-appearance:none;width:238px;height:20px;background:transparent;cursor:pointer;margin:0}
-#speed-slider::-webkit-slider-runnable-track{height:2px;background:rgba(171,188,212,.28);border-radius:2px}
-#speed-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#e2c58d;margin-top:-5px;box-shadow:0 0 0 3px rgba(226,197,141,.10)}
-#speed-slider::-moz-range-track{height:2px;background:rgba(171,188,212,.28);border:0;border-radius:2px}
-#speed-slider::-moz-range-thumb{width:12px;height:12px;border:0;border-radius:50%;background:#e2c58d;box-shadow:0 0 0 3px rgba(226,197,141,.10)}
+.solar-range{appearance:none;-webkit-appearance:none;width:100%;height:20px;padding:0;background:transparent;cursor:pointer;margin:0}
+.solar-range::-webkit-slider-runnable-track{height:2px;background:var(--range-track);border-radius:2px}
+.solar-range::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border:0;border-radius:50%;background:var(--range-thumb);margin-top:-5px;box-shadow:0 0 0 3px var(--range-halo)}
+.solar-range::-moz-range-track{height:2px;background:var(--range-track);border:0;border-radius:2px}
+.solar-range::-moz-range-progress{height:2px;background:var(--range-track);border:0;border-radius:2px}
+.solar-range::-moz-range-thumb{width:12px;height:12px;border:0;border-radius:50%;background:var(--range-thumb);box-shadow:0 0 0 3px var(--range-halo)}
+.solar-range:disabled{opacity:.42;cursor:not-allowed}
+.speed-control .solar-range{width:238px}
+#overview-orbit-gap-control{padding-top:11px}
 .speed-mode-button{min-width:42px;padding:7px 9px;border-radius:6px;background:rgba(205,175,121,.12);color:#ead09d;font-size:10px;border:1px solid rgba(171,188,212,.12)}
 .speed-mode-button:hover{background:rgba(205,175,121,.18);color:#f0d8a7}
 @media(min-width:1800px){.clock-face,body.zen .clock-face{top:70px}}
-@media(max-width:760px){.speed-control{min-width:205px;gap:7px}#speed-slider{width:158px}.playback-bar{max-width:calc(100vw - 18px)}}
+@media(max-width:760px){.speed-control{min-width:205px;gap:7px}.speed-control .solar-range{width:158px}.playback-bar{max-width:calc(100vw - 18px)}}
 
 /* v0.20: compact playback card and explicit live/off state for the unit button. */
 .playback{transform:translateX(-50%) scale(.9);transform-origin:50% 100%}
@@ -77,6 +81,31 @@ body.zen #timezone-button{display:inline-block!important;visibility:visible!impo
 @media(max-width:680px){.language-toggle{width:39px;font-size:8px;letter-spacing:.7px}}
 @media(max-width:680px){.modal-scroll{padding:29px 24px 23px}.settings-scroll{max-height:calc(100dvh - 80px);padding:21px}}
 @media(max-height:630px) and (min-width:681px){.settings-scroll{max-height:calc(100vh - 75px)}}
+
+/* One transparent release-history surface, matching the ThinkStock navigator. */
+.release-notes-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;margin:-5px 0 8px;padding:10px 1px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:transparent;color:#c8d0da;font-size:11px;letter-spacing:.3px;text-align:left}
+.release-notes-toggle:hover{color:var(--accent)}
+.release-notes-toggle-mark{display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;border:1px solid rgba(171,188,212,.18);border-radius:50%;background:transparent;color:#94a0af;transition:color .18s,border-color .18s,background .18s}
+.release-notes-toggle-mark::before{content:"";width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid currentColor;transform:translateY(1px)}
+.release-notes-toggle:hover .release-notes-toggle-mark,.release-notes-toggle[aria-expanded=true] .release-notes-toggle-mark{color:var(--accent);border-color:rgba(225,199,150,.42);background:rgba(185,150,97,.11)}
+.release-notes-panel{margin:0 0 19px;padding:4px 0 17px;border-bottom:1px solid var(--line);background:transparent;animation:release-notes-in .24s ease both}
+.release-notes-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:31px}
+.release-notes-heading{display:flex;align-items:baseline;gap:7px;min-width:0}
+.modal .release-notes-heading h3{margin:0;color:var(--accent);font-size:13px;font-variant-numeric:tabular-nums}
+.release-notes-heading small{color:#7f8997;font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.release-notes-navigation{display:flex;align-items:center;gap:6px}
+.release-notes-navigation button{position:relative;width:29px;height:28px;padding:0;border:1px solid rgba(171,188,212,.14);border-radius:7px;background:transparent;color:#aab5c2;font-size:0;line-height:0}
+.release-notes-navigation button::before{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform-origin:center}
+#release-notes-newer::before{transform:translate(-42%,-50%) rotate(135deg)}
+#release-notes-older::before{transform:translate(-58%,-50%) rotate(-45deg)}
+.release-notes-navigation button:not(:disabled):hover{border-color:rgba(233,200,141,.35);color:var(--accent);background:rgba(233,200,141,.035)}
+.release-notes-navigation button:disabled{opacity:.24}
+#release-notes-position{min-width:37px;color:#727e8c;font-size:9px;text-align:center;font-variant-numeric:tabular-nums}
+.release-notes-list{display:grid;gap:6px;min-height:82px;margin:9px 0 0;padding:0;list-style:none;color:#aeb9c8;font-size:11px;line-height:1.55}
+.release-notes-list li{position:relative;padding-left:13px;word-break:keep-all}
+.release-notes-list li::before{content:"";position:absolute;left:1px;top:.7em;width:3px;height:3px;border-radius:50%;background:rgba(233,200,141,.72);box-shadow:0 0 6px rgba(233,200,141,.24)}
+@keyframes release-notes-in{from{opacity:0}to{opacity:1}}
+@media(max-width:680px){.release-notes-header{gap:7px}.release-notes-heading{gap:5px}.release-notes-heading small{font-size:9px}.release-notes-list{font-size:10px;min-height:78px}}
 
 /* The selected-body card is top-anchored after opening, so translations grow down. */
 .body-panel{position:fixed;top:clamp(87px,calc(11.5vh + 15px),143px);bottom:auto!important;transform:none!important;transform-origin:top left;max-height:calc(100dvh - var(--body-panel-top,120px) - 16px);overflow-y:auto;scrollbar-width:none;overscroll-behavior:contain}

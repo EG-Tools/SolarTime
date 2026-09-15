@@ -1,4 +1,4 @@
-/* Solar Time v0.37 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.38 — dependency-free, depth-projected Canvas renderer.
    Credited spherical maps are packaged in resolution tiers for every body. */
 (function () {
   'use strict';
@@ -37,7 +37,7 @@
       this.gpu=null;this.gpuError=null;
       const gpuCanvas=typeof document==='object'&&typeof document.getElementById==='function'?document.getElementById('planet-layer'):null;
       if(gpuCanvas&&window.SolarSurface?.DirectRenderer){try{this.gpu=new window.SolarSurface.DirectRenderer(gpuCanvas);}catch(error){this.gpuError=error.message;}}
-      this.options={actualScale:false,overviewOrbitGap:86,dollyZoom:false,orbits:true,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
+      this.options={actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
       this.bodyScales=Object.create(null);this.satelliteOrbitScales=Object.create(null);
       this.camera={...DEFAULT_CAMERA};
       this.site={label:'KOREA',latitude:37.5665,longitude:126.978};
@@ -180,7 +180,7 @@
       const bodies=new Map(this.allBodies().map(body=>[body.id,body]));
       for(const [id,value] of Object.entries(values))if(bodies.has(id)&&Number.isFinite(value)){
         const limits=this.bodyScaleLimits(bodies.get(id)),next=clamp(Math.round(value*100)/100,limits.min,limits.max);
-        if(Math.abs(next-1)>=1e-6)this.bodyScales[id]=next;
+        if(Math.abs(next-1)<1e-6)delete this.bodyScales[id];else this.bodyScales[id]=next;
       }
       this.dirty=true;this.clearLabels();
     }
@@ -206,7 +206,7 @@
       this.satelliteOrbitScales||(this.satelliteOrbitScales=Object.create(null));
       for(const id of ORBIT_HIERARCHY_PARENTS){const value=values[id];if(!Number.isFinite(value))continue;
         const limits=this.satelliteOrbitScaleLimits(id),next=clamp(Math.round(value*100)/100,limits.min,limits.max);
-        if(Math.abs(next-1)>=1e-6)this.satelliteOrbitScales[id]=next;
+        if(Math.abs(next-1)<1e-6)delete this.satelliteOrbitScales[id];else this.satelliteOrbitScales[id]=next;
       }
       this.dirty=true;this.clearLabels();
     }
@@ -380,6 +380,11 @@
         this.options.overviewOrbitGap=clamp(Math.round(Number.isFinite(numeric)?numeric:fallback),OVERVIEW_ORBIT.minGap,OVERVIEW_ORBIT.maxGap);
         this.dirty=true;return;
       }
+      if(key==='orbitBrightness'){
+        const numeric=Number(value);
+        this.options.orbitBrightness=clamp(Number.isFinite(numeric)?numeric:1,0,1);
+        this.dirty=true;return;
+      }
       if(key==='actualScale'){
         const mono=performance.now();this.advanceActualScale(mono);this.options.actualScale=!!value;
         if(animate)this.actualScaleTween={from:this.actualScaleMix,to:value?1:0,started:mono,duration:2000};
@@ -387,7 +392,6 @@
         this.lastSurfaceSubmit=-Infinity;return;
       }
       this.options[key]=value;this.dirty=true;if(key==='quality')this.resize();
-      if(key==='orbits'&&value)this.startOrbitReveal();
       if((key==='labels'&&!value)||key==='avoidLabels')this.clearLabels();
       if(key==='moon'&&!value&&SATELLITES.some(body=>body.id===this.camera.focus))this.resetCamera();
       if(key==='pluto'&&!value&&this.camera.focus==='pluto')this.resetCamera();
@@ -620,7 +624,7 @@
       item={a,e,lens,projectionKey,source:path.points,xyz,minX,maxX,minY,maxY,scale:NaN,passes:null};cache.set(path,item);
       if(this.stats)this.stats.orbitProjections+=path.points.length;return item;
     }
-    orbit(c,path,highlight,reveal=1) {
+    orbit(c,path,highlight,reveal=1,strength=1) {
       const item=this.projectOrbit(path),xyz=item.xyz,scale=this.scale;
       const rgb=path.body.id==='earth'?'110,174,212':path.body.id==='pluto'?'155,140,127':'138,151,168';
       c.lineWidth=highlight?1.25:.72;if(path.body.id==='pluto')c.setLineDash([2,5]);
@@ -642,7 +646,7 @@
       }
       c.save();c.globalAlpha*=reveal;c.translate(this.cx,this.cy);
       for(let pass=0;pass<2;pass++){
-        c.strokeStyle=`rgba(${rgb},${highlight?.64:pass?.32:.17})`;
+        c.strokeStyle=`rgba(${rgb},${clamp((highlight?.64:pass?.32:.17)*strength,0,1)})`;
         if(cached)c.stroke(item.passes[pass]);
         else{
           c.beginPath();let active=false;
@@ -931,16 +935,17 @@
       }
       for(const body of bodies){body.screen=this.project(body.world);if(perspectiveActive)body.r*=body.screen.perspective;}
       const direct=!!this.gpu&&this.gpu.begin();
-      if(this.options.orbits) {
+      const orbitBrightness=clamp(Number(this.options.orbitBrightness)||0,0,1),orbitStrength=orbitBrightness*2;
+      if(orbitBrightness>0) {
         const reveal=this.orbitRevealAlpha(mono);
         if(direct){
           for(const path of this.paths){const item=this.projectOrbit(path),selected=this.selected===path.body.id;
-            this.gpu.orbit(item.xyz,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],(selected?.64:.22)*reveal);}
-        }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id,reveal);
+            this.gpu.orbit(item.xyz,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],clamp((selected?.64:.22)*reveal*orbitStrength,0,1));}
+        }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id,reveal,orbitStrength);
         for(const satellite of satelliteLayouts) {
           const points=A.satelliteOrbit(satellite.body,ms,satellite.orbitRadius,90),parent=satellite.parent.world;
-          if(direct){const xyz=new Float32Array(points.length*3);for(let i=0;i<points.length;i++){const p=points[i],v=this.projectView({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});xyz[i*3]=v.x;xyz[i*3+1]=v.y;xyz[i*3+2]=v.behind?NaN:v.z;}this.gpu.orbit(xyz,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],.26*reveal);}
-          else if(!this.gpu){c.save();c.globalAlpha*=reveal;c.strokeStyle=satellite.body.id==='moon'?'rgba(115,155,189,.26)':'rgba(171,158,117,.26)';c.lineWidth=.65;c.beginPath();for(let i=0;i<points.length;i++){const p=points[i],s=this.project({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();c.restore();}
+          if(direct){const xyz=new Float32Array(points.length*3);for(let i=0;i<points.length;i++){const p=points[i],v=this.projectView({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});xyz[i*3]=v.x;xyz[i*3+1]=v.y;xyz[i*3+2]=v.behind?NaN:v.z;}this.gpu.orbit(xyz,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],clamp(.26*reveal*orbitStrength,0,1));}
+          else if(!this.gpu){c.save();c.globalAlpha*=reveal;const alpha=clamp(.26*orbitStrength,0,1);c.strokeStyle=satellite.body.id==='moon'?`rgba(115,155,189,${alpha})`:`rgba(171,158,117,${alpha})`;c.lineWidth=.65;c.beginPath();for(let i=0;i<points.length;i++){const p=points[i],s=this.project({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();c.restore();}
         }
       }
       bodies.sort((a,b)=>a.screen.z-b.screen.z);
