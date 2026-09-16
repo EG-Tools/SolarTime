@@ -503,6 +503,7 @@
         if(!$('language-menu').hidden){closeLanguageMenu();return;}
         if(resetDefaultsDialog.open){closeResetDefaults();return;}
         if(presetDialog.open){closePresetDialog();return;}
+        if(kakaoPayDialog.open){closeKakaoPay();return;}
         if($('help-dialog').open){help(false);return;}
         settings(false);closeBody();
       }
@@ -543,6 +544,12 @@
       for(const event of ['pointermove','pointerdown','pointerup','pointercancel','wheel','keydown','focusin'])document.addEventListener(event,wakePointer,{passive:true});
       const helpDialog=$('help-dialog');
       const helpScroll=$('help-scroll');
+      const kakaoPayDialog=$('kakao-pay-dialog');
+      function closeKakaoPay(restoreFocus=true){if(kakaoPayDialog.open)hideFading(kakaoPayDialog,()=>kakaoPayDialog.close());if(restoreFocus)$('kakao-pay-link').focus({preventScroll:true});}
+      $('kakao-pay-link').addEventListener('click',event=>{event.preventDefault();if(!kakaoPayDialog.open)showFading(kakaoPayDialog,()=>kakaoPayDialog.showModal());});
+      kakaoPayDialog.querySelector('form').addEventListener('submit',event=>{event.preventDefault();closeKakaoPay();});
+      kakaoPayDialog.addEventListener('cancel',event=>{event.preventDefault();closeKakaoPay();});
+      kakaoPayDialog.addEventListener('click',event=>{if(event.target===kakaoPayDialog)closeKakaoPay();});
       const updateHelpScrollCues=bindScrollCues(helpDialog,helpScroll);
       const releaseNotesApi=window.SolarReleaseNotes,releaseNotesNavigator=releaseNotesApi?.createReleaseNotesNavigator?.();
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}

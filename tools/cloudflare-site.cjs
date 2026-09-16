@@ -10,7 +10,7 @@ function prepareSite(root,{manifest=null,deployment=null}={}){
  const scripts=runtimeScripts(root,manifest,deployment,{cdnBase:deployment.cdnBase||'/media/'});
  fs.rmSync(site,{recursive:true,force:true});fs.mkdirSync(site,{recursive:true});
  const copy=file=>{const destination=path.join(site,file);fs.mkdirSync(path.dirname(destination),{recursive:true});fs.copyFileSync(path.join(root,file),destination);};
- for(const file of ['index.html','styles.css','version.json','life-user-watermark.webp'])copy(file);
+ for(const file of ['index.html','styles.css','version.json','life-user-watermark.webp','kakao-pay-qr.svg'])copy(file);
  for(const file of fs.readdirSync(path.join(root,'src')).filter(name=>name.endsWith('.js')))copy('src/'+file);
  fs.cpSync(path.join(root,'src/locales'),path.join(site,'src/locales'),{recursive:true});
  atomicWrite(path.join(site,'src/assets.js'),scripts.assets);atomicWrite(path.join(site,'src/sky-asset.js'),scripts.sky);
