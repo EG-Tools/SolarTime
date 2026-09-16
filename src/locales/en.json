@@ -81,7 +81,7 @@
     "supportMessage": "If this program has been helpful, please support the developer with a cup of coffee!",
     "supportDetail": "Your support makes a big difference in keeping the servers running and development going!",
     "supportKrw": "Support in KRW",
-    "supportUsd": "Support in USD",
+    "supportUsd": "Support via Buy Me a Coffee",
     "basicHelp": "Left-drag rotates continuously through a full turn without a vertical stop. Middle-drag pans up, down, left or right by ±80%. The button below Default View on the right switches the wheel between flat zoom and true camera travel with perspective. Double-click a body or choose “Closer view” to track it. 0 restores the default view; 1·2·3 save the view together with its Zoom/Move mode.",
     "timeAndCalculation": "Time and calculation",
     "timeHelp": "The upper clock follows the real local time of the selected language and region. Turn off Real time below to adjust simulation speed in hours, days or years. The ranges are 1 minute–24 hours, 1–365 days, and 1–20 years per second.",
