@@ -7,7 +7,7 @@ test('runtime concerns load as modules before the application coordinator',()=>{
   assert.equal((html.match(/rel="stylesheet"/g)||[]).length,1);
   assert.doesNotMatch(html,/styles-v016/);
   for(const name of ['language-data','localization','preferences','ui-runtime','music-player']){
-    assert.match(html,new RegExp(`src/${name}\\.js\\?v=0\\.40`));
+    assert.match(html,new RegExp(`src/${name}\\.js\\?v=0\\.41`));
     assert.ok(html.indexOf(`src/${name}.js`)<html.indexOf('src/app.js'),name);
   }
   assert.match(app,/Localization=Modules\.Localization,LanguageData=Modules\.LanguageData,Preferences=Modules\.Preferences,UI=Modules\.UI/);

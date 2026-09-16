@@ -4,6 +4,12 @@
 
   const release=(version,date,items)=>Object.freeze({version,date,items:Object.freeze(items)});
   const RELEASES=Object.freeze([
+    release('0.41','2026.09.16',[
+      '시계 숫자를 누르면 설정된 폰트가 순서대로 전환됩니다.',
+      'AM/PM을 눌러 12시간·24시간 표기를 바로 전환할 수 있습니다.',
+      'iPhone 홈 화면에 공식 아이콘을 적용하고 두 손가락 화면 이동을 지원합니다.',
+      '날짜·상태·브랜드·후원 영역의 간격과 동작을 정리했습니다.'
+    ]),
     release('0.40','2026.09.15',[
       '태양 코로나와 홍염의 프레임별 합성을 GPU로 옮겼습니다.',
       '웹과 로컬 실행본 모두 언어와 고해상도 재질을 Cloudflare에서 불러옵니다.',
@@ -152,6 +158,7 @@
   // arrow-navigable history instead of falling back to Korean.
   const LOCALIZED_SUMMARIES=Object.freeze({
     en:Object.freeze([
+      'Clicking the clock cycles through the configured fonts; clicking AM/PM switches directly between 12- and 24-hour time; iPhone home-screen icons and two-finger panning are now supported; spacing and behavior were refined across date, status, branding, and support areas.',
       'Moved solar corona and prominence compositing to the GPU, cloud-hosted language and high-resolution assets, increased maximum orbit brightness, and removed duplicate heavy builds.',
       'Moved orbit coordinates and camera projection to GPU buffers, separated language, music, storage, and popup modules, and reorganized the main controls.',
       'Unified all slider styles, consolidated update history, and stabilized saved body size, orbit spacing, camera restore, and scroll cues.',
@@ -177,6 +184,7 @@
       'Created a 4K spherical space background and stabilized dedicated background rendering, projection caching, tab suspension, and WebGL recovery.'
     ]),
     chn:Object.freeze([
+      '点击时钟可依次切换已配置字体；点击 AM/PM 可直接切换 12/24 小时制；现已支持 iPhone 主屏幕官方图标与双指平移；日期、状态、品牌和赞助区域的间距与行为得到优化。',
       '将太阳日冕与日珥合成迁移到 GPU，语言和高清素材改由云端加载，提高轨道最大亮度，并移除重复的大型构建。',
       '将轨道坐标与相机投影迁移到 GPU 缓冲区，拆分语言、音乐、存储和弹窗模块，并重新整理主要控制项。',
       '统一所有滑块样式，合并更新记录，并稳定天体大小、轨道间距、相机恢复与滚动提示。',
@@ -202,6 +210,7 @@
       '制作 4K 球形宇宙背景，并稳定背景渲染、投影缓存、标签页暂停和 WebGL 恢复。'
     ]),
     jpn:Object.freeze([
+      '時計を押すと設定済みフォントが順番に切り替わります；AM/PM を押すと 12/24 時間表示を直接切り替えられます；iPhone の公式ホーム画面アイコンと2本指パンに対応しました；日付・状態・ブランド・支援領域の間隔と動作を整えました。',
       '太陽コロナとプロミネンスの合成を GPU に移し、言語と高解像度素材をクラウド化し、軌道の最大輝度を上げ、重複する大型ビルドを削除しました。',
       '軌道座標とカメラ投影を GPU バッファへ移し、言語・音楽・保存・ポップアップを分離して主要操作を整理しました。',
       'すべてのスライダーを統一し、更新履歴を一本化して、天体サイズ・軌道間隔・カメラ復元・スクロール案内を安定化しました。',
@@ -227,6 +236,7 @@
       '4K 球面宇宙背景を作成し、背景描画・投影キャッシュ・タブ休止・WebGL 復旧を安定化しました。'
     ]),
     hi:Object.freeze([
+      'घड़ी पर क्लिक करने से चुने हुए फ़ॉन्ट क्रम से बदलते हैं; AM/PM पर क्लिक करके 12 और 24 घंटे का प्रारूप तुरंत बदला जा सकता है; iPhone होम-स्क्रीन आइकन और दो उंगली पैन अब समर्थित हैं; तारीख, स्थिति, ब्रांड और सहयोग क्षेत्रों का अंतर व व्यवहार सुधारा गया।',
       'सौर कोरोना और प्रोमिनेंस संयोजन को GPU पर ले जाया गया, भाषा व उच्च-रिज़ॉल्यूशन सामग्री क्लाउड से जोड़ी गई, कक्षा की अधिकतम चमक बढ़ी और दोहराए गए बड़े बिल्ड हटे।',
       'कक्षा निर्देशांक और कैमरा प्रोजेक्शन GPU बफ़र पर ले जाए गए, भाषा, संगीत, संग्रह और पॉपअप मॉड्यूल अलग किए गए तथा मुख्य नियंत्रण व्यवस्थित हुए।',
       'सभी स्लाइडर शैलियाँ एक की गईं, अपडेट इतिहास जोड़ा गया और पिंड आकार, कक्षा दूरी, कैमरा पुनर्स्थापन व स्क्रॉल संकेत स्थिर किए गए।',
@@ -252,6 +262,7 @@
       '4K गोलाकार अंतरिक्ष पृष्ठभूमि बनाई गई और पृष्ठभूमि रेंडरिंग, प्रोजेक्शन कैश, टैब निलंबन व WebGL पुनर्प्राप्ति स्थिर हुई।'
     ]),
     es:Object.freeze([
+      'Al pulsar el reloj se recorren las fuentes configuradas; al pulsar AM/PM se cambia directamente entre 12 y 24 horas; ahora hay icono oficial y paneo con dos dedos en iPhone; se ajustaron espacios y comportamientos de fecha, estado, marca y apoyo.',
       'Se trasladó la corona y las prominencias solares a la GPU, se alojaron idiomas y recursos HD en la nube, se aumentó el brillo orbital máximo y se eliminaron compilaciones pesadas duplicadas.',
       'Las coordenadas orbitales y la proyección de cámara pasaron a búferes GPU; idioma, música, almacenamiento y ventanas se separaron en módulos y se reorganizaron los controles.',
       'Se unificaron los deslizadores y el historial de cambios, y se estabilizaron el tamaño de cuerpos, el espaciado orbital, la restauración de cámara y las guías de desplazamiento.',
@@ -277,6 +288,7 @@
       'Se creó un fondo espacial esférico 4K y se estabilizaron su renderizado, la caché de proyección, la suspensión de pestañas y la recuperación WebGL.'
     ]),
     de:Object.freeze([
+      'Ein Klick auf die Uhr wechselt der Reihe nach durch die eingerichteten Schriften; ein Klick auf AM/PM schaltet direkt zwischen 12 und 24 Stunden um; iPhone-Startsymbol und Zwei-Finger-Schwenken werden unterstützt; Abstände und Verhalten von Datum, Status, Marke und Unterstützung wurden verfeinert.',
       'Sonnenkorona und Protuberanzen wurden auf die GPU verlagert, Sprach- und HD-Daten in die Cloud gelegt, die maximale Orbithelligkeit erhöht und doppelte große Builds entfernt.',
       'Orbitkoordinaten und Kameraprojektion wurden in GPU-Puffer verlagert, Sprach-, Musik-, Speicher- und Popupmodule getrennt und die Hauptsteuerung neu geordnet.',
       'Alle Regler und der Änderungsverlauf wurden vereinheitlicht; Körpergröße, Orbitabstand, Kamerawiederherstellung und Scrollhinweise wurden stabilisiert.',
@@ -302,6 +314,7 @@
       'Ein sphärischer 4K-Weltraumhintergrund wurde erstellt und Hintergrundrendering, Projektionscache, Tab-Pause und WebGL-Wiederherstellung stabilisiert.'
     ]),
     fr:Object.freeze([
+      'Un clic sur l’horloge fait défiler les polices configurées; un clic sur AM/PM bascule directement entre 12 et 24 heures; l’icône officielle et le panoramique à deux doigts sont pris en charge sur iPhone; les espacements et comportements de la date, du statut, de la marque et du soutien ont été affinés.',
       'La couronne et les protubérances solaires ont été transférées au GPU, les langues et ressources HD au cloud, la luminosité orbitale maximale augmentée et les builds lourds en double supprimés.',
       'Les coordonnées orbitales et la projection caméra ont été déplacées vers des tampons GPU, les modules langue, musique, stockage et fenêtres séparés, et les commandes réorganisées.',
       'Tous les curseurs et l’historique ont été unifiés, et la taille des corps, l’espacement orbital, la restauration caméra et les repères de défilement stabilisés.',
