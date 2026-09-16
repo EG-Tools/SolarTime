@@ -328,12 +328,34 @@
     ])
   });
 
+  function splitSummary(summary,count,language) {
+    const punctuation=language==='chn'||language==='jpn'?'。':language==='hi'?'।':'.';
+    let fragments=String(summary).replace(/[。।.]$/u,'').split(/\s*[,，、;；]\s*/u).filter(Boolean);
+    while(fragments.length>count){
+      let shortest=0;for(let i=1;i<fragments.length;i++)if(fragments[i].length<fragments[shortest].length)shortest=i;
+      const previous=shortest-1,next=shortest+1,joinPrevious=next>=fragments.length||previous>=0&&/^(?:and|und|et|y|并|そして|तथा)\b/iu.test(fragments[shortest]);
+      if(joinPrevious)fragments.splice(previous,2,fragments[previous]+', '+fragments[shortest]);
+      else fragments.splice(shortest,2,fragments[shortest]+', '+fragments[next]);
+    }
+    const fallback={en:'Additional usability and stability improvements',chn:'进一步改善易用性和稳定性',jpn:'使いやすさと安定性をさらに改善しました',hi:'उपयोगिता और स्थिरता में अतिरिक्त सुधार',es:'Mejoras adicionales de usabilidad y estabilidad',de:'Weitere Verbesserungen bei Bedienung und Stabilität',fr:'Améliorations supplémentaires de l’ergonomie et de la stabilité'}[language]||'Additional usability and stability improvements';
+    while(fragments.length<count)fragments.push(fallback);
+    const shortSuffix={en:' behavior and presentation were improved',chn:'相关功能与显示效果得到改进',jpn:'に関する機能と表示を改善しました',hi:' से जुड़ी कार्यक्षमता और प्रस्तुति सुधारी गई',es:' recibió mejoras de funcionamiento y presentación',de:' bezogene Funktionen und Darstellung wurden verbessert',fr:' a bénéficié d’améliorations fonctionnelles et visuelles'}[language]||' behavior and presentation were improved';
+    const shortLimit=language==='chn'||language==='jpn'?11:16;
+    const items=[];
+    for(let i=0;i<count;i++){
+      let piece=fragments.shift().replace(/^(?:and|und|et|y)\s+/iu,'').trim();
+      if(piece.length<shortLimit)piece=piece.replace(/[-–—]\s*$/u,'')+shortSuffix;
+      items.push(piece+punctuation);
+    }
+    return Object.freeze(items);
+  }
+
   function itemsFor(release,language='kor') {
     if(!release)return Object.freeze([]);
     const code=language==='eu'?'en':language;
     if(code==='kor')return release.items;
     const index=RELEASES.indexOf(release),summary=LOCALIZED_SUMMARIES[code]?.[index]??LOCALIZED_SUMMARIES.en[index];
-    return Object.freeze(summary?[summary]:release.items);
+    return summary?splitSummary(summary,release.items.length,code):release.items;
   }
 
   function createReleaseNotesNavigator(releases=RELEASES) {
