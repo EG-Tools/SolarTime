@@ -82,6 +82,7 @@
     "supportDetail": "Tu apoyo es de gran ayuda para mantener los servidores y continuar el desarrollo.",
     "supportKrw": "Apoyar en KRW",
     "supportUsd": "Apoyar en USD",
+    "openKakaoPay": "Abrir KakaoPay",
     "basicHelp": "Arrastrar con el botón izquierdo gira sin límite vertical. El botón central desplaza la pantalla hasta ±80%. El botón superior derecho cambia la rueda entre zoom plano y movimiento real de cámara con perspectiva. Haz doble clic en un cuerpo o elige «Vista cercana» para seguirlo. 0 restaura la vista inicial; 1·2·3 guardan la vista y su modo Zoom/Mover.",
     "timeAndCalculation": "Tiempo y cálculo",
     "timeHelp": "El reloj superior muestra la hora real de la región elegida. Desactiva Tiempo real para ajustar la simulación por horas, días o años.",

@@ -38,7 +38,7 @@
       document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=0.40-r2">
+  <link rel="stylesheet" href="styles.css?v=0.40-r3">
 </head>
 <body>
   <canvas id="starfield" aria-hidden="true"></canvas>
@@ -256,6 +256,7 @@
     <form method="dialog"><button class="close-button" aria-label="KakaoPay QR 닫기">×</button></form>
     <h2 id="kakao-pay-title">KakaoPay QR</h2>
     <img src="kakao-pay-qr.svg" width="240" height="240" alt="KakaoPay 송금 QR 코드">
+    <a class="support-link kakao-pay-open" href="https://qr.kakaopay.com/FC1GBtXGB" target="_blank" rel="noopener noreferrer" data-i18n="openKakaoPay">카카오페이 열기</a>
   </dialog>
   <div id="loading" class="loading">
     <svg class="loading-orbit" viewBox="0 0 90 55" aria-hidden="true">

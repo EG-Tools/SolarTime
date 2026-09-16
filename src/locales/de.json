@@ -82,6 +82,7 @@
     "supportDetail": "Deine Unterstützung hilft sehr dabei, die Server zu betreiben und die Entwicklung fortzusetzen.",
     "supportKrw": "In KRW unterstützen",
     "supportUsd": "In USD unterstützen",
+    "openKakaoPay": "KakaoPay öffnen",
     "basicHelp": "Ziehen mit der linken Maustaste dreht die Ansicht ohne vertikale Begrenzung. Die mittlere Taste verschiebt um bis zu ±80%. Die obere rechte Taste wechselt das Mausrad zwischen flachem Zoom und echter Kamerafahrt mit Perspektive. Doppelklick oder „Nahansicht“ verfolgt einen Körper. 0 stellt die Ausgangsansicht her; 1·2·3 speichern Ansicht und Zoom/Bewegen-Modus.",
     "timeAndCalculation": "Zeit und Berechnung",
     "timeHelp": "Die obere Uhr zeigt die Echtzeit der gewählten Region. Echtzeit kann ausgeschaltet werden, um die Simulation in Stunden, Tagen oder Jahren zu steuern.",

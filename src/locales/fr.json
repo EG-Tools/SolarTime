@@ -82,6 +82,7 @@
     "supportDetail": "Votre soutien contribue grandement au maintien des serveurs et à la poursuite du développement.",
     "supportKrw": "Soutenir en KRW",
     "supportUsd": "Soutenir en USD",
+    "openKakaoPay": "Ouvrir KakaoPay",
     "basicHelp": "Le glissement gauche fait tourner la vue sans limite verticale. Le bouton central déplace l’écran jusqu’à ±80 %. Le bouton supérieur droit alterne la molette entre zoom plat et déplacement réel de la caméra avec perspective. Double-cliquez sur un astre ou choisissez « Vue rapprochée » pour le suivre. 0 restaure la vue initiale ; 1·2·3 enregistrent la vue avec son mode Zoom/Déplacement.",
     "timeAndCalculation": "Temps et calcul",
     "timeHelp": "L’horloge supérieure affiche l’heure réelle de la région choisie. Désactivez Temps réel pour régler la simulation en heures, jours ou années.",
