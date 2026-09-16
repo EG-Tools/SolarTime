@@ -96,7 +96,6 @@
         $('fit-view').setAttribute('aria-label',t('homeView'));$('fit-view').title=t('homeView')+' · 0';
         $('fullscreen-button').setAttribute('aria-label',t(document.fullscreenElement?'fullscreenExit':'fullscreen'));$('fullscreen-button').title=t(document.fullscreenElement?'fullscreenExit':'fullscreen')+' · F';
         $('zen-toggle').setAttribute('aria-label',t(zen?'zenOff':'zenOn'));$('zen-toggle').title=t(zen?'normalMode':'zenMode')+' · H';
-        $('timezone-button').title=t('timezoneTitle');
         musicUi();
       }
       const CLOCK_FONTS=Object.freeze({
@@ -116,6 +115,7 @@
         consolas:'Consolas,"Cascadia Mono",monospace',
         lucida:'"Lucida Console",Consolas,monospace'
       });
+      const CLOCK_FONT_ORDER=Object.freeze(Object.keys(CLOCK_FONTS));
       let clockFont='georgia',savedAutoRotateDirection=FACTORY_AUTO_ROTATE,overviewCamera=renderer.defaultCameraSnapshot();
       renderer.options.twinkle=true;
       const validKeys={actualScale:'actual-scale',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
@@ -125,7 +125,6 @@
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
           if(Number.isFinite(saved.orbitBrightness))renderer.options.orbitBrightness=A.clamp(saved.orbitBrightness,0,1);
           else if(typeof saved.orbits==='boolean')renderer.options.orbitBrightness=saved.orbits?.5:0;
-           if(saved.timezone==='utc')timezone='utc';
            if(typeof saved.dollyZoom==='boolean')renderer.options.dollyZoom=saved.dollyZoom;
            if([-1,0,1].includes(saved.autoRotateDirection))savedAutoRotateDirection=saved.autoRotateDirection;
           if(Number.isFinite(saved.overviewOrbitGap))renderer.options.overviewOrbitGap=A.clamp(Math.round(saved.overviewOrbitGap),A.OVERVIEW_ORBIT.minGap,A.OVERVIEW_ORBIT.maxGap);
@@ -159,7 +158,7 @@
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
       $('show-seconds').checked=showSeconds;$('seconds-group').hidden=!showSeconds;
-      $('hour-cycle').checked=hourCycle==='24';$('ampm').hidden=hourCycle!=='12';
+      $('hour-cycle').checked=hourCycle==='24';$('ampm').hidden=false;
       $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
       function syncOrbitSpacingControl(){
         const input=$('overview-orbit-gap'),value=Math.round(renderer.options.overviewOrbitGap),locked=renderer.options.actualScale;
@@ -281,11 +280,11 @@
         const p=dateParts(wall),key=[p.y,p.mo,p.d,p.h,p.mi,showSeconds?p.s:0,timezone,showSeconds,hourCycle].join('-');if(key===lastWallKey)return;lastWallKey=key;
         const twelve=hourCycle==='12',displayHour=twelve?((p.h+11)%12)+1:p.h,period=p.h<12?'AM':'PM';
         $('hours').textContent=two(displayHour);$('minutes').textContent=two(p.mi);$('seconds').textContent=two(p.s);
-        $('ampm').hidden=!twelve;$('ampm').textContent=period;
+        $('ampm').hidden=false;$('ampm').textContent=period;
         const spoken=twelve?`${period} ${two(displayHour)}:${two(p.mi)}${showSeconds?':'+two(p.s):''}`:`${two(p.h)}:${two(p.mi)}${showSeconds?':'+two(p.s):''}`;
         $('wall-clock').dateTime=new Date(wall).toISOString();$('wall-clock').setAttribute('aria-label',t('wallClockAria',{time:spoken}));
         $('wall-date').textContent=dateFormatter.format(new Date(wall));$('timezone-button').textContent=zoneLabel();
-        $('timezone-button').setAttribute('aria-label',t('timezoneAria',{zone:zoneLabel()}));
+        $('timezone-button').setAttribute('aria-label',zoneLabel());
       }
       // Display each satellite immediately after its parent while the renderer
       // uses the same parent relationship for the actual scene hierarchy.
@@ -421,7 +420,6 @@
       syncSpeedUi();
       function pause() {renderer.invalidateSurfaces();clock.toggle(performance.now());uiNow();}
       $('pause-button').addEventListener('click',pause);
-      $('timezone-button').addEventListener('click',()=>{timezone=timezone==='local'?'utc':'local';refreshTimeFormats();lastWallKey='';uiNow();persist();});
       const scrollCueUpdates=[];
       const bindScrollCues=(container,scroller)=>{const binding=UI.bindScrollCues(container,scroller);scrollCueUpdates.push(binding.update);return binding.update;};
       const settingsPanel=$('settings-panel'),settingsScroll=$('settings-scroll');
@@ -434,8 +432,14 @@
       $('orbit-brightness').addEventListener('input',()=>{renderer.setOption('orbitBrightness',Number($('orbit-brightness').value)/100);syncOrbitBrightnessControl();});
       $('orbit-brightness').addEventListener('change',persist);
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
-      $('hour-cycle').addEventListener('change',()=>{hourCycle=$('hour-cycle').checked?'24':'12';lastWallKey='';uiNow();persist();});
-      $('clock-font').addEventListener('change',()=>{const next=$('clock-font').value;if(!CLOCK_FONTS[next])return;clockFont=next;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);persist();});
+      function setHourCycle(next){hourCycle=next==='24'?'24':'12';$('hour-cycle').checked=hourCycle==='24';$('ampm').hidden=false;lastWallKey='';uiNow();persist();}
+      const toggleHourCycle=()=>setHourCycle(hourCycle==='12'?'24':'12');
+      $('hour-cycle').addEventListener('change',()=>setHourCycle($('hour-cycle').checked?'24':'12'));
+      $('ampm').addEventListener('click',event=>{event.stopPropagation();toggleHourCycle();});
+      $('ampm').addEventListener('keydown',event=>{if(event.key!=='Enter'&&event.key!==' ')return;event.preventDefault();event.stopPropagation();toggleHourCycle();});
+      function setClockFont(next){if(!CLOCK_FONTS[next])return;clockFont=next;$('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);persist();}
+      $('clock-font').addEventListener('change',()=>setClockFont($('clock-font').value));
+      $('wall-clock').addEventListener('click',event=>{if(event.target===$('ampm'))return;const index=CLOCK_FONT_ORDER.indexOf(clockFont);setClockFont(CLOCK_FONT_ORDER[(index+1)%CLOCK_FONT_ORDER.length]);});
       const resetDefaultsDialog=$('reset-defaults-dialog');
       function closeResetDefaults(restoreFocus=true){if(resetDefaultsDialog.open)hideFading(resetDefaultsDialog,()=>resetDefaultsDialog.close());if(restoreFocus)$('reset-defaults').focus({preventScroll:true});}
       async function applyFactoryDefaults(){
@@ -612,9 +616,9 @@
       });
       document.addEventListener('pointerdown',event=>{if(uiElementVisible(languageMenu)&&!languageControl.contains(event.target))closeLanguageMenu();});
       const canvas=$('universe'),pointers=new Map();
-      let drag=null,pinchDistance=0,pinchLevel=1,pinched=false,clickGestures=0;
+      let drag=null,pinchDistance=0,pinchLevel=1,pinchOrigin=null,pinched=false,clickGestures=0;
       function cancelGesture() {
-        const ids=[...pointers.keys()];pointers.clear();drag=null;pinched=false;clickGestures=0;pinchDistance=0;
+        const ids=[...pointers.keys()];pointers.clear();drag=null;pinched=false;clickGestures=0;pinchDistance=0;pinchOrigin=null;
         for(const id of ids)if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
         canvas.classList.remove('dragging');canvas.style.cursor='grab';
       }
@@ -628,14 +632,14 @@
         const p=pointerPosition(event);pointers.set(event.pointerId,p);canvas.setPointerCapture(event.pointerId);
         if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,startAzimuth:renderer.camera.azimuth,startElevation:renderer.camera.elevation,mode:pan?'pan':'orbit',moved:false};pinched=false;}
         if(zen&&pointers.size===3){setZen(false);pinched=true;if(drag)drag.moved=true;return;}
-        if(pointers.size===2){clickGestures=0;const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchLevel=renderer.options.dollyZoom?(renderer.camera.dolly??1):renderer.camera.zoom;pinched=true;}
+        if(pointers.size===2){clickGestures=0;const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchLevel=renderer.options.dollyZoom?(renderer.camera.dolly??1):renderer.camera.zoom;pinchOrigin={x:(a.x+b.x)/2,y:(a.y+b.y)/2,panX:renderer.camera.panX,panY:renderer.camera.panY};pinched=true;}
       });
       canvas.addEventListener('pointermove',event=>{
         const p=pointerPosition(event);
         if(!pointers.has(event.pointerId)) {renderer.hover=zen?null:renderer.hit(p.x,p.y);canvas.style.cursor=renderer.hover?'pointer':'grab';return;}
         pointers.set(event.pointerId,p);
         if(pointers.size>=2) {
-          const [a,b]=[...pointers.values()];if(pinchDistance>0){const level=pinchLevel*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance;if(renderer.options.dollyZoom)renderer.setDolly(level,renderer.selected);else renderer.setZoom(level);cameraUi();}if(drag)drag.moved=true;return;
+          const [a,b]=[...pointers.values()];if(pinchDistance>0){const level=pinchLevel*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance;if(renderer.options.dollyZoom)renderer.setDolly(level,renderer.selected);else renderer.setZoom(level);}if(pinchOrigin){const centerX=(a.x+b.x)/2,centerY=(a.y+b.y)/2;renderer.setPan(pinchOrigin.panX+(centerX-pinchOrigin.x)/renderer.w,pinchOrigin.panY+(centerY-pinchOrigin.y)/renderer.h);}cameraUi();if(drag)drag.moved=true;return;
         }
         if(!drag)return;
         const dx=p.x-drag.x,dy=p.y-drag.y;
