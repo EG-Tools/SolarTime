@@ -14,7 +14,7 @@
     const task=(async()=>{
       const base=location.protocol==='file:'?new URL('https://solartime.app/src/locales/'):new URL('locales/',scriptUrl);
       const url=new URL(code+'.json',base);url.search=scriptUrl.search;
-      const response=await fetch(url,{cache:'force-cache',credentials:'same-origin'});
+      const response=await fetch(url,{cache:'no-cache',credentials:'same-origin'});
       if(!response.ok)throw Error('Language data could not be loaded: '+code+' ('+response.status+')');
       const data=await response.json();if(!valid(data))throw Error('Language data is invalid: '+code);
       cache.set(code,data);return data;

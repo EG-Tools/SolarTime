@@ -147,6 +147,195 @@
     ])
   ]);
 
+  // One concise localized summary per release. Korean keeps the detailed
+  // source notes above; every other supported language gets a complete,
+  // arrow-navigable history instead of falling back to Korean.
+  const LOCALIZED_SUMMARIES=Object.freeze({
+    en:Object.freeze([
+      'Moved solar corona and prominence compositing to the GPU, cloud-hosted language and high-resolution assets, increased maximum orbit brightness, and removed duplicate heavy builds.',
+      'Moved orbit coordinates and camera projection to GPU buffers, separated language, music, storage, and popup modules, and reorganized the main controls.',
+      'Unified all slider styles, consolidated update history, and stabilized saved body size, orbit spacing, camera restore, and scroll cues.',
+      'Removed exaggerated synthetic craters from Mars and refreshed all 12 body descriptions around composition without repeating orbital periods.',
+      'Rebuilt Europa as a uniform 4K ice surface, removed duplicate relief from the Moon and Mercury, and refined support links and credits.',
+      'Upgraded major bodies except Earth to licensed high-resolution spherical textures with 2K/4K distance-based detail.',
+      'Unified transparent GPU compositing in Chrome and Edge and smoothed orbit, ring, popup, menu, and zoom transitions.',
+      'Applied the approved defaults, added body-size and child-orbit controls, reduced ring moiré, and refined reset and background startup behavior.',
+      'Separated true-scale and overview hierarchies, added orbit-spacing and 24-hour options, and improved zoom, dolly, regional time, and multilingual UI.',
+      'Added zoom and dolly camera modes, free vertical rotation, wider panning, complete camera presets, and clearer footer credits.',
+      'Rebuilt body and ring transforms as a 3D hierarchy, added GPU rendering and texture LOD, improved the Sun, and expanded true-scale and regional-time views.',
+      'Extended close solar zoom, finalized transparent cards, removed temporary design controls, and kept only the latest standalone build.',
+      'Made body discs opaque to stars and comets, centered the numeric clock independently of AM/PM, improved key textures, and added Moon and Europa child orbits.',
+      'Fixed planets rotating with the camera, unified body and ring axes, corrected axial tilts, and improved solar effects and high-speed updates.',
+      'Added 12/24-hour clocks, limited high-speed surface work, lowered distant texture limits, and prioritized large visible bodies.',
+      'Preserved region and UTC labels in viewing mode, improved clock spacing and fonts, removed duplicate timezone UI, and reduced per-frame resume work.',
+      'Unified clock and date placement in viewing mode, adjusted simulation status, added clock fonts, and preloaded visible body textures.',
+      'Removed the date picker, compacted playback controls, removed unused embedded images, and cleaned obsolete quality branches.',
+      'Smoothed saved-view interpolation, matched rotation icons to behavior, compacted playback controls, and refined real-time speed units.',
+      'Restored immediate manual camera response, expanded panning, centered tracked bodies, refined speed ranges, and removed duplicate help text.',
+      'Unified camera transitions with easing, removed unwanted reframing, preserved framing during auto-rotation, and expanded close views and time rates.',
+      'Unified camera animation and continuous input, stabilized presets and fullscreen keys, upgraded the spherical background, and expanded caching.',
+      'Created a 4K spherical space background and stabilized dedicated background rendering, projection caching, tab suspension, and WebGL recovery.'
+    ]),
+    chn:Object.freeze([
+      '将太阳日冕与日珥合成迁移到 GPU，语言和高清素材改由云端加载，提高轨道最大亮度，并移除重复的大型构建。',
+      '将轨道坐标与相机投影迁移到 GPU 缓冲区，拆分语言、音乐、存储和弹窗模块，并重新整理主要控制项。',
+      '统一所有滑块样式，合并更新记录，并稳定天体大小、轨道间距、相机恢复与滚动提示。',
+      '移除火星上过度的合成陨石坑，并以主要成分为中心更新 12 个天体说明，避免重复公转周期。',
+      '将木卫二重制为统一的 4K 冰面，移除月球和水星的重复凹凸，并整理赞助链接与署名。',
+      '除地球外的主要天体改用授权高清球面纹理，并加入按距离切换的 2K/4K 细节。',
+      '统一 Chrome 与 Edge 的透明 GPU 合成，并平滑轨道、光环、弹窗、菜单和缩放过渡。',
+      '应用确认后的默认设置，加入天体大小与子轨道控制，减少光环摩尔纹，并改进重置和背景启动。',
+      '分离真实比例与总览层级，加入轨道间距和 24 小时选项，并改进缩放、移动、地区时间与多语言界面。',
+      '加入缩放与相机移动模式、自由垂直旋转、更大平移范围、完整相机预设和更清晰的页脚信息。',
+      '将天体与光环变换重建为 3D 层级，加入 GPU 渲染和纹理 LOD，改进太阳并扩展真实比例与地区时间。',
+      '扩展太阳近距离缩放，确定透明卡片样式，移除临时设计控件，并只保留最新独立构建。',
+      '让天体圆盘遮挡恒星与彗星，使数字时钟不受 AM/PM 影响居中，改进主要纹理，并加入月球和木卫二子轨道。',
+      '修复行星随相机旋转的问题，统一天体与光环轴，校正自转轴倾角，并改进太阳效果与高速更新。',
+      '加入 12/24 小时时钟，限制高速表面运算，降低远处纹理上限，并优先处理画面中较大的天体。',
+      '在观赏模式保留地区与 UTC 标记，改进时钟间距和字体，移除重复时区界面，并减少逐帧恢复处理。',
+      '统一观赏模式的时钟和日期位置，调整模拟状态，加入时钟字体，并预加载可见天体纹理。',
+      '移除日期选择器，缩小播放控件，删除未使用的内嵌图像，并清理过时的质量分支。',
+      '平滑保存视角的插值，使旋转图标与功能一致，缩小播放控件，并改进实时速度单位。',
+      '恢复手动相机的即时响应，扩大平移范围，将跟踪天体置中，整理速度范围并移除重复帮助文字。',
+      '统一带缓动的相机切换，移除不必要的重新构图，在自动旋转时保持画面，并扩展近景和时间倍率。',
+      '统一相机动画与连续输入，稳定预设和全屏快捷键，升级球形背景并扩大缓存复用。',
+      '制作 4K 球形宇宙背景，并稳定背景渲染、投影缓存、标签页暂停和 WebGL 恢复。'
+    ]),
+    jpn:Object.freeze([
+      '太陽コロナとプロミネンスの合成を GPU に移し、言語と高解像度素材をクラウド化し、軌道の最大輝度を上げ、重複する大型ビルドを削除しました。',
+      '軌道座標とカメラ投影を GPU バッファへ移し、言語・音楽・保存・ポップアップを分離して主要操作を整理しました。',
+      'すべてのスライダーを統一し、更新履歴を一本化して、天体サイズ・軌道間隔・カメラ復元・スクロール案内を安定化しました。',
+      '火星の過剰な合成クレーターを除き、12天体の説明を主要成分中心に更新して公転周期の重複をなくしました。',
+      'エウロパを均一な 4K 氷面として再構成し、月と水星の重複した凹凸を除き、支援リンクとクレジットを整理しました。',
+      '地球以外の主要天体をライセンスが明確な高解像度球面テクスチャへ更新し、距離別 2K/4K LOD を追加しました。',
+      'Chrome と Edge の透明 GPU 合成を統一し、軌道・環・ポップアップ・メニュー・倍率表示の遷移を滑らかにしました。',
+      '確定した初期設定を適用し、天体サイズと子軌道の調整、環のモアレ軽減、リセットと背景起動の改善を行いました。',
+      '実寸比と通常表示の階層を分離し、軌道間隔と24時間表示を追加して、ズーム・移動・地域時刻・多言語 UI を改善しました。',
+      'ズームとカメラ移動方式、自由な縦回転、広いパン、完全なカメラプリセット、分かりやすいフッター情報を追加しました。',
+      '天体と環を 3D 親子階層へ再構成し、GPU 描画とテクスチャ LOD、太陽表現、実寸比と地域時刻を強化しました。',
+      '太陽の接近ズームを拡張し、透明カードを確定し、仮のデザイン調整を削除して最新の単体ビルドだけを残しました。',
+      '天体面で星と彗星を隠し、AM/PM と独立して数字時計を中央配置し、主要テクスチャと月・エウロパの子軌道を改善しました。',
+      '惑星がカメラと一緒に回る問題を修正し、天体と環の軸を統一し、自転軸傾斜と太陽効果、高速更新を改善しました。',
+      '12/24時間表示を追加し、高速時の表面処理を制限し、遠距離テクスチャ上限を下げ、大きく見える天体を優先しました。',
+      '鑑賞モードでも地域と UTC を維持し、時計間隔とフォントを改善し、重複する時差 UI と毎フレーム処理を削減しました。',
+      '鑑賞モードの時計と日付位置を統一し、シミュレーション状態を調整し、時計フォントと表示天体の先読みを追加しました。',
+      '日付選択を削除し、再生コントロールを小型化し、未使用の埋め込み画像と古い品質分岐を整理しました。',
+      '保存視点の補間を滑らかにし、回転アイコンと動作を一致させ、再生 UI と実時間倍率を改善しました。',
+      '手動カメラの即時応答を復元し、パン範囲を広げ、追跡天体を中央へ移し、倍率範囲と重複ヘルプを整理しました。',
+      'カメラ遷移をイージングで統一し、不要な再構図を除き、自動回転中の構図を保ち、近接表示と時間倍率を拡張しました。',
+      'カメラアニメーションと連続入力を統一し、プリセットと全画面キーを安定化し、球面背景とキャッシュを強化しました。',
+      '4K 球面宇宙背景を作成し、背景描画・投影キャッシュ・タブ休止・WebGL 復旧を安定化しました。'
+    ]),
+    hi:Object.freeze([
+      'सौर कोरोना और प्रोमिनेंस संयोजन को GPU पर ले जाया गया, भाषा व उच्च-रिज़ॉल्यूशन सामग्री क्लाउड से जोड़ी गई, कक्षा की अधिकतम चमक बढ़ी और दोहराए गए बड़े बिल्ड हटे।',
+      'कक्षा निर्देशांक और कैमरा प्रोजेक्शन GPU बफ़र पर ले जाए गए, भाषा, संगीत, संग्रह और पॉपअप मॉड्यूल अलग किए गए तथा मुख्य नियंत्रण व्यवस्थित हुए।',
+      'सभी स्लाइडर शैलियाँ एक की गईं, अपडेट इतिहास जोड़ा गया और पिंड आकार, कक्षा दूरी, कैमरा पुनर्स्थापन व स्क्रॉल संकेत स्थिर किए गए।',
+      'मंगल के अतिरंजित कृत्रिम क्रेटर हटाकर 12 पिंडों का विवरण संरचना-केंद्रित किया गया और कक्षीय अवधि की पुनरावृत्ति हटाई गई।',
+      'यूरोपा को समान 4K बर्फीली सतह के रूप में बनाया गया, चंद्रमा व बुध की दोहरी उभार परत हटाई गई और सहयोग लिंक सुधारे गए।',
+      'पृथ्वी को छोड़कर मुख्य पिंडों को लाइसेंसयुक्त उच्च-रिज़ॉल्यूशन गोलाकार टेक्सचर और दूरी-आधारित 2K/4K विवरण मिला।',
+      'Chrome और Edge की पारदर्शी GPU कंपोज़िटिंग एक की गई और कक्षा, वलय, पॉपअप, मेनू व ज़ूम संक्रमण सहज बनाए गए।',
+      'स्वीकृत डिफ़ॉल्ट लागू हुए, पिंड आकार व उप-कक्षा नियंत्रण जुड़े, वलय मोइरे घटा और रीसेट व पृष्ठभूमि आरंभ सुधरे।',
+      'वास्तविक अनुपात और सामान्य दृश्य की श्रेणियाँ अलग हुईं, कक्षा दूरी व 24-घंटे विकल्प जुड़े और ज़ूम, डॉली, क्षेत्रीय समय व बहुभाषी UI सुधरा।',
+      'ज़ूम व कैमरा-मूव मोड, मुक्त ऊर्ध्व घुमाव, बड़ा पैन, पूर्ण कैमरा प्रीसेट और स्पष्ट फुटर जानकारी जोड़ी गई।',
+      'पिंड और वलय को 3D अभिभावक-शिशु संरचना में बदला गया, GPU रेंडरिंग व टेक्सचर LOD जोड़े गए और सूर्य व वास्तविक अनुपात दृश्य सुधरे।',
+      'सूर्य का नज़दीकी ज़ूम बढ़ाया गया, पारदर्शी कार्ड अंतिम किए गए, अस्थायी डिज़ाइन नियंत्रण हटे और केवल नवीनतम स्टैंडअलोन बिल्ड रखा गया।',
+      'तारों व धूमकेतुओं को पिंडों के पीछे छिपाया गया, अंक घड़ी को AM/PM से स्वतंत्र केंद्रित किया गया और चंद्रमा व यूरोपा की उप-कक्षाएँ जोड़ी गईं।',
+      'कैमरे के साथ ग्रह घूमने की त्रुटि सुधरी, पिंड व वलय अक्ष एक हुए, अक्षीय झुकाव तथा सौर प्रभाव और तेज़ अपडेट सुधरे।',
+      '12/24-घंटे घड़ी जोड़ी गई, तेज़ सतह कार्य सीमित हुआ, दूर के टेक्सचर घटे और बड़े दिखाई देने वाले पिंड प्राथमिक हुए।',
+      'दृश्य मोड में क्षेत्र और UTC लेबल रखे गए, घड़ी अंतर व फ़ॉन्ट सुधरे, दोहरा समय-क्षेत्र UI और प्रति-फ़्रेम पुनरारंभ कार्य घटा।',
+      'दृश्य मोड में घड़ी व तारीख स्थान एक किए गए, सिमुलेशन स्थिति सुधरी, घड़ी फ़ॉन्ट और दिखाई देने वाले टेक्सचर प्रीलोड जुड़े।',
+      'तारीख चयन हटाया गया, प्लेबैक नियंत्रण छोटे किए गए, अनुपयोगी एम्बेडेड चित्र और पुराने गुणवत्ता मार्ग साफ़ हुए।',
+      'सहेजे दृश्य का इंटरपोलेशन सहज हुआ, घुमाव आइकन व्यवहार से मिले, प्लेबैक छोटा हुआ और वास्तविक समय गति इकाइयाँ सुधरीं।',
+      'मैनुअल कैमरा की तत्काल प्रतिक्रिया लौटी, पैन सीमा बढ़ी, ट्रैक पिंड केंद्रित हुए, गति सीमाएँ सुधरीं और दोहरा सहायता पाठ हटा।',
+      'कैमरा संक्रमण ईज़िंग के साथ एक किए गए, अनचाहा रीफ्रेम हटाया गया, ऑटो-रोटेशन में फ्रेम सुरक्षित रहा और नज़दीकी दृश्य बढ़े।',
+      'कैमरा एनीमेशन व सतत इनपुट एक हुए, प्रीसेट व पूर्णस्क्रीन कुंजियाँ स्थिर हुईं, गोलाकार पृष्ठभूमि और कैश सुधरे।',
+      '4K गोलाकार अंतरिक्ष पृष्ठभूमि बनाई गई और पृष्ठभूमि रेंडरिंग, प्रोजेक्शन कैश, टैब निलंबन व WebGL पुनर्प्राप्ति स्थिर हुई।'
+    ]),
+    es:Object.freeze([
+      'Se trasladó la corona y las prominencias solares a la GPU, se alojaron idiomas y recursos HD en la nube, se aumentó el brillo orbital máximo y se eliminaron compilaciones pesadas duplicadas.',
+      'Las coordenadas orbitales y la proyección de cámara pasaron a búferes GPU; idioma, música, almacenamiento y ventanas se separaron en módulos y se reorganizaron los controles.',
+      'Se unificaron los deslizadores y el historial de cambios, y se estabilizaron el tamaño de cuerpos, el espaciado orbital, la restauración de cámara y las guías de desplazamiento.',
+      'Se eliminaron cráteres sintéticos exagerados de Marte y se actualizaron las descripciones de 12 cuerpos según su composición sin repetir periodos orbitales.',
+      'Europa se reconstruyó como una superficie de hielo 4K uniforme, se quitó relieve duplicado de la Luna y Mercurio y se ordenaron los enlaces de apoyo.',
+      'Los cuerpos principales salvo la Tierra recibieron texturas esféricas HD con licencia y detalle 2K/4K según la distancia.',
+      'Se unificó la composición GPU transparente en Chrome y Edge y se suavizaron órbitas, anillos, ventanas, menús y transiciones de zoom.',
+      'Se aplicaron los valores iniciales aprobados, se añadieron controles de tamaño y subórbitas, se redujo el moiré de anillos y se mejoraron reinicio y fondo.',
+      'Se separaron las jerarquías de escala real y vista general, se añadieron espaciado orbital y formato de 24 horas y se mejoraron zoom, dolly, hora regional e idiomas.',
+      'Se añadieron modos de zoom y desplazamiento de cámara, rotación vertical libre, paneo amplio, preajustes completos y créditos más claros.',
+      'Cuerpos y anillos se reorganizaron en una jerarquía 3D, se añadieron renderizado GPU y LOD, y se mejoraron el Sol, la escala real y las horas regionales.',
+      'Se amplió el acercamiento al Sol, se finalizaron las tarjetas transparentes, se retiraron controles temporales y quedó solo la compilación independiente más reciente.',
+      'Los cuerpos ahora ocultan estrellas y cometas, el reloj numérico se centra sin depender de AM/PM, se mejoraron texturas y se añadieron subórbitas de Luna y Europa.',
+      'Se corrigió la rotación de planetas con la cámara, se unificaron ejes de cuerpos y anillos, se ajustaron inclinaciones y se mejoraron efectos solares y alta velocidad.',
+      'Se añadió reloj de 12/24 horas, se limitó el trabajo de superficie a alta velocidad, se redujo el límite de texturas lejanas y se priorizaron cuerpos grandes.',
+      'Se conservaron región y UTC en modo contemplación, mejoraron el espaciado y las fuentes del reloj, y se redujeron UI duplicada y trabajo por fotograma.',
+      'Se unificó la posición de reloj y fecha en modo contemplación, se ajustó el estado de simulación y se añadieron fuentes y precarga de texturas visibles.',
+      'Se eliminó el selector de fecha, se compactaron los controles, se quitaron imágenes incrustadas sin uso y se limpiaron ramas de calidad antiguas.',
+      'Se suavizó la interpolación de vistas guardadas, se alinearon iconos de giro con su función, se compactó la reproducción y se mejoraron unidades de tiempo real.',
+      'Se restauró la respuesta inmediata de cámara, aumentó el paneo, se centraron cuerpos seguidos, se ajustaron velocidades y se eliminó ayuda duplicada.',
+      'Se unificaron transiciones con suavizado, se evitó el reencuadre innecesario, se mantuvo el encuadre al autorrotar y se ampliaron vistas cercanas y velocidades.',
+      'Se unificaron animación de cámara y entrada continua, se estabilizaron preajustes y teclas de pantalla completa y se mejoraron el fondo esférico y la caché.',
+      'Se creó un fondo espacial esférico 4K y se estabilizaron su renderizado, la caché de proyección, la suspensión de pestañas y la recuperación WebGL.'
+    ]),
+    de:Object.freeze([
+      'Sonnenkorona und Protuberanzen wurden auf die GPU verlagert, Sprach- und HD-Daten in die Cloud gelegt, die maximale Orbithelligkeit erhöht und doppelte große Builds entfernt.',
+      'Orbitkoordinaten und Kameraprojektion wurden in GPU-Puffer verlagert, Sprach-, Musik-, Speicher- und Popupmodule getrennt und die Hauptsteuerung neu geordnet.',
+      'Alle Regler und der Änderungsverlauf wurden vereinheitlicht; Körpergröße, Orbitabstand, Kamerawiederherstellung und Scrollhinweise wurden stabilisiert.',
+      'Übertriebene synthetische Marskrater wurden entfernt und die Beschreibungen aller 12 Körper ohne doppelte Umlaufzeiten auf ihre Zusammensetzung ausgerichtet.',
+      'Europa wurde als einheitliche 4K-Eisoberfläche neu erstellt, doppelte Reliefs von Mond und Merkur entfernt und Unterstützungslinks überarbeitet.',
+      'Alle Hauptkörper außer der Erde erhielten lizenzierte hochauflösende Kugeltexturen und entfernungsabhängige 2K/4K-Details.',
+      'Die transparente GPU-Komposition in Chrome und Edge wurde vereinheitlicht und Übergänge von Orbits, Ringen, Popups, Menüs und Zoom geglättet.',
+      'Bestätigte Standardwerte, Größen- und Unterorbitregler, weniger Ring-Moiré sowie bessere Rücksetzung und Hintergrundinitialisierung wurden umgesetzt.',
+      'Echte Skalierung und Übersicht wurden getrennt, Orbitabstand und 24-Stunden-Anzeige ergänzt sowie Zoom, Dolly, Regionalzeit und Mehrsprachigkeit verbessert.',
+      'Zoom- und Kamerafahrtmodi, freie vertikale Drehung, größerer Schwenkbereich, vollständige Kameravoreinstellungen und klarere Fußzeilen wurden ergänzt.',
+      'Körper und Ringe wurden als 3D-Hierarchie aufgebaut, GPU-Rendering und Textur-LOD ergänzt und Sonne, echte Skalierung und Regionalzeiten verbessert.',
+      'Der Sonnen-Nahzoom wurde erweitert, transparente Karten finalisiert, temporäre Designregler entfernt und nur der neueste Einzelbuild beibehalten.',
+      'Körperscheiben verdecken nun Sterne und Kometen, die Zahlenuhr ist unabhängig von AM/PM zentriert, Texturen wurden verbessert und Mond- sowie Europa-Orbits ergänzt.',
+      'Das Mitdrehen der Planeten mit der Kamera wurde behoben, Körper- und Ringachsen vereinheitlicht, Achsneigungen korrigiert und Sonneneffekte verbessert.',
+      '12/24-Stunden-Anzeige wurde ergänzt, Oberflächenarbeit bei hoher Geschwindigkeit begrenzt, ferne Texturen reduziert und große sichtbare Körper priorisiert.',
+      'Regional- und UTC-Anzeigen bleiben im Ansichtsmodus erhalten; Uhrabstände und Schriften wurden verbessert und doppelte UI- sowie Frame-Arbeit reduziert.',
+      'Uhr- und Datumsposition im Ansichtsmodus wurden vereinheitlicht, der Simulationsstatus angepasst und Uhrschriften sowie Texturvorladen ergänzt.',
+      'Die Datumsauswahl wurde entfernt, Wiedergabesteuerungen verkleinert, ungenutzte eingebettete Bilder gelöscht und alte Qualitätszweige bereinigt.',
+      'Gespeicherte Ansichten werden weich interpoliert, Drehsymbole entsprechen der Funktion, die Wiedergabe ist kompakter und Echtzeiteinheiten wurden verbessert.',
+      'Die direkte manuelle Kamerareaktion wurde wiederhergestellt, Schwenken erweitert, verfolgte Körper zentriert und doppelte Hilfetexte entfernt.',
+      'Kameraübergänge wurden mit Easing vereinheitlicht, unnötiges Reframing entfernt, der Bildausschnitt bei Auto-Rotation erhalten und Nahansichten erweitert.',
+      'Kameraanimation und kontinuierliche Eingabe wurden vereinheitlicht, Presets und Vollbildtasten stabilisiert sowie Kugelhintergrund und Cache verbessert.',
+      'Ein sphärischer 4K-Weltraumhintergrund wurde erstellt und Hintergrundrendering, Projektionscache, Tab-Pause und WebGL-Wiederherstellung stabilisiert.'
+    ]),
+    fr:Object.freeze([
+      'La couronne et les protubérances solaires ont été transférées au GPU, les langues et ressources HD au cloud, la luminosité orbitale maximale augmentée et les builds lourds en double supprimés.',
+      'Les coordonnées orbitales et la projection caméra ont été déplacées vers des tampons GPU, les modules langue, musique, stockage et fenêtres séparés, et les commandes réorganisées.',
+      'Tous les curseurs et l’historique ont été unifiés, et la taille des corps, l’espacement orbital, la restauration caméra et les repères de défilement stabilisés.',
+      'Les cratères synthétiques exagérés de Mars ont été retirés et les descriptions des 12 corps recentrées sur leur composition sans répéter les périodes orbitales.',
+      'Europe a été reconstruite avec une surface glacée 4K uniforme, les reliefs doublons de la Lune et Mercure retirés et les liens de soutien réorganisés.',
+      'Les principaux corps hors Terre ont reçu des textures sphériques HD sous licence et un niveau de détail 2K/4K selon la distance.',
+      'La composition GPU transparente a été unifiée dans Chrome et Edge, avec des transitions plus douces pour orbites, anneaux, fenêtres, menus et zoom.',
+      'Les réglages initiaux validés ont été appliqués, les contrôles de taille et sous-orbite ajoutés, le moiré réduit et la réinitialisation améliorée.',
+      'Les hiérarchies échelle réelle et vue générale ont été séparées, avec espacement orbital, format 24 h et améliorations du zoom, dolly, fuseaux et langues.',
+      'Des modes zoom et déplacement caméra, une rotation verticale libre, un panoramique étendu, des préréglages complets et des crédits plus clairs ont été ajoutés.',
+      'Corps et anneaux ont été réorganisés en hiérarchie 3D, avec rendu GPU et LOD, et des améliorations du Soleil, de l’échelle réelle et des heures régionales.',
+      'Le zoom rapproché du Soleil a été étendu, les cartes transparentes finalisées, les réglages temporaires retirés et seul le dernier build autonome conservé.',
+      'Les corps masquent désormais étoiles et comètes, l’horloge numérique est centrée indépendamment de AM/PM, les textures améliorées et les orbites de Lune et Europe ajoutées.',
+      'La rotation des planètes avec la caméra a été corrigée, les axes des corps et anneaux unifiés, les inclinaisons ajustées et les effets solaires améliorés.',
+      'L’horloge 12/24 h a été ajoutée, le travail de surface rapide limité, les textures lointaines réduites et les grands corps visibles priorisés.',
+      'Les indications régionales et UTC restent en mode contemplation, l’espacement et les polices de l’horloge sont améliorés et le travail par image réduit.',
+      'La position de l’horloge et de la date a été unifiée en mode contemplation, le statut ajusté et les polices ainsi que le préchargement ajoutés.',
+      'Le sélecteur de date a été supprimé, les commandes compactées, les images intégrées inutiles retirées et les anciennes branches de qualité nettoyées.',
+      'L’interpolation des vues enregistrées a été adoucie, les icônes de rotation alignées sur leur action et les unités de temps réel améliorées.',
+      'La réponse immédiate de la caméra a été restaurée, le panoramique étendu, les corps suivis centrés, les vitesses ajustées et l’aide en double supprimée.',
+      'Les transitions caméra ont été unifiées avec accélération, le recadrage inutile supprimé, le cadrage conservé en rotation automatique et les vues proches étendues.',
+      'L’animation caméra et les entrées continues ont été unifiées, les préréglages et touches plein écran stabilisés, et le fond sphérique ainsi que le cache améliorés.',
+      'Un fond spatial sphérique 4K a été créé et le rendu de fond, le cache de projection, la suspension d’onglet et la récupération WebGL stabilisés.'
+    ])
+  });
+
+  function itemsFor(release,language='kor') {
+    if(!release)return Object.freeze([]);
+    const code=language==='eu'?'en':language;
+    if(code==='kor')return release.items;
+    const index=RELEASES.indexOf(release),summary=LOCALIZED_SUMMARIES[code]?.[index]??LOCALIZED_SUMMARIES.en[index];
+    return Object.freeze(summary?[summary]:release.items);
+  }
+
   function createReleaseNotesNavigator(releases=RELEASES) {
     const source=Array.isArray(releases)&&releases.length?releases:RELEASES;
     let index=0;
@@ -159,9 +348,9 @@
     });
   }
 
-  const serialized=JSON.stringify(RELEASES);
+  const serialized=JSON.stringify([RELEASES,LOCALIZED_SUMMARIES]);
   const SOURCE_BYTES=typeof Blob==='function'?new Blob([serialized]).size:serialized.length;
-  const api=Object.freeze({RELEASES,SOURCE_BYTES,createReleaseNotesNavigator});
+  const api=Object.freeze({RELEASES,LOCALIZED_SUMMARIES,SOURCE_BYTES,itemsFor,createReleaseNotesNavigator});
   root.SolarReleaseNotes=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

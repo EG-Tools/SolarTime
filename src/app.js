@@ -559,7 +559,7 @@
         $('release-notes-date').textContent=release.date||'';
         $('release-notes-size').textContent=formatReleaseNotesBytes(releaseNotesApi.SOURCE_BYTES);
         const fragment=document.createDocumentFragment();
-        for(const item of release.items.slice(0,10)){const row=document.createElement('li');row.textContent=item;fragment.append(row);}
+        for(const item of releaseNotesApi.itemsFor(release,language).slice(0,10)){const row=document.createElement('li');row.textContent=item;fragment.append(row);}
         $('release-notes-list').replaceChildren(fragment);
         $('release-notes-position').textContent=`${state.index+1} / ${state.total}`;
         $('release-notes-newer').disabled=!state.hasNewer;$('release-notes-older').disabled=!state.hasOlder;
@@ -590,7 +590,7 @@
       async function setLanguage(next){
         if(!LANG_ORDER.includes(next)||next===language)return;
         await hydrateLanguage(next);
-        language=next;renderer.setSite(activeRegion());translateStatic();refreshTimeFormats();lastWallKey='';
+        language=next;renderer.setSite(activeRegion());translateStatic();renderReleaseNotes();refreshTimeFormats();lastWallKey='';
         refreshNavLabels();presetUi();cameraUi();syncSpeedUi();
         if(presetAction){const value=cameraPresets[presetAction.index];$('preset-title').textContent=t('presetTitle',{n:presetAction.index+1});$('preset-note').textContent=t(value?'presetSavedNote':'presetEmptyNote');}
         const selected=bodies.find(body=>body.id===renderer.selected);
