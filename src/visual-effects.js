@@ -1,4 +1,4 @@
-/* Solar Time v0.43 r3 — natural stars plus visible fine Sun/Jupiter atmosphere motion. */
+/* Solar Time v0.45 r1 — natural star visibility cycles with moderated Sun/Jupiter motion. */
 (function(root){
   'use strict';
 
@@ -73,11 +73,11 @@
     if(source.includes('attribute vec3 position,appearance;')){
       next=next.replace('varying float intensity;','varying float intensity,starTone,flarePulse;');
       next=next.replace('float z=dot(position,forward),phase=appearance.z;',
-        'float z=dot(position,forward),seed=appearance.z;float period=mix(2.4,18.0,fract(seed*.754877666));float phase=fract(seed*.56984029)*period;');
+        'float z=dot(position,forward),seed=appearance.z;float visiblePeriod=mix(5.0,25.0,fract(seed*.754877666));float hiddenPeriod=mix(5.0,10.0,fract(seed*.318309886));float cyclePeriod=visiblePeriod+hiddenPeriod;float phase=fract(seed*.56984029)*cyclePeriod;float cycleTime=mod(seconds+phase,cyclePeriod);float visible=1.-step(visiblePeriod,cycleTime);');
       next=next.replace('float pulse=pow(max(0.,sin((seconds+phase)/(6.+phase)*6.28318530718)),16.);',
-        'float wave=.5+.5*sin((seconds+phase)/period*6.28318530718);float sharp=mix(4.,20.,fract(seed*.438289));float pulse=pow(wave,sharp);');
+        'float visibleTime=min(cycleTime,visiblePeriod);float wave=.5+.5*sin(visibleTime/visiblePeriod*6.28318530718);float sharp=mix(4.,20.,fract(seed*.438289));float pulse=pow(wave,sharp)*visible;');
       next=next.replace('intensity=appearance.y*(.55+pulse*.65);',
-        'intensity=appearance.y*(.30+pulse*1.32);starTone=fract(seed*.173205+appearance.x*.37);flarePulse=step(.9975,fract(seed*.91337+appearance.y*.71))*pulse*smoothstep(.42,.80,appearance.y);');
+        'intensity=appearance.y*(.30+pulse*1.32)*visible;starTone=fract(seed*.173205+appearance.x*.37);flarePulse=step(.9975,fract(seed*.91337+appearance.y*.71))*pulse*smoothstep(.42,.80,appearance.y)*visible;');
       next=next.replace('gl_PointSize=clamp(appearance.x*10.*pointScale,1.,30.);',
         'gl_PointSize=clamp((appearance.x*10.+flarePulse*17.)*pointScale,1.,36.);');
       return next;
@@ -99,18 +99,18 @@
   const SUN_REPLACEMENTS=Object.freeze([
     ['uv.y*49.','uv.y*150.'],['uv.x*PI*10.','uv.x*PI*56.'],
     ['uv.x*PI*16.','uv.x*PI*48.'],['uv.y*31.','uv.y*138.'],
-    ['*.0015','*.00255'],['*.0011','*.00190'],
+    ['*.0015','*.001275'],['*.0011','*.00095'],
     ['uv.x*PI*6.','uv.x*PI*52.'],['uv.y*11.','uv.y*150.'],
     ['uv.x*PI*14.','uv.x*PI*64.'],['uv.y*19.','uv.y*176.'],
-    ['-.018+.118*brightCycle','-.018+.155*brightCycle'],['-.032+.057*darkCycle','-.030+.078*darkCycle']
+    ['-.018+.118*brightCycle','-.009+.0775*brightCycle'],['-.032+.057*darkCycle','-.015+.039*darkCycle']
   ]);
 
   // Jupiter: differential east/west jets, small turbulent eddies, and a local
   // slow vortex around the texture coordinate used by the existing Great Red
   // Spot feature view (longitude ~70°, latitude ~-22°). The vortex attenuates
   // the broad jet locally so the spot rotates instead of simply sliding away.
-  const JUPITER_WARP=`\n    if(kind==5.){\n      const float GRS_U=.6944444444;\n      const float GRS_V=.6222222222;\n      float grsDx=fract(uv.x-GRS_U+.5)-.5;\n      float grsDy=uv.y-GRS_V;\n      vec2 grsN=vec2(grsDx/.066,grsDy/.042);\n      float grsR=length(grsN);\n      float grsMask=1.-smoothstep(.72,1.38,grsR);\n      float grsAngle=-effectTime*.022*grsMask;\n      float grsC=cos(grsAngle),grsS=sin(grsAngle);\n      vec2 grsRot=vec2(grsN.x*grsC-grsN.y*grsS,grsN.x*grsS+grsN.y*grsC);\n      vec2 grsSample=mix(grsN,grsRot,grsMask);\n      uv=vec2(fract(GRS_U+grsSample.x*.066),clamp(GRS_V+grsSample.y*.042,.001,.999));\n      float jetA=sin(uv.y*PI*14.);\n      float jetB=sin(uv.y*PI*32.+.7);\n      float jetSpeed=.00042+jetA*.00031+jetB*.00016;\n      float drift=effectTime*jetSpeed*(1.-grsMask*.78);\n      float eddy=sin(uv.x*PI*18.+uv.y*52.-effectTime*.42)*.00145;\n      float eddy2=sin(uv.x*PI*8.-uv.y*34.+effectTime*.24)*.00082;\n      float latitudeMask=.34+.66*abs(sin(uv.y*PI*9.));\n      uv=vec2(fract(uv.x+drift+eddy*(1.-grsMask*.58)),clamp(uv.y+eddy2*latitudeMask*(1.-grsMask*.62),.001,.999));\n    }`;
-  const JUPITER_COLOR=`\n    if(kind==5.){\n      float gasA=.5+.5*sin(uv.x*PI*20.+uv.y*62.-effectTime*.28);\n      float gasB=.5+.5*sin(uv.x*PI*9.-uv.y*38.+effectTime*.17);\n      base*=.964+.060*(gasA*.65+gasB*.35);\n    }`;
+  const JUPITER_WARP=`\n    if(kind==5.){\n      const float GRS_U=.6944444444;\n      const float GRS_V=.6222222222;\n      float grsDx=fract(uv.x-GRS_U+.5)-.5;\n      float grsDy=uv.y-GRS_V;\n      vec2 grsN=vec2(grsDx/.066,grsDy/.042);\n      float grsR=length(grsN);\n      float grsMask=1.-smoothstep(.72,1.38,grsR);\n      float grsAngle=-effectTime*.011*grsMask;\n      float grsC=cos(grsAngle),grsS=sin(grsAngle);\n      vec2 grsRot=vec2(grsN.x*grsC-grsN.y*grsS,grsN.x*grsS+grsN.y*grsC);\n      vec2 grsSample=mix(grsN,grsRot,grsMask);\n      uv=vec2(fract(GRS_U+grsSample.x*.066),clamp(GRS_V+grsSample.y*.042,.001,.999));\n      float jetA=sin(uv.y*PI*14.);\n      float jetB=sin(uv.y*PI*32.+.7);\n      float jetSpeed=.00021+jetA*.000155+jetB*.00008;\n      float drift=effectTime*jetSpeed*(1.-grsMask*.78);\n      float eddy=sin(uv.x*PI*18.+uv.y*52.-effectTime*.42)*.000725;\n      float eddy2=sin(uv.x*PI*8.-uv.y*34.+effectTime*.24)*.00041;\n      float latitudeMask=.34+.66*abs(sin(uv.y*PI*9.));\n      uv=vec2(fract(uv.x+drift+eddy*(1.-grsMask*.58)),clamp(uv.y+eddy2*latitudeMask*(1.-grsMask*.62),.001,.999));\n    }`;
+  const JUPITER_COLOR=`\n    if(kind==5.){\n      float gasA=.5+.5*sin(uv.x*PI*20.+uv.y*62.-effectTime*.28);\n      float gasB=.5+.5*sin(uv.x*PI*9.-uv.y*38.+effectTime*.17);\n      base*=.982+.030*(gasA*.65+gasB*.35);\n    }`;
 
   function transformSurfaceShader(source){
     if(typeof source!=='string'||!source.includes('sunActivity')||!source.includes('kind==2.'))return source;

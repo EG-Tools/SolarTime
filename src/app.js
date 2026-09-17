@@ -1,4 +1,4 @@
-/* Solar Time v0.43 — adjustable star density, finer Sun surface motion and revision-aware updates. */
+/* Solar Time v0.45 — natural star timing plus moderated Sun and Jupiter motion. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -587,8 +587,19 @@
       kakaoPayDialog.addEventListener('cancel',event=>{event.preventDefault();closeKakaoPay();});
       kakaoPayDialog.addEventListener('click',event=>{if(event.target===kakaoPayDialog)closeKakaoPay();});
       const updateHelpScrollCues=bindScrollCues(helpDialog,helpScroll);
-      const CURRENT_RELEASE=Object.freeze({version:'0.43',date:'2026.09.17'});
+      const CURRENT_RELEASE=Object.freeze({version:'0.45',date:'2026.09.17'});
       const CURRENT_RELEASE_ITEMS=Object.freeze({
+        kor:Object.freeze(['별의 크기·밝기·색상을 독립적으로 랜덤화하고, 반짝임 주기를 5~25초로 다양화했습니다.','각 별에 5~10초의 완전한 휴지기를 추가해 별이 서로 다른 타이밍으로 나타나고 사라지며, 아주 밝은 일부 별만 드물게 십자 광채를 냅니다.','태양 표면은 촘촘한 흐름 구조를 유지하면서 꿈틀거림 강도를 이전 조정보다 약 50% 낮춰 더 자연스럽게 다듬었습니다.','목성은 위도별 제트와 대적점 국소 회전을 유지하면서 변형과 밝기 변화 강도를 약 50% 낮춰 표면 무늬를 보존했습니다.']),
+        en:Object.freeze(['Star size, brightness and colour are randomized independently, with twinkle periods ranging from 5 to 25 seconds.','Each star also gets a fully dark 5–10 second rest period, so stars appear and disappear on independent timing; only a few very bright stars show rare cross flares.','The Sun keeps its fine-grained flow structure while surface motion strength is reduced by about half for a more natural result.','Jupiter keeps differential jets and the local Great Red Spot rotation while warp and luminance changes are reduced by about half to preserve the source bands.']),
+        chn:Object.freeze(['星星的大小、亮度和颜色彼此独立随机，闪烁周期扩展为 5～25 秒。','每颗星还会随机进入 5～10 秒的完全隐藏期，因此出现和消失的节奏彼此不同；只有极少数亮星偶尔出现十字光芒。','太阳保留细密的流动结构，同时将表面形变强度降低约一半，使效果更自然。','木星保留纬向喷流和大红斑局部旋转，同时将形变与亮度变化降低约一半，以更好地保留原始云带。']),
+        jpn:Object.freeze(['星の大きさ・明るさ・色を独立してランダム化し、瞬き周期を 5～25 秒に広げました。','各星には 5～10 秒の完全に消える休止時間も持たせ、別々のタイミングで現れたり消えたりします。十字光はごく一部の明るい星だけにまれに現れます。','太陽は細かな流れの構造を維持しつつ、表面の変形強度を約半分に下げて自然にしました。','木星は緯度別ジェットと大赤斑の局所回転を維持しながら、変形と明度変化を約半分に抑え、元の雲帯を保ちます。']),
+        hi:Object.freeze(['तारों का आकार, चमक और रंग अलग-अलग random हैं और twinkle period 5 से 25 सेकंड तक बदलता है।','हर तारे में 5–10 सेकंड का पूरी तरह अंधेरा rest period भी है, इसलिए वे अलग समय पर दिखाई देते और छिपते हैं; cross flare केवल बहुत कम चमकीले तारों पर आता है।','Sun की fine flow structure बनी रहती है, लेकिन surface motion strength लगभग आधी कर दी गई है ताकि प्रभाव अधिक स्वाभाविक लगे।','Jupiter के latitude jets और Great Red Spot की local rotation बनी रहती है, जबकि warp और brightness variation लगभग आधे किए गए हैं।']),
+        es:Object.freeze(['El tamaño, brillo y color de cada estrella se aleatorizan por separado, con periodos de parpadeo de 5 a 25 segundos.','Cada estrella incorpora además un descanso totalmente oscuro de 5 a 10 segundos, de modo que aparecen y desaparecen en momentos distintos; solo unas pocas muy brillantes muestran destellos en cruz.','El Sol mantiene la estructura fina del flujo, pero la intensidad del movimiento superficial se reduce aproximadamente a la mitad para resultar más natural.','Júpiter conserva los chorros diferenciales y la rotación local de la Gran Mancha Roja, reduciendo a la mitad la deformación y el cambio de luminosidad.']),
+        de:Object.freeze(['Größe, Helligkeit und Farbe der Sterne werden unabhängig zufällig verteilt; die Funkelperioden liegen zwischen 5 und 25 Sekunden.','Jeder Stern erhält zusätzlich eine vollständig dunkle Ruhephase von 5–10 Sekunden, sodass Sterne zu unterschiedlichen Zeiten erscheinen und verschwinden; nur wenige sehr helle Sterne zeigen selten Kreuzstrahlen.','Die Sonne behält ihre feine Strömungsstruktur, während die Stärke der Oberflächenbewegung um etwa die Hälfte reduziert wird.','Jupiter behält differentielle Jets und die lokale Rotation des Großen Roten Flecks, während Verformung und Helligkeitsänderung ungefähr halbiert werden.']),
+        fr:Object.freeze(['La taille, la luminosité et la couleur des étoiles sont randomisées indépendamment, avec des périodes de scintillement de 5 à 25 secondes.','Chaque étoile possède aussi une phase totalement invisible de 5 à 10 secondes, de sorte qu’elles apparaissent et disparaissent à des moments différents ; seules quelques étoiles très brillantes produisent rarement une lueur en croix.','Le Soleil conserve sa structure de flux fine, mais l’intensité du mouvement de surface est réduite d’environ moitié pour un rendu plus naturel.','Jupiter conserve ses jets différentiels et la rotation locale de la Grande Tache rouge, tout en réduisant d’environ moitié les déformations et variations de luminosité.'])
+      });
+      const PREVIOUS_RELEASE=Object.freeze({version:'0.43',date:'2026.09.17'});
+      const PREVIOUS_RELEASE_ITEMS=Object.freeze({
         kor:Object.freeze(['별 밀도 기본값은 200%로 유지하면서 위치·크기·밝기·색·반짝임 주기를 서로 독립적으로 랜덤화해 규칙적인 별 배열을 없앴습니다.','별은 적색·백색·청백색·황색 계열이 낮은 채도로 섞이며, 아주 밝은 별 일부만 드물게 십자 광채가 나타납니다.','태양 표면은 속도는 유지하면서 더 촘촘한 흐름의 변형 강도를 높여 작은 규모의 꿈틀거림이 분명히 보이도록 조정했습니다.','목성은 위도별 제트와 소용돌이를 강화하고 대적점 주변만 천천히 회전하는 국소 와류를 추가했습니다.']),
         en:Object.freeze(['Star density stays at a 200% default while position, size, brightness, colour and twinkle timing are randomized independently to remove regular spacing.','Low-saturation red, white, blue-white and yellow stars are mixed, with rare cross-shaped flares only on a few bright stars.','The Sun keeps its motion speed but uses stronger fine-scale warping so small-scale surface motion is clearly visible.','Jupiter has stronger latitude jets and eddies plus a slow local vortex around the Great Red Spot.']),
         chn:Object.freeze(['星星密度默认保持 200%，位置、大小、亮度、颜色和闪烁周期彼此独立随机，去除规则排列感。','低饱和度的红、白、蓝白和黄色星光混合出现，只有极少数亮星偶尔出现十字光芒。','太阳保持原有运动速度，同时增强细密尺度的形变，让小范围表面运动更明显。','木星增强纬向喷流和小涡旋，并在大红斑附近加入缓慢旋转的局部涡流。']),
@@ -598,8 +609,8 @@
         de:Object.freeze(['Die Sterndichte bleibt standardmäßig bei 200%; Position, Größe, Helligkeit, Farbe und Funkelperiode werden unabhängig zufällig verteilt.','Dezent rote, weiße, blauweiße und gelbe Sterne werden gemischt; nur wenige helle Sterne zeigen selten ein Kreuzleuchten.','Die Sonne behält ihre Geschwindigkeit, erhält aber stärkere feine Verformungen für sichtbarere kleinräumige Bewegung.','Jupiter bekommt stärkere Breitenjets und Wirbel sowie einen langsamen lokalen Wirbel um den Großen Roten Fleck.']),
         fr:Object.freeze(['La densité reste à 200% par défaut, tandis que position, taille, luminosité, couleur et période de scintillement sont randomisées indépendamment.','Des étoiles rouges, blanches, bleu-blanc et jaunes peu saturées sont mélangées, avec de rares éclats en croix sur quelques étoiles brillantes.','Le Soleil conserve sa vitesse mais renforce les déformations fines afin de rendre les petits mouvements de surface bien visibles.','Jupiter renforce ses jets et tourbillons et ajoute une lente rotation locale autour de la Grande Tache rouge.'])
       });
-      const PREVIOUS_RELEASE=Object.freeze({version:'0.42',date:'2026.09.17'});
-      const PREVIOUS_RELEASE_ITEMS=Object.freeze({
+      const SECOND_PREVIOUS_RELEASE=Object.freeze({version:'0.42',date:'2026.09.17'});
+      const SECOND_PREVIOUS_RELEASE_ITEMS=Object.freeze({
         kor:Object.freeze(['iPhone 안전 영역을 적용하고 국가명을 누르면 해당 지역의 지구를 바로 추적합니다.','GPU 텍스처 LRU와 자동 DPR·30/60fps 조절로 모바일 메모리와 렌더 부하를 줄였습니다.','256×128 저해상도 텍스처 단계를 추가하고 Cloudflare 배포에서 미디어를 같은 도메인으로 불러옵니다.','업데이트 내역을 필요할 때만 불러오고 같은 공개 버전 안의 r1·r2 패치도 자동 감지합니다.']),
         en:Object.freeze(['iPhone safe areas are respected, and clicking the region label tracks that location on Earth.','GPU texture LRU plus adaptive DPR and 30/60 fps reduce mobile memory and rendering load.','A 256×128 texture tier and same-origin Cloudflare media loading reduce transfer and connection overhead.','Release notes now load on demand, and r1/r2 patches can update automatically within the same public version.']),
         chn:Object.freeze(['适配 iPhone 安全区域，点击地区名称即可追踪地球上的对应位置。','加入 GPU 纹理 LRU、自动 DPR 与 30/60fps 调节，降低移动端内存和渲染负载。','新增 256×128 纹理层级，并在 Cloudflare 部署中使用同源媒体路径。','更新记录改为按需加载，同一公开版本内的 r1、r2 补丁也可自动检测。']),
@@ -613,7 +624,8 @@
         if(!base)return base;
         const patches=[
           Object.freeze({meta:CURRENT_RELEASE,items:CURRENT_RELEASE_ITEMS}),
-          Object.freeze({meta:PREVIOUS_RELEASE,items:PREVIOUS_RELEASE_ITEMS})
+          Object.freeze({meta:PREVIOUS_RELEASE,items:PREVIOUS_RELEASE_ITEMS}),
+          Object.freeze({meta:SECOND_PREVIOUS_RELEASE,items:SECOND_PREVIOUS_RELEASE_ITEMS})
         ];
         const known=new Set((base.RELEASES||[]).map(release=>release.version));
         const additions=patches.filter(entry=>!known.has(entry.meta.version)).map(entry=>Object.freeze({...entry.meta,items:entry.items.kor}));
@@ -630,7 +642,7 @@
           const existing=document.querySelector('script[data-solar-release-notes]');
           const finish=()=>{releaseNotesApi=withCurrentRelease(window.SolarReleaseNotes);if(!releaseNotesApi){reject(Error('Release notes module did not initialize.'));return;}releaseNotesNavigator=releaseNotesApi.createReleaseNotesNavigator?.()||null;resolve(releaseNotesApi);};
           if(existing){if(window.SolarReleaseNotes)finish();else{existing.addEventListener('load',finish,{once:true});existing.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});}return;}
-          const script=document.createElement('script');script.src='src/release-notes.js?v=0.43';script.async=true;script.dataset.solarReleaseNotes='true';script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});document.head.append(script);
+          const script=document.createElement('script');script.src='src/release-notes.js?v=0.45';script.async=true;script.dataset.solarReleaseNotes='true';script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});document.head.append(script);
         }).finally(()=>{if(!releaseNotesApi)releaseNotesLoading=null;});
         return releaseNotesLoading;
       }
@@ -867,7 +879,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.43',revision:'r3',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.45',revision:'r1',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();
