@@ -1,11 +1,11 @@
-@echo off
+﻿@echo off
 setlocal
 title Solar Time v0.43 Visual Patch
 cd /d D:\_Program\SolarTime
 
 echo.
 echo ========================================
-echo   Solar Time v0.43 Visual Patch (r2)
+echo   Solar Time v0.43 Visual Patch (r3)
 echo   D:\_Program\SolarTime
 echo ========================================
 echo.
@@ -36,7 +36,7 @@ git diff --cached --quiet
 if %errorlevel%==0 (
   echo No new Git changes to commit.
 ) else (
-  git commit -m "Tune Solar Time v0.43 visuals"
+  git commit -m "Refine Solar Time v0.43 visuals"
   if errorlevel 1 goto :fail
 )
 
@@ -47,7 +47,7 @@ if errorlevel 1 goto :fail
 
 echo.
 echo ========================================
-echo   SUCCESS - Solar Time v0.43 r2 deployed
+echo   SUCCESS - Solar Time v0.43 r3 deployed
 echo ========================================
 git status
 echo.

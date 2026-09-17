@@ -1,35 +1,43 @@
-/* Solar Time v0.43 r2 — even star distribution plus fine Sun/Jupiter surface motion. */
+/* Solar Time v0.43 r3 — natural stars plus visible fine Sun/Jupiter atmosphere motion. */
 (function(root){
   'use strict';
 
   const BASE_STAR_COUNT=4400,MAX_STAR_MULTIPLIER=4,MAX_STAR_COUNT=BASE_STAR_COUNT*MAX_STAR_MULTIPLIER;
-  const TAU=Math.PI*2,GOLDEN=.6180339887498949;
+  const TAU=Math.PI*2;
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
-  const fract=value=>value-Math.floor(value);
   const randomGenerator=seed=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
-  function radicalInverse(index){let value=0,scale=.5;for(let n=index>>>0;n;n>>>=1,scale*=.5)value+=(n&1)*scale;return value;}
 
-  // Low-discrepancy sphere: every prefix is spread over the full sphere instead
-  // of filling one latitude band first. Tiny deterministic jitter keeps it organic
-  // without recreating obvious clusters or empty patches.
-  function uniformStarPool(source,total=MAX_STAR_COUNT){
-    const looks=(Array.isArray(source)?source:[]).filter(star=>Array.isArray(star)&&star.length>=6);
+  function starAppearance(random,index){
+    // Independent distributions prevent size, brightness, colour and timing from
+    // falling into the same visual pattern. Most stars stay tiny and dim, with
+    // progressively rarer medium/large bright points.
+    const sizeRoll=random(),brightRoll=random(),rareSize=random(),rareBright=random();
+    let size=.14+Math.pow(sizeRoll,3.15)*.88;
+    if(rareSize>.994)size+=.34+random()*.45;
+    let brightness=.075+Math.pow(brightRoll,2.15)*.66;
+    if(rareBright>.989)brightness+=.10+random()*.18;
+    size=clamp(size,.14,1.52);brightness=clamp(brightness,.07,.92);
+    // This seed is consumed by independent shader hashes for colour, twinkle
+    // period/phase and the rare cross flare. It is not tied to sky position.
+    const seed=(index+1)*.754877666+random()*8192;
+    return [size,brightness,seed];
+  }
+
+  function buildNaturalStarPool(_source,total=MAX_STAR_COUNT){
     const random=randomGenerator(204031),field=[];
+    // True random points on a sphere: z is uniform in [-1,1] and longitude is
+    // independent. At 4.4k+ samples this stays globally even while retaining the
+    // small natural clusters and gaps that a low-discrepancy lattice removed.
     for(let i=0;i<total;i++){
-      const u=clamp(radicalInverse(i+1)+(random()-.5)*.0012,.00005,.99995);
-      const v=fract((i+1)*GOLDEN+.137+(random()-.5)*.0035);
-      const z=u*2-1,angle=v*TAU,radius=Math.sqrt(Math.max(0,1-z*z));
-      const template=looks.length?looks[(i*4051)%looks.length]:null,rare=random();
-      const size=template?clamp(Number(template[3])||.34,.22,1.25):.28+Math.pow(rare,7)*.92;
-      const brightness=template?clamp(Number(template[4])||.24,.10,.72):.16+random()*.32+(rare>.985?.18:0);
-      const phase=template?fract((Number(template[5])||0)/12+random()*.07)*12:random()*12;
-      field.push([Math.cos(angle)*radius,Math.sin(angle)*radius,z,size,brightness,phase]);
+      const z=random()*2-1,angle=random()*TAU,radius=Math.sqrt(Math.max(0,1-z*z));
+      const [size,brightness,seed]=starAppearance(random,i);
+      field.push([Math.cos(angle)*radius,Math.sin(angle)*radius,z,size,brightness,seed]);
     }
     return field;
   }
 
   // Build the maximum pool once. Density changes only the GPU draw count.
-  if(root.SolarAssets&&Array.isArray(root.SolarAssets.stars))root.SolarAssets.stars=uniformStarPool(root.SolarAssets.stars);
+  if(root.SolarAssets&&Array.isArray(root.SolarAssets.stars))root.SolarAssets.stars=buildNaturalStarPool(root.SolarAssets.stars);
 
   const Sky=root.SolarSky;
   if(Sky?.prototype&&!Sky.prototype.__solarStarDensityInstalled){
@@ -59,36 +67,69 @@
     Object.defineProperty(Sky.prototype,'__solarStarDensityInstalled',{value:true});
   }
 
-  // Surface programs compile after this module loads. Sun motion keeps the old
-  // temporal coefficients but uses much finer spatial frequencies and smaller
-  // displacement. Jupiter gets a separate banded differential-flow warp.
+  function transformStarShader(source){
+    if(typeof source!=='string')return source;
+    let next=source;
+    if(source.includes('attribute vec3 position,appearance;')){
+      next=next.replace('varying float intensity;','varying float intensity,starTone,flarePulse;');
+      next=next.replace('float z=dot(position,forward),phase=appearance.z;',
+        'float z=dot(position,forward),seed=appearance.z;float period=mix(2.4,18.0,fract(seed*.754877666));float phase=fract(seed*.56984029)*period;');
+      next=next.replace('float pulse=pow(max(0.,sin((seconds+phase)/(6.+phase)*6.28318530718)),16.);',
+        'float wave=.5+.5*sin((seconds+phase)/period*6.28318530718);float sharp=mix(4.,20.,fract(seed*.438289));float pulse=pow(wave,sharp);');
+      next=next.replace('intensity=appearance.y*(.55+pulse*.65);',
+        'intensity=appearance.y*(.30+pulse*1.32);starTone=fract(seed*.173205+appearance.x*.37);flarePulse=step(.9975,fract(seed*.91337+appearance.y*.71))*pulse*smoothstep(.42,.80,appearance.y);');
+      next=next.replace('gl_PointSize=clamp(appearance.x*10.*pointScale,1.,30.);',
+        'gl_PointSize=clamp((appearance.x*10.+flarePulse*17.)*pointScale,1.,36.);');
+      return next;
+    }
+    if(source.includes('gl_PointCoord-.5')){
+      next=next.replace('varying float intensity;','varying float intensity,starTone,flarePulse;');
+      next=next.replace('float alpha=(halo*.24+core*.94+cross*.14)*intensity;if(alpha<.002)discard;',
+        'float alpha=(halo*.22+core*.96)*intensity+cross*.62*flarePulse;if(alpha<.002)discard;');
+      next=next.replace('vec3 color=mix(vec3(.45,.66,.94),vec3(1.,.99,.96),core);',
+        'vec3 color=vec3(.985,.99,1.);if(starTone<.08)color=vec3(1.,.79,.72);else if(starTone<.22)color=vec3(1.,.92,.76);else if(starTone>.84)color=vec3(.76,.87,1.);color=mix(color,vec3(1.),core*.16);');
+      return next;
+    }
+    return source;
+  }
+
+  // Surface programs compile after this module loads. Sun motion retains its
+  // temporal coefficients while spatial frequency and amplitude are tuned so the
+  // surface visibly seethes in many smaller cells rather than broad sheets.
   const SUN_REPLACEMENTS=Object.freeze([
-    ['uv.y*49.','uv.y*130.'],['uv.x*PI*10.','uv.x*PI*48.'],
-    ['uv.x*PI*16.','uv.x*PI*64.'],['uv.y*31.','uv.y*150.'],
-    ['*.0015','*.00085'],['*.0011','*.00065'],
-    ['uv.x*PI*6.','uv.x*PI*48.'],['uv.y*11.','uv.y*126.'],
+    ['uv.y*49.','uv.y*150.'],['uv.x*PI*10.','uv.x*PI*56.'],
+    ['uv.x*PI*16.','uv.x*PI*48.'],['uv.y*31.','uv.y*138.'],
+    ['*.0015','*.00255'],['*.0011','*.00190'],
+    ['uv.x*PI*6.','uv.x*PI*52.'],['uv.y*11.','uv.y*150.'],
     ['uv.x*PI*14.','uv.x*PI*64.'],['uv.y*19.','uv.y*176.'],
-    ['-.018+.118*brightCycle','-.012+.075*brightCycle'],['-.032+.057*darkCycle','-.020+.035*darkCycle']
+    ['-.018+.118*brightCycle','-.018+.155*brightCycle'],['-.032+.057*darkCycle','-.030+.078*darkCycle']
   ]);
-  const JUPITER_WARP=`\n    if(kind==5.){\n      float jet=sin(uv.y*PI*14.)*.52+sin(uv.y*PI*30.)*.23;\n      float drift=effectTime*(.000018+jet*.000012);\n      float eddy=sin(uv.x*PI*18.+uv.y*45.-effectTime*.16)*.00022;\n      float cross=sin(uv.x*PI*8.-uv.y*28.+effectTime*.09)*.00014;\n      uv=vec2(fract(uv.x+drift+eddy),clamp(uv.y+cross,.001,.999));\n    }`;
-  const JUPITER_COLOR=`\n    if(kind==5.){\n      float gas=.5+.5*sin(uv.x*PI*20.+uv.y*58.-effectTime*.12);\n      base*=.992+.016*gas;\n    }`;
+
+  // Jupiter: differential east/west jets, small turbulent eddies, and a local
+  // slow vortex around the texture coordinate used by the existing Great Red
+  // Spot feature view (longitude ~70°, latitude ~-22°). The vortex attenuates
+  // the broad jet locally so the spot rotates instead of simply sliding away.
+  const JUPITER_WARP=`\n    if(kind==5.){\n      const float GRS_U=.6944444444;\n      const float GRS_V=.6222222222;\n      float grsDx=fract(uv.x-GRS_U+.5)-.5;\n      float grsDy=uv.y-GRS_V;\n      vec2 grsN=vec2(grsDx/.066,grsDy/.042);\n      float grsR=length(grsN);\n      float grsMask=1.-smoothstep(.72,1.38,grsR);\n      float grsAngle=-effectTime*.022*grsMask;\n      float grsC=cos(grsAngle),grsS=sin(grsAngle);\n      vec2 grsRot=vec2(grsN.x*grsC-grsN.y*grsS,grsN.x*grsS+grsN.y*grsC);\n      vec2 grsSample=mix(grsN,grsRot,grsMask);\n      uv=vec2(fract(GRS_U+grsSample.x*.066),clamp(GRS_V+grsSample.y*.042,.001,.999));\n      float jetA=sin(uv.y*PI*14.);\n      float jetB=sin(uv.y*PI*32.+.7);\n      float jetSpeed=.00042+jetA*.00031+jetB*.00016;\n      float drift=effectTime*jetSpeed*(1.-grsMask*.78);\n      float eddy=sin(uv.x*PI*18.+uv.y*52.-effectTime*.42)*.00145;\n      float eddy2=sin(uv.x*PI*8.-uv.y*34.+effectTime*.24)*.00082;\n      float latitudeMask=.34+.66*abs(sin(uv.y*PI*9.));\n      uv=vec2(fract(uv.x+drift+eddy*(1.-grsMask*.58)),clamp(uv.y+eddy2*latitudeMask*(1.-grsMask*.62),.001,.999));\n    }`;
+  const JUPITER_COLOR=`\n    if(kind==5.){\n      float gasA=.5+.5*sin(uv.x*PI*20.+uv.y*62.-effectTime*.28);\n      float gasB=.5+.5*sin(uv.x*PI*9.-uv.y*38.+effectTime*.17);\n      base*=.964+.060*(gasA*.65+gasB*.35);\n    }`;
+
   function transformSurfaceShader(source){
     if(typeof source!=='string'||!source.includes('sunActivity')||!source.includes('kind==2.'))return source;
     let next=source;
     for(const [from,to] of SUN_REPLACEMENTS)next=next.split(from).join(to);
-    if(!next.includes('if(kind==5.){'))next=next.replace(/\n\s*vec3 base=texture2D\(colorMap,uv\)\.rgb/,match=>JUPITER_WARP+match);
-    if(!next.includes('float gas=.5+.5*sin'))next=next.replace(/\n\s*if\(kind==4\.\)\{/,match=>JUPITER_COLOR+match);
+    if(!next.includes('const float GRS_U=.6944444444'))next=next.replace(/\n\s*vec3 base=texture2D\(colorMap,uv\)\.rgb/,match=>JUPITER_WARP+match);
+    if(!next.includes('float gasA=.5+.5*sin'))next=next.replace(/\n\s*if\(kind==4\.\)\{/,match=>JUPITER_COLOR+match);
     return next;
   }
+
   function installShaderPatch(ctor){
-    const proto=ctor?.prototype,original=proto?.shaderSource;if(!proto||typeof original!=='function'||original.__solarSurfaceFlowPatch)return;
-    function patchedShaderSource(shader,source){return original.call(this,shader,transformSurfaceShader(source));}
-    Object.defineProperty(patchedShaderSource,'__solarSurfaceFlowPatch',{value:true});proto.shaderSource=patchedShaderSource;
+    const proto=ctor?.prototype,original=proto?.shaderSource;if(!proto||typeof original!=='function'||original.__solarVisualPatch)return;
+    function patchedShaderSource(shader,source){return original.call(this,shader,transformStarShader(transformSurfaceShader(source)));}
+    Object.defineProperty(patchedShaderSource,'__solarVisualPatch',{value:true});proto.shaderSource=patchedShaderSource;
   }
   installShaderPatch(root.WebGLRenderingContext);installShaderPatch(root.WebGL2RenderingContext);
 
-  // Give Jupiter its own shader kind on the direct-GPU path without touching
-  // textures, orbit/ring transforms or any other body's material behavior.
+  // Give Jupiter its own material kind on the direct-GPU path without changing
+  // its source map, body rotation, rings or orbital hierarchy.
   const Direct=root.SolarSurface?.DirectRenderer;
   if(Direct?.prototype&&!Direct.prototype.__solarJupiterFlowInstalled){
     Direct.prototype.planet=function(job,body,screen,radius,time,activity){
@@ -107,5 +148,5 @@
     Object.defineProperty(Direct.prototype,'__solarJupiterFlowInstalled',{value:true});
   }
 
-  root.SolarVisualEffects=Object.freeze({BASE_STAR_COUNT,MAX_STAR_MULTIPLIER,MAX_STAR_COUNT,uniformStarPool,transformSurfaceShader});
+  root.SolarVisualEffects=Object.freeze({BASE_STAR_COUNT,MAX_STAR_MULTIPLIER,MAX_STAR_COUNT,buildNaturalStarPool,transformStarShader,transformSurfaceShader});
 })(window);
