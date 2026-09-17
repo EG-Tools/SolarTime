@@ -12,3 +12,10 @@ worker-configuration.d.ts
 __pycache__/
 playwright-report/
 test-results/
+Apply_v*.ps1
+SolarTime_*_Repair*.bat
+SolarTime_*_TestFix*.bat
+SolarTime_*_Finalize.bat
+tools/apply-r*.cjs
+SolarTime_*_TestSyntaxFix.bat
+SolarTime_*_GitSync.bat

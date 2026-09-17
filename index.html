@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
   <meta name="solar-time-version" content="0.45">
-  <meta name="solar-time-revision" content="r8">
+  <meta name="solar-time-revision" content="r9">
   <meta id="meta-description" name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주." data-i18n-content="metaDescription">
   <title>Solar Time</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23060910'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='12' transform='rotate(-28 32 32)' fill='none' stroke='%23748295' stroke-width='1.4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23efbf76'/%3E%3Ccircle cx='54' cy='20' r='3' fill='%23b6d8ed'/%3E%3C/svg%3E">
@@ -47,7 +47,7 @@
       document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=0.45">
+  <link rel="stylesheet" href="styles.css?v=0.45-r9">
   <link rel="stylesheet" href="src/runtime-optimizations.css?v=0.45-r1">
 </head>
 <body>
@@ -83,6 +83,8 @@
       <div id="language-control" class="language-control">
         <button id="language-toggle" class="icon-button language-toggle" type="button" aria-label="언어 변경. 현재 한국어" aria-expanded="false" aria-controls="language-menu" title="언어 변경 · KOR">KOR</button>
         <div id="language-menu" class="language-menu" role="menu" aria-label="언어 선택" hidden>
+          <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+          <div id="language-scroll" class="language-scroll">
           <button type="button" role="menuitemradio" data-language="kor"><strong>KOR</strong><span>한국어</span></button>
           <button type="button" role="menuitemradio" data-language="en"><strong>EN</strong><span>English</span></button>
           <button type="button" role="menuitemradio" data-language="chn"><strong>CHN</strong><span>中文</span></button>
@@ -92,6 +94,12 @@
           <button type="button" role="menuitemradio" data-language="es"><strong>ES</strong><span>Español</span></button>
           <button type="button" role="menuitemradio" data-language="de"><strong>DE</strong><span>Deutsch</span></button>
           <button type="button" role="menuitemradio" data-language="fr"><strong>FR</strong><span>Français</span></button>
+          <button type="button" role="menuitemradio" data-language="pt"><strong>PT</strong><span>Portugal</span></button>
+          <button type="button" role="menuitemradio" data-language="br"><strong>BR</strong><span>Brasil</span></button>
+          <button type="button" role="menuitemradio" data-language="it"><strong>IT</strong><span>Italia</span></button>
+          <button type="button" role="menuitemradio" data-language="mx"><strong>MX</strong><span>México</span></button>
+          </div>
+          <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
         </div>
       </div>
       <button id="help-button" class="icon-button" aria-label="사용 방법과 계산 기준" aria-expanded="false" aria-controls="help-dialog" title="사용 방법과 계산 기준" data-i18n-aria="helpLabel" data-i18n-title="helpLabel">
@@ -287,16 +295,17 @@
   <script src="src/sky-asset.js?v=assetpack-20260917-r7"></script>
   <script src="src/materials.js?v=0.45"></script>
   <script src="src/astro.js?v=0.45"></script>
-  <script src="src/surface.js?v=0.45"></script>
-  <script src="src/sky.js?v=0.45-r7"></script>
-  <script src="src/visual-effects.js?v=0.45-r8"></script>
+  <script src="src/surface.js?v=0.45-r9"></script>
+  <script src="src/sky.js?v=0.45-r9"></script>
+  <script src="src/visual-effects.js?v=0.45-r9"></script>
+  <script src="src/star-layer.js?v=0.45-r9"></script>
   <script src="src/renderer.js?v=0.45-r6"></script>
-  <script src="src/performance.js?v=0.45-r1"></script>
-  <script src="src/language-data.js?v=0.45"></script>
-  <script src="src/localization.js?v=0.45"></script>
+  <script src="src/performance.js?v=0.45-r9"></script>
+  <script src="src/language-data.js?v=0.45-r9"></script>
+  <script src="src/localization.js?v=0.45-r9"></script>
   <script src="src/preferences.js?v=0.45"></script>
   <script src="src/ui-runtime.js?v=0.45"></script>
   <script src="src/music-player.js?v=0.45"></script>
-  <script src="src/app.js?v=0.45-r8"></script>
+  <script src="src/app.js?v=0.45-r9"></script>
 </body>
 </html>

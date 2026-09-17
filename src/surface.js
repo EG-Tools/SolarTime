@@ -38,10 +38,15 @@ function surfaceKernel(){
     }
     return data;
   }
-  function materialCanvas(bitmap,w,h){
-    const c=makeCanvas(w);c.height=h;const ctx=c.getContext('2d');ctx.drawImage(bitmap,0,0,w,h);
-    const im=ctx.getImageData(0,0,w,h);stitchLongitude(im.data,w,h);ctx.putImageData(im,0,0);
-    return {canvas:c,image:im};
+  function materialCanvas(bitmap,w,h,readPixels=false){
+    const c=makeCanvas(w);c.height=h;const ctx=c.getContext('2d',{willReadFrequently:readPixels});ctx.drawImage(bitmap,0,0,w,h);
+    const band=Math.max(2,Math.min(32,Math.round(w*.012))),left=ctx.getImageData(0,0,band,h),right=ctx.getImageData(w-band,0,band,h);
+    for(let y=0;y<h;y++)for(let x=0;x<band;x++){
+      const t=1-x/(band-1),weight=t*t*(3-2*t),a=(y*band+x)*4,b=(y*band+band-1-x)*4;
+      for(let k=0;k<4;k++){const lv=left.data[a+k],rv=right.data[b+k],middle=(lv+rv)*.5;left.data[a+k]=lv+(middle-lv)*weight;right.data[b+k]=rv+(middle-rv)*weight;}
+    }
+    ctx.putImageData(left,0,0);ctx.putImageData(right,w-band,0);
+    return {canvas:c,image:readPixels?ctx.getImageData(0,0,w,h):null};
   }
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const error=gl.getShaderInfoLog(s);gl.deleteShader(s);throw Error(error);}return s;}
   const vertex=`attribute vec2 a; varying vec2 p; void main(){p=a;gl_Position=vec4(a,0.,1.);}`;
@@ -116,6 +121,7 @@ function surfaceKernel(){
         const vs=compile(g,g.VERTEX_SHADER,vertex),fs=compile(g,g.FRAGMENT_SHADER,fragment),program=g.createProgram();g.attachShader(program,vs);g.attachShader(program,fs);g.linkProgram(program);g.deleteShader(vs);g.deleteShader(fs);
         if(!g.getProgramParameter(program,g.LINK_STATUS))throw Error(g.getProgramInfoLog(program));this.program=program;
         this.buffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
+        this.attribute=g.getAttribLocation(program,'a');
         this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','effectTime','sunActivity'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
       }catch(error){if(this.gl){this.gl.getExtension('WEBGL_lose_context')?.loseContext();this.gl=null;}this.canvas=makeCanvas(32);this.ctx=this.canvas.getContext('2d');this.stats.fallback=error.message;}
     }
@@ -124,7 +130,7 @@ function surfaceKernel(){
       const key=id+':'+width;let t=this.textures.get(key);if(t&&t.source!==source.key){if(this.gl)this.gl.deleteTexture(t.handle);this.textures.delete(key);t=null;}if(t){this.textures.delete(key);this.textures.set(key,t);return t;}
       const bitmap=await bitmapFor(source,width,width/2);
       if(this.disposed){bitmap.close();throw Error('Surface disposed');}
-      const prepared=materialCanvas(bitmap,width,width/2);bitmap.close();
+      const prepared=materialCanvas(bitmap,width,width/2,!this.gl);bitmap.close();
       if(this.gl){
         const g=this.gl,handle=g.createTexture();g.bindTexture(g.TEXTURE_2D,handle);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,prepared.canvas);
         g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
@@ -167,7 +173,7 @@ function surfaceKernel(){
       if(this.gl?.isContextLost())throw Error('WebGL context lost');
       if(this.gl){
         const g=this.gl,u=this.uniforms;g.viewport(0,0,n,n);g.clearColor(0,0,0,0);g.clear(g.COLOR_BUFFER_BIT);g.useProgram(this.program);g.bindBuffer(g.ARRAY_BUFFER,this.buffer);
-        const a=g.getAttribLocation(this.program,'a');g.enableVertexAttribArray(a);g.vertexAttribPointer(a,2,g.FLOAT,false,0,0);
+        const a=this.attribute;g.enableVertexAttribArray(a);g.vertexAttribPointer(a,2,g.FLOAT,false,0,0);
         for(const [i,t,name] of [[0,color,'colorMap'],[1,bump,'bumpMap'],[2,clouds,'cloudsMap']]){g.activeTexture(g.TEXTURE0+i);g.bindTexture(g.TEXTURE_2D,t.handle);g.uniform1i(u[name],i);}
         g.uniform3fv(u.axisU,frame.u);g.uniform3fv(u.axisV,frame.v);g.uniform3fv(u.pole,frame.pole);g.uniform3fv(u.light,light);
         g.uniform1f(u.phase,phase);g.uniform1f(u.kind,id==='earth'?1:id==='sun'?2:id==='uranus'?4:['jupiter','saturn','venus','neptune'].includes(id)?3:0);

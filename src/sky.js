@@ -49,6 +49,7 @@ function drawCometRibbon(ctx,points,opacity=1){
 }
 function rand(seed){return()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};}
 function starField(source,total=4400){
+ if(source instanceof Float32Array&&source.length>=6)return source;
  const field=(Array.isArray(source)?source:[]).filter(star=>Array.isArray(star)&&star.length>=6).map(star=>star.slice(0,6));
  const random=rand(204031),target=Math.max(total,field.length);
  while(field.length<target){
@@ -164,8 +165,8 @@ class Sky{
     }`);
    this.starProgram=g.createProgram();g.attachShader(this.starProgram,starVertex);g.attachShader(this.starProgram,starFragment);g.linkProgram(this.starProgram);g.deleteShader(starVertex);g.deleteShader(starFragment);
    if(!g.getProgramParameter(this.starProgram,g.LINK_STATUS))throw Error(g.getProgramInfoLog(this.starProgram)||'Star link failed');
-   const stars=starField(root.SolarAssets?.stars),starData=new Float32Array(stars.length*6);
-   stars.forEach((star,index)=>starData.set(star,index*6));this.starCount=stars.length;
+   const stars=starField(root.SolarAssets?.starData||root.SolarAssets?.stars),starData=stars instanceof Float32Array?stars:new Float32Array(stars.length*6);
+   if(!(stars instanceof Float32Array))stars.forEach((star,index)=>starData.set(star,index*6));this.starCount=Math.floor(starData.length/6);
    this.starBuffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.starBuffer);g.bufferData(g.ARRAY_BUFFER,starData,g.STATIC_DRAW);
    this.starA={position:g.getAttribLocation(this.starProgram,'position'),appearance:g.getAttribLocation(this.starProgram,'appearance')};
    this.starU=Object.fromEntries(['right','down','forward','size','fov','pointScale','seconds'].map(k=>[k,g.getUniformLocation(this.starProgram,k)]));

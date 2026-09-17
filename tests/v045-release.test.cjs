@@ -3,13 +3,16 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r8 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r9 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r8"/);
-  assert.deepEqual(version,{version:'0.45',revision:'r8'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r8'/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r8/);assert.match(html,/src\/app\.js\?v=0\.45-r8/);
+  assert.ok(html.includes('name="solar-time-version" content="0.45"'));
+  assert.ok(html.includes('name="solar-time-revision" content="r9"'));
+  assert.deepEqual(version,{version:'0.45',revision:'r9'});
+  assert.equal(pkg.version,'0.0.45');
+  assert.ok(app.includes("version:'0.45',revision:'r9'"));
+  assert.ok(html.includes('src/visual-effects.js?v=0.45-r9'));
+  assert.ok(html.includes('src/app.js?v=0.45-r9'));
 });
-
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
   assert.deepEqual(order.slice(0,9),['kor','en','chn','jpn','eu','hi','es','de','fr']);
@@ -86,7 +89,7 @@ test('r6 pushes the starfield farther away without slowing the background drift'
   assert.match(sky,/pow\(haze,vec3\(\.95\)\)\*\.5984/);
   assert.match(sky,/255\*\.5896/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
-  assert.match(html,/src\/sky\.js\?v=0\.45-r7/);
+  assert.match(html,/src\/sky\.js\?v=0\.45-r9/);
   assert.match(html,/src\/renderer\.js\?v=0\.45-r6/);
 });
 test('r7 removes tiny-star one-pixel raster shimmer at the source',()=>{
@@ -100,8 +103,8 @@ test('r7 removes tiny-star one-pixel raster shimmer at the source',()=>{
   assert.match(sky,/if\(r<\.55\)\{glow\(ctx,x,y,Math\.max\(\.18,r\*\.58\),brightness\*\.56\)/);
   assert.match(sky,/DRIFT=\.22\*Math\.PI\/180/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
-  assert.match(html,/src\/sky\.js\?v=0\.45-r7/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r8/);
+  assert.match(html,/src\/sky\.js\?v=0\.45-r9/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r9/);
 });
 test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
   const effects=read('src/visual-effects.js'),html=read('index.html'),app=read('src/app.js'),api=visualApi();
@@ -109,4 +112,34 @@ test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
   assert.match(effects,/Math\.round\(BASE_STAR_COUNT\*density\)/);
   assert.match(html,/id=\"star-density\" class=\"solar-range\" type=\"range\" min=\"0\" max=\"300\" step=\"10\" value=\"100\"/);
   assert.match(app,/A\.clamp\(saved\.starDensity,0,3\)/);
+});
+
+test('r9 adds Portugal, Brazil, Italy and Mexico through the existing regional-time path',()=>{
+  const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js'),loader=read('src/language-data.js');
+  assert.match(app,/LANG_ORDER=\['kor','en','chn','jpn','eu','hi','es','de','fr','pt','br','it','mx'\]/);
+  assert.match(app,/pt:\{code:'PT'.*copy:'pt'/);assert.match(app,/br:\{code:'BR'.*copy:'pt'/);assert.match(app,/it:\{code:'IT'.*copy:'it'/);assert.match(app,/mx:\{code:'MX'.*copy:'es'/);
+  assert.match(app,/pt:\{label:'PORTUGAL',timeZone:'Europe\/Lisbon'/);assert.match(app,/br:\{label:'BRAZIL',timeZone:'America\/Sao_Paulo'/);assert.match(app,/it:\{label:'ITALY',timeZone:'Europe\/Rome'/);assert.match(app,/mx:\{label:'MEXICO',timeZone:'America\/Mexico_City'/);
+  assert.match(app,/language=next;renderer\.setSite\(activeRegion\(\)\);translateStatic\(\);renderReleaseNotes\(\);refreshTimeFormats\(\)/);
+  assert.match(localization,/lisbon\|madeira\|azores/);assert.match(localization,/sao_paulo/);assert.match(localization,/rome\|vatican\|san_marino/);assert.match(localization,/mexico_city/);
+  assert.match(loader,/\['kor','en','chn','jpn','hi','es','de','fr','pt','it'\]/);
+  for(const code of ['pt','br','it','mx'])assert.match(html,new RegExp('data-language="'+code+'"'));
+  const en=JSON.parse(read('src/locales/en.json')),pt=JSON.parse(read('src/locales/pt.json')),it=JSON.parse(read('src/locales/it.json'));
+  assert.deepEqual(Object.keys(pt.copy).sort(),Object.keys(en.copy).sort());assert.deepEqual(Object.keys(it.copy).sort(),Object.keys(en.copy).sort());
+  assert.deepEqual(Object.keys(pt.bodies).sort(),Object.keys(en.bodies).sort());assert.deepEqual(Object.keys(it.bodies).sort(),Object.keys(en.bodies).sort());
+});
+
+test('r9 language card reuses the shared scroll-cue system without growing the card',()=>{
+  const html=read('index.html'),css=read('styles.css'),app=read('src/app.js');
+  assert.match(html,/id="language-scroll" class="language-scroll"/);assert.match(html,/language-menu[\s\S]*scroll-cue-up[\s\S]*scroll-cue-down/);
+  assert.match(css,/height:min\(318px,calc\(100vh - 95px\)\)/);assert.match(css,/\.language-scroll\{height:100%;overflow-x:hidden;overflow-y:auto/);
+  assert.match(app,/updateLanguageScrollCues=bindScrollCues\(languageMenu,languageScroll\)/);
+});
+
+test('r9 separates panorama cost from high-resolution stars and removes avoidable hot-path work',()=>{
+  const html=read('index.html'),stars=read('src/star-layer.js'),effects=read('src/visual-effects.js'),sky=read('src/sky.js'),surface=read('src/surface.js'),performance=read('src/performance.js');
+  assert.match(html,/src\/star-layer\.js\?v=0\.45-r9/);
+  assert.match(stars,/BACKGROUND_PIXEL_BUDGET=3145728/);assert.match(stars,/STAR_PIXEL_BUDGET=8388608/);assert.match(stars,/twinkle:false/);
+  assert.match(effects,/function buildNaturalStarData/);assert.match(effects,/SolarAssets\.starData=data/);assert.match(sky,/source instanceof Float32Array/);
+  assert.match(surface,/materialCanvas\(bitmap,w,h,readPixels=false\)/);assert.match(surface,/this\.attribute=g\.getAttribLocation\(program,'a'\)/);
+  assert.match(performance,/stats\?\.texturePixels\|\|0\)\*4/);assert.match(performance,/__solarLastTextureTrim/);
 });

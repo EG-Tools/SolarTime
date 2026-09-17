@@ -37,17 +37,14 @@
   }
   function trimTextures(renderer){
     const textures=renderer.textures;if(!textures?.size||!renderer.gl)return;
-    const budget=textureBudget();let bytes=0;
-    for(const record of textures.values())if(record?.texture)bytes+=(record.width||0)*(record.height||0)*4;
-    renderer.stats.textureBudgetBytes=budget;renderer.stats.textureBytes=bytes;
-    if(bytes<=budget)return;
+    const budget=textureBudget();let bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);
+    renderer.stats.textureBudgetBytes=budget;renderer.stats.textureBytes=bytes;if(bytes<=budget)return;
     const candidates=[...textures.entries()].filter(([name,record])=>record?.texture&&!record.pending&&!protectTexture(renderer,name)).sort((a,b)=>(a[1].lastUsed||0)-(b[1].lastUsed||0));
     for(const [name,record] of candidates){
       if(bytes<=budget)break;
       const pixels=(record.width||0)*(record.height||0);renderer.gl.deleteTexture(record.texture);bytes-=pixels*4;
       if(Number.isFinite(renderer.stats.texturePixels))renderer.stats.texturePixels=Math.max(0,renderer.stats.texturePixels-pixels);
-      Object.assign(record,{texture:null,width:0,height:0,lastUsed:0});
-      renderer.stats.textureEvictions=(renderer.stats.textureEvictions||0)+1;
+      Object.assign(record,{texture:null,width:0,height:0,lastUsed:0});renderer.stats.textureEvictions=(renderer.stats.textureEvictions||0)+1;
     }
     renderer.stats.textureBytes=Math.max(0,bytes);
   }
@@ -57,7 +54,7 @@
     Direct.prototype.texture=function(name,target){
       const result=texture.call(this,name,target),record=this.textures?.get(name);if(record)record.lastUsed=performance.now();return result;
     };
-    Direct.prototype.end=function(){const value=end.call(this);trimTextures(this);return value;};
+    Direct.prototype.end=function(){const value=end.call(this),budget=textureBudget(),bytes=Math.max(0,(this.stats?.texturePixels||0)*4),now=performance.now();this.stats.textureBudgetBytes=budget;this.stats.textureBytes=bytes;if(bytes>budget&&now-(this.__solarLastTextureTrim||0)>500){this.__solarLastTextureTrim=now;trimTextures(this);}return value;};
     Object.defineProperty(Direct.prototype,'__solarBudgetInstalled',{value:true});
   }
   const Renderer=root.SolarRenderer;

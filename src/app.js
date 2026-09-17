@@ -1,10 +1,10 @@
-/* Solar Time v0.45 r8 — randomized star layouts, calmer twinkle, softer Sun motion, and stock Jupiter shading. */
+/* Solar Time v0.45 r9 — optimized sky layers and expanded regional languages. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
   const Localization=Modules.Localization,LanguageData=Modules.LanguageData,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
-  const LANG_ORDER=['kor','en','chn','jpn','eu','hi','es','de','fr'];
+  const LANG_ORDER=['kor','en','chn','jpn','eu','hi','es','de','fr','pt','br','it','mx'];
   const LANG_META={
     kor:{code:'KOR',name:'한국어',locale:'ko-KR',html:'ko',copy:'kor'},
     en:{code:'EN',name:'English',locale:'en-US',html:'en',copy:'en'},
@@ -14,7 +14,11 @@
     hi:{code:'HI',name:'हिन्दी',locale:'hi-IN',html:'hi',copy:'hi'},
     es:{code:'ES',name:'Español',locale:'es-ES',html:'es',copy:'es'},
     de:{code:'DE',name:'Deutsch',locale:'de-DE',html:'de',copy:'de'},
-    fr:{code:'FR',name:'Français',locale:'fr-FR',html:'fr',copy:'fr'}
+    fr:{code:'FR',name:'Français',locale:'fr-FR',html:'fr',copy:'fr'},
+    pt:{code:'PT',name:'Portugal',locale:'pt-PT',html:'pt-PT',copy:'pt'},
+    br:{code:'BR',name:'Brasil',locale:'pt-BR',html:'pt-BR',copy:'pt'},
+    it:{code:'IT',name:'Italia',locale:'it-IT',html:'it',copy:'it'},
+    mx:{code:'MX',name:'México',locale:'es-MX',html:'es-MX',copy:'es'}
   };
   const REGIONS={
     kor:{label:'KOREA',timeZone:'Asia/Seoul',latitude:37.5665,longitude:126.978,region:'한국',city:'서울'},
@@ -25,7 +29,11 @@
     hi:{label:'INDIA',timeZone:'Asia/Kolkata',latitude:22.5937,longitude:78.9629,region:'भारत',city:'देश का केंद्र'},
     es:{label:'SPAIN',timeZone:'Europe/Madrid',latitude:40.4637,longitude:-3.7492,region:'España',city:'centro geográfico'},
     de:{label:'GERMANY',timeZone:'Europe/Berlin',latitude:51.1657,longitude:10.4515,region:'Deutschland',city:'geografische Mitte'},
-    fr:{label:'FRANCE',timeZone:'Europe/Paris',latitude:46.2276,longitude:2.2137,region:'France',city:'centre géographique'}
+    fr:{label:'FRANCE',timeZone:'Europe/Paris',latitude:46.2276,longitude:2.2137,region:'France',city:'centre géographique'},
+    pt:{label:'PORTUGAL',timeZone:'Europe/Lisbon',latitude:39.3999,longitude:-8.2245,region:'Portugal',city:'centro de Portugal'},
+    br:{label:'BRAZIL',timeZone:'America/Sao_Paulo',latitude:-14.235,longitude:-51.9253,region:'Brasil',city:'centro do Brasil'},
+    it:{label:'ITALY',timeZone:'Europe/Rome',latitude:41.8719,longitude:12.5674,region:'Italia',city:"centro d'Italia"},
+    mx:{label:'MEXICO',timeZone:'America/Mexico_City',latitude:23.6345,longitude:-102.5528,region:'México',city:'centro de México'}
   };
   const STAR_DENSITY_COPY=Object.freeze({
     kor:Object.freeze({label:'별 밀도',aria:'파티클 별 밀도. 0이면 파티클 별을 숨깁니다.'}),
@@ -36,7 +44,11 @@
     hi:Object.freeze({label:'तारों का घनत्व',aria:'पार्टिकल तारों का घनत्व। 0 पर पार्टिकल तारे छिप जाते हैं।'}),
     es:Object.freeze({label:'Densidad de estrellas',aria:'Densidad de estrellas de partículas. Cero oculta las estrellas de partículas.'}),
     de:Object.freeze({label:'Sterndichte',aria:'Dichte der Partikelsterne. Bei 0 werden Partikelsterne ausgeblendet.'}),
-    fr:Object.freeze({label:'Densité d’étoiles',aria:'Densité des étoiles particules. Zéro masque les étoiles particules.'})
+    fr:Object.freeze({label:'Densité d’étoiles',aria:'Densité des étoiles particules. Zéro masque les étoiles particules.'}),
+    pt:Object.freeze({label:'Densidade de estrelas',aria:'Densidade das estrelas de partículas. Zero oculta as estrelas de partículas.'}),
+    br:Object.freeze({label:'Densidade de estrelas',aria:'Densidade das estrelas de partículas. Zero oculta as estrelas de partículas.'}),
+    it:Object.freeze({label:'Densità stellare',aria:'Densità delle stelle particellari. Zero nasconde le stelle particellari.'}),
+    mx:Object.freeze({label:'Densidad de estrellas',aria:'Densidad de estrellas de partículas. Cero oculta las estrellas de partículas.'})
   });
   const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,starDensity:1,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
   const FACTORY_BODY_SCALES=Object.freeze({sun:1.54,mercury:3.79,venus:3.06,earth:5.05,mars:4.28,jupiter:2,saturn:2.42,uranus:3.04,neptune:2.32,pluto:5.23,moon:3.7,europa:3.44});
@@ -90,7 +102,7 @@
       const t=(key,values)=>interpolate(COPY[copyLanguage()]?.[key]??COPY.kor?.[key]??key,values);
       const bodyCopy=body=>copyLanguage()==='kor'?{name:body.ko,description:body.description}:{name:BODY_COPY[copyLanguage()]?.[body.id]?.[0]||body.en,description:BODY_COPY[copyLanguage()]?.[body.id]?.[1]||body.description};
       const phaseCopy=name=>copyLanguage()==='kor'?name:(PHASE_COPY[copyLanguage()]?.[name]||name);
-      const quantity=(value,unit)=>['en','hi','es','de','fr'].includes(copyLanguage())?`${value} ${t(unit)}`:`${value}${t(unit)}`;
+      const quantity=(value,unit)=>['en','hi','es','de','fr','pt','it'].includes(copyLanguage())?`${value} ${t(unit)}`:`${value}${t(unit)}`;
       const music=Modules.MusicPlayer.create({
         audio:$('background-music'),tracks:MUSIC_TRACKS,
         folder:/\/dist\/[^/]+\.html$/i.test(location.pathname)?'../assets/music/':'assets/music/',
@@ -654,7 +666,7 @@
         $('release-notes-date').textContent=release.date||'';
         $('release-notes-size').textContent=formatReleaseNotesBytes(releaseNotesApi.SOURCE_BYTES);
         const fragment=document.createDocumentFragment();
-        for(const item of releaseNotesApi.itemsFor(release,language).slice(0,10)){const row=document.createElement('li');row.textContent=item;fragment.append(row);}
+        for(const item of releaseNotesApi.itemsFor(release,copyLanguage()).slice(0,10)){const row=document.createElement('li');row.textContent=item;fragment.append(row);}
         $('release-notes-list').replaceChildren(fragment);
         $('release-notes-position').textContent=`${state.index+1} / ${state.total}`;
         $('release-notes-newer').disabled=!state.hasNewer;$('release-notes-older').disabled=!state.hasOlder;
@@ -695,10 +707,11 @@
         if(selected){const copy=bodyCopy(selected);$('body-name').textContent=copy.name;$('body-description').textContent=copy.description;$('feature-view').textContent=selected.id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');syncBodySizeControl(selected);updateBody(clock.value(performance.now()));}
         uiNow();persist();if(helpDialog.open)requestAnimationFrame(updateHelpScrollCues);
       }
-      const languageControl=$('language-control'),languageMenu=$('language-menu'),languageToggle=$('language-toggle');
+      const languageControl=$('language-control'),languageMenu=$('language-menu'),languageScroll=$('language-scroll'),languageToggle=$('language-toggle');
+      const updateLanguageScrollCues=bindScrollCues(languageMenu,languageScroll);
       function openLanguageMenu(){
-        showFading(languageMenu);languageToggle.setAttribute('aria-expanded','true');
-        const current=languageMenu.querySelector(`[data-language="${language}"]`);requestAnimationFrame(()=>current?.focus({preventScroll:true}));
+        showFading(languageMenu);languageToggle.setAttribute('aria-expanded','true');updateLanguageScrollCues();requestAnimationFrame(updateLanguageScrollCues);
+        const current=languageMenu.querySelector(`[data-language="${language}"]`);requestAnimationFrame(()=>{current?.scrollIntoView({block:'nearest'});current?.focus({preventScroll:true});updateLanguageScrollCues();});
       }
       function closeLanguageMenu(returnFocus=false){hideFading(languageMenu);languageToggle.setAttribute('aria-expanded','false');if(returnFocus)languageToggle.focus({preventScroll:true});}
       languageToggle.addEventListener('click',()=>uiElementVisible(languageMenu)?closeLanguageMenu():openLanguageMenu());
@@ -706,7 +719,7 @@
       languageMenu.addEventListener('keydown',event=>{
         const options=[...languageMenu.querySelectorAll('[data-language]')],index=options.indexOf(document.activeElement);let next=-1;
         if(event.key==='ArrowDown')next=(index+1)%options.length;else if(event.key==='ArrowUp')next=(index-1+options.length)%options.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=options.length-1;else return;
-        event.preventDefault();options[next].focus({preventScroll:true});
+        event.preventDefault();options[next].focus({preventScroll:true});options[next].scrollIntoView({block:'nearest'});updateLanguageScrollCues();
       });
       document.addEventListener('pointerdown',event=>{if(uiElementVisible(languageMenu)&&!languageControl.contains(event.target))closeLanguageMenu();});
       const canvas=$('universe'),pointers=new Map();
@@ -882,7 +895,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.45',revision:'r8',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.45',revision:'r9',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();
