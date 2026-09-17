@@ -10,7 +10,7 @@ test('runtime concerns load as modules before the application coordinator',()=>{
   assert.doesNotMatch(html,/styles-v016/);
   assert.match(html,/src\/performance\.js\?v=0\.45-r1/);
   assert.ok(html.indexOf('src/performance.js')<html.indexOf('src/app.js'),'performance');
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r6/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r7/);
   assert.ok(html.indexOf('src/visual-effects.js')<html.indexOf('src/renderer.js'),'visual-effects');
   for(const name of ['language-data','localization','preferences','ui-runtime','music-player']){
     assert.match(html,new RegExp(`src/${name}\\.js\\?v=0\\.45`));

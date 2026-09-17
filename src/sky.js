@@ -200,7 +200,7 @@ class Sky{
   w=Math.max(1,w);h=Math.max(1,h);dpr=Math.max(.1,dpr||1);
   // Prevent a 4K/5K HiDPI desktop from allocating several full-resolution sky
   // buffers; foreground planet resolution is entirely independent of this cap.
-  const ratio=Math.min(dpr,1.5,Math.sqrt((dpr<=1?2097152:8388608)/(w*h)));
+  const ratio=Math.min(dpr,1.5,Math.sqrt(8388608/(w*h)));
   const width=Math.max(1,Math.round(w*ratio)),height=Math.max(1,Math.round(h*ratio));
   if(this.w===w&&this.h===h&&this.canvas.width===width&&this.canvas.height===height)return;
   this.w=w;this.h=h;this.canvas.width=width;this.canvas.height=height;this.stats.bufferPixels=width*height;
@@ -325,7 +325,7 @@ class Sky{
     for(const [x,y,z,r,brightness,phase]of stars){const p=this.project({x,y,z});if(p&&p.x>=0&&p.x<=this.w&&p.y>=0&&p.y<=this.h)this.visibleStars.push([p.x,p.y,r,brightness,phase]);}
     this.starPose={source:stars,axes:this.panAxes,w:this.w,h:this.h};this.stats.starProjections+=stars.length;
    }
-   for(const [x,y,r,brightness,phase]of this.visibleStars){const period=6+phase,t=((seconds+phase)%period)/period,pulse=Math.max(0,Math.sin(t*TAU))**16;glow(ctx,x,y,r*.8,brightness*(.32+pulse*.75));}
+   for(const [x,y,r,brightness,phase]of this.visibleStars){if(r<.55){glow(ctx,x,y,Math.max(.18,r*.58),brightness*.56);continue;}const period=5+Math.abs(Math.sin(phase*.754877666))*20,primary=.5+.5*Math.sin(seconds/period*TAU+phase),secondary=.5+.5*Math.sin(seconds/(period*1.618+3)*TAU+phase*.37),irregular=primary*.68+secondary*.32;glow(ctx,x,y,r*.66,brightness*(.62+.30*irregular));}
   }
   if(!options.comets){this.comet=null;this.nextComet=Math.max(this.nextComet,seconds+15);return;}
   if(seconds<this.lastTime){this.nextComet=seconds+20;this.comet=null;}this.lastTime=seconds;

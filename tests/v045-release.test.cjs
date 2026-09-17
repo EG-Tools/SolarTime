@@ -3,11 +3,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r6 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r7 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r6"/);
-  assert.deepEqual(version,{version:'0.45',revision:'r6'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r6'/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r6/);assert.match(html,/src\/app\.js\?v=0\.45-r6/);
+  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r7"/);
+  assert.deepEqual(version,{version:'0.45',revision:'r7'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r7'/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r7/);assert.match(html,/src\/app\.js\?v=0\.45-r7/);
 });
 
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -86,6 +86,20 @@ test('r6 pushes the starfield farther away without slowing the background drift'
   assert.match(sky,/pow\(haze,vec3\(\.95\)\)\*\.5984/);
   assert.match(sky,/255\*\.5896/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
-  assert.match(html,/src\/sky\.js\?v=0\.45-r6/);
+  assert.match(html,/src\/sky\.js\?v=0\.45-r7/);
   assert.match(html,/src\/renderer\.js\?v=0\.45-r6/);
+});
+test('r7 removes tiny-star one-pixel raster shimmer at the source',()=>{
+  const effects=read('src/visual-effects.js'),sky=read('src/sky.js'),renderer=read('src/renderer.js'),html=read('index.html'),api=visualApi();
+  assert.match(effects,/tinyStar=1\.-lively/);
+  assert.match(effects,/max\(basePoint,3\.0\)/);
+  assert.match(effects,/tinyAlpha=\(tinyHalo\*\.08\+tinyCore\*\.48\)\*intensity/);
+  assert.match(effects,/varying float intensity,starTone,flarePulse,tinyStar/);
+  assert.match(sky,/Math\.sqrt\(8388608\/\(w\*h\)\)/);
+  assert.doesNotMatch(sky,/pulse=Math\.max\(0,Math\.sin\(t\*TAU\)\)\*\*16/);
+  assert.match(sky,/if\(r<\.55\)\{glow\(ctx,x,y,Math\.max\(\.18,r\*\.58\),brightness\*\.56\)/);
+  assert.match(sky,/DRIFT=\.22\*Math\.PI\/180/);
+  assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
+  assert.match(html,/src\/sky\.js\?v=0\.45-r7/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r7/);
 });

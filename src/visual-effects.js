@@ -1,4 +1,4 @@
-/* Solar Time v0.45 r6 — calmer stars, slightly softer Sun motion, and stock Jupiter shading. */
+/* Solar Time v0.45 r7 — calmer stars, slightly softer Sun motion, and stock Jupiter shading. */
 (function(root){
   'use strict';
 
@@ -93,21 +93,21 @@
     if(typeof source!=='string')return source;
     let next=source;
     if(source.includes('attribute vec3 position,appearance;')){
-      next=next.replace('varying float intensity;','varying float intensity,starTone,flarePulse;');
+      next=next.replace('varying float intensity;','varying float intensity,starTone,flarePulse,tinyStar;');
       next=next.replace('float z=dot(position,forward),phase=appearance.z;',
-        'float z=dot(position,forward),seed=appearance.z;float twinklePeriod=mix(5.0,25.0,fract(seed*.754877666));float behavior=fract(seed*.2718281828+appearance.y*.53);float twinkles=step(.70,behavior);float rests=step(.972,behavior);float restVisible=mix(42.0,105.0,fract(seed*.4142135623));float restHidden=mix(5.0,10.0,fract(seed*.318309886));float restCycle=restVisible+restHidden;float restTime=mod(seconds+fract(seed*.56984029)*restCycle,restCycle);float visible=1.-rests*step(restVisible,restTime);float lively=step(.55,appearance.x);');
+        'float z=dot(position,forward),seed=appearance.z;float twinklePeriod=mix(5.0,25.0,fract(seed*.754877666));float behavior=fract(seed*.2718281828+appearance.y*.53);float twinkles=step(.70,behavior);float rests=step(.972,behavior);float restVisible=mix(42.0,105.0,fract(seed*.4142135623));float restHidden=mix(5.0,10.0,fract(seed*.318309886));float restCycle=restVisible+restHidden;float restTime=mod(seconds+fract(seed*.56984029)*restCycle,restCycle);float visible=1.-rests*step(restVisible,restTime);float lively=step(.55,appearance.x);tinyStar=1.-lively;');
       next=next.replace('float pulse=pow(max(0.,sin((seconds+phase)/(6.+phase)*6.28318530718)),16.);',
         'float phase=fract(seed*.6180339887)*6.28318530718;float primary=.5+.5*sin(seconds/twinklePeriod*6.28318530718+phase);float secondary=.5+.5*sin(seconds/(twinklePeriod*1.618+3.0)*6.28318530718+fract(seed*.141421356)*6.28318530718);float irregular=primary*.68+secondary*.32;float variation=mix(.96+.04*irregular,.58+.42*irregular,twinkles);float flareWave=pow(max(0.,primary),18.);');
       next=next.replace('intensity=appearance.y*(.55+pulse*.65);',
         'intensity=appearance.y*mix(1.0,variation,lively)*mix(1.0,visible,lively);starTone=fract(seed*.173205+appearance.x*.37);flarePulse=step(.9985,fract(seed*.91337+appearance.y*.71))*flareWave*smoothstep(.50,.84,appearance.y)*lively*mix(1.0,visible,lively);');
       next=next.replace('gl_PointSize=clamp(appearance.x*10.*pointScale,1.,30.);',
-        'gl_PointSize=clamp((appearance.x*10.+flarePulse*13.12)*pointScale,1.,29.);');
+        'float basePoint=(appearance.x*10.+flarePulse*13.12)*pointScale;gl_PointSize=clamp(max(basePoint,3.0),3.0,29.);');
       return next;
     }
     if(source.includes('gl_PointCoord-.5')){
-      next=next.replace('varying float intensity;','varying float intensity,starTone,flarePulse;');
+      next=next.replace('varying float intensity;','varying float intensity,starTone,flarePulse,tinyStar;');
       next=next.replace('float alpha=(halo*.24+core*.94+cross*.14)*intensity;if(alpha<.002)discard;',
-        'float alpha=(halo*.22+core*.96)*intensity+cross*.58*flarePulse;if(alpha<.002)discard;');
+        'float regularAlpha=(halo*.22+core*.96)*intensity+cross*.58*flarePulse;float tinyHalo=1.-smoothstep(.08,.48,d);float tinyCore=1.-smoothstep(.01,.16,d);float tinyAlpha=(tinyHalo*.08+tinyCore*.48)*intensity;float alpha=mix(regularAlpha,tinyAlpha,tinyStar);if(alpha<.002)discard;');
       next=next.replace('vec3 color=mix(vec3(.45,.66,.94),vec3(1.,.99,.96),core);',
         'vec3 color=vec3(.985,.99,1.);if(starTone<.07)color=vec3(1.,.80,.74);else if(starTone<.10)color=vec3(1.,.93,.79);else if(starTone>.82)color=vec3(.77,.88,1.);color=mix(color,vec3(1.),core*.16);');
       return next;
