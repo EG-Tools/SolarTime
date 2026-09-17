@@ -3,11 +3,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r3 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r4 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r3"/);
-  assert.deepEqual(version,{version:'0.45',revision:'r3'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r3'/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r3/);assert.match(html,/src\/app\.js\?v=0\.45-r3/);
+  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r4"/);
+  assert.deepEqual(version,{version:'0.45',revision:'r4'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r4'/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r3/);assert.match(html,/src\/app\.js\?v=0\.45-r4/);
 });
 
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -53,3 +53,26 @@ test('Jupiter experimental shader is removed so the stock gas-giant path is used
 test('v0.45 release notes match the calmer stars, softer Sun and restored Jupiter shader',()=>{
   const app=read('src/app.js');assert.match(app,/CURRENT_RELEASE=Object\.freeze\(\{version:'0\.45'/);assert.match(app,/황색 별 비중을 줄였습니다/);assert.match(app,/5~25초/);assert.match(app,/5~10초/);assert.match(app,/약 5% 더 낮춰/);assert.match(app,/기본 가스행성 셰이더로 완전히 복원/);
 });
+
+test('right mouse drag temporarily dollies the camera without changing the wheel mode',()=>{
+  const app=read('src/app.js');
+  assert.match(app,/event\.button!==0&&event\.button!==1&&event\.button!==2/);
+  assert.match(app,/dolly=event\.pointerType==='mouse'&&event\.button===2/);
+  assert.match(app,/startDolly:renderer\.camera\.dolly\?\?1/);
+  assert.match(app,/drag\.mode==='dolly'\)renderer\.setDolly\(drag\.startDolly\*Math\.exp\(\(drag\.startY-p\.y\)\*\.006\),renderer\.selected\)/);
+  assert.match(app,/canvas\.addEventListener\('contextmenu',event=>event\.preventDefault\(\)\)/);
+  assert.doesNotMatch(app,/drag\.mode==='dolly'[\s\S]{0,200}setDollyMode/);
+});
+
+test('v0.43 notes no longer advertise the discarded Jupiter shader experiment',()=>{
+  const app=read('src/app.js'),start=app.indexOf("const PREVIOUS_RELEASE=Object.freeze({version:'0.43'"),end=app.indexOf("const SECOND_PREVIOUS_RELEASE=",start),block=app.slice(start,end);
+  assert.ok(start>=0&&end>start);
+  assert.doesNotMatch(block,/대적점|Great Red Spot|大红斑|大赤斑|Gran Mancha Roja|Großen Roten Fleck|Grande Tache rouge/);
+  assert.match(block,/GPU에 한 번 올린 뒤 슬라이더 값에 따라 그리는 개수만 바꾸도록/);
+});
+
+test('v0.45 notes include the right-drag dolly control',()=>{
+  const app=read('src/app.js'),start=app.indexOf("const CURRENT_RELEASE=Object.freeze({version:'0.45'"),end=app.indexOf("const PREVIOUS_RELEASE=",start),block=app.slice(start,end);
+  assert.match(block,/마우스 오른쪽 버튼을 누른 채 위아래로 드래그/);
+});
+
