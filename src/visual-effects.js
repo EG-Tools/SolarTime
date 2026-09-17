@@ -1,4 +1,4 @@
-/* Solar Time v0.45 r2 — calmer stars, slightly softer Sun motion, and stock Jupiter shading. */
+/* Solar Time v0.45 r3 — calmer stars, slightly softer Sun motion, and stock Jupiter shading. */
 (function(root){
   'use strict';
 
@@ -6,6 +6,11 @@
   const TAU=Math.PI*2;
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const randomGenerator=seed=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+  function runtimeSeed(){
+    let seed=((Date.now()>>>0)^Math.floor(Math.random()*4294967296))>>>0;
+    try{const value=new Uint32Array(1);root.crypto?.getRandomValues?.(value);seed=(seed^value[0])>>>0;}catch(_){/* Artistic fallback. */}
+    return seed||0x6d2b79f5;
+  }
 
   function starAppearance(random,index){
     // Independent distributions prevent size, brightness, colour and timing from
@@ -23,8 +28,8 @@
     return [size,brightness,seed];
   }
 
-  function buildNaturalStarPool(_source,total=MAX_STAR_COUNT){
-    const random=randomGenerator(204031),field=[];
+  function buildNaturalStarPool(_source,total=MAX_STAR_COUNT,seed=runtimeSeed()){
+    const random=randomGenerator(seed),field=[];
     // True random points on a sphere: z is uniform in [-1,1] and longitude is
     // independent. At 4.4k+ samples this stays globally even while retaining the
     // small natural clusters and gaps that a low-discrepancy lattice removed.
@@ -36,8 +41,25 @@
     return field;
   }
 
-  // Build the maximum pool once. Density changes only the GPU draw count.
-  if(root.SolarAssets&&Array.isArray(root.SolarAssets.stars))root.SolarAssets.stars=buildNaturalStarPool(root.SolarAssets.stars);
+  function uploadStarPoolToSky(sky,stars){
+    if(!sky)return;
+    sky.__solarMaxStarCount=stars.length;sky.__solarStarDrawCount=-1;sky.__solarStarSubsetSource=null;sky.__solarStarSubsetCount=-1;sky.__solarStarSubset=null;sky.starPose=null;
+    if(sky.gl&&sky.starBuffer){
+      const data=new Float32Array(stars.length*6);stars.forEach((star,index)=>data.set(star,index*6));
+      sky.gl.bindBuffer(sky.gl.ARRAY_BUFFER,sky.starBuffer);sky.gl.bufferData(sky.gl.ARRAY_BUFFER,data,sky.gl.STATIC_DRAW);
+      sky.starCount=stars.length;if(sky.stats){sky.stats.starCount=stars.length;sky.stats.visibleStarCount=0;}
+    }
+    sky.invalidate?.();
+  }
+  function regenerateStars(sky){
+    if(!root.SolarAssets)return [];
+    const stars=buildNaturalStarPool(root.SolarAssets.stars,MAX_STAR_COUNT,runtimeSeed());
+    root.SolarAssets.stars=stars;uploadStarPoolToSky(sky,stars);return stars;
+  }
+
+  // Every page/app launch receives a new seed. Reset rebuilds the same maximum
+  // GPU pool in place so the visible star positions change immediately.
+  if(root.SolarAssets&&Array.isArray(root.SolarAssets.stars))regenerateStars();
 
   const Sky=root.SolarSky;
   if(Sky?.prototype&&!Sky.prototype.__solarStarDensityInstalled){
@@ -46,7 +68,7 @@
       const available=Math.min(MAX_STAR_COUNT,root.SolarAssets?.stars?.length||MAX_STAR_COUNT);
       const current=Number(this.starCount)||0;
       this.__solarMaxStarCount=Math.max(this.__solarMaxStarCount||0,current,available);
-      const density=clamp(Number(options.starDensity??2),0,MAX_STAR_MULTIPLIER);
+      const density=clamp(Number(options.starDensity??1),0,MAX_STAR_MULTIPLIER);
       const drawCount=Math.min(this.__solarMaxStarCount,Math.round(BASE_STAR_COUNT*density));
       if(this.__solarStarDrawCount!==drawCount){this.__solarStarDrawCount=drawCount;this.invalidate?.();}
       const previous=this.starCount;this.starCount=drawCount;
@@ -55,7 +77,7 @@
     };
     Sky.prototype.decorate=function(ctx,seconds,options={},glow){
       const source=root.SolarAssets?.stars;if(!Array.isArray(source))return originalDecorate.call(this,ctx,seconds,options,glow);
-      const density=clamp(Number(options.starDensity??2),0,MAX_STAR_MULTIPLIER),count=Math.min(source.length,Math.round(BASE_STAR_COUNT*density));
+      const density=clamp(Number(options.starDensity??1),0,MAX_STAR_MULTIPLIER),count=Math.min(source.length,Math.round(BASE_STAR_COUNT*density));
       let subset=source;
       if(count!==source.length){
         if(this.__solarStarSubsetSource!==source||this.__solarStarSubsetCount!==count){this.__solarStarSubsetSource=source;this.__solarStarSubsetCount=count;this.__solarStarSubset=source.slice(0,count);}
@@ -121,5 +143,5 @@
   }
   installShaderPatch(root.WebGLRenderingContext);installShaderPatch(root.WebGL2RenderingContext);
 
-  root.SolarVisualEffects=Object.freeze({BASE_STAR_COUNT,MAX_STAR_MULTIPLIER,MAX_STAR_COUNT,buildNaturalStarPool,transformStarShader,transformSurfaceShader});
+  root.SolarVisualEffects=Object.freeze({BASE_STAR_COUNT,MAX_STAR_MULTIPLIER,MAX_STAR_COUNT,runtimeSeed,buildNaturalStarPool,regenerateStars,transformStarShader,transformSurfaceShader});
 })(window);

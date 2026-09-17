@@ -3,17 +3,24 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r2 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r3 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r2"/);
-  assert.deepEqual(version,{version:'0.45',revision:'r2'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r2'/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r2/);assert.match(html,/src\/app\.js\?v=0\.45-r2/);
+  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r3"/);
+  assert.deepEqual(version,{version:'0.45',revision:'r3'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r3'/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r3/);assert.match(html,/src\/app\.js\?v=0\.45-r3/);
 });
 
-test('language menu keeps the established order and star density remains 200 percent by default',()=>{
+test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
   assert.deepEqual(order.slice(0,9),['kor','en','chn','jpn','eu','hi','es','de','fr']);
-  assert.match(html,/id="star-density-output" for="star-density">200%<\/output>/);assert.match(html,/id="star-density" class="solar-range" type="range" min="0" max="400" step="10" value="200"/);assert.match(app,/orbitBrightness:\.5,starDensity:2/);
+  assert.match(html,/id="star-density-output" for="star-density">100%<\/output>/);assert.match(html,/id="star-density" class="solar-range" type="range" min="0" max="400" step="10" value="100"/);assert.match(app,/orbitBrightness:\.5,starDensity:1/);
+});
+
+test('star positions get a fresh runtime seed on launch and factory reset rebuilds the sky',()=>{
+  const effects=read('src/visual-effects.js'),app=read('src/app.js'),api=visualApi();
+  assert.match(effects,/function runtimeSeed\(\)/);assert.match(effects,/getRandomValues/);assert.match(effects,/function regenerateStars\(sky\)/);
+  const a=api.buildNaturalStarPool([],32,12345),b=api.buildNaturalStarPool([],32,54321);assert.notDeepEqual(a,b);
+  assert.match(app,/SolarVisualEffects\?\.regenerateStars\?\.\(renderer\.sky\)/);
 });
 
 test('star pool keeps random sphere positions with independent size and brightness',()=>{
