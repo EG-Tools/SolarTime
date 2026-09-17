@@ -3,17 +3,17 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r7 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r8 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r7"/);
-  assert.deepEqual(version,{version:'0.45',revision:'r7'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r7'/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r7/);assert.match(html,/src\/app\.js\?v=0\.45-r7/);
+  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r8"/);
+  assert.deepEqual(version,{version:'0.45',revision:'r8'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r8'/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r8/);assert.match(html,/src\/app\.js\?v=0\.45-r8/);
 });
 
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
   assert.deepEqual(order.slice(0,9),['kor','en','chn','jpn','eu','hi','es','de','fr']);
-  assert.match(html,/id="star-density-output" for="star-density">100%<\/output>/);assert.match(html,/id="star-density" class="solar-range" type="range" min="0" max="400" step="10" value="100"/);assert.match(app,/orbitBrightness:\.5,starDensity:1/);
+  assert.match(html,/id="star-density-output" for="star-density">100%<\/output>/);assert.match(html,/id="star-density" class="solar-range" type="range" min="0" max="300" step="10" value="100"/);assert.match(app,/orbitBrightness:\.5,starDensity:1/);
 });
 
 test('star positions get a fresh runtime seed on launch and factory reset rebuilds the sky',()=>{
@@ -24,7 +24,7 @@ test('star positions get a fresh runtime seed on launch and factory reset rebuil
 });
 
 test('star pool keeps random sphere positions with independent size and brightness',()=>{
-  const effects=read('src/visual-effects.js'),api=visualApi(),stars=api.buildNaturalStarPool([],8800);assert.equal(stars.length,8800);assert.equal(api.MAX_STAR_COUNT,17600);assert.match(effects,/const z=random\(\)\*2-1,angle=random\(\)\*TAU/);
+  const effects=read('src/visual-effects.js'),api=visualApi(),stars=api.buildNaturalStarPool([],8800);assert.equal(stars.length,8800);assert.equal(api.BASE_STAR_COUNT,10000);assert.equal(api.MAX_STAR_MULTIPLIER,3);assert.equal(api.MAX_STAR_COUNT,30000);assert.match(effects,/const z=random\(\)\*2-1,angle=random\(\)\*TAU/);
   let minSize=Infinity,maxSize=0,minBrightness=Infinity,maxBrightness=0;for(const star of stars){minSize=Math.min(minSize,star[3]);maxSize=Math.max(maxSize,star[3]);minBrightness=Math.min(minBrightness,star[4]);maxBrightness=Math.max(maxBrightness,star[4]);}
   assert.ok(maxSize-minSize>1);assert.ok(maxBrightness-minBrightness>.7);
 });
@@ -101,5 +101,12 @@ test('r7 removes tiny-star one-pixel raster shimmer at the source',()=>{
   assert.match(sky,/DRIFT=\.22\*Math\.PI\/180/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
   assert.match(html,/src\/sky\.js\?v=0\.45-r7/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r7/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r8/);
+});
+test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
+  const effects=read('src/visual-effects.js'),html=read('index.html'),app=read('src/app.js'),api=visualApi();
+  assert.equal(api.BASE_STAR_COUNT,10000);assert.equal(api.MAX_STAR_MULTIPLIER,3);assert.equal(api.MAX_STAR_COUNT,30000);
+  assert.match(effects,/Math\.round\(BASE_STAR_COUNT\*density\)/);
+  assert.match(html,/id=\"star-density\" class=\"solar-range\" type=\"range\" min=\"0\" max=\"300\" step=\"10\" value=\"100\"/);
+  assert.match(app,/A\.clamp\(saved\.starDensity,0,3\)/);
 });

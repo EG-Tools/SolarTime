@@ -1,8 +1,8 @@
-/* Solar Time v0.45 r7 — calmer stars, slightly softer Sun motion, and stock Jupiter shading. */
+/* Solar Time v0.45 r8 — calmer stars, slightly softer Sun motion, and stock Jupiter shading. */
 (function(root){
   'use strict';
 
-  const BASE_STAR_COUNT=4400,MAX_STAR_MULTIPLIER=4,MAX_STAR_COUNT=BASE_STAR_COUNT*MAX_STAR_MULTIPLIER;
+  const BASE_STAR_COUNT=10000,MAX_STAR_MULTIPLIER=3,MAX_STAR_COUNT=BASE_STAR_COUNT*MAX_STAR_MULTIPLIER;
   const TAU=Math.PI*2;
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const randomGenerator=seed=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
