@@ -1,26 +1,17 @@
-﻿@echo off
+@echo off
 setlocal
-title Solar Time v0.43 Release
-
+title Solar Time v0.43 Visual Patch
 cd /d D:\_Program\SolarTime
 
 echo.
 echo ========================================
-echo   Solar Time v0.43 Release
+echo   Solar Time v0.43 Visual Patch (r2)
 echo   D:\_Program\SolarTime
 echo ========================================
 echo.
 
-if not exist package.json (
-    echo [ERROR] package.json not found.
-    goto :fail
-)
-
-if not exist .git (
-    echo [ERROR] .git folder not found.
-    echo This folder is not connected to GitHub.
-    goto :fail
-)
+if not exist package.json (echo [ERROR] package.json not found.& goto :fail)
+if not exist .git (echo [ERROR] .git folder not found. This folder is not connected to GitHub.& goto :fail)
 
 echo [1/5] Installing project dependencies...
 call npm install
@@ -43,12 +34,10 @@ if errorlevel 1 goto :fail
 
 git diff --cached --quiet
 if %errorlevel%==0 (
-    echo No new Git changes to commit.
+  echo No new Git changes to commit.
 ) else (
-    echo.
-    echo Committing v0.43...
-    git commit -m "Release Solar Time v0.43"
-    if errorlevel 1 goto :fail
+  git commit -m "Tune Solar Time v0.43 visuals"
+  if errorlevel 1 goto :fail
 )
 
 echo.
@@ -58,10 +47,8 @@ if errorlevel 1 goto :fail
 
 echo.
 echo ========================================
-echo   SUCCESS
-echo   Solar Time v0.43 deployed and pushed.
+echo   SUCCESS - Solar Time v0.43 r2 deployed
 echo ========================================
-echo.
 git status
 echo.
 pause
@@ -70,8 +57,7 @@ exit /b 0
 :fail
 echo.
 echo ========================================
-echo   FAILED
-echo   A step failed. Nothing after it was run.
+echo   FAILED - stopped before later steps
 echo ========================================
 echo.
 pause

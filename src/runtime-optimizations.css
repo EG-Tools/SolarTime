@@ -1,4 +1,4 @@
-/* v0.42 mobile safe-area and region-tracking interaction layer. */
+/* v0.41 mobile safe-area and region-tracking interaction layer. */
 :root{--solar-safe-top:env(safe-area-inset-top,0px);--solar-safe-bottom:env(safe-area-inset-bottom,0px)}
 .masthead{top:calc(31px + var(--solar-safe-top))}
 .clock-face,body.zen .clock-face{top:calc(56px + var(--solar-safe-top))}
@@ -23,3 +23,6 @@
   .scene-status{top:calc(89px + var(--solar-safe-top))}
   .settings-panel{top:calc(60px + var(--solar-safe-top))}
 }
+
+/* v0.43: star density belongs visually to orbit brightness without a divider. */
+#star-density-control{border-top:0;margin-top:0;padding-top:5px}
