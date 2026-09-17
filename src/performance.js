@@ -1,8 +1,15 @@
-/* Solar Time v0.41 runtime performance owner.
+/* Solar Time v0.42 runtime performance owner.
    Keeps adaptive DPR/FPS and direct-GPU texture memory policy outside renderer.js. */
 (function(root){
   'use strict';
-  const coarse=(()=>{try{return !!(navigator.maxTouchPoints>0||matchMedia('(pointer:coarse)').matches);}catch(_){return false;}})();
+  const coarse=(()=>{
+    try{
+      const ua=String(navigator.userAgent||''),uaMobile=navigator.userAgentData?.mobile===true||/Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+      const iPadOS=/Macintosh/i.test(ua)&&(navigator.maxTouchPoints||0)>1;
+      const coarsePointer=matchMedia('(pointer:coarse)').matches,shortSide=Math.min(screen.width||innerWidth,screen.height||innerHeight);
+      return !!(uaMobile||iPadOS||(coarsePointer&&shortSide<=820));
+    }catch(_){return false;}
+  })();
   let renderCost=coarse?9:6,slowUntil=0;
   const MiB=1024*1024;
   const textureBudget=()=>coarse?96*MiB:192*MiB;

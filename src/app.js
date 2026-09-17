@@ -1,4 +1,4 @@
-/* Solar Time v0.41 — clock, interaction and accessible UI. */
+/* Solar Time v0.42 — adaptive rendering, regional tracking and revision-aware updates. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -566,15 +566,32 @@
       kakaoPayDialog.addEventListener('cancel',event=>{event.preventDefault();closeKakaoPay();});
       kakaoPayDialog.addEventListener('click',event=>{if(event.target===kakaoPayDialog)closeKakaoPay();});
       const updateHelpScrollCues=bindScrollCues(helpDialog,helpScroll);
+      const CURRENT_RELEASE=Object.freeze({version:'0.42',date:'2026.09.17'});
+      const CURRENT_RELEASE_ITEMS=Object.freeze({
+        kor:Object.freeze(['iPhone 안전 영역을 적용하고 국가명을 누르면 해당 지역의 지구를 바로 추적합니다.','GPU 텍스처 LRU와 자동 DPR·30/60fps 조절로 모바일 메모리와 렌더 부하를 줄였습니다.','256×128 저해상도 텍스처 단계를 추가하고 Cloudflare 배포에서 미디어를 같은 도메인으로 불러옵니다.','업데이트 내역을 필요할 때만 불러오고 같은 공개 버전 안의 r1·r2 패치도 자동 감지합니다.']),
+        en:Object.freeze(['iPhone safe areas are respected, and clicking the region label tracks that location on Earth.','GPU texture LRU plus adaptive DPR and 30/60 fps reduce mobile memory and rendering load.','A 256×128 texture tier and same-origin Cloudflare media loading reduce transfer and connection overhead.','Release notes now load on demand, and r1/r2 patches can update automatically within the same public version.']),
+        chn:Object.freeze(['适配 iPhone 安全区域，点击地区名称即可追踪地球上的对应位置。','加入 GPU 纹理 LRU、自动 DPR 与 30/60fps 调节，降低移动端内存和渲染负载。','新增 256×128 纹理层级，并在 Cloudflare 部署中使用同源媒体路径。','更新记录改为按需加载，同一公开版本内的 r1、r2 补丁也可自动检测。']),
+        jpn:Object.freeze(['iPhone のセーフエリアに対応し、地域名を押すと地球上のその地域を追跡します。','GPU テクスチャ LRU と自動 DPR・30/60fps 制御でモバイルのメモリと描画負荷を軽減しました。','256×128 テクスチャ段階を追加し、Cloudflare では同一オリジンからメディアを読み込みます。','更新履歴を必要時のみ読み込み、同じ公開版の r1・r2 パッチも自動検出します。']),
+        hi:Object.freeze(['iPhone safe area का समर्थन जोड़ा गया और क्षेत्र नाम दबाने पर पृथ्वी पर वही स्थान ट्रैक होता है।','GPU texture LRU तथा adaptive DPR और 30/60fps से मोबाइल मेमोरी और rendering load घटता है।','256×128 texture tier और Cloudflare same-origin media loading जोड़े गए।','Release notes अब जरूरत पर लोड होते हैं और उसी सार्वजनिक version के r1/r2 patch भी अपने-आप पहचाने जाते हैं।']),
+        es:Object.freeze(['Se respetan las áreas seguras del iPhone y al pulsar la región se sigue esa ubicación en la Tierra.','El LRU de texturas GPU y el DPR/FPS adaptativo reducen memoria y carga gráfica en móviles.','Se añade el nivel 256×128 y la carga de medios desde el mismo origen en Cloudflare.','Las notas se cargan bajo demanda y los parches r1/r2 de la misma versión también se detectan automáticamente.']),
+        de:Object.freeze(['iPhone-Safe-Areas werden berücksichtigt; ein Klick auf die Regionsanzeige verfolgt den Ort auf der Erde.','GPU-Textur-LRU sowie adaptive DPR- und 30/60-fps-Steuerung senken Speicher- und Renderlast auf Mobilgeräten.','Eine 256×128-Texturstufe und Same-Origin-Medien bei Cloudflare reduzieren Übertragung und Verbindungsaufwand.','Versionshinweise laden nur bei Bedarf; auch r1/r2-Patches derselben öffentlichen Version werden automatisch erkannt.']),
+        fr:Object.freeze(['Les zones sûres de l’iPhone sont respectées et un clic sur la région suit cet emplacement sur la Terre.','Le LRU des textures GPU et l’ajustement automatique du DPR et des 30/60 i/s réduisent la mémoire et la charge mobile.','Un niveau 256×128 et le chargement des médias en même origine sur Cloudflare réduisent les transferts.','Les notes se chargent à la demande et les correctifs r1/r2 d’une même version sont détectés automatiquement.'])
+      });
+      function withCurrentRelease(base){
+        if(!base||base.RELEASES?.[0]?.version===CURRENT_RELEASE.version)return base;
+        const latest=Object.freeze({...CURRENT_RELEASE,items:CURRENT_RELEASE_ITEMS.kor}),releases=Object.freeze([latest,...base.RELEASES]);
+        const extra=JSON.stringify(CURRENT_RELEASE_ITEMS).length;
+        return Object.freeze({...base,RELEASES:releases,SOURCE_BYTES:(base.SOURCE_BYTES||0)+extra,itemsFor(release,code='kor'){if(release?.version===CURRENT_RELEASE.version)return CURRENT_RELEASE_ITEMS[code==='eu'?'en':code]||CURRENT_RELEASE_ITEMS.en;return base.itemsFor(release,code);},createReleaseNotesNavigator(){return base.createReleaseNotesNavigator(releases);}});
+      }
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesLoading=null;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
         if(releaseNotesLoading)return releaseNotesLoading;
         releaseNotesLoading=new Promise((resolve,reject)=>{
           const existing=document.querySelector('script[data-solar-release-notes]');
-          const finish=()=>{releaseNotesApi=window.SolarReleaseNotes;if(!releaseNotesApi){reject(Error('Release notes module did not initialize.'));return;}releaseNotesNavigator=releaseNotesApi.createReleaseNotesNavigator?.()||null;resolve(releaseNotesApi);};
+          const finish=()=>{releaseNotesApi=withCurrentRelease(window.SolarReleaseNotes);if(!releaseNotesApi){reject(Error('Release notes module did not initialize.'));return;}releaseNotesNavigator=releaseNotesApi.createReleaseNotesNavigator?.()||null;resolve(releaseNotesApi);};
           if(existing){if(window.SolarReleaseNotes)finish();else{existing.addEventListener('load',finish,{once:true});existing.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});}return;}
-          const script=document.createElement('script');script.src='src/release-notes.js?v=0.41';script.async=true;script.dataset.solarReleaseNotes='true';script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});document.head.append(script);
+          const script=document.createElement('script');script.src='src/release-notes.js?v=0.42';script.async=true;script.dataset.solarReleaseNotes='true';script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});document.head.append(script);
         }).finally(()=>{if(!releaseNotesApi)releaseNotesLoading=null;});
         return releaseNotesLoading;
       }
@@ -811,7 +828,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.41',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.42',revision:'r1',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();
