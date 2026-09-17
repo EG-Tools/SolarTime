@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),sharp=require('sharp');
 
-const TEXTURE_WIDTHS=Object.freeze([512,1024,2048,4096]);
+const TEXTURE_WIDTHS=Object.freeze([256,512,1024,2048,4096]);
 const SKY_FILE='universe-optimized.webp';
 const REQUIRED=Object.freeze(['sun','mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','pluto','moon','europa','clouds']);
 // High-resolution colour maps already carry their photographed surface detail.

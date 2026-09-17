@@ -1,13 +1,20 @@
 {
   "schema": 1,
-  "revision": "assetpack-20260914-r6",
-  "generatedAt": "2026-09-15T01:37:10.430Z",
+  "revision": "assetpack-20260917-r7",
+  "generatedAt": "2026-09-17T10:32:04.099Z",
   "materials": {
     "clouds": {
       "source": "clouds.webp",
       "width": 4096,
       "height": 2048,
       "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/clouds-256.83b290ff3291bf9c.webp",
+          "bytes": 7666,
+          "sha256": "83b290ff3291bf9ce38b5befce9629b6d290a23ba99bd3f4d66f971f64db58cc"
+        },
         {
           "width": 512,
           "height": 256,
@@ -44,6 +51,13 @@
       "height": 2048,
       "tiers": [
         {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/earth-256.73a21a4605a0f702.webp",
+          "bytes": 9346,
+          "sha256": "73a21a4605a0f702fc6656f4bdc07ee6212371cb37b68bb939146f654d600fc9"
+        },
+        {
           "width": 512,
           "height": 256,
           "path": "releases/content/textures/earth-512.dad7e32136f713f8.webp",
@@ -78,6 +92,13 @@
       "width": 4096,
       "height": 2048,
       "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/europa-256.5f4058329e971549.webp",
+          "bytes": 12874,
+          "sha256": "5f4058329e971549b7c92b856d269f5375ef8e560f4c4898e6d20d1d275c3f90"
+        },
         {
           "width": 512,
           "height": 256,
@@ -114,6 +135,13 @@
       "height": 2048,
       "tiers": [
         {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/jupiter-256.462458714c91dc48.webp",
+          "bytes": 5666,
+          "sha256": "462458714c91dc48eeb19935a1be5844991a31341b8d60935be5ee73ef6d6189"
+        },
+        {
           "width": 512,
           "height": 256,
           "path": "releases/content/textures/jupiter-512.e6726fc19ded72d9.webp",
@@ -148,6 +176,13 @@
       "width": 4096,
       "height": 2048,
       "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/mars-256.fa42fa28852bd899.webp",
+          "bytes": 8368,
+          "sha256": "fa42fa28852bd899800312855375ef0d667a2480ac62b8963f7beb6539b5c5b3"
+        },
         {
           "width": 512,
           "height": 256,
@@ -184,6 +219,13 @@
       "height": 2048,
       "tiers": [
         {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/mercury-256.2a7da8ca460a89b9.webp",
+          "bytes": 7466,
+          "sha256": "2a7da8ca460a89b9d27fff7f567b29e3b908d607c15f57c741d06a8fc5a789e5"
+        },
+        {
           "width": 512,
           "height": 256,
           "path": "releases/content/textures/mercury-512.23ff13da7b8abbd0.webp",
@@ -218,6 +260,13 @@
       "width": 4096,
       "height": 2048,
       "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/moon-256.45fbeda8518ff6a0.webp",
+          "bytes": 9718,
+          "sha256": "45fbeda8518ff6a0421a62ccb2a705037cf489c42b7e91bc4df820f7620f9200"
+        },
         {
           "width": 512,
           "height": 256,
@@ -254,6 +303,13 @@
       "height": 1024,
       "tiers": [
         {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/neptune-256.dd0fc6e8a0b3383b.webp",
+          "bytes": 1048,
+          "sha256": "dd0fc6e8a0b3383b21bf57dc0015a6117801f13625fec941064634bf652a0566"
+        },
+        {
           "width": 512,
           "height": 256,
           "path": "releases/content/textures/neptune-512.ffa8a892fdcb540b.webp",
@@ -281,6 +337,13 @@
       "width": 4096,
       "height": 2048,
       "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/pluto-256.d46dda347c071860.webp",
+          "bytes": 10890,
+          "sha256": "d46dda347c071860d3c70ffeba47dfa6cc3f9377a3795b58038b7044b1f5d3cf"
+        },
         {
           "width": 512,
           "height": 256,
@@ -317,6 +380,13 @@
       "height": 2048,
       "tiers": [
         {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/saturn-256.03d6442701665f94.webp",
+          "bytes": 1672,
+          "sha256": "03d6442701665f944aef735769ada9bab4ce47de4541b29dda73f0c7119595ae"
+        },
+        {
           "width": 512,
           "height": 256,
           "path": "releases/content/textures/saturn-512.80bda997b80e7645.webp",
@@ -351,6 +421,13 @@
       "width": 4096,
       "height": 2048,
       "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/sun-256.0a0a31cf44cc3881.webp",
+          "bytes": 14270,
+          "sha256": "0a0a31cf44cc3881ef88eff1c307ae62c2b9bae1cc41e10ab220c71e330dc10a"
+        },
         {
           "width": 512,
           "height": 256,
@@ -387,6 +464,13 @@
       "height": 1024,
       "tiers": [
         {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/uranus-256.1843e764f5c57524.webp",
+          "bytes": 2850,
+          "sha256": "1843e764f5c575242e285f483165572c100f500405e2b3440a1445017d183f8d"
+        },
+        {
           "width": 512,
           "height": 256,
           "path": "releases/content/textures/uranus-512.59cd3a1a4ed1974a.webp",
@@ -414,6 +498,13 @@
       "width": 4096,
       "height": 2048,
       "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/venus-256.1d61f6e8ce6930a2.webp",
+          "bytes": 2664,
+          "sha256": "1d61f6e8ce6930a215a314f2a07508e3667f44320182d40f62cd0e89f78b59d9"
+        },
         {
           "width": 512,
           "height": 256,
@@ -450,6 +541,13 @@
     "width": 2048,
     "height": 1024,
     "tiers": [
+      {
+        "width": 256,
+        "height": 128,
+        "path": "releases/content/backgrounds/universe-optimized-256.6b506f6f1fbd6a3b.webp",
+        "bytes": 800,
+        "sha256": "6b506f6f1fbd6a3b5e3068e982551784a355d7551e6a4665e4d58d414f2ab230"
+      },
       {
         "width": 512,
         "height": 256,

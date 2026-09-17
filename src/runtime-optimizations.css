@@ -1,0 +1,25 @@
+/* v0.41 mobile safe-area and region-tracking interaction layer. */
+:root{--solar-safe-top:env(safe-area-inset-top,0px);--solar-safe-bottom:env(safe-area-inset-bottom,0px)}
+.masthead{top:calc(31px + var(--solar-safe-top))}
+.clock-face,body.zen .clock-face{top:calc(56px + var(--solar-safe-top))}
+.scene-status{top:calc(199px + var(--solar-safe-top))}
+.settings-panel{top:calc(87px + var(--solar-safe-top))}
+.timezone-readout{pointer-events:auto;cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:6px;transition:color .18s ease,background .18s ease}
+.timezone-readout:hover,.timezone-readout:focus-visible{color:var(--accent);background:rgba(233,200,141,.07);outline:none}
+.timezone-readout:focus-visible{box-shadow:0 0 0 1px rgba(233,200,141,.55)}
+@media(min-width:1800px){.clock-face,body.zen .clock-face{top:calc(70px + var(--solar-safe-top))}.scene-status{top:calc(219px + var(--solar-safe-top))}}
+@media(max-width:1050px){.masthead{top:calc(25px + var(--solar-safe-top))}}
+@media(max-width:680px){
+  .masthead{top:calc(19px + var(--solar-safe-top))}
+  .clock-face,body.zen .clock-face{top:calc(56px + var(--solar-safe-top))}
+  .scene-status{top:calc(186px + var(--solar-safe-top))}
+  .settings-panel{top:calc(61px + var(--solar-safe-top))}
+  .footer{bottom:calc(24px + var(--solar-safe-bottom))}
+  .playback{bottom:calc(92px + var(--solar-safe-bottom))}
+}
+@media(max-height:630px) and (min-width:681px){
+  .masthead{top:calc(16px + var(--solar-safe-top))}
+  .clock-face,body.zen .clock-face{top:calc(56px + var(--solar-safe-top))}
+  .scene-status{top:calc(89px + var(--solar-safe-top))}
+  .settings-panel{top:calc(60px + var(--solar-safe-top))}
+}

@@ -7,7 +7,7 @@ const ids=Object.freeze(['sun','mercury','venus','earth','mars','jupiter','satur
 const catalog=Object.freeze(ids.map(id=>Object.freeze({id})));
 function valid(asset){
  if(typeof asset==='string')return asset.startsWith('data:image/webp;base64,');
- return !!asset&&typeof asset.fallback==='string'&&asset.fallback.length>0&&Array.isArray(asset.tiers)&&asset.tiers.length>0&&asset.tiers.every(row=>Number.isFinite(row.width)&&row.width>=512&&typeof row.path==='string');
+ return !!asset&&typeof asset.fallback==='string'&&asset.fallback.length>0&&Array.isArray(asset.tiers)&&asset.tiers.length>0&&asset.tiers.every(row=>Number.isFinite(row.width)&&row.width>=256&&typeof row.path==='string');
 }
 class Materials {
  constructor(){this.disposed=false;this.state={status:'packaged',loaded:0,total:ids.length,errors:[],cacheAvailable:true};this.refresh();}

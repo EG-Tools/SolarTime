@@ -291,7 +291,7 @@
         const spoken=twelve?`${period} ${two(displayHour)}:${two(p.mi)}${showSeconds?':'+two(p.s):''}`:`${two(p.h)}:${two(p.mi)}${showSeconds?':'+two(p.s):''}`;
         $('wall-clock').dateTime=new Date(wall).toISOString();$('wall-clock').setAttribute('aria-label',t('wallClockAria',{time:spoken}));
         $('wall-date').textContent=dateFormatter.format(new Date(wall));$('timezone-button').textContent=zoneLabel();
-        $('timezone-button').setAttribute('aria-label',zoneLabel());
+        const regionAction=t('koreaView',{region:activeRegion().region});$('timezone-button').setAttribute('aria-label',regionAction);$('timezone-button').title=regionAction;
       }
       // Display each satellite immediately after its parent while the renderer
       // uses the same parent relationship for the actual scene hierarchy.
@@ -480,6 +480,10 @@
       }
       $('focus-body').addEventListener('click',()=>focusBody(renderer.selected));
       $('feature-view').addEventListener('click',()=>{const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;cancelGesture();const region=activeRegion();renderer.animateFeature(id,id==='earth'?region.latitude:-22,id==='earth'?region.longitude:(window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70),clock.value(performance.now()));cameraUi();});
+      function trackActiveRegion(){const region=activeRegion();cancelGesture();settings(false);renderer.animateFeature('earth',region.latitude,region.longitude,clock.value(performance.now()));cameraUi();}
+      const regionReadout=$('timezone-button');regionReadout.setAttribute('role','button');regionReadout.tabIndex=0;
+      regionReadout.addEventListener('click',trackActiveRegion);
+      regionReadout.addEventListener('keydown',event=>{if(event.key!=='Enter'&&event.key!==' ')return;event.preventDefault();trackActiveRegion();});
       $('zoom-in').addEventListener('click',()=>zoom(1.2));$('zoom-out').addEventListener('click',()=>zoom(1/1.2));
       for(const [id,direction] of [['rotate-left',-1],['rotate-right',1]])$(id).addEventListener('click',()=>{
         renderer.setAutoRotate(renderer.autoRotateDirection===direction?0:direction,performance.now());cameraUi();persist();
@@ -562,10 +566,21 @@
       kakaoPayDialog.addEventListener('cancel',event=>{event.preventDefault();closeKakaoPay();});
       kakaoPayDialog.addEventListener('click',event=>{if(event.target===kakaoPayDialog)closeKakaoPay();});
       const updateHelpScrollCues=bindScrollCues(helpDialog,helpScroll);
-      const releaseNotesApi=window.SolarReleaseNotes,releaseNotesNavigator=releaseNotesApi?.createReleaseNotesNavigator?.();
+      let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesLoading=null;
+      function loadReleaseNotes(){
+        if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
+        if(releaseNotesLoading)return releaseNotesLoading;
+        releaseNotesLoading=new Promise((resolve,reject)=>{
+          const existing=document.querySelector('script[data-solar-release-notes]');
+          const finish=()=>{releaseNotesApi=window.SolarReleaseNotes;if(!releaseNotesApi){reject(Error('Release notes module did not initialize.'));return;}releaseNotesNavigator=releaseNotesApi.createReleaseNotesNavigator?.()||null;resolve(releaseNotesApi);};
+          if(existing){if(window.SolarReleaseNotes)finish();else{existing.addEventListener('load',finish,{once:true});existing.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});}return;}
+          const script=document.createElement('script');script.src='src/release-notes.js?v=0.41';script.async=true;script.dataset.solarReleaseNotes='true';script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});document.head.append(script);
+        }).finally(()=>{if(!releaseNotesApi)releaseNotesLoading=null;});
+        return releaseNotesLoading;
+      }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
-        const release=state?.release;if(!release)return;
+        if(!releaseNotesApi||!releaseNotesNavigator)return;const release=state?.release;if(!release)return;
         $('release-notes-version').textContent='v'+release.version;
         $('release-notes-date').textContent=release.date||'';
         $('release-notes-size').textContent=formatReleaseNotesBytes(releaseNotesApi.SOURCE_BYTES);
@@ -581,14 +596,17 @@
         $('release-notes-panel').hidden=!next;toggle.setAttribute('aria-expanded',String(next));
         if(next)renderReleaseNotes();requestAnimationFrame(updateHelpScrollCues);
       }
-      $('release-notes-toggle').addEventListener('click',()=>setReleaseNotes($('release-notes-toggle').getAttribute('aria-expanded')!=='true'));
+      $('release-notes-toggle').addEventListener('click',async()=>{
+        const next=$('release-notes-toggle').getAttribute('aria-expanded')!=='true';
+        if(next)try{await loadReleaseNotes();if(releaseNotesNavigator)renderReleaseNotes(releaseNotesNavigator.reset());}catch(error){toast(error.message);return;}
+        setReleaseNotes(next);
+      });
       $('release-notes-newer').addEventListener('click',()=>renderReleaseNotes(releaseNotesNavigator?.newer()));
       $('release-notes-older').addEventListener('click',()=>renderReleaseNotes(releaseNotesNavigator?.older()));
-      renderReleaseNotes(releaseNotesNavigator?.reset());
       function help(open){
         const next=open===undefined?!uiElementVisible(helpDialog):open;
         if(next&&!helpDialog.open){
-          setReleaseNotes(false);renderReleaseNotes(releaseNotesNavigator?.reset());showFading(helpDialog,()=>helpDialog.show());helpScroll.scrollTop=0;updateHelpScrollCues();requestAnimationFrame(updateHelpScrollCues);
+          setReleaseNotes(false);showFading(helpDialog,()=>helpDialog.show());helpScroll.scrollTop=0;updateHelpScrollCues();requestAnimationFrame(updateHelpScrollCues);
           $('help-button').focus({preventScroll:true});
         }else if(next)showFading(helpDialog);else if(helpDialog.open)hideFading(helpDialog,()=>helpDialog.close());
         $('help-button').setAttribute('aria-expanded',String(next));
@@ -770,15 +788,15 @@
       function frame(mono) {
         if(disposed||document.hidden){raf=0;return;}
         raf=requestAnimationFrame(frame);
-        const fps=window.innerWidth<680?30:60;
-        if(mono-lastFrame<1000/fps-.5)return;
+        const frameInterval=window.SolarPerformance?.frameInterval(window.innerWidth,window.innerHeight)??(1000/(window.innerWidth<680?30:60));
+        if(mono-lastFrame<frameInterval-.5)return;
         const dt=lastFrame?Math.max(0,(mono-lastFrame)/1000):0;lastFrame=mono;
         if(!clock.paused)effectTime+=dt;
         const wall=Date.now(),ms=clock.value(mono,wall);
         if(!clock.paused&&!clock.live&&ms>=A.MAX_TIME){clock.anchorMs=A.MAX_TIME;clock.anchorMono=mono;clock.paused=true;toast(t('yearLimit'));}
         try {
-          const wasTransitioning=!!renderer.cameraTween;
-          renderer.draw(ms,effectTime,mono);
+          const wasTransitioning=!!renderer.cameraTween,renderStarted=performance.now();
+          renderer.draw(ms,effectTime,mono);window.SolarPerformance?.reportRenderCost(performance.now()-renderStarted);
           // Keep the lens readout on the same painted camera frame. The broader
           // clock/card refresh remains throttled, but zoom must not trail presets.
           if(wasTransitioning||renderer.cameraTween)cameraUi();
