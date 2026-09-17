@@ -158,7 +158,7 @@
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
       $('show-seconds').checked=showSeconds;$('seconds-group').hidden=!showSeconds;
-      $('hour-cycle').checked=hourCycle==='24';$('ampm').hidden=false;
+      $('ampm').hidden=false;syncHourCycleUi();
       $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
       function syncOrbitSpacingControl(){
         const input=$('overview-orbit-gap'),value=Math.round(renderer.options.overviewOrbitGap),locked=renderer.options.actualScale;
@@ -171,6 +171,13 @@
       }
       syncOrbitBrightnessControl();
       const zoneLabel=()=>timezone==='utc'?'UTC':activeRegion().label;
+      function syncHourCycleUi(period){
+        const control=$('ampm'),twentyFour=hourCycle==='24';
+        if(period==='AM'||period==='PM')control.dataset.period=period;
+        $('hour-cycle').checked=twentyFour;
+        control.textContent=twentyFour?'24H':(control.dataset.period||'AM');
+        control.setAttribute('aria-pressed',String(twentyFour));
+      }
       function persist() {const camera=renderer.cameraSnapshot();if(camera.focus===null)overviewCamera={...camera,focus:null};Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockFont,speedMode,speedValues,language,camera:overviewCamera,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});}
       function cameraUi() {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
@@ -280,7 +287,7 @@
         const p=dateParts(wall),key=[p.y,p.mo,p.d,p.h,p.mi,showSeconds?p.s:0,timezone,showSeconds,hourCycle].join('-');if(key===lastWallKey)return;lastWallKey=key;
         const twelve=hourCycle==='12',displayHour=twelve?((p.h+11)%12)+1:p.h,period=p.h<12?'AM':'PM';
         $('hours').textContent=two(displayHour);$('minutes').textContent=two(p.mi);$('seconds').textContent=two(p.s);
-        $('ampm').hidden=false;$('ampm').textContent=period;
+        $('ampm').hidden=false;syncHourCycleUi(period);
         const spoken=twelve?`${period} ${two(displayHour)}:${two(p.mi)}${showSeconds?':'+two(p.s):''}`:`${two(p.h)}:${two(p.mi)}${showSeconds?':'+two(p.s):''}`;
         $('wall-clock').dateTime=new Date(wall).toISOString();$('wall-clock').setAttribute('aria-label',t('wallClockAria',{time:spoken}));
         $('wall-date').textContent=dateFormatter.format(new Date(wall));$('timezone-button').textContent=zoneLabel();
@@ -432,7 +439,7 @@
       $('orbit-brightness').addEventListener('input',()=>{renderer.setOption('orbitBrightness',Number($('orbit-brightness').value)/100);syncOrbitBrightnessControl();});
       $('orbit-brightness').addEventListener('change',persist);
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
-      function setHourCycle(next){hourCycle=next==='24'?'24':'12';$('hour-cycle').checked=hourCycle==='24';$('ampm').hidden=false;lastWallKey='';uiNow();persist();}
+      function setHourCycle(next){hourCycle=next==='24'?'24':'12';$('ampm').hidden=false;syncHourCycleUi();lastWallKey='';uiNow();persist();}
       const toggleHourCycle=()=>setHourCycle(hourCycle==='12'?'24':'12');
       $('hour-cycle').addEventListener('change',()=>setHourCycle($('hour-cycle').checked?'24':'12'));
       $('ampm').addEventListener('click',event=>{event.stopPropagation();toggleHourCycle();});
@@ -450,7 +457,7 @@
         timezone='local';showSeconds=false;hourCycle='12';clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=detectedLanguage();
         await hydrateLanguage(language);
         renderer.setSite(activeRegion());for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
-        $('show-seconds').checked=showSeconds;$('seconds-group').hidden=true;$('hour-cycle').checked=false;$('ampm').hidden=false;
+        $('show-seconds').checked=showSeconds;$('seconds-group').hidden=true;$('ampm').hidden=false;syncHourCycleUi();
         $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
         translateStatic();refreshTimeFormats();refreshNavLabels();syncOrbitSpacingControl();syncOrbitBrightnessControl();syncSpeedUi();cameraUi();navVisibility();closeBody();lastWallKey='';uiNow();persist();toast(t('resetComplete'));
       }
