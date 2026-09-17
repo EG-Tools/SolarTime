@@ -1,4 +1,4 @@
-/* Solar Time v0.45 r9 — calmer stars, slightly softer Sun motion, and stock Jupiter shading. */
+/* Solar Time v0.45 r10 — calmer stars, slightly softer Sun motion, and stock Jupiter shading. */
 (function(root){
   'use strict';
 

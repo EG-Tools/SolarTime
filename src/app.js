@@ -1,31 +1,32 @@
-/* Solar Time v0.45 r9 — optimized sky layers and expanded regional languages. */
+/* Solar Time v0.45 r10 — single-context sky performance and Indonesia regional language. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
   const Localization=Modules.Localization,LanguageData=Modules.LanguageData,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
-  const LANG_ORDER=['kor','en','chn','jpn','eu','hi','es','de','fr','pt','br','it','mx'];
+  const LANG_ORDER=['kor','en','chn','br','fr','de','hi','id','it','jpn','mx','pt','es','eu'];
   const LANG_META={
-    kor:{code:'KOR',name:'한국어',locale:'ko-KR',html:'ko',copy:'kor'},
-    en:{code:'EN',name:'English',locale:'en-US',html:'en',copy:'en'},
-    chn:{code:'CHN',name:'中文',locale:'zh-CN',html:'zh-Hans',copy:'chn'},
-    jpn:{code:'JPN',name:'日本語',locale:'ja-JP',html:'ja',copy:'jpn'},
-    eu:{code:'EU',name:'Europe',locale:'en-GB',html:'en-GB',copy:'en'},
-    hi:{code:'HI',name:'हिन्दी',locale:'hi-IN',html:'hi',copy:'hi'},
-    es:{code:'ES',name:'Español',locale:'es-ES',html:'es',copy:'es'},
-    de:{code:'DE',name:'Deutsch',locale:'de-DE',html:'de',copy:'de'},
-    fr:{code:'FR',name:'Français',locale:'fr-FR',html:'fr',copy:'fr'},
+    kor:{code:'KOR',name:'한국',locale:'ko-KR',html:'ko',copy:'kor'},
+    en:{code:'EN',name:'USA',locale:'en-US',html:'en',copy:'en'},
+    chn:{code:'CHN',name:'中国',locale:'zh-CN',html:'zh-Hans',copy:'chn'},
+    jpn:{code:'JPN',name:'日本',locale:'ja-JP',html:'ja',copy:'jpn'},
+    eu:{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'},
+    hi:{code:'HI',name:'भारत',locale:'hi-IN',html:'hi',copy:'hi'},
+    es:{code:'ES',name:'España',locale:'es-ES',html:'es',copy:'es'},
+    de:{code:'DE',name:'Deutschland',locale:'de-DE',html:'de',copy:'de'},
+    fr:{code:'FR',name:'France',locale:'fr-FR',html:'fr',copy:'fr'},
     pt:{code:'PT',name:'Portugal',locale:'pt-PT',html:'pt-PT',copy:'pt'},
     br:{code:'BR',name:'Brasil',locale:'pt-BR',html:'pt-BR',copy:'pt'},
     it:{code:'IT',name:'Italia',locale:'it-IT',html:'it',copy:'it'},
-    mx:{code:'MX',name:'México',locale:'es-MX',html:'es-MX',copy:'es'}
+    mx:{code:'MX',name:'México',locale:'es-MX',html:'es-MX',copy:'es'},
+    id:{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'}
   };
   const REGIONS={
     kor:{label:'KOREA',timeZone:'Asia/Seoul',latitude:37.5665,longitude:126.978,region:'한국',city:'서울'},
     en:{label:'USA',timeZone:'America/New_York',latitude:39.8283,longitude:-98.5795,region:'United States',city:'mainland center'},
     chn:{label:'CHINA',timeZone:'Asia/Shanghai',latitude:35.8617,longitude:104.1954,region:'中国',city:'国土中心'},
     jpn:{label:'JAPAN',timeZone:'Asia/Tokyo',latitude:35.6762,longitude:139.6503,region:'日本',city:'東京'},
-    eu:{label:'EUROPE',timeZone:'Europe/Berlin',latitude:50.1109,longitude:8.6821,region:'Europe',city:'central Europe'},
+    eu:{label:'UNITED KINGDOM',timeZone:'Europe/London',latitude:55.3781,longitude:-3.436,region:'United Kingdom',city:'geographic center'},
     hi:{label:'INDIA',timeZone:'Asia/Kolkata',latitude:22.5937,longitude:78.9629,region:'भारत',city:'देश का केंद्र'},
     es:{label:'SPAIN',timeZone:'Europe/Madrid',latitude:40.4637,longitude:-3.7492,region:'España',city:'centro geográfico'},
     de:{label:'GERMANY',timeZone:'Europe/Berlin',latitude:51.1657,longitude:10.4515,region:'Deutschland',city:'geografische Mitte'},
@@ -33,7 +34,8 @@
     pt:{label:'PORTUGAL',timeZone:'Europe/Lisbon',latitude:39.3999,longitude:-8.2245,region:'Portugal',city:'centro de Portugal'},
     br:{label:'BRAZIL',timeZone:'America/Sao_Paulo',latitude:-14.235,longitude:-51.9253,region:'Brasil',city:'centro do Brasil'},
     it:{label:'ITALY',timeZone:'Europe/Rome',latitude:41.8719,longitude:12.5674,region:'Italia',city:"centro d'Italia"},
-    mx:{label:'MEXICO',timeZone:'America/Mexico_City',latitude:23.6345,longitude:-102.5528,region:'México',city:'centro de México'}
+    mx:{label:'MEXICO',timeZone:'America/Mexico_City',latitude:23.6345,longitude:-102.5528,region:'México',city:'centro de México'},
+    id:{label:'INDONESIA',timeZone:'Asia/Jakarta',latitude:-2.5489,longitude:118.0149,region:'Indonesia',city:'pusat Indonesia'}
   };
   const STAR_DENSITY_COPY=Object.freeze({
     kor:Object.freeze({label:'별 밀도',aria:'파티클 별 밀도. 0이면 파티클 별을 숨깁니다.'}),
@@ -48,7 +50,8 @@
     pt:Object.freeze({label:'Densidade de estrelas',aria:'Densidade das estrelas de partículas. Zero oculta as estrelas de partículas.'}),
     br:Object.freeze({label:'Densidade de estrelas',aria:'Densidade das estrelas de partículas. Zero oculta as estrelas de partículas.'}),
     it:Object.freeze({label:'Densità stellare',aria:'Densità delle stelle particellari. Zero nasconde le stelle particellari.'}),
-    mx:Object.freeze({label:'Densidad de estrellas',aria:'Densidad de estrellas de partículas. Cero oculta las estrellas de partículas.'})
+    mx:Object.freeze({label:'Densidad de estrellas',aria:'Densidad de estrellas de partículas. Cero oculta las estrellas de partículas.'}),
+    id:Object.freeze({label:'Kepadatan bintang',aria:'Kepadatan bintang partikel. Nol menyembunyikan bintang partikel.'})
   });
   const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,starDensity:1,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
   const FACTORY_BODY_SCALES=Object.freeze({sun:1.54,mercury:3.79,venus:3.06,earth:5.05,mars:4.28,jupiter:2,saturn:2.42,uranus:3.04,neptune:2.32,pluto:5.23,moon:3.7,europa:3.44});
@@ -102,7 +105,7 @@
       const t=(key,values)=>interpolate(COPY[copyLanguage()]?.[key]??COPY.kor?.[key]??key,values);
       const bodyCopy=body=>copyLanguage()==='kor'?{name:body.ko,description:body.description}:{name:BODY_COPY[copyLanguage()]?.[body.id]?.[0]||body.en,description:BODY_COPY[copyLanguage()]?.[body.id]?.[1]||body.description};
       const phaseCopy=name=>copyLanguage()==='kor'?name:(PHASE_COPY[copyLanguage()]?.[name]||name);
-      const quantity=(value,unit)=>['en','hi','es','de','fr','pt','it'].includes(copyLanguage())?`${value} ${t(unit)}`:`${value}${t(unit)}`;
+      const quantity=(value,unit)=>['en','hi','es','de','fr','pt','it','id'].includes(copyLanguage())?`${value} ${t(unit)}`:`${value}${t(unit)}`;
       const music=Modules.MusicPlayer.create({
         audio:$('background-music'),tracks:MUSIC_TRACKS,
         folder:/\/dist\/[^/]+\.html$/i.test(location.pathname)?'../assets/music/':'assets/music/',
@@ -609,7 +612,8 @@
         hi:Object.freeze(['Star density का default अब 100% है; reload, restart और reset पर positions फिर से random होती हैं, जबकि size, brightness और colour भी अलग-अलग random रहते हैं।','अधिकांश तारे स्थिर रहते हैं; कुछ ही 5–25 सेकंड में धीमे और अनियमित रूप से twinkle करते हैं, और बहुत कम तारे 5–10 सेकंड के लिए छिपते या कभी-कभार cross flare दिखाते हैं।','Sun की fine flow structure बनी रहती है, लेकिन मौजूदा motion strength को और लगभग 5% कम किया गया है।','Jupiter के experimental jets, turbulence और Great Red Spot shader हटाकर पुराने मूल gas-giant shader को पूरी तरह वापस किया गया है।','Viewport में right mouse button दबाकर ऊपर-नीचे drag करने पर wheel mode से स्वतंत्र camera dolly मिलता है।']),
         es:Object.freeze(['La densidad de estrellas pasa a 100% por defecto; las posiciones se vuelven a aleatorizar al recargar, reiniciar o restablecer, y tamaño, brillo y color siguen siendo independientes.','La mayoría mantiene un brillo estable; solo algunas centellean de forma lenta e irregular entre 5 y 25 segundos, y una fracción mínima desaparece 5–10 segundos o muestra raros destellos en cruz.','El Sol conserva su estructura fina, pero la intensidad del movimiento actual se reduce otro 5% para resultar más calmada.','Se eliminan los jets, turbulencias y el shader experimental de la Gran Mancha Roja de Júpiter, restaurando por completo el shader original de gigante gaseoso.','Al arrastrar verticalmente con el botón derecho sobre el visor, la cámara avanza o retrocede independientemente del modo de la rueda.']),
         de:Object.freeze(['Die Sterndichte ist standardmäßig 100%; bei Neuladen, Neustart und Zurücksetzen werden die Positionen neu zufällig verteilt, während Größe, Helligkeit und Farbe unabhängig bleiben.','Die meisten Sterne bleiben nahezu konstant; nur einige funkeln langsam und unregelmäßig über 5–25 Sekunden, während sehr wenige 5–10 Sekunden verschwinden oder selten Kreuzstrahlen zeigen.','Die feine Sonnenstruktur bleibt erhalten, die aktuelle Bewegungsstärke wird jedoch um weitere etwa 5% reduziert.','Die experimentellen Jupiter-Jets, Turbulenzen und der Shader für den Großen Roten Fleck werden entfernt; der ursprüngliche Gasriesen-Shader ist vollständig wiederhergestellt.','Vertikales Ziehen mit der rechten Maustaste im Ansichtsfenster bewegt die Kamera unabhängig vom Mausradmodus vor und zurück.']),
-        fr:Object.freeze(['La densité d’étoiles passe à 100% par défaut ; les positions sont de nouveau randomisées au rechargement, au redémarrage et à la réinitialisation, tandis que taille, luminosité et couleur restent indépendantes.','La plupart restent presque stables ; seules certaines scintillent lentement et irrégulièrement sur 5 à 25 secondes, tandis qu’une très petite minorité disparaît 5 à 10 secondes ou produit rarement une lueur en croix.','Le Soleil conserve sa structure fine, mais l’intensité actuelle du mouvement est encore réduite d’environ 5%.','Les jets, turbulences et le shader expérimental de la Grande Tache rouge de Jupiter sont supprimés, rétablissant complètement le shader original de géante gazeuse.','Un glisser vertical avec le bouton droit dans la vue avance ou recule la caméra indépendamment du mode de la molette.'])
+        fr:Object.freeze(['La densité d’étoiles passe à 100% par défaut ; les positions sont de nouveau randomisées au rechargement, au redémarrage et à la réinitialisation, tandis que taille, luminosité et couleur restent indépendantes.','La plupart restent presque stables ; seules certaines scintillent lentement et irrégulièrement sur 5 à 25 secondes, tandis qu’une très petite minorité disparaît 5 à 10 secondes ou produit rarement une lueur en croix.','Le Soleil conserve sa structure fine, mais l’intensité actuelle du mouvement est encore réduite d’environ 5%.','Les jets, turbulences et le shader expérimental de la Grande Tache rouge de Jupiter sont supprimés, rétablissant complètement le shader original de géante gazeuse.','Un glisser vertical avec le bouton droit dans la vue avance ou recule la caméra indépendamment du mode de la molette.']),
+        id:Object.freeze(["Kepadatan bintang kini memakai 100% sebagai nilai awal; posisi diacak ulang saat memuat ulang, memulai ulang, atau mengatur ulang, sementara ukuran, kecerahan, dan warna tetap diacak secara independen.","Sebagian besar bintang tetap stabil; hanya sebagian yang berkelip lambat dan tidak teratur selama 5–25 detik, dan sangat sedikit yang menghilang 5–10 detik atau sesekali menampilkan pijar silang.","Matahari mempertahankan struktur aliran halusnya, sementara kekuatan gerak saat ini dikurangi sekitar 5% lagi agar terlihat lebih tenang.","Jet, turbulensi, dan shader Bintik Merah Besar eksperimental Jupiter dihapus sehingga shader raksasa gas asli dipulihkan sepenuhnya.","Seret vertikal dengan tombol kanan mouse pada viewport untuk menggerakkan kamera maju atau mundur tanpa bergantung pada mode roda mouse."])
       });
       const PREVIOUS_RELEASE=Object.freeze({version:'0.43',date:'2026.09.17'});
       const PREVIOUS_RELEASE_ITEMS=Object.freeze({
@@ -620,7 +624,8 @@
         hi:Object.freeze(['Star density का default 200% रखते हुए position, size, brightness, colour और twinkle timing को अलग-अलग random किया गया है ताकि नियमित pattern न दिखे।','हल्के red, white, blue-white और yellow रंग मिलते हैं, और केवल कुछ चमकीले तारों पर कभी-कभार cross flare दिखाई देता है।','Sun की गति वही रखते हुए fine-scale warp मजबूत किया गया है ताकि छोटे surface motions साफ दिखें।','Maximum star pool को GPU पर एक बार upload किया जाता है और density slider केवल draw count बदलता है, जिससे पुराने GPU पर अतिरिक्त load सीमित रहता है।']),
         es:Object.freeze(['La densidad por defecto sigue en 200%, pero posición, tamaño, brillo, color y periodo de parpadeo se aleatorizan de forma independiente.','Se mezclan estrellas rojas, blancas, blanco-azuladas y amarillas con poca saturación, y solo unas pocas brillantes muestran destellos en cruz.','El Sol conserva la velocidad pero aumenta la deformación fina para que el movimiento de pequeña escala sea claramente visible.','El conjunto máximo de estrellas se carga una sola vez en la GPU y el control de densidad solo cambia la cantidad dibujada, limitando la carga adicional en GPU antiguas.']),
         de:Object.freeze(['Die Sterndichte bleibt standardmäßig bei 200%; Position, Größe, Helligkeit, Farbe und Funkelperiode werden unabhängig zufällig verteilt.','Dezent rote, weiße, blauweiße und gelbe Sterne werden gemischt; nur wenige helle Sterne zeigen selten ein Kreuzleuchten.','Die Sonne behält ihre Geschwindigkeit, erhält aber stärkere feine Verformungen für sichtbarere kleinräumige Bewegung.','Der maximale Sternpool wird nur einmal auf die GPU geladen; der Dichteregler ändert lediglich die Anzahl der gezeichneten Sterne und begrenzt so die Zusatzlast auf älteren GPUs.']),
-        fr:Object.freeze(['La densité reste à 200% par défaut, tandis que position, taille, luminosité, couleur et période de scintillement sont randomisées indépendamment.','Des étoiles rouges, blanches, bleu-blanc et jaunes peu saturées sont mélangées, avec de rares éclats en croix sur quelques étoiles brillantes.','Le Soleil conserve sa vitesse mais renforce les déformations fines afin de rendre les petits mouvements de surface bien visibles.','Le pool maximal d’étoiles est envoyé une seule fois au GPU et le curseur de densité ne change que le nombre dessiné, afin de limiter la charge supplémentaire sur les anciens GPU.'])
+        fr:Object.freeze(['La densité reste à 200% par défaut, tandis que position, taille, luminosité, couleur et période de scintillement sont randomisées indépendamment.','Des étoiles rouges, blanches, bleu-blanc et jaunes peu saturées sont mélangées, avec de rares éclats en croix sur quelques étoiles brillantes.','Le Soleil conserve sa vitesse mais renforce les déformations fines afin de rendre les petits mouvements de surface bien visibles.','Le pool maximal d’étoiles est envoyé une seule fois au GPU et le curseur de densité ne change que le nombre dessiné, afin de limiter la charge supplémentaire sur les anciens GPU.']),
+        id:Object.freeze(["Kepadatan bintang tetap 200% sebagai dasar pada rilis tersebut, sementara posisi, ukuran, kecerahan, warna, dan periode kelap-kelip diacak secara independen.","Bintang merah, putih, biru-putih, dan kuning lembut dicampur; hanya sedikit bintang terang yang sesekali menampilkan pijar silang.","Matahari mempertahankan kecepatannya tetapi memperkuat deformasi aliran halus agar gerak permukaan skala kecil lebih mudah terlihat.","Kumpulan maksimum bintang diunggah sekali ke GPU; penggeser kepadatan hanya mengubah jumlah yang digambar."])
       });
       const SECOND_PREVIOUS_RELEASE=Object.freeze({version:'0.42',date:'2026.09.17'});
       const SECOND_PREVIOUS_RELEASE_ITEMS=Object.freeze({
@@ -631,7 +636,8 @@
         hi:Object.freeze(['iPhone safe area का समर्थन जोड़ा गया और क्षेत्र नाम दबाने पर पृथ्वी पर वही स्थान ट्रैक होता है।','GPU texture LRU तथा adaptive DPR और 30/60fps से मोबाइल मेमोरी और rendering load घटता है।','256×128 texture tier और Cloudflare same-origin media loading जोड़े गए।','Release notes अब जरूरत पर लोड होते हैं और उसी सार्वजनिक version के r1/r2 patch भी अपने-आप पहचाने जाते हैं।']),
         es:Object.freeze(['Se respetan las áreas seguras del iPhone y al pulsar la región se sigue esa ubicación en la Tierra.','El LRU de texturas GPU y el DPR/FPS adaptativo reducen memoria y carga gráfica en móviles.','Se añade el nivel 256×128 y la carga de medios desde el mismo origen en Cloudflare.','Las notas se cargan bajo demanda y los parches r1/r2 de la misma versión también se detectan automáticamente.']),
         de:Object.freeze(['iPhone-Safe-Areas werden berücksichtigt; ein Klick auf die Regionsanzeige verfolgt den Ort auf der Erde.','GPU-Textur-LRU sowie adaptive DPR- und 30/60-fps-Steuerung senken Speicher- und Renderlast auf Mobilgeräten.','Eine 256×128-Texturstufe und Same-Origin-Medien bei Cloudflare reduzieren Übertragung und Verbindungsaufwand.','Versionshinweise laden nur bei Bedarf; auch r1/r2-Patches derselben öffentlichen Version werden automatisch erkannt.']),
-        fr:Object.freeze(['Les zones sûres de l’iPhone sont respectées et un clic sur la région suit cet emplacement sur la Terre.','Le LRU des textures GPU et l’ajustement automatique du DPR et des 30/60 i/s réduisent la mémoire et la charge mobile.','Un niveau 256×128 et le chargement des médias en même origine sur Cloudflare réduisent les transferts.','Les notes se chargent à la demande et les correctifs r1/r2 d’une même version sont détectés automatiquement.'])
+        fr:Object.freeze(['Les zones sûres de l’iPhone sont respectées et un clic sur la région suit cet emplacement sur la Terre.','Le LRU des textures GPU et l’ajustement automatique du DPR et des 30/60 i/s réduisent la mémoire et la charge mobile.','Un niveau 256×128 et le chargement des médias en même origine sur Cloudflare réduisent les transferts.','Les notes se chargent à la demande et les correctifs r1/r2 d’une même version sont détectés automatiquement.']),
+        id:Object.freeze(["Area aman iPhone didukung, dan menekan nama wilayah akan melacak lokasi tersebut langsung di Bumi.","LRU tekstur GPU serta DPR dan 30/60 fps adaptif mengurangi penggunaan memori dan beban render pada perangkat seluler.","Tingkat tekstur 256×128 dan pemuatan media dari origin Cloudflare yang sama mengurangi transfer dan overhead koneksi.","Catatan pembaruan dimuat saat diperlukan, dan patch r1/r2 dalam versi publik yang sama dapat terdeteksi otomatis."])
       });
       function withCurrentRelease(base){
         if(!base)return base;
@@ -895,7 +901,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.45',revision:'r9',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.45',revision:'r10',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

@@ -3,7 +3,7 @@
 (function(root){
   'use strict';
   const modules=root.SolarModules||(root.SolarModules={});
-  const supported=Object.freeze(['kor','en','chn','jpn','hi','es','de','fr','pt','it']);
+  const supported=Object.freeze(['kor','en','chn','jpn','hi','es','de','fr','pt','it','id']);
   const cache=new Map(),pending=new Map();
   const scriptUrl=new URL(document.currentScript?.src||location.href,location.href);
   const valid=value=>value&&typeof value.copy==='object'&&typeof value.bodies==='object'&&typeof value.phases==='object';
