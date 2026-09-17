@@ -3,11 +3,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r4 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r5 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r4"/);
-  assert.deepEqual(version,{version:'0.45',revision:'r4'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r4'/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r3/);assert.match(html,/src\/app\.js\?v=0\.45-r4/);
+  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r5"/);
+  assert.deepEqual(version,{version:'0.45',revision:'r5'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r5'/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r5/);assert.match(html,/src\/app\.js\?v=0\.45-r5/);
 });
 
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -33,7 +33,7 @@ test('most stars stay steady while only some twinkle and very few enter a 5-10 s
   const effects=read('src/visual-effects.js'),api=visualApi();
   assert.match(effects,/twinklePeriod=mix\(5\.0,25\.0/);assert.match(effects,/twinkles=step\(\.70,behavior\)/);assert.match(effects,/rests=step\(\.972,behavior\)/);assert.match(effects,/restHidden=mix\(5\.0,10\.0/);assert.match(effects,/restVisible=mix\(42\.0,105\.0/);
   const vertex='attribute vec3 position,appearance;uniform vec3 right,down,forward;uniform vec2 size;uniform float fov,pointScale,seconds; varying float intensity; void main(){float z=dot(position,forward),phase=appearance.z;float pulse=pow(max(0.,sin((seconds+phase)/(6.+phase)*6.28318530718)),16.);intensity=appearance.y*(.55+pulse*.65);gl_PointSize=clamp(appearance.x*10.*pointScale,1.,30.);}';
-  const transformed=api.transformStarShader(vertex);assert.match(transformed,/variation=mix\(\.96\+\.04\*irregular,\.58\+\.42\*irregular,twinkles\)/);assert.match(transformed,/intensity=appearance\.y\*variation\*visible/);
+  const transformed=api.transformStarShader(vertex);assert.match(transformed,/variation=mix\(\.96\+\.04\*irregular,\.58\+\.42\*irregular,twinkles\)/);assert.match(transformed,/lively=smoothstep\(\.30,\.62,appearance\.x\)/);
 });
 
 test('yellow stars are rare while red, white and blue-white remain available',()=>{
