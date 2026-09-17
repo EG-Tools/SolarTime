@@ -3,11 +3,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r5 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r6 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r5"/);
-  assert.deepEqual(version,{version:'0.45',revision:'r5'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r5'/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r5/);assert.match(html,/src\/app\.js\?v=0\.45-r5/);
+  assert.match(html,/name="solar-time-version" content="0\.45"/);assert.match(html,/name="solar-time-revision" content="r6"/);
+  assert.deepEqual(version,{version:'0.45',revision:'r6'});assert.equal(pkg.version,'0.0.45');assert.match(app,/version:'0\.45',revision:'r6'/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r6/);assert.match(html,/src\/app\.js\?v=0\.45-r6/);
 });
 
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -33,7 +33,7 @@ test('most stars stay steady while only some twinkle and very few enter a 5-10 s
   const effects=read('src/visual-effects.js'),api=visualApi();
   assert.match(effects,/twinklePeriod=mix\(5\.0,25\.0/);assert.match(effects,/twinkles=step\(\.70,behavior\)/);assert.match(effects,/rests=step\(\.972,behavior\)/);assert.match(effects,/restHidden=mix\(5\.0,10\.0/);assert.match(effects,/restVisible=mix\(42\.0,105\.0/);
   const vertex='attribute vec3 position,appearance;uniform vec3 right,down,forward;uniform vec2 size;uniform float fov,pointScale,seconds; varying float intensity; void main(){float z=dot(position,forward),phase=appearance.z;float pulse=pow(max(0.,sin((seconds+phase)/(6.+phase)*6.28318530718)),16.);intensity=appearance.y*(.55+pulse*.65);gl_PointSize=clamp(appearance.x*10.*pointScale,1.,30.);}';
-  const transformed=api.transformStarShader(vertex);assert.match(transformed,/variation=mix\(\.96\+\.04\*irregular,\.58\+\.42\*irregular,twinkles\)/);assert.match(transformed,/lively=smoothstep\(\.30,\.62,appearance\.x\)/);
+  const transformed=api.transformStarShader(vertex);assert.match(transformed,/variation=mix\(\.96\+\.04\*irregular,\.58\+\.42\*irregular,twinkles\)/);assert.match(transformed,/lively=step\(\.55,appearance\.x\)/);
 });
 
 test('yellow stars are rare while red, white and blue-white remain available',()=>{
@@ -76,3 +76,16 @@ test('v0.45 notes include the right-drag dolly control',()=>{
   assert.match(block,/마우스 오른쪽 버튼을 누른 채 위아래로 드래그/);
 });
 
+
+test('r6 pushes the starfield farther away without slowing the background drift',()=>{
+  const effects=read('src/visual-effects.js'),sky=read('src/sky.js'),renderer=read('src/renderer.js'),html=read('index.html');
+  assert.match(effects,/size=clamp\(size,\.14,1\.52\)\*\.82/);
+  assert.match(effects,/lively=step\(\.55,appearance\.x\)/);
+  assert.match(effects,/flarePulse\*13\.12/);
+  assert.match(sky,/DRIFT=\.22\*Math\.PI\/180/);
+  assert.match(sky,/pow\(haze,vec3\(\.95\)\)\*\.5984/);
+  assert.match(sky,/255\*\.5896/);
+  assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
+  assert.match(html,/src\/sky\.js\?v=0\.45-r6/);
+  assert.match(html,/src\/renderer\.js\?v=0\.45-r6/);
+});

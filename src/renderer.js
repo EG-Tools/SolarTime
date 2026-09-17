@@ -14,7 +14,7 @@
   // User-approved normal-view baseline. Horizontal pan is intentionally zero;
   // the vertical composition, lens and orbit angle come from the approved view.
   const DEFAULT_CAMERA=Object.freeze({azimuth:5.393597172693909,elevation:.620064911444322,zoom:1.1853048513203654,dolly:1,focus:null,panY:.033915866075961185,panX:0});
-  const AUTO_ROTATE_SPEED=2*DEG; // radians per real second; independent of orbital time
+  const AUTO_ROTATE_SPEED=1.8*DEG; // radians per real second; independent of orbital time
   const ORBIT_REVEAL=Object.freeze({duration:1400});
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
   const TRUE_RADIUS_KM=Object.freeze({sun:696340,mercury:2439.7,venus:6051.8,earth:6371,mars:3389.5,jupiter:69911,saturn:58232,uranus:25362,neptune:24622,pluto:1188.3,moon:1737.4,europa:1560.8});

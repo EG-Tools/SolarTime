@@ -89,7 +89,7 @@ class Sky{
    // for this page lifetime while the existing passive drift continues from it.
    this.offset=Math.random()*TAU;this.lastEffect=null;this.tanFov=Math.tan(38*Math.PI/180);this.lastGPU=-Infinity;
   this.rayTables=new Map();this.visibleStars=[];this.cameraMotionAt=-Infinity;
-  this.gamma=new Float32Array(4096);for(let i=0;i<4096;i++)this.gamma[i]=Math.pow(i/4095,.95)*255*.67;
+  this.gamma=new Float32Array(4096);for(let i=0;i<4096;i++)this.gamma[i]=Math.pow(i/4095,.95)*255*.5896;
   canvas.addEventListener('webglcontextlost',e=>{
    e.preventDefault();this.initTicket++;this.ready=false;this.stats.backend='context-lost';
    this.texture=this.buffer=this.program=this.starBuffer=this.starProgram=null;this.starA=this.starU=null;this.cancelSoftware();this.invalidate();
@@ -121,7 +121,7 @@ class Sky{
      float longitude=length(q.xy)>.0000001?atan(q.y,q.x):0.;
      vec2 uv=vec2(fract(longitude/6.28318530718+.5),.5-asin(clamp(q.z,-1.,1.))/3.14159265359);
      vec3 haze=texture2D(sky,uv).rgb;float vignette=1.-.24*pow(clamp(length(p)*.6,0.,1.),2.);
-     vec3 col=vec3(.001,.002,.006)+pow(haze,vec3(.95))*.68;
+     vec3 col=vec3(.001,.002,.006)+pow(haze,vec3(.95))*.5984;
      gl_FragColor=vec4(col*vignette,1.);
     }`);}catch(error){g.deleteShader(vs);throw error;}
    const program=g.createProgram();this.program=program;

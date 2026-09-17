@@ -1,4 +1,4 @@
-/* Solar Time v0.45 r5 — calmer stars, slightly softer Sun motion, and stock Jupiter shading. */
+/* Solar Time v0.45 r6 — calmer stars, slightly softer Sun motion, and stock Jupiter shading. */
 (function(root){
   'use strict';
 
@@ -21,7 +21,7 @@
     if(rareSize>.994)size+=.34+random()*.45;
     let brightness=.075+Math.pow(brightRoll,2.15)*.66;
     if(rareBright>.989)brightness+=.10+random()*.18;
-    size=clamp(size,.14,1.52);brightness=clamp(brightness,.07,.92);
+    size=clamp(size,.14,1.52)*.82;brightness=clamp(brightness,.07,.92);
     // This seed is consumed by independent shader hashes for colour, twinkle
     // period/phase and the rare cross flare. It is not tied to sky position.
     const seed=(index+1)*.754877666+random()*8192;
@@ -95,13 +95,13 @@
     if(source.includes('attribute vec3 position,appearance;')){
       next=next.replace('varying float intensity;','varying float intensity,starTone,flarePulse;');
       next=next.replace('float z=dot(position,forward),phase=appearance.z;',
-        'float z=dot(position,forward),seed=appearance.z;float twinklePeriod=mix(5.0,25.0,fract(seed*.754877666));float behavior=fract(seed*.2718281828+appearance.y*.53);float twinkles=step(.70,behavior);float rests=step(.972,behavior);float restVisible=mix(42.0,105.0,fract(seed*.4142135623));float restHidden=mix(5.0,10.0,fract(seed*.318309886));float restCycle=restVisible+restHidden;float restTime=mod(seconds+fract(seed*.56984029)*restCycle,restCycle);float visible=1.-rests*step(restVisible,restTime);float lively=smoothstep(.30,.62,appearance.x);');
+        'float z=dot(position,forward),seed=appearance.z;float twinklePeriod=mix(5.0,25.0,fract(seed*.754877666));float behavior=fract(seed*.2718281828+appearance.y*.53);float twinkles=step(.70,behavior);float rests=step(.972,behavior);float restVisible=mix(42.0,105.0,fract(seed*.4142135623));float restHidden=mix(5.0,10.0,fract(seed*.318309886));float restCycle=restVisible+restHidden;float restTime=mod(seconds+fract(seed*.56984029)*restCycle,restCycle);float visible=1.-rests*step(restVisible,restTime);float lively=step(.55,appearance.x);');
       next=next.replace('float pulse=pow(max(0.,sin((seconds+phase)/(6.+phase)*6.28318530718)),16.);',
         'float phase=fract(seed*.6180339887)*6.28318530718;float primary=.5+.5*sin(seconds/twinklePeriod*6.28318530718+phase);float secondary=.5+.5*sin(seconds/(twinklePeriod*1.618+3.0)*6.28318530718+fract(seed*.141421356)*6.28318530718);float irregular=primary*.68+secondary*.32;float variation=mix(.96+.04*irregular,.58+.42*irregular,twinkles);float flareWave=pow(max(0.,primary),18.);');
       next=next.replace('intensity=appearance.y*(.55+pulse*.65);',
         'intensity=appearance.y*mix(1.0,variation,lively)*mix(1.0,visible,lively);starTone=fract(seed*.173205+appearance.x*.37);flarePulse=step(.9985,fract(seed*.91337+appearance.y*.71))*flareWave*smoothstep(.50,.84,appearance.y)*lively*mix(1.0,visible,lively);');
       next=next.replace('gl_PointSize=clamp(appearance.x*10.*pointScale,1.,30.);',
-        'gl_PointSize=clamp((appearance.x*10.+flarePulse*16.)*pointScale,1.,35.);');
+        'gl_PointSize=clamp((appearance.x*10.+flarePulse*13.12)*pointScale,1.,29.);');
       return next;
     }
     if(source.includes('gl_PointCoord-.5')){
