@@ -1,19 +1,18 @@
 ﻿@echo off
 setlocal
-title Solar Time v0.42 Release
+title Solar Time v0.43 Release
 
 cd /d D:\_Program\SolarTime
 
 echo.
 echo ========================================
-echo   Solar Time v0.42 Release
+echo   Solar Time v0.43 Release
 echo   D:\_Program\SolarTime
 echo ========================================
 echo.
 
 if not exist package.json (
     echo [ERROR] package.json not found.
-    echo Make sure D:\_Program\SolarTime is the SolarTime project folder.
     goto :fail
 )
 
@@ -47,8 +46,8 @@ if %errorlevel%==0 (
     echo No new Git changes to commit.
 ) else (
     echo.
-    echo Committing v0.42...
-    git commit -m "Release Solar Time v0.42"
+    echo Committing v0.43...
+    git commit -m "Release Solar Time v0.43"
     if errorlevel 1 goto :fail
 )
 
@@ -60,7 +59,7 @@ if errorlevel 1 goto :fail
 echo.
 echo ========================================
 echo   SUCCESS
-echo   Solar Time v0.42 deployed and pushed.
+echo   Solar Time v0.43 deployed and pushed.
 echo ========================================
 echo.
 git status

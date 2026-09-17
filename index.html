@@ -7,13 +7,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
-  <meta name="solar-time-version" content="0.42">
+  <meta name="solar-time-version" content="0.43">
   <meta name="solar-time-revision" content="r1">
   <meta id="meta-description" name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주." data-i18n-content="metaDescription">
   <title>Solar Time</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23060910'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='12' transform='rotate(-28 32 32)' fill='none' stroke='%23748295' stroke-width='1.4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23efbf76'/%3E%3Ccircle cx='54' cy='20' r='3' fill='%23b6d8ed'/%3E%3C/svg%3E">
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=0.42">
-  <link rel="manifest" href="manifest.webmanifest?v=0.42">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=0.43">
+  <link rel="manifest" href="manifest.webmanifest?v=0.43">
   <script>
     (()=>{
       'use strict';
@@ -47,8 +47,8 @@
       document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=0.42">
-  <link rel="stylesheet" href="src/runtime-optimizations.css?v=0.42-r1">
+  <link rel="stylesheet" href="styles.css?v=0.43">
+  <link rel="stylesheet" href="src/runtime-optimizations.css?v=0.43-r1">
 </head>
 <body>
   <canvas id="starfield" aria-hidden="true"></canvas>
@@ -124,6 +124,7 @@
     <div class="setting-row"><label for="actual-scale" data-i18n="actualScale">실제 크기 비율</label><input id="actual-scale" type="checkbox" role="switch"></div>
     <div id="overview-orbit-gap-control" class="setting-range"><label for="overview-orbit-gap"><span data-i18n="orbitSpacing">일반 보기 궤도 간격</span><output id="overview-orbit-gap-output" for="overview-orbit-gap">90</output></label><input id="overview-orbit-gap" class="solar-range" type="range" min="50" max="400" step="1" value="90" aria-label="일반 보기의 행성 궤도 간격" data-i18n-aria="orbitSpacingAria"></div>
     <div id="orbit-brightness-control" class="setting-range"><label for="orbit-brightness"><span data-i18n="orbitBrightness">궤도 밝기</span><output id="orbit-brightness-output" for="orbit-brightness">50%</output></label><input id="orbit-brightness" class="solar-range" type="range" min="0" max="100" step="1" value="50" aria-label="궤도선 밝기. 0이면 궤도선이 숨겨집니다." data-i18n-aria="orbitBrightnessAria"></div>
+    <div id="star-density-control" class="setting-range"><label for="star-density"><span id="star-density-label">별 밀도</span><output id="star-density-output" for="star-density">100%</output></label><input id="star-density" class="solar-range" type="range" min="0" max="400" step="10" value="100" aria-label="파티클 별 밀도. 0이면 파티클 별을 숨깁니다."></div>
     <div class="setting-row"><label for="show-labels" data-i18n="bodyNames">천체 이름</label><input id="show-labels" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="avoid-labels" data-i18n="avoidLabels">이름 겹침 자동 정리</label><input id="avoid-labels" type="checkbox" role="switch"></div>
     <div class="setting-row"><label for="show-seconds" data-i18n="showSeconds">시계 초 표시</label><input id="show-seconds" type="checkbox" role="switch"></div>
@@ -216,7 +217,7 @@
       <img class="life-user-watermark life-user-watermark-footer" src="life-user-watermark.webp" alt="Life User">
       <span class="credit-line"><span data-i18n="scaleNoteLineOne">크기·거리 축척 조정 · 평균 궤도 근사</span> ·</span>
       <span class="credit-line"><span data-i18n="scaleNoteLineTwo">자전·공전 시간 연동</span> · <a class="source-link" href="https://github.com/EG-Tools/SolarTime/blob/main/assets/CREDITS.md" target="_blank" rel="noopener" data-i18n="sources">출처</a></span>
-      <span class="credit-line">Solar Time v0.42 · <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
+      <span class="credit-line">Solar Time v0.43 · <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
       <span class="credit-line">© 2026 Life User. All rights reserved.</span>
     </div>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택" data-i18n-aria="bodySelect"></nav>
@@ -243,7 +244,7 @@
       <button id="release-notes-toggle" class="release-notes-toggle" type="button" aria-expanded="false" aria-controls="release-notes-panel"><span data-i18n="releaseNotes">업데이트 내역</span><span class="release-notes-toggle-mark" aria-hidden="true"></span></button>
       <section id="release-notes-panel" class="release-notes-panel" hidden>
         <div class="release-notes-header">
-          <div class="release-notes-heading"><h3 id="release-notes-version">v0.42</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
+          <div class="release-notes-heading"><h3 id="release-notes-version">v0.43</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
           <div class="release-notes-navigation" aria-label="업데이트 내역 이동">
             <button id="release-notes-newer" type="button" aria-label="최신 업데이트 내역" data-i18n-aria="releaseNotesNewer"></button>
             <span id="release-notes-position" aria-live="polite">1 / 1</span>
@@ -258,7 +259,7 @@
       <p data-i18n="timeHelp">상단 시계는 기기 실제 시간입니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.</p>
       <p data-i18n="orbitHelp">행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.</p>
       <div class="shortcuts"><span><kbd>Space</kbd> <span data-i18n="pause">일시정지</span></span><span><kbd>R</kbd> <span data-i18n="realTime">실제 시간</span></span><span><kbd>F</kbd> <span data-i18n="fullscreen">전체 화면</span></span><span><kbd>H</kbd> <span data-i18n="zenMode">감상 모드</span></span><span><kbd>0</kbd> <span data-i18n="homeView">기본 시점</span></span><span><kbd>1 · 2 · 3</kbd> <span data-i18n="savedViews">저장 시점</span></span><span><kbd>Esc</kbd> <span data-i18n="stepExit">단계별 종료</span></span></div>
-      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><span class="support-option-row"><span class="support-label" data-i18n="supportUsd">달러로 후원</span><span class="support-providers"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a></span></span><span class="support-option-row"><span class="support-label" data-i18n="supportKrw">원화로 후원</span><span class="support-providers"><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><span aria-hidden="true">·</span><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span></span></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span class="music-credit support-credit">BACKGROUND MUSIC · SUNO AI</span><span class="support-identity">Life User • Solar Time v0.42 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" src="life-user-watermark.webp" alt="Life User"></p>
+      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><span class="support-option-row"><span class="support-label" data-i18n="supportUsd">달러로 후원</span><span class="support-providers"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a></span></span><span class="support-option-row"><span class="support-label" data-i18n="supportKrw">원화로 후원</span><span class="support-providers"><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><span aria-hidden="true">·</span><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span></span></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span class="music-credit support-credit">BACKGROUND MUSIC · SUNO AI</span><span class="support-identity">Life User • Solar Time v0.43 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" src="life-user-watermark.webp" alt="Life User"></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </dialog>
@@ -284,17 +285,18 @@
   <noscript><div class="fatal-error">태양계 시계를 실행하려면 브라우저의 JavaScript를 켜 주세요.</div></noscript>
   <script id="solar-assets" src="src/assets.js?v=assetpack-20260917-r7"></script>
   <script src="src/sky-asset.js?v=assetpack-20260917-r7"></script>
-  <script src="src/materials.js?v=0.42"></script>
-  <script src="src/astro.js?v=0.42"></script>
-  <script src="src/surface.js?v=0.42"></script>
-  <script src="src/sky.js?v=0.42"></script>
-  <script src="src/renderer.js?v=0.42"></script>
-  <script src="src/performance.js?v=0.42-r1"></script>
-  <script src="src/language-data.js?v=0.42"></script>
-  <script src="src/localization.js?v=0.42"></script>
-  <script src="src/preferences.js?v=0.42"></script>
-  <script src="src/ui-runtime.js?v=0.42"></script>
-  <script src="src/music-player.js?v=0.42"></script>
-  <script src="src/app.js?v=0.42-r1"></script>
+  <script src="src/materials.js?v=0.43"></script>
+  <script src="src/astro.js?v=0.43"></script>
+  <script src="src/surface.js?v=0.43"></script>
+  <script src="src/sky.js?v=0.43"></script>
+  <script src="src/visual-effects.js?v=0.43-r1"></script>
+  <script src="src/renderer.js?v=0.43"></script>
+  <script src="src/performance.js?v=0.43-r1"></script>
+  <script src="src/language-data.js?v=0.43"></script>
+  <script src="src/localization.js?v=0.43"></script>
+  <script src="src/preferences.js?v=0.43"></script>
+  <script src="src/ui-runtime.js?v=0.43"></script>
+  <script src="src/music-player.js?v=0.43"></script>
+  <script src="src/app.js?v=0.43-r1"></script>
 </body>
 </html>

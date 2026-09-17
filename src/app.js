@@ -1,4 +1,4 @@
-/* Solar Time v0.42 — adaptive rendering, regional tracking and revision-aware updates. */
+/* Solar Time v0.43 — adjustable star density, finer Sun surface motion and revision-aware updates. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -27,7 +27,18 @@
     de:{label:'GERMANY',timeZone:'Europe/Berlin',latitude:51.1657,longitude:10.4515,region:'Deutschland',city:'geografische Mitte'},
     fr:{label:'FRANCE',timeZone:'Europe/Paris',latitude:46.2276,longitude:2.2137,region:'France',city:'centre géographique'}
   };
-  const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
+  const STAR_DENSITY_COPY=Object.freeze({
+    kor:Object.freeze({label:'별 밀도',aria:'파티클 별 밀도. 0이면 파티클 별을 숨깁니다.'}),
+    en:Object.freeze({label:'Star density',aria:'Particle star density. Zero hides particle stars.'}),
+    chn:Object.freeze({label:'星星密度',aria:'粒子星星密度。设为 0 时隐藏粒子星星。'}),
+    jpn:Object.freeze({label:'星の密度',aria:'パーティクル星の密度。0 にするとパーティクル星を非表示にします。'}),
+    eu:Object.freeze({label:'Star density',aria:'Particle star density. Zero hides particle stars.'}),
+    hi:Object.freeze({label:'तारों का घनत्व',aria:'पार्टिकल तारों का घनत्व। 0 पर पार्टिकल तारे छिप जाते हैं।'}),
+    es:Object.freeze({label:'Densidad de estrellas',aria:'Densidad de estrellas de partículas. Cero oculta las estrellas de partículas.'}),
+    de:Object.freeze({label:'Sterndichte',aria:'Dichte der Partikelsterne. Bei 0 werden Partikelsterne ausgeblendet.'}),
+    fr:Object.freeze({label:'Densité d’étoiles',aria:'Densité des étoiles particules. Zéro masque les étoiles particules.'})
+  });
+  const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,starDensity:1,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
   const FACTORY_BODY_SCALES=Object.freeze({sun:1.54,mercury:3.79,venus:3.06,earth:5.05,mars:4.28,jupiter:2,saturn:2.42,uranus:3.04,neptune:2.32,pluto:5.23,moon:3.7,europa:3.44});
   const FACTORY_ORBIT_SCALES=Object.freeze({sun:.16,earth:.43,jupiter:1});
   const FACTORY_AUTO_ROTATE=1;
@@ -91,6 +102,8 @@
         Localization.apply(document,t);
         const lang=$('language-toggle');lang.textContent=LANG_META[language].code;lang.setAttribute('aria-label',`${t('languageChange')}. ${LANG_META[language].name}`);lang.title=`${t('languageChange')} · ${LANG_META[language].code}`;
         const menu=$('language-menu');menu.setAttribute('aria-label',t('languageChange'));
+        const starCopy=STAR_DENSITY_COPY[language]||STAR_DENSITY_COPY.kor;
+        $('star-density-label').textContent=starCopy.label;$('star-density').setAttribute('aria-label',starCopy.aria);
         for(const option of menu.querySelectorAll('[data-language]'))option.setAttribute('aria-checked',String(option.dataset.language===language));
         for(const [id,key] of [['zoom-in','zoomIn'],['zoom-out','zoomOut']]){$(id).setAttribute('aria-label',t(key));$(id).title=t(key);}
         $('fit-view').setAttribute('aria-label',t('homeView'));$('fit-view').title=t('homeView')+' · 0';
@@ -125,6 +138,7 @@
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
           if(Number.isFinite(saved.orbitBrightness))renderer.options.orbitBrightness=A.clamp(saved.orbitBrightness,0,1);
           else if(typeof saved.orbits==='boolean')renderer.options.orbitBrightness=saved.orbits?.5:0;
+          if(Number.isFinite(saved.starDensity))renderer.options.starDensity=A.clamp(saved.starDensity,0,4);
            if(typeof saved.dollyZoom==='boolean')renderer.options.dollyZoom=saved.dollyZoom;
            if([-1,0,1].includes(saved.autoRotateDirection))savedAutoRotateDirection=saved.autoRotateDirection;
           if(Number.isFinite(saved.overviewOrbitGap))renderer.options.overviewOrbitGap=A.clamp(Math.round(saved.overviewOrbitGap),A.OVERVIEW_ORBIT.minGap,A.OVERVIEW_ORBIT.maxGap);
@@ -170,6 +184,11 @@
         $('orbit-brightness').value=String(value);$('orbit-brightness-output').textContent=value+'%';
       }
       syncOrbitBrightnessControl();
+      function syncStarDensityControl(){
+        const value=Math.round(A.clamp(Number(renderer.options.starDensity) || 0,0,4)*100);
+        $('star-density').value=String(value);$('star-density-output').textContent=value+'%';
+      }
+      syncStarDensityControl();
       const zoneLabel=()=>timezone==='utc'?'UTC':activeRegion().label;
       function syncHourCycleUi(period){
         const control=$('ampm'),twentyFour=hourCycle==='24';
@@ -438,6 +457,8 @@
       $('overview-orbit-gap').addEventListener('change',persist);
       $('orbit-brightness').addEventListener('input',()=>{renderer.setOption('orbitBrightness',Number($('orbit-brightness').value)/100);syncOrbitBrightnessControl();});
       $('orbit-brightness').addEventListener('change',persist);
+      $('star-density').addEventListener('input',()=>{renderer.setOption('starDensity',Number($('star-density').value)/100);syncStarDensityControl();});
+      $('star-density').addEventListener('change',persist);
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
       function setHourCycle(next){hourCycle=next==='24'?'24':'12';$('ampm').hidden=false;syncHourCycleUi();lastWallKey='';uiNow();persist();}
       const toggleHourCycle=()=>setHourCycle(hourCycle==='12'?'24':'12');
@@ -459,7 +480,7 @@
         renderer.setSite(activeRegion());for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
         $('show-seconds').checked=showSeconds;$('seconds-group').hidden=true;$('ampm').hidden=false;syncHourCycleUi();
         $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
-        translateStatic();refreshTimeFormats();refreshNavLabels();syncOrbitSpacingControl();syncOrbitBrightnessControl();syncSpeedUi();cameraUi();navVisibility();closeBody();lastWallKey='';uiNow();persist();toast(t('resetComplete'));
+        translateStatic();refreshTimeFormats();refreshNavLabels();syncOrbitSpacingControl();syncOrbitBrightnessControl();syncStarDensityControl();syncSpeedUi();cameraUi();navVisibility();closeBody();lastWallKey='';uiNow();persist();toast(t('resetComplete'));
       }
       $('reset-defaults').addEventListener('click',()=>{showFading(resetDefaultsDialog,()=>resetDefaultsDialog.showModal());$('reset-defaults-no').focus({preventScroll:true});});
       $('reset-defaults-no').addEventListener('click',()=>closeResetDefaults());$('reset-defaults-yes').addEventListener('click',()=>applyFactoryDefaults().catch(fatal));
@@ -566,8 +587,19 @@
       kakaoPayDialog.addEventListener('cancel',event=>{event.preventDefault();closeKakaoPay();});
       kakaoPayDialog.addEventListener('click',event=>{if(event.target===kakaoPayDialog)closeKakaoPay();});
       const updateHelpScrollCues=bindScrollCues(helpDialog,helpScroll);
-      const CURRENT_RELEASE=Object.freeze({version:'0.42',date:'2026.09.17'});
+      const CURRENT_RELEASE=Object.freeze({version:'0.43',date:'2026.09.17'});
       const CURRENT_RELEASE_ITEMS=Object.freeze({
+        kor:Object.freeze(['설정에 별 밀도 슬라이더를 추가해 현재 별 수를 100%로 유지하면서 0~400%까지 조절할 수 있습니다.','최대 17,600개의 별을 한 번만 GPU 버퍼에 준비하고 슬라이더는 실제로 그리는 개수만 바꿔 오래된 GPU의 부담을 제한했습니다.','태양 표면 셰이더의 공간 주파수를 두 배로 높여 굵은 출렁임 대신 더 촘촘한 꿈틀거림이 보이도록 했습니다.','언어 선택 목록의 순서는 기존 그대로 유지합니다.']),
+        en:Object.freeze(['A star-density slider now keeps the current sky at 100% while allowing 0–400% particle stars.','Up to 17,600 stars are prepared once in one GPU buffer; the slider changes only the draw count to keep overhead low on older GPUs.','The Sun surface shader now uses twice the spatial frequency, replacing broad motion with finer crawling detail at the same speed.','The existing language-list order is unchanged.']),
+        chn:Object.freeze(['新增星星密度滑块，当前星空保持为 100%，粒子星可在 0–400% 之间调节。','最多 17,600 颗星只预先写入一次 GPU 缓冲区，滑块仅改变实际绘制数量，以限制旧显卡的负担。','太阳表面着色器的空间频率提高到两倍，在保持速度不变的情况下让蠕动纹理更细密。','语言列表顺序保持不变。']),
+        jpn:Object.freeze(['星の密度スライダーを追加し、現在の星空を 100% としてパーティクル星を 0～400% で調整できます。','最大 17,600 個の星を GPU バッファへ一度だけ用意し、スライダーは描画数だけを変えて古い GPU の負荷を抑えます。','太陽表面シェーダーの空間周波数を 2 倍にし、速度はそのままで大きなうねりを細かな動きへ変更しました。','言語リストの順序は従来のままです。']),
+        hi:Object.freeze(['Star density slider में मौजूदा आकाश 100% रहता है और particle stars को 0–400% तक बदला जा सकता है।','अधिकतम 17,600 तारों का GPU buffer एक बार बनता है; slider केवल draw count बदलता है ताकि पुराने GPU पर भार सीमित रहे।','Sun surface shader की spatial frequency दोगुनी की गई है, इसलिए गति वही रहते हुए बड़े उभार की जगह अधिक महीन हलचल दिखती है।','भाषा सूची का क्रम पहले जैसा ही रखा गया है।']),
+        es:Object.freeze(['Se añade un control de densidad: el cielo actual corresponde al 100% y las estrellas de partículas pueden ajustarse entre 0 y 400%.','Hasta 17.600 estrellas se preparan una sola vez en un búfer GPU; el control solo cambia cuántas se dibujan para limitar la carga en GPU antiguas.','La frecuencia espacial del shader solar se duplica, creando un movimiento más fino a la misma velocidad.','El orden de la lista de idiomas se mantiene sin cambios.']),
+        de:Object.freeze(['Ein Regler für die Sterndichte setzt den bisherigen Himmel auf 100% und erlaubt 0–400% Partikelsterne.','Bis zu 17.600 Sterne werden einmal in einem GPU-Puffer vorbereitet; der Regler ändert nur die Draw-Anzahl und begrenzt so die Last auf älteren GPUs.','Die räumliche Frequenz des Sonnen-Shaders wurde verdoppelt: gleiche Geschwindigkeit, aber deutlich feinere Bewegung statt grober Wellen.','Die bisherige Reihenfolge der Sprachliste bleibt erhalten.']),
+        fr:Object.freeze(['Un réglage de densité des étoiles conserve le ciel actuel à 100% et permet 0 à 400% d’étoiles particules.','Jusqu’à 17 600 étoiles sont préparées une seule fois dans un tampon GPU ; le curseur ne change que le nombre dessiné afin de limiter la charge sur les anciens GPU.','La fréquence spatiale du shader solaire est doublée : même vitesse, mais un mouvement beaucoup plus fin au lieu de larges ondulations.','L’ordre actuel de la liste des langues est conservé.'])
+      });
+      const PREVIOUS_RELEASE=Object.freeze({version:'0.42',date:'2026.09.17'});
+      const PREVIOUS_RELEASE_ITEMS=Object.freeze({
         kor:Object.freeze(['iPhone 안전 영역을 적용하고 국가명을 누르면 해당 지역의 지구를 바로 추적합니다.','GPU 텍스처 LRU와 자동 DPR·30/60fps 조절로 모바일 메모리와 렌더 부하를 줄였습니다.','256×128 저해상도 텍스처 단계를 추가하고 Cloudflare 배포에서 미디어를 같은 도메인으로 불러옵니다.','업데이트 내역을 필요할 때만 불러오고 같은 공개 버전 안의 r1·r2 패치도 자동 감지합니다.']),
         en:Object.freeze(['iPhone safe areas are respected, and clicking the region label tracks that location on Earth.','GPU texture LRU plus adaptive DPR and 30/60 fps reduce mobile memory and rendering load.','A 256×128 texture tier and same-origin Cloudflare media loading reduce transfer and connection overhead.','Release notes now load on demand, and r1/r2 patches can update automatically within the same public version.']),
         chn:Object.freeze(['适配 iPhone 安全区域，点击地区名称即可追踪地球上的对应位置。','加入 GPU 纹理 LRU、自动 DPR 与 30/60fps 调节，降低移动端内存和渲染负载。','新增 256×128 纹理层级，并在 Cloudflare 部署中使用同源媒体路径。','更新记录改为按需加载，同一公开版本内的 r1、r2 补丁也可自动检测。']),
@@ -578,10 +610,17 @@
         fr:Object.freeze(['Les zones sûres de l’iPhone sont respectées et un clic sur la région suit cet emplacement sur la Terre.','Le LRU des textures GPU et l’ajustement automatique du DPR et des 30/60 i/s réduisent la mémoire et la charge mobile.','Un niveau 256×128 et le chargement des médias en même origine sur Cloudflare réduisent les transferts.','Les notes se chargent à la demande et les correctifs r1/r2 d’une même version sont détectés automatiquement.'])
       });
       function withCurrentRelease(base){
-        if(!base||base.RELEASES?.[0]?.version===CURRENT_RELEASE.version)return base;
-        const latest=Object.freeze({...CURRENT_RELEASE,items:CURRENT_RELEASE_ITEMS.kor}),releases=Object.freeze([latest,...base.RELEASES]);
-        const extra=JSON.stringify(CURRENT_RELEASE_ITEMS).length;
-        return Object.freeze({...base,RELEASES:releases,SOURCE_BYTES:(base.SOURCE_BYTES||0)+extra,itemsFor(release,code='kor'){if(release?.version===CURRENT_RELEASE.version)return CURRENT_RELEASE_ITEMS[code==='eu'?'en':code]||CURRENT_RELEASE_ITEMS.en;return base.itemsFor(release,code);},createReleaseNotesNavigator(){return base.createReleaseNotesNavigator(releases);}});
+        if(!base)return base;
+        const patches=[
+          Object.freeze({meta:CURRENT_RELEASE,items:CURRENT_RELEASE_ITEMS}),
+          Object.freeze({meta:PREVIOUS_RELEASE,items:PREVIOUS_RELEASE_ITEMS})
+        ];
+        const known=new Set((base.RELEASES||[]).map(release=>release.version));
+        const additions=patches.filter(entry=>!known.has(entry.meta.version)).map(entry=>Object.freeze({...entry.meta,items:entry.items.kor}));
+        const releases=Object.freeze([...additions,...(base.RELEASES||[])]);
+        const extra=patches.filter(entry=>!known.has(entry.meta.version)).reduce((sum,entry)=>sum+JSON.stringify(entry.items).length,0);
+        const maps=Object.fromEntries(patches.map(entry=>[entry.meta.version,entry.items]));
+        return Object.freeze({...base,RELEASES:releases,SOURCE_BYTES:(base.SOURCE_BYTES||0)+extra,itemsFor(release,code='kor'){const map=maps[release?.version];if(map)return map[code==='eu'?'en':code]||map.en;return base.itemsFor(release,code);},createReleaseNotesNavigator(){return base.createReleaseNotesNavigator(releases);}});
       }
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesLoading=null;
       function loadReleaseNotes(){
@@ -591,7 +630,7 @@
           const existing=document.querySelector('script[data-solar-release-notes]');
           const finish=()=>{releaseNotesApi=withCurrentRelease(window.SolarReleaseNotes);if(!releaseNotesApi){reject(Error('Release notes module did not initialize.'));return;}releaseNotesNavigator=releaseNotesApi.createReleaseNotesNavigator?.()||null;resolve(releaseNotesApi);};
           if(existing){if(window.SolarReleaseNotes)finish();else{existing.addEventListener('load',finish,{once:true});existing.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});}return;}
-          const script=document.createElement('script');script.src='src/release-notes.js?v=0.42';script.async=true;script.dataset.solarReleaseNotes='true';script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});document.head.append(script);
+          const script=document.createElement('script');script.src='src/release-notes.js?v=0.43';script.async=true;script.dataset.solarReleaseNotes='true';script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});document.head.append(script);
         }).finally(()=>{if(!releaseNotesApi)releaseNotesLoading=null;});
         return releaseNotesLoading;
       }
@@ -828,7 +867,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.42',revision:'r1',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.43',revision:'r1',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();
