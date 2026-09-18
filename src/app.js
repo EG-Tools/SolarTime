@@ -1,10 +1,10 @@
-/* Solar Time v0.45 r10 — single-context sky performance and Indonesia regional language. */
+/* Solar Time v0.45 r11 — expanded countries sharing existing language bundles. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
   const Localization=Modules.Localization,LanguageData=Modules.LanguageData,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
-  const LANG_ORDER=['kor','en','chn','br','fr','de','hi','id','it','jpn','mx','pt','es','eu'];
+  const LANG_ORDER=['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','es','eu','uy','ve'];
   const LANG_META={
     kor:{code:'KOR',name:'한국',locale:'ko-KR',html:'ko',copy:'kor'},
     en:{code:'EN',name:'USA',locale:'en-US',html:'en',copy:'en'},
@@ -19,7 +19,23 @@
     br:{code:'BR',name:'Brasil',locale:'pt-BR',html:'pt-BR',copy:'pt'},
     it:{code:'IT',name:'Italia',locale:'it-IT',html:'it',copy:'it'},
     mx:{code:'MX',name:'México',locale:'es-MX',html:'es-MX',copy:'es'},
-    id:{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'}
+    id:{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'},
+    ao:{code:"AO",name:"Angola",locale:"pt-AO",html:"pt-AO",copy:"pt"},
+    ar:{code:"AR",name:"Argentina",locale:"es-AR",html:"es-AR",copy:"es"},
+    au:{code:"AU",name:"Australia",locale:"en-AU",html:"en-AU",copy:"en"},
+    at:{code:"AT",name:"Österreich",locale:"de-AT",html:"de-AT",copy:"de"},
+    ca:{code:"CA",name:"Canada",locale:"en-CA",html:"en-CA",copy:"en"},
+    cl:{code:"CL",name:"Chile",locale:"es-CL",html:"es-CL",copy:"es"},
+    co:{code:"CO",name:"Colombia",locale:"es-CO",html:"es-CO",copy:"es"},
+    cr:{code:"CR",name:"Costa Rica",locale:"es-CR",html:"es-CR",copy:"es"},
+    ec:{code:"EC",name:"Ecuador",locale:"es-EC",html:"es-EC",copy:"es"},
+    ie:{code:"IE",name:"Ireland",locale:"en-IE",html:"en-IE",copy:"en"},
+    mz:{code:"MZ",name:"Moçambique",locale:"pt-MZ",html:"pt-MZ",copy:"pt"},
+    nz:{code:"NZ",name:"New Zealand",locale:"en-NZ",html:"en-NZ",copy:"en"},
+    pa:{code:"PA",name:"Panamá",locale:"es-PA",html:"es-PA",copy:"es"},
+    pe:{code:"PE",name:"Perú",locale:"es-PE",html:"es-PE",copy:"es"},
+    uy:{code:"UY",name:"Uruguay",locale:"es-UY",html:"es-UY",copy:"es"},
+    ve:{code:"VE",name:"Venezuela",locale:"es-VE",html:"es-VE",copy:"es"}
   };
   const REGIONS={
     kor:{label:'KOREA',timeZone:'Asia/Seoul',latitude:37.5665,longitude:126.978,region:'한국',city:'서울'},
@@ -35,7 +51,23 @@
     br:{label:'BRAZIL',timeZone:'America/Sao_Paulo',latitude:-14.235,longitude:-51.9253,region:'Brasil',city:'centro do Brasil'},
     it:{label:'ITALY',timeZone:'Europe/Rome',latitude:41.8719,longitude:12.5674,region:'Italia',city:"centro d'Italia"},
     mx:{label:'MEXICO',timeZone:'America/Mexico_City',latitude:23.6345,longitude:-102.5528,region:'México',city:'centro de México'},
-    id:{label:'INDONESIA',timeZone:'Asia/Jakarta',latitude:-2.5489,longitude:118.0149,region:'Indonesia',city:'pusat Indonesia'}
+    id:{label:'INDONESIA',timeZone:'Asia/Jakarta',latitude:-2.5489,longitude:118.0149,region:'Indonesia',city:'pusat Indonesia'},
+    ao:{label:"ANGOLA",timeZone:"Africa/Luanda",latitude:-11.2027,longitude:17.8739,region:"Angola",city:"centro geográfico"},
+    ar:{label:"ARGENTINA",timeZone:"America/Argentina/Buenos_Aires",latitude:-38.4161,longitude:-63.6167,region:"Argentina",city:"centro geográfico"},
+    au:{label:"AUSTRALIA",timeZone:"Australia/Sydney",latitude:-25.2744,longitude:133.7751,region:"Australia",city:"geographic center"},
+    at:{label:"AUSTRIA",timeZone:"Europe/Vienna",latitude:47.5162,longitude:14.5501,region:"Österreich",city:"geografische Mitte"},
+    ca:{label:"CANADA",timeZone:"America/Toronto",latitude:56.1304,longitude:-106.3468,region:"Canada",city:"geographic center"},
+    cl:{label:"CHILE",timeZone:"America/Santiago",latitude:-35.6751,longitude:-71.543,region:"Chile",city:"centro geográfico"},
+    co:{label:"COLOMBIA",timeZone:"America/Bogota",latitude:4.5709,longitude:-74.2973,region:"Colombia",city:"centro geográfico"},
+    cr:{label:"COSTA RICA",timeZone:"America/Costa_Rica",latitude:9.7489,longitude:-83.7534,region:"Costa Rica",city:"centro geográfico"},
+    ec:{label:"ECUADOR",timeZone:"America/Guayaquil",latitude:-1.8312,longitude:-78.1834,region:"Ecuador",city:"centro geográfico"},
+    ie:{label:"IRELAND",timeZone:"Europe/Dublin",latitude:53.1424,longitude:-7.6921,region:"Ireland",city:"geographic center"},
+    mz:{label:"MOZAMBIQUE",timeZone:"Africa/Maputo",latitude:-18.6657,longitude:35.5296,region:"Moçambique",city:"centro geográfico"},
+    nz:{label:"NEW ZEALAND",timeZone:"Pacific/Auckland",latitude:-40.9006,longitude:174.886,region:"New Zealand",city:"geographic center"},
+    pa:{label:"PANAMA",timeZone:"America/Panama",latitude:8.538,longitude:-80.7821,region:"Panamá",city:"centro geográfico"},
+    pe:{label:"PERU",timeZone:"America/Lima",latitude:-9.19,longitude:-75.0152,region:"Perú",city:"centro geográfico"},
+    uy:{label:"URUGUAY",timeZone:"America/Montevideo",latitude:-32.5228,longitude:-55.7658,region:"Uruguay",city:"centro geográfico"},
+    ve:{label:"VENEZUELA",timeZone:"America/Caracas",latitude:6.4238,longitude:-66.5897,region:"Venezuela",city:"centro geográfico"}
   };
   const STAR_DENSITY_COPY=Object.freeze({
     kor:Object.freeze({label:'별 밀도',aria:'파티클 별 밀도. 0이면 파티클 별을 숨깁니다.'}),
@@ -117,7 +149,7 @@
         Localization.apply(document,t);
         const lang=$('language-toggle');lang.textContent=LANG_META[language].code;lang.setAttribute('aria-label',`${t('languageChange')}. ${LANG_META[language].name}`);lang.title=`${t('languageChange')} · ${LANG_META[language].code}`;
         const menu=$('language-menu');menu.setAttribute('aria-label',t('languageChange'));
-        const starCopy=STAR_DENSITY_COPY[language]||STAR_DENSITY_COPY.kor;
+        const starCopy=STAR_DENSITY_COPY[copyLanguage()]||STAR_DENSITY_COPY.kor;
         $('star-density-label').textContent=starCopy.label;$('star-density').setAttribute('aria-label',starCopy.aria);
         for(const option of menu.querySelectorAll('[data-language]'))option.setAttribute('aria-checked',String(option.dataset.language===language));
         for(const [id,key] of [['zoom-in','zoomIn'],['zoom-out','zoomOut']]){$(id).setAttribute('aria-label',t(key));$(id).title=t(key);}
@@ -901,7 +933,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.45',revision:'r10',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.45',revision:'r11',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();
