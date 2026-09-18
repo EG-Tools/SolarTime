@@ -3,13 +3,13 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.46 r1 exposes the new public version with localized release notes',()=>{
+test('v0.46 r3 exposes the current public revision with localized release notes',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
   assert.ok(html.includes('name="solar-time-version" content="0.46"'));
   assert.ok(html.includes('name="solar-time-revision" content="r3"'));
   assert.deepEqual(version,{version:'0.46',revision:'r3'});
   assert.equal(pkg.version,'0.0.46');
-  assert.ok(app.includes("version:'0.46',revision:'r2'"));
+  assert.ok(app.includes("version:'0.46',revision:'r3'"));
   assert.ok(html.includes('src/app.js?v=0.46-r3'));
   assert.ok(html.includes('src/localization.js?v=0.45-r11'));
 });
@@ -210,18 +210,18 @@ test('r12 simplifies and reorders the right-side view controls',()=>{
   assert.ok(app.includes("key==='+'||key==='='"));
   assert.ok(app.includes("key==='-'"));
 });
-test('install icons are generated into the Cloudflare site while the watermark remains on R2',()=>{
-  const html=read('index.html'),manifest=JSON.parse(read('manifest.webmanifest')),site=read('tools/cloudflare-site.cjs');
-  assert.ok(html.includes('/apple-touch-icon.png?v=0.46-r3'));
+test('v0.46 r3 keeps install icons on R2 and forces PNG MIME delivery',()=>{
+  const html=read('index.html'),manifest=JSON.parse(read('manifest.webmanifest')),site=read('tools/cloudflare-site.cjs'),worker=read('cloudflare/worker.js');
+  assert.ok(html.includes('/media/releases/content/ui/apple-touch-icon.png?v=0.46-r3'));
   assert.equal((html.match(/data-life-user-watermark/g)||[]).length,2);
   assert.ok(read('src/app.js').includes("releases/content/ui/life-user-watermark.webp"));
   assert.deepEqual(manifest.icons.map(icon=>icon.src),[
-    '/app-icon-192.png?v=0.46-r3',
-    '/app-icon-512.png?v=0.46-r3'
+    '/media/releases/content/ui/app-icon-192.png?v=0.46-r3',
+    '/media/releases/content/ui/app-icon-512.png?v=0.46-r3'
   ]);
-  assert.ok(site.includes("assets','solar-time-icon.svg"));
-  for(const name of ['apple-touch-icon.png','app-icon-192.png','app-icon-512.png'])assert.ok(site.includes(name),name);
-  assert.ok(!site.includes("'life-user-watermark.webp'"));
+  for(const name of ['apple-touch-icon.png','app-icon-192.png','app-icon-512.png','life-user-watermark.webp'])assert.ok(!site.includes("'"+name+"'"),name);
+  assert.match(worker,/if\(value\.endsWith\('\.png'\)\)return 'image\/png'/);
+  assert.match(worker,/headers=mediaHeaders\(object,status,key\)/);
 });
 
 
