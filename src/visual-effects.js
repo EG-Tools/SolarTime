@@ -69,24 +69,77 @@
 
   function drawCount(sky,options={}){const available=Math.min(MAX_STAR_COUNT,sky.starCount||root.SolarAssets?.starData?.length/6||MAX_STAR_COUNT),density=clamp(Number(options.starDensity??1),0,MAX_STAR_MULTIPLIER),count=Math.min(available,Math.round(BASE_STAR_COUNT*density));if(sky.__solarStarDrawCount!==count){sky.__solarStarDrawCount=count;sky.invalidate?.();}if(sky.stats)sky.stats.visibleStarCount=count;return count;}
   function starsFor(sky,options={}){let source=root.SolarAssets?.stars;if(!Array.isArray(source)){source=starArrayFromData(root.SolarAssets?.starData);if(root.SolarAssets)root.SolarAssets.stars=source;}const density=clamp(Number(options.starDensity??1),0,MAX_STAR_MULTIPLIER),count=Math.min(source.length,Math.round(BASE_STAR_COUNT*density));if(count===source.length)return source;if(sky.__solarStarSubsetSource!==source||sky.__solarStarSubsetCount!==count){sky.__solarStarSubsetSource=source;sky.__solarStarSubsetCount=count;sky.__solarStarSubset=source.slice(0,count);}return sky.__solarStarSubset;}
-  function starShaderSources(precision){return {vertex:`precision ${precision} float;
+  // Distribution intervals are intentional probabilities, not fixed counts.
+  // Red 7% -> 4.9%; yellow 3% -> 2.1%. The freed 3% is split equally between white and blue.
+  const STAR_PALETTE=Object.freeze({redEnd:.049,warmEnd:.07,blueStart:.805});
+  // White 72% -> 73.5%; blue 18% -> 19.5%. Positions/density are unchanged.
+  const STAR_COLORS=Object.freeze([[1,.80,.74],[1,.93,.79],[.985,.99,1],[.77,.88,1]].map(Object.freeze));
+  const starColorIndex=tone=>tone<STAR_PALETTE.redEnd?0:tone<STAR_PALETTE.warmEnd?1:tone>STAR_PALETTE.blueStart?3:2;
+  const starColor=tone=>STAR_COLORS[starColorIndex(tone)];
+  // Integral of the former radial tiny profile over its normalized square.
+  // A pixel-area integral retains that average light instead of sampling a
+  // subpixel core at a single location. Telescoping CDF differences conserve it.
+  const TINY_PROFILE_INTEGRAL=.03430619186;
+  function tinyStarMetrics(size,ratio=1){
+    const point=clamp(Math.max(size*10*ratio,3),3,29);
+    return {point,pixels:Math.ceil(point),radius:Math.max(1,point*.312),energy:point*point*TINY_PROFILE_INTEGRAL};
+  }
+  function tinyAxisCDF(x,radius){const t=clamp((x+radius)/(2*radius),0,1);return t*t*(3-2*t);}
+  function tinyStarCoverage(x,y,size,ratio=1){
+    const m=tinyStarMetrics(size,ratio);
+    return m.energy*(tinyAxisCDF(x+.5,m.radius)-tinyAxisCDF(x-.5,m.radius))*(tinyAxisCDF(y+.5,m.radius)-tinyAxisCDF(y-.5,m.radius));
+  }
+  // Paint whole output pixels in compatibility mode. Rescaling even a
+  // prefiltered sprite adds a second sampling/8-bit-alpha pass and can shimmer.
+  const STAR_CSS_COLORS=STAR_COLORS.map(c=>'rgb('+c.map(v=>Math.round(v*255)).join(',')+')');
+  function drawTinyStar(ctx,x,y,size,brightness,seed,ratio=1){
+    if(!(brightness>0)||!(ratio>0))return;
+    const m=tinyStarMetrics(size,ratio),cx=x*ratio,cy=y*ratio,r=m.radius;
+    const tone=((seed*.173205+size*.37)%1+1)%1;
+    const alpha=ctx.globalAlpha,fill=ctx.fillStyle,energy=alpha*clamp(brightness,0,1)*m.energy;
+    ctx.fillStyle=STAR_CSS_COLORS[starColorIndex(tone)];
+    const right=Math.ceil(cx+r),bottom=Math.ceil(cy+r),pixel=1/ratio;
+    for(let py=Math.floor(cy-r);py<bottom;py++){
+      const wy=tinyAxisCDF(py+1-cy,r)-tinyAxisCDF(py-cy,r);
+      for(let px=Math.floor(cx-r);px<right;px++){
+        const wx=tinyAxisCDF(px+1-cx,r)-tinyAxisCDF(px-cx,r);
+        ctx.globalAlpha=energy*wx*wy;ctx.fillRect(px/ratio,py/ratio,pixel,pixel);
+      }
+    }
+    ctx.globalAlpha=alpha;ctx.fillStyle=fill;
+  }
+  function starShaderSources(precision){return {vertex:`precision highp float;
     attribute vec3 position,appearance;uniform vec3 right,down,forward;uniform vec2 size;uniform float fov,pointScale,seconds;
-    varying float intensity,starTone,flarePulse,tinyStar;
+    varying ${precision} float intensity,starTone,flarePulse,tinyStar,pointPixels,tinyRadius,tinyEnergy;
     void main(){
      float z=dot(position,forward),seed=appearance.z;float twinklePeriod=mix(5.0,25.0,fract(seed*.754877666));float behavior=fract(seed*.2718281828+appearance.y*.53);float twinkles=step(.70,behavior);float rests=step(.972,behavior);float restVisible=mix(42.0,105.0,fract(seed*.4142135623));float restHidden=mix(5.0,10.0,fract(seed*.318309886));float restCycle=restVisible+restHidden;float restTime=mod(seconds+fract(seed*.56984029)*restCycle,restCycle);float visible=1.-rests*step(restVisible,restTime);float lively=step(.55,appearance.x);tinyStar=1.-lively;
      float phase=fract(seed*.6180339887)*6.28318530718;float primary=.5+.5*sin(seconds/twinklePeriod*6.28318530718+phase);float secondary=.5+.5*sin(seconds/(twinklePeriod*1.618+3.0)*6.28318530718+fract(seed*.141421356)*6.28318530718);float irregular=primary*.68+secondary*.32;float variation=mix(.96+.04*irregular,.58+.42*irregular,twinkles);float flareWave=pow(max(0.,primary),18.);
      intensity=appearance.y*mix(1.0,variation,lively)*mix(1.0,visible,lively);starTone=fract(seed*.173205+appearance.x*.37);flarePulse=step(.9985,fract(seed*.91337+appearance.y*.71))*flareWave*smoothstep(.50,.84,appearance.y)*lively*mix(1.0,visible,lively);
+     if(tinyStar>.5){intensity=appearance.y;flarePulse=0.;}
      if(z>=-.08){gl_Position=vec4(2.,2.,1.,1.);gl_PointSize=1.;return;}
      vec2 ndc=vec2(dot(position,right)/(-z*fov*size.x/size.y),-dot(position,down)/(-z*fov));
-     gl_Position=vec4(ndc,0.,1.);float basePoint=(appearance.x*10.+flarePulse*13.12)*pointScale;gl_PointSize=clamp(max(basePoint,3.0),3.0,29.);
-    }`,fragment:`precision ${precision} float;varying float intensity,starTone,flarePulse,tinyStar;
+     gl_Position=vec4(ndc,0.,1.);float basePoint=(appearance.x*10.+flarePulse*13.12)*pointScale;float point=clamp(max(basePoint,3.0),3.0,29.);
+     pointPixels=mix(point,ceil(point),tinyStar);tinyRadius=max(1.,point*.312);tinyEnergy=point*point*${TINY_PROFILE_INTEGRAL};gl_PointSize=pointPixels;
+    }`,fragment:`precision ${precision} float;varying ${precision} float intensity,starTone,flarePulse,tinyStar,pointPixels,tinyRadius,tinyEnergy;
+    vec3 starColor(float tone){
+     if(tone<${STAR_PALETTE.redEnd})return vec3(1.,.80,.74);
+     if(tone<${STAR_PALETTE.warmEnd})return vec3(1.,.93,.79);
+     if(tone>${STAR_PALETTE.blueStart})return vec3(.77,.88,1.);
+     return vec3(.985,.99,1.);
+    }
     void main(){
+     if(tinyStar>.5){
+      vec2 delta=(gl_PointCoord-.5)*pointPixels;
+      vec2 covered=smoothstep(vec2(-tinyRadius),vec2(tinyRadius),delta+.5)-smoothstep(vec2(-tinyRadius),vec2(tinyRadius),delta-.5);
+      // No alpha discard or cross flare for tiny stars: both reintroduce popping.
+      gl_FragColor=vec4(starColor(starTone),tinyEnergy*covered.x*covered.y*intensity);return;
+     }
      vec2 q=gl_PointCoord-.5;float d=length(q);
      float halo=1.-smoothstep(.08,.5,d),core=1.-smoothstep(.015,.21,d);
      float cross=(1.-smoothstep(.012,.042,min(abs(q.x),abs(q.y))))*(1.-smoothstep(.12,.5,max(abs(q.x),abs(q.y))));
-     float regularAlpha=(halo*.22+core*.96)*intensity+cross*.58*flarePulse;float tinyHalo=1.-smoothstep(.08,.48,d);float tinyCore=1.-smoothstep(.01,.16,d);float tinyAlpha=(tinyHalo*.08+tinyCore*.48)*intensity;float alpha=mix(regularAlpha,tinyAlpha,tinyStar);if(alpha<.002)discard;
-     vec3 color=vec3(.985,.99,1.);if(starTone<.07)color=vec3(1.,.80,.74);else if(starTone<.10)color=vec3(1.,.93,.79);else if(starTone>.82)color=vec3(.77,.88,1.);color=mix(color,vec3(1.),core*.16);
+     float alpha=(halo*.22+core*.96)*intensity+cross*.58*flarePulse;if(alpha<.002)discard;
+     vec3 color=mix(starColor(starTone),vec3(1.),core*.16);
      gl_FragColor=vec4(color,alpha);
     }`};}
-  root.SolarVisualEffects=Object.freeze({BASE_STAR_COUNT,MAX_STAR_MULTIPLIER,MAX_STAR_COUNT,runtimeSeed,buildNaturalStarData,buildNaturalStarPool,regenerateStars,drawCount,starsFor,starShaderSources});
+  root.SolarVisualEffects=Object.freeze({BASE_STAR_COUNT,MAX_STAR_MULTIPLIER,MAX_STAR_COUNT,runtimeSeed,buildNaturalStarData,buildNaturalStarPool,regenerateStars,drawCount,starsFor,starShaderSources,STAR_PALETTE,starColor,tinyStarMetrics,tinyStarCoverage,drawTinyStar});
 })(window);

@@ -93,7 +93,7 @@ def suite(browser,root,size,installed):
  page.locator('#help-button').click();page.locator('#release-notes-toggle').click()
  page.wait_for_function('!!window.SolarReleaseNotes')
  check(page.locator('#release-notes-version').inner_text()=='v0.47',tag+' visible release version')
- check(page.locator('#release-notes-list li').count()==6 and 'Singapore' in page.locator('#release-notes-list').inner_text(),tag+' visible English SG release note')
+ check(page.locator('#release-notes-list li').count()==7 and 'Singapore' in page.locator('#release-notes-list').inner_text(),tag+' visible English SG release note')
  page.locator('#release-notes-older').click();check(page.locator('#release-notes-version').inner_text()=='v0.46',tag+' historical release navigation')
  page.locator('#release-notes-newer').click();check(page.locator('#release-notes-version').inner_text()=='v0.47',tag+' current release navigation')
  check(not errors,tag+' no runtime errors')

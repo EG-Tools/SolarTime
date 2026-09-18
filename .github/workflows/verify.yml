@@ -39,11 +39,14 @@ jobs:
       - run: python -m pip install playwright==1.57.0
       - run: python -m playwright install --with-deps chromium
       - run: python tests/browser/ui-regression.py
+      - run: python tests/browser/tiny-star-regression.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: ui-regression-results
-          path: .cloudflare/ui-regression.json
+          path: |
+            .cloudflare/ui-regression.json
+            .cloudflare/tiny-star-regression.json
           include-hidden-files: true
           retention-days: 14
   public:
