@@ -1,0 +1,47 @@
+name: Prepare tiny-star r2 candidate
+on:
+  push:
+    branches: [fix/tiny-stars-r2]
+    paths: [.maintenance/star-r2.json, .github/workflows/stage-star-r2.yml]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Apply byte-verified candidate without changing main or media
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          root=Path.cwd();changes=json.loads(Path('.maintenance/star-r2.json').read_text());pending={}
+          for name,change in changes.items():
+              path=root/name
+              assert path.resolve().is_relative_to(root),name
+              raw=path.read_bytes()
+              assert hashlib.sha256(raw).hexdigest()==change['before'],'Base mismatch: '+name
+              text=raw.decode('utf-8')
+              for a,b,value in reversed(change['edits']):text=text[:a]+value+text[b:]
+              result=text.encode('utf-8')
+              assert hashlib.sha256(result).hexdigest()==change['after'],'Result mismatch: '+name
+              pending[path]=result
+          for path,data in pending.items():path.write_bytes(data)
+          print('Verified and prepared',len(pending),'changed files')
+          PY
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:cloudflare
+      - name: Record candidate only and remove one-time preparation files
+        run: |
+          test "$GITHUB_REF" = refs/heads/fix/tiny-stars-r2
+          git rm .maintenance/star-r2.json .github/workflows/stage-star-r2.yml
+          git add src tests index.html version.json CHANGELOG.md .github/workflows/verify.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Stabilize tiny-star sampling and rebalance warm stars equally into white and blue (v0.47 r2)'
+          git push origin HEAD:fix/tiny-stars-r2
