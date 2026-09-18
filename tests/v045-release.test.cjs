@@ -3,14 +3,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r12 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r13 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
   assert.ok(html.includes('name="solar-time-version" content="0.45"'));
-  assert.ok(html.includes('name="solar-time-revision" content="r12"'));
-  assert.deepEqual(version,{version:'0.45',revision:'r12'});
+  assert.ok(html.includes('name="solar-time-revision" content="r13"'));
+  assert.deepEqual(version,{version:'0.45',revision:'r13'});
   assert.equal(pkg.version,'0.0.45');
-  assert.ok(app.includes("version:'0.45',revision:'r12'"));
-  assert.ok(html.includes('src/app.js?v=0.45-r12'));
+  assert.ok(app.includes("version:'0.45',revision:'r13'"));
+  assert.ok(html.includes('src/app.js?v=0.45-r13'));
   assert.ok(html.includes('src/localization.js?v=0.45-r11'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -220,4 +220,22 @@ test('r12 serves install icons and watermark from R2 releases content ui',()=>{
   ]);
   for(const name of ['apple-touch-icon.png','app-icon-192.png','app-icon-512.png','life-user-watermark.webp'])
     assert.ok(!site.includes("'"+name+"'"),name);
+});
+
+
+test('r13 uses the rotate-button gap for every right-side control interval',()=>{
+  const html=read('index.html'),css=read('styles.css');
+  assert.ok(html.includes('href="styles.css?v=0.45-r13"'));
+  assert.match(css,/\.view-controls\{[^}]*--tool-gap:5px;gap:var\(--tool-gap\)/);
+  assert.match(css,/\.camera-presets\{[^}]*gap:var\(--tool-gap\);margin:0/);
+  assert.match(css,/\.view-controls #zoom-value\{padding:0;[^}]*line-height:1/);
+  assert.doesNotMatch(css,/\.camera-presets\{gap:0;margin:1px 0\}/);
+  assert.doesNotMatch(css,/\.view-controls #zoom-value\{padding:1px 0/);
+});
+
+test('r13 removes unused sky reference images from the repository',()=>{
+  assert.ok(!fs.existsSync(path.join(root,'assets/sky/dust-reference.webp')));
+  assert.ok(!fs.existsSync(path.join(root,'assets/sky/galaxy-reference.webp')));
+  const ignore=read('.gitignore');
+  assert.ok(ignore.split(/\r?\n/).includes('assets/sky/*.webp'));
 });

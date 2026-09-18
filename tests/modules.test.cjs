@@ -5,7 +5,7 @@ const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(roo
 test('runtime concerns load as modules before the application coordinator',()=>{
   const html=read('index.html'),app=read('src/app.js');
   assert.equal((html.match(/rel="stylesheet"/g)||[]).length,2);
-  assert.ok(html.includes('href="styles.css?v=0.45-r10"'));
+  assert.ok(html.includes('href="styles.css?v=0.45-r13"'));
   assert.ok(html.includes('href="src/runtime-optimizations.css?v=0.45-r1"'));
   assert.doesNotMatch(html,/styles-v016/);
   assert.ok(html.includes('src/performance.js?v=0.45-r9'));

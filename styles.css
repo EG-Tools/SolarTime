@@ -63,8 +63,8 @@ body.zen #preset-dialog[open] button{visibility:visible!important;pointer-events
 .view-controls{align-items:center;top:50%;transform:translateY(-50%);--tool-size:32px;--preset-size:19px;--preset-hit:29px;--tool-gap:5px;gap:var(--tool-gap);max-height:calc(100dvh - 24px);overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:6px;width:50px}
 .view-controls::-webkit-scrollbar{display:none}
 .view-controls .icon-button{flex-shrink:0;width:var(--tool-size);height:var(--tool-size)}
-.view-controls #zoom-value{padding:3px 0;min-width:0;font-size:8px}
-.camera-presets{display:flex;position:static;flex-direction:column;align-items:center;gap:2px;margin:3px 0;width:100%}
+.view-controls #zoom-value{padding:0;min-width:0;font-size:8px;line-height:1}
+.camera-presets{display:flex;position:static;flex-direction:column;align-items:center;gap:var(--tool-gap);margin:0;width:100%}
 .camera-presets .camera-preset{position:relative;display:grid;place-items:center;isolation:isolate;width:var(--preset-hit);height:var(--preset-hit);min-width:var(--preset-hit);padding:0;border:none;background:transparent;font-size:10px;font-variant-numeric:tabular-nums;color:var(--muted)}
 .camera-preset::before{content:"";position:absolute;inset:calc((var(--preset-hit) - var(--preset-size))/2);border:1px dashed var(--line);border-radius:50%;background:rgba(9,14,23,.64);z-index:-1}
 .camera-preset:hover::before{border-color:var(--accent);background:rgba(185,150,97,.16)}
@@ -75,7 +75,7 @@ body.zen #preset-dialog[open] button{visibility:visible!important;pointer-events
 .view-controls .rotate-button[aria-pressed=true]{color:var(--accent);background:rgba(185,150,97,.15);border-color:rgba(225,199,150,.45)}
 #zen-toggle{margin-top:0;border:1px solid var(--line);background:rgba(12,17,25,.8)}
 @media(max-width:680px){.view-controls{--tool-size:29px;--preset-size:16.5px;--preset-hit:27px;--tool-gap:3px;right:max(5px,env(safe-area-inset-right));width:43px}.view-controls svg{width:16px;height:16px}}
-@media(max-height:480px){.view-controls{--tool-size:27px;--preset-hit:23px;--preset-size:17px;--tool-gap:1px}.camera-presets{gap:0;margin:1px 0}.view-controls #zoom-value{padding:1px 0}}
+@media(max-height:480px){.view-controls{--tool-size:27px;--preset-hit:23px;--preset-size:17px;--tool-gap:1px}}
 .timezone-readout{font-size:9px;letter-spacing:.7px;color:#9aabc0;white-space:nowrap}
 .preset-dialog{position:fixed;inset:auto;margin:0;box-sizing:border-box;width:286px;max-width:calc(100vw - 16px);padding:16px;border:1px solid var(--line);border-radius:12px;background:rgba(14,20,30,.98);color:var(--fg);box-shadow:0 14px 45px #0009}
 .preset-dialog::backdrop{background:transparent}
