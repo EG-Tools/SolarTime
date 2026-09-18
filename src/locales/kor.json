@@ -170,7 +170,10 @@
     "zenOff": "감상 모드 끄기",
     "zenOn": "감상 모드 켜기",
     "normalMode": "일반 모드",
-    "yearLimit": "2999년 끝에 도달해 정지했습니다. 실제 시간으로 돌아갈 수 있습니다."
+    "yearLimit": "2999년 끝에 도달해 정지했습니다. 실제 시간으로 돌아갈 수 있습니다.",
+    "layoutDiagnostics": "화면 진단",
+    "closeCard": "닫기",
+    "reloadPage": "새로고침"
   },
   "bodies": {},
   "phases": {}

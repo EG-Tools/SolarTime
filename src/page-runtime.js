@@ -133,20 +133,25 @@
       footer:rect('.footer'),navigation:rect('.planet-nav'),playback:rect('.playback')
     };
   }
-  let dialog=null;
+  let dialog=null,diagnosticCues=null;
   function showDiagnostics(){
+    const UI=root.SolarModules?.UI;if(!UI)return;
+    const t=(key,fallback)=>root.SolarTime?.translate?.(key)||fallback;
     if(!dialog){
-      dialog=document.createElement('dialog');dialog.className='solar-layout-diagnostics';
-      const title=document.createElement('strong');title.textContent='Solar Time · Layout';
-      const pre=document.createElement('pre');pre.dataset.layoutInfo='true';
-      const actions=document.createElement('div');actions.className='solar-layout-actions';
-      const reload=document.createElement('button');reload.type='button';reload.textContent='Reload';
+      dialog=document.createElement('dialog');dialog.className='modal card-surface solar-layout-diagnostics';dialog.id='layout-diagnostics';dialog.setAttribute('aria-labelledby','layout-diagnostics-title');
+      const close=document.createElement('button');close.type='button';close.className='close-button';close.textContent='×';close.dataset.i18nAria='closeCard';close.setAttribute('aria-label',t('closeCard','Close'));
+      const body=document.createElement('div');body.className='modal-scroll card-scroll';
+      const title=document.createElement('h2');title.id='layout-diagnostics-title';title.dataset.i18n='layoutDiagnostics';title.textContent=t('layoutDiagnostics','Layout diagnostics');
+      const pre=document.createElement('pre');pre.dataset.layoutInfo='true';pre.dataset.allowSelection='true';
+      const actions=document.createElement('div');actions.className='card-actions';
+      const reload=document.createElement('button');reload.type='button';reload.className='text-button';reload.dataset.i18n='reloadPage';reload.textContent=t('reloadPage','Reload');
       reload.addEventListener('click',()=>{const url=new URL(root.location.href);url.searchParams.set('refresh',Date.now().toString(36));root.location.replace(url.href);});
-      const close=document.createElement('button');close.type='button';close.textContent='Close';close.addEventListener('click',()=>dialog.close());
-      actions.append(reload,close);dialog.append(title,pre,actions);document.body.append(dialog);
+      const requestClose=()=>UI.hide(dialog,()=>{dialog.close();document.querySelector('.solar-build-info')?.focus({preventScroll:true});});
+      close.addEventListener('click',requestClose);UI.bindDialog(dialog,requestClose);
+      const cue=direction=>{const e=document.createElement('span');e.className='scroll-cue scroll-cue-'+direction;e.setAttribute('aria-hidden','true');e.textContent=direction==='up'?'⌃':'⌄';return e;};
+      actions.append(reload);body.append(title,pre,actions);dialog.append(close,cue('up'),body,cue('down'));document.body.append(dialog);diagnosticCues=UI.bindScrollCues(dialog,body);
     }
-    dialog.querySelector('pre').textContent=JSON.stringify(layoutInfo(),null,2);
-    if(!dialog.open)dialog.showModal();
+    dialog.querySelector('pre').textContent=JSON.stringify(layoutInfo(),null,2);UI.show(dialog,()=>dialog.showModal());diagnosticCues.update();root.requestAnimationFrame(diagnosticCues.update);
   }
   function ready(){
     updateLayout();scheduleViewportSync();

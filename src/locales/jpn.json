@@ -170,7 +170,10 @@
     "zenOff": "鑑賞モードを終了",
     "zenOn": "鑑賞モードを開始",
     "normalMode": "通常モード",
-    "yearLimit": "2999年末に達したため停止しました。リアルタイムへ戻れます。"
+    "yearLimit": "2999年末に達したため停止しました。リアルタイムへ戻れます。",
+    "layoutDiagnostics": "レイアウト診断",
+    "closeCard": "閉じる",
+    "reloadPage": "再読み込み"
   },
   "bodies": {
     "sun": [

@@ -6,6 +6,7 @@
     const zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'',languages=(navigator.languages?.length?navigator.languages:[navigator.language||'']).map(value=>String(value).toLowerCase());
     if(/(?:shanghai|chongqing|urumqi|hong_kong|macau)/i.test(zone))return 'chn';
     if(/seoul/i.test(zone))return 'kor';
+    if(/^(?:Asia\/)?Singapore$/i.test(zone))return 'sg';
     if(/jakarta|pontianak|makassar|ujung_pandang|jayapura/i.test(zone))return 'id';
     if(/^Australia\//i.test(zone))return 'au';
     if(/auckland|chatham/i.test(zone))return 'nz';
@@ -35,7 +36,7 @@
     if(/mexico_city|cancun|merida|monterrey|matamoros|chihuahua|mazatlan|hermosillo|tijuana|bahia_banderas|ojinaga/i.test(zone))return 'mx';
     if(/^America\//i.test(zone))return 'en';
     const localeMap=[
-      ['zh','chn'],['ja','jpn'],['ko','kor'],['en-ca','ca'],['en-au','au'],['en-nz','nz'],['en-ie','ie'],['en-gb','eu'],
+      ['zh','chn'],['ja','jpn'],['ko','kor'],['en-sg','sg'],['en-ca','ca'],['en-au','au'],['en-nz','nz'],['en-ie','ie'],['en-gb','eu'],
       ['pt-ao','ao'],['pt-mz','mz'],['pt-br','br'],['pt','pt'],
       ['es-ar','ar'],['es-cl','cl'],['es-co','co'],['es-cr','cr'],['es-ec','ec'],['es-mx','mx'],['es-pa','pa'],['es-pe','pe'],['es-uy','uy'],['es-ve','ve'],['es','es'],
       ['de-at','at'],['de','de'],['fr','fr'],['hi','hi'],['it','it'],['id','id']

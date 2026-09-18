@@ -170,7 +170,10 @@
     "zenOff": "Desactivar modo contemplación",
     "zenOn": "Activar modo contemplación",
     "normalMode": "Modo normal",
-    "yearLimit": "Detenido al final del año 2999."
+    "yearLimit": "Detenido al final del año 2999.",
+    "layoutDiagnostics": "Diagnóstico de diseño",
+    "closeCard": "Cerrar",
+    "reloadPage": "Recargar"
   },
   "bodies": {
     "sun": [

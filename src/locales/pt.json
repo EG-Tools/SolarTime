@@ -170,7 +170,10 @@
     "zenOff": "Desativar modo de visualização",
     "zenOn": "Ativar modo de visualização",
     "normalMode": "Modo normal",
-    "yearLimit": "Parou no fim do ano 2999. Pode regressar à Hora real."
+    "yearLimit": "Parou no fim do ano 2999. Pode regressar à Hora real.",
+    "layoutDiagnostics": "Diagnóstico de layout",
+    "closeCard": "Fechar",
+    "reloadPage": "Recarregar"
   },
   "bodies": {
     "sun": [

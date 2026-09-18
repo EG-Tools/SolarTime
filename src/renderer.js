@@ -1,5 +1,4 @@
-/* Solar Time v0.46 r1 — dependency-free, depth-projected Canvas renderer.
-   Credited spherical maps are packaged in resolution tiers for every body. */
+/* Solar Time v0.47 — renderer implementation owner. */
 (function () {
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
@@ -56,14 +55,14 @@
     }
     resize() {
       const box=this.canvas.getBoundingClientRect(),w=Math.max(1,box.width),h=Math.max(1,box.height);
-      const dpr=Math.min(window.devicePixelRatio||1,this.options.quality==='low'?1:2);
-      if(w===this.w&&h===this.h&&dpr===this.dpr)return;
+      const dpr=window.SolarPerformance?.pixelRatio(w,h,this.options.quality)??Math.min(window.devicePixelRatio||1,this.options.quality==='low'?1:2);
+      if(w===this.w&&h===this.h&&Math.abs(dpr-this.dpr)<.001)return;
       this.w=w;this.h=h;this.dpr=dpr;this.starSprites?.clear();this.labelWidths?.clear();
       // Anamorphic presentation: widen projected orbital positions, keep planet icons round.
       this.lensStretch=clamp(this.w/this.h,1,1.72);
       this.canvas.width=Math.round(this.w*this.dpr);this.canvas.height=Math.round(this.h*this.dpr);
       this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
-      this.gpu?.resize(this.w,this.h,this.dpr);
+      this.stats.adaptiveDpr=this.dpr;this.gpu?.resize(this.w,this.h,this.dpr);
       this.sky.resize(this.w,this.h,this.dpr);this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate(false);this.clearLabels();
     }
     startOrbitReveal(mono=performance.now()) {

@@ -1,4 +1,6 @@
 'use strict';
+const {seam}=require('../src/surface-style.js');
+const {assertOriginal}=require('./source-guard.cjs');
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),sharp=require('sharp');
 
 const TEXTURE_WIDTHS=Object.freeze([256,512,1024,2048,4096]);
@@ -31,7 +33,7 @@ function sourceFiles(root){
 async function seamBakedVariant(source,width,height){
  const image=sharp(source).resize(width,height,{fit:'fill',kernel:sharp.kernel.lanczos3});
  const {data,info}=await image.raw().toBuffer({resolveWithObject:true}),channels=info.channels;
- const band=Math.max(2,Math.min(32,Math.round(width*.012)));
+ const band=Math.max(seam.minBand,Math.min(seam.maxBand,Math.round(width*seam.ratio)));
  for(let y=0;y<height;y++)for(let x=0;x<band;x++){
   const t=1-x/(band-1),weight=t*t*(3-2*t),leftPixel=y*width+x,rightPixel=y*width+(width-1-x);
   for(let k=0;k<channels;k++){
@@ -57,6 +59,8 @@ async function textureVariants(root,output,prefix,file,group='textures'){
 async function buildMedia(root,output){
  const {revision,deployment}=projectConfig(root),resolved=path.resolve(output),cloudflareRoot=path.resolve(root,'.cloudflare');
  if(resolved!==cloudflareRoot&&!resolved.startsWith(cloudflareRoot+path.sep))throw Error('Generated media must stay inside .cloudflare.');
+ const previousFile=path.join(root,'assets/manifest.json'),previous=fs.existsSync(previousFile)?readJson(previousFile):null;
+ for(const file of sourceFiles(root))assertOriginal(root,path.join(root,'assets',file),previous);
  fs.rmSync(resolved,{recursive:true,force:true});fs.mkdirSync(resolved,{recursive:true});
  const materials={};
  for(const file of sourceFiles(root))materials[path.basename(file,'.webp')]=await textureVariants(root,resolved,deployment.prefix,file);
@@ -82,4 +86,4 @@ function runtimeScripts(root,manifest,deployment,{cdnBase=deployment.cdnBase}={}
  const sky=`/* Generated sky URL payload; load after src/assets.js. */\n(function(root){'use strict';if(!root.SolarAssets)throw Error('SolarAssets must load before sky-asset.js');const entry=root.SolarAssetManifest.sky,base=Object.values(root.SolarAssets.materials)[0]?.base||'';if(!base)throw Error('Solar Time media service is not configured.');root.SolarAssets.sky=Object.freeze({base,tiers:Object.freeze(entry.tiers.map(row=>Object.freeze({width:row.width,path:row.path}))),fallback:new URL(entry.tiers[0].path,base).href});})(window);\n`;
  return {assets:prelude,sky};
 }
-module.exports={TEXTURE_WIDTHS,SKY_FILE,REQUIRED,atomicWrite,buildMedia,projectConfig,runtimeScripts};
+module.exports={TEXTURE_WIDTHS,SKY_FILE,REQUIRED,atomicWrite,buildMedia,projectConfig,runtimeScripts,sourceFiles};

@@ -170,7 +170,10 @@
     "zenOff": "关闭观赏模式",
     "zenOn": "开启观赏模式",
     "normalMode": "普通模式",
-    "yearLimit": "已在 2999 年末停止，可返回实时模式。"
+    "yearLimit": "已在 2999 年末停止，可返回实时模式。",
+    "layoutDiagnostics": "布局诊断",
+    "closeCard": "关闭",
+    "reloadPage": "重新加载"
   },
   "bodies": {
     "sun": [

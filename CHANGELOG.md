@@ -2,6 +2,8 @@
 
 ## v0.47 · 2026-09-18
 
+- Added Singapore (SG), reusing English translations with en-SG formatting, Asia/Singapore time and the existing regional Earth-view path.
+
 - Unified diagnostics, help, settings, body and QR card surfaces and dismissal ownership.
 - Corrected QR padding/scrolling, scrolling close controls, nested Escape and card-interior click dismissal.
 - Consolidated release history and fixed failed-load retries without changing historical wording.

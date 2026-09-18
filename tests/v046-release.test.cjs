@@ -1,22 +1,24 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
+function notesApi(){return require('../src/release-notes.js');}
+const notesFor=version=>{const api=notesApi();return api.itemsFor(api.RELEASES.find(r=>r.version===version),'kor').join(' ');};
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
 test('v0.46 page build stays consistent while unchanged coordinator keeps its bundle revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.ok(html.includes('name="solar-time-version" content="0.46"'));
+  assert.ok(html.includes('name="solar-time-version" content="0.47"'));
   assert.ok(html.includes('name="solar-time-revision" content="'+version.revision+'"'));
   assert.match(version.revision,/^r[1-9]\d*$/);
-  assert.equal(version.version,'0.46');
-  assert.equal(pkg.version,'0.0.46');
-  assert.ok(app.includes("version:'0.46',revision:'r3'"));
-  assert.ok(html.includes('src/app.js?v=0.46-r3'));
-  assert.ok(html.includes('src/localization.js?v=0.45-r11'));
+  assert.equal(version.version,'0.47');
+  assert.equal(pkg.version,'0.0.47');
+  assert.ok(app.includes("version:'0.47',revision:'r1'"));
+  assert.ok(html.includes('src/app.js?v=0.47-r1'));
+  assert.ok(html.includes('src/localization.js?v='+JSON.parse(read('version.json')).version+'-'+JSON.parse(read('version.json')).revision));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
-  assert.deepEqual(order,['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','es','eu','uy','ve']);
+  assert.deepEqual(order,['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','sg','es','eu','uy','ve']);
   assert.match(html,/id="star-density-output" for="star-density">100%<\/output>/);assert.match(html,/id="star-density" class="solar-range" type="range" min="0" max="300" step="10" value="100"/);assert.match(app,/orbitBrightness:\.5,starDensity:1/);
 });
 
@@ -37,25 +39,22 @@ test('most stars stay steady while only some twinkle and very few enter a 5-10 s
   const effects=read('src/visual-effects.js'),api=visualApi();
   assert.match(effects,/twinklePeriod=mix\(5\.0,25\.0/);assert.match(effects,/twinkles=step\(\.70,behavior\)/);assert.match(effects,/rests=step\(\.972,behavior\)/);assert.match(effects,/restHidden=mix\(5\.0,10\.0/);assert.match(effects,/restVisible=mix\(42\.0,105\.0/);
   const vertex='attribute vec3 position,appearance;uniform vec3 right,down,forward;uniform vec2 size;uniform float fov,pointScale,seconds; varying float intensity; void main(){float z=dot(position,forward),phase=appearance.z;float pulse=pow(max(0.,sin((seconds+phase)/(6.+phase)*6.28318530718)),16.);intensity=appearance.y*(.55+pulse*.65);gl_PointSize=clamp(appearance.x*10.*pointScale,1.,30.);}';
-  const transformed=api.transformStarShader(vertex);assert.match(transformed,/variation=mix\(\.96\+\.04\*irregular,\.58\+\.42\*irregular,twinkles\)/);assert.match(transformed,/lively=step\(\.55,appearance\.x\)/);
+  const transformed=api.starShaderSources('highp').vertex;assert.match(transformed,/variation=mix\(\.96\+\.04\*irregular,\.58\+\.42\*irregular,twinkles\)/);assert.match(transformed,/lively=step\(\.55,appearance\.x\)/);
 });
 
 test('yellow stars are rare while red, white and blue-white remain available',()=>{
   const effects=read('src/visual-effects.js');assert.match(effects,/starTone<\.07/);assert.match(effects,/starTone<\.10/);assert.match(effects,/starTone>\.82/);assert.match(effects,/step\(\.9985/);
 });
 
-test('Sun keeps fine frequencies but softens v0.45 r1 motion another five percent',()=>{
-  const effects=read('src/visual-effects.js');
-  for(const token of ["['uv.y*49.','uv.y*150.']","['uv.x*PI*10.','uv.x*PI*56.']","['*.0015','*.00121125']","['*.0011','*.0009025']","-.00855+.073625*brightCycle","-.01425+.03705*darkCycle","vec3(.08075,.0247,.0019)"])assert.ok(effects.includes(token),token);
-});
+test('Sun keeps approved fine frequencies and softened motion parameters',()=>{const {sun}=require('../src/surface-style.js');assert.equal(sun.warpY,150);assert.equal(sun.warpX,56);assert.equal(sun.warpAmountX,.00121125);assert.equal(sun.warpAmountY,.0009025);assert.equal(sun.brightBase,-.00855);assert.equal(sun.brightAmount,.073625);assert.equal(sun.darkBase,-.01425);assert.equal(sun.darkAmount,.03705);assert.deepEqual(sun.glow,[.08075,.0247,.0019]);});
 
 test('Jupiter experimental shader is removed so the stock gas-giant path is used',()=>{
   const effects=read('src/visual-effects.js');assert.doesNotMatch(effects,/JUPITER_WARP|JUPITER_COLOR|kind==5\.|job\.id==='jupiter'\?5|GRS_U|__solarJupiterFlowInstalled/);
-  assert.match(effects,/Jupiter deliberately receives no override/);
+  assert.doesNotMatch(read('src/surface-style.js'),/jupiter|kind==5/);
 });
 
 test('v0.45 release notes match the calmer stars, softer Sun and restored Jupiter shader',()=>{
-  const app=read('src/app.js');assert.match(app,/PREVIOUS_RELEASE=Object\.freeze\(\{version:'0\.45'/);assert.match(app,/황색 별 비중을 줄였습니다/);assert.match(app,/5~25초/);assert.match(app,/5~10초/);assert.match(app,/약 5% 더 낮춰/);assert.match(app,/기본 가스행성 셰이더로 완전히 복원/);
+  const notes=notesFor('0.45');for(const text of ['황색 별 비중을 줄였습니다','5~25초','5~10초','약 5% 더 낮춰','기본 가스행성 셰이더로 완전히 복원'])assert.ok(notes.includes(text),text);
 });
 
 test('right mouse drag temporarily dollies the camera without changing the wheel mode',()=>{
@@ -69,15 +68,11 @@ test('right mouse drag temporarily dollies the camera without changing the wheel
 });
 
 test('v0.43 notes no longer advertise the discarded Jupiter shader experiment',()=>{
-  const app=read('src/app.js'),start=app.indexOf("const SECOND_PREVIOUS_RELEASE=Object.freeze({version:'0.43'"),end=app.indexOf("const THIRD_PREVIOUS_RELEASE=",start),block=app.slice(start,end);
-  assert.ok(start>=0&&end>start);
-  assert.doesNotMatch(block,/대적점|Great Red Spot|大红斑|大赤斑|Gran Mancha Roja|Großen Roten Fleck|Grande Tache rouge/);
-  assert.match(block,/GPU에 한 번 올린 뒤 슬라이더 값에 따라 그리는 개수만 바꾸도록/);
+  const api=notesApi(),release=api.RELEASES.find(r=>r.version==='0.43');for(const code of ['kor','en','chn','jpn','es','de','fr'])assert.doesNotMatch(api.itemsFor(release,code).join(' '),/대적점|Great Red Spot|大红斑|大赤斑|Gran Mancha Roja|Großen Roten Fleck|Grande Tache rouge/);assert.match(notesFor('0.43'),/GPU에 한 번 올린 뒤 슬라이더 값에 따라 그리는 개수만 바꾸도록/);
 });
 
 test('v0.45 notes include the right-drag dolly control',()=>{
-  const app=read('src/app.js'),start=app.indexOf("const PREVIOUS_RELEASE=Object.freeze({version:'0.45'"),end=app.indexOf("const SECOND_PREVIOUS_RELEASE=",start),block=app.slice(start,end);
-  assert.match(block,/마우스 오른쪽 버튼을 누른 채 위아래로 드래그/);
+  assert.match(notesFor('0.45'),/마우스 오른쪽 버튼을 누른 채 위아래로 드래그/);
 });
 
 
@@ -90,7 +85,7 @@ test('r6 pushes the starfield farther away without slowing the background drift'
   assert.match(sky,/pow\(haze,vec3\(\.95\)\)\*\.5984/);
   assert.match(sky,/255\*\.5896/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
-  assert.match(html,/src\/sky\.js\?v=0\.46-r4/);
+  assert.match(html,/src\/sky\.js\?v=0\.47-r1/);
   assert.ok(html.includes('src/renderer.js?v='));
 });
 test('r7 removes tiny-star one-pixel raster shimmer at the source',()=>{
@@ -104,8 +99,8 @@ test('r7 removes tiny-star one-pixel raster shimmer at the source',()=>{
   assert.match(sky,/if\(r<\.55\)\{glow\(ctx,x,y,Math\.max\(\.18,r\*\.58\),brightness\*\.56\)/);
   assert.match(sky,/DRIFT=\.22\*Math\.PI\/180/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
-  assert.match(html,/src\/sky\.js\?v=0\.46-r4/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.45-r10/);
+  assert.match(html,/src\/sky\.js\?v=0\.47-r1/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.47-r1/);
 });
 test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
   const effects=read('src/visual-effects.js'),html=read('index.html'),app=read('src/app.js'),api=visualApi();
@@ -117,7 +112,7 @@ test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
 
 test('r10 adds Indonesia and keeps every country on the existing regional-time path',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js'),loader=read('src/language-data.js');
-  assert.ok(app.includes("LANG_ORDER=['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','es','eu','uy','ve']"));
+  assert.ok(app.includes("LANG_ORDER=['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','sg','es','eu','uy','ve']"));
   assert.ok(app.includes("id:{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'}"));
   assert.ok(app.includes("id:{label:'INDONESIA',timeZone:'Asia/Jakarta'"));
   assert.ok(app.includes("eu:{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'}"));
@@ -142,13 +137,13 @@ test('r10 removes the extra WebGL star canvas while keeping the safe r9 optimiza
   const html=read('index.html'),effects=read('src/visual-effects.js'),sky=read('src/sky.js'),surface=read('src/surface.js'),performance=read('src/performance.js');
   assert.ok(!html.includes('src/star-layer.js'));
   assert.ok(!fs.existsSync(path.join(root,'src/star-layer.js')));
-  assert.ok(html.includes('src/sky.js?v=0.46-r4'));
+  assert.ok(html.includes('src/sky.js?v=0.47-r1'));
   assert.match(sky,/Math\.sqrt\(8388608\/\(w\*h\)\)/);
-  assert.match(sky,/g\.drawArrays\(g\.POINTS,0,this\.starCount\)/);
+  assert.match(sky,/g\.drawArrays\(g\.POINTS,0,drawCount\)/);
   assert.match(effects,/function buildNaturalStarData/);
   assert.match(effects,/SolarAssets\.starData=data/);
   assert.match(sky,/source instanceof Float32Array/);
-  assert.match(surface,/materialCanvas\(bitmap,w,h,readPixels=false\)/);
+  assert.match(surface,/materialCanvas\(bitmap,w,h,readPixels=false,seamBaked=false\)/);
   assert.match(surface,/this\.attribute=g\.getAttribLocation\(program,'a'\)/);
   assert.match(performance,/stats\?\.texturePixels\|\|0\)\*4/);
   assert.match(performance,/__solarLastTextureTrim/);
@@ -157,7 +152,7 @@ test('r10 removes the extra WebGL star canvas while keeping the safe r9 optimiza
 
 test('r11 reuses existing language bundles for additional countries',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js');
-  const expected=['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','es','eu','uy','ve'];
+  const expected=['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','sg','es','eu','uy','ve'];
   const order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
   assert.deepEqual(order,expected);
 
@@ -255,7 +250,7 @@ test('r14 moves the scale readout to the top and enlarges it by one pixel',()=>{
 
 test('r15 adds one extra pixel only between the scale readout and home',()=>{
   const html=read('index.html'),css=read('styles.css');
-  assert.ok(html.includes('href="styles.css?v=0.45-r15"'));
+  assert.ok(html.includes('href="styles.css?v=0.47-r1"'));
   assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1;margin-bottom:5px\}/);
   assert.match(css,/\.view-controls\{[^}]*--tool-gap:5px;gap:var\(--tool-gap\)/);
   assert.match(css,/\.camera-presets\{[^}]*gap:var\(--tool-gap\);margin:0/);
@@ -288,29 +283,25 @@ test('r16 removes avoidable renderer hot-path work and restores the watermark',(
 
 test('v0.46 r3 keeps compact LIVE status separate and treats iPhone safe areas as boundaries',()=>{
   const html=read('index.html'),css=read('src/runtime-optimizations.css');
-  assert.ok(html.includes('src/runtime-optimizations.css?v=0.46-'+JSON.parse(read('version.json')).revision));
+  assert.ok(html.includes('src/runtime-optimizations.css?v=0.47-'+JSON.parse(read('version.json')).revision));
   assert.match(css,/--solar-safe-left:env\(safe-area-inset-left,0px\)/);
   assert.match(css,/--solar-safe-right:env\(safe-area-inset-right,0px\)/);
-  assert.match(css,/\.clock-face,body\.zen \.clock-face\{top:max\(56px,calc\(var\(--solar-safe-top\) \+ 8px\)\)\}/);
+  assert.match(css,/body\.zen \.clock-face\{top:max\(56px,calc\(var\(--solar-safe-top\) \+ 8px\)\)\}/);
   assert.match(css,/\.footer\{[\s\S]*bottom:max\(8px,var\(--solar-safe-bottom\)\)/);
-  assert.match(css,/@media\(max-height:630px\) and \(min-width:681px\)\{[\s\S]*\.clock-face,body\.zen \.clock-face\{top:max\(17px,calc\(var\(--solar-safe-top\) \+ 4px\)\)\}[\s\S]*\.scene-status\{top:max\(104px,calc\(var\(--solar-safe-top\) \+ 91px\)\)\}/);
+  assert.match(css,/@media\(max-height:630px\) and \(min-width:681px\)\{[\s\S]*body\.zen \.clock-face\{top:max\(17px,calc\(var\(--solar-safe-top\) \+ 4px\)\)\}[\s\S]*\.scene-status\{top:max\(104px,calc\(var\(--solar-safe-top\) \+ 91px\)\)\}/);
 });
 
 test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js'),pipeline=read('tools/asset-pipeline.cjs');
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
-  assert.match(app,/CURRENT_RELEASE=Object\.freeze\(\{version:'0\.46',date:'2026\.09\.18'\}\)/);
-  for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(app.includes(code+':Object.freeze('),code+' v0.46 release notes');
-  assert.ok(app.includes("src/release-notes.js?v=0.46-r1"));
-  assert.ok(app.includes("THIRD_PREVIOUS_RELEASE=Object.freeze({version:'0.42'"));
-  assert.ok(html.includes('<h3 id="release-notes-version">v0.46</h3>'));
-  assert.match(app,/const releaseByVersion=new Map\(\(base\.RELEASES\|\|\[\]\)\.map\(release=>\[release\.version,release\]\)\)/);
-  assert.match(app,/\.\.\.patches\.map\(entry=>releaseByVersion\.get\(entry\.meta\.version\)\)\.filter\(Boolean\)/);
+  const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.47');assert.deepEqual(notes.RELEASES.slice(0,5).map(r=>r.version),['0.47','0.46','0.45','0.43','0.42']);
+  for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(notes.itemsFor(notes.RELEASES[0],code).length>0,code);
+  assert.ok(app.includes('src/release-notes.js?v=0.47-r1'));assert.ok(html.includes('<h3 id="release-notes-version">v0.47</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
 
   assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));
-  for(const file of ['surface','renderer','performance'])assert.ok(html.includes('src/'+file+'.js?v=0.46-r1'),file);
-  assert.match(html,/src\/app\.js\?v=0\.46-r\d+(?:-[^\"']+)?/);
+  for(const file of ['surface','renderer','performance'])assert.ok(html.includes('src/'+file+'.js?v=0.47-r1'),file);
+  assert.match(html,/src\/app\.js\?v=0\.47-r\d+(?:-[^\"']+)?/);
   assert.deepEqual(assetRevision,{version:'assetpack-20260918-r1'});
   assert.equal(manifest.revision,'assetpack-20260918-r1');
   for(const entry of Object.values(manifest.materials))assert.equal(entry.seamBaked,true,entry.source);

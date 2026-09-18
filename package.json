@@ -1,10 +1,10 @@
 {
   "name": "eg-solar-time",
-  "version": "0.0.46",
+  "version": "0.0.47",
   "private": true,
   "description": "Cloud-backed solar-system clock with smooth camera transitions and a spherical night sky.",
   "scripts": {
-    "test": "node --test tests/astro.test.cjs tests/labels.test.cjs tests/local-model.test.cjs tests/materials.test.cjs tests/modules.test.cjs tests/presentation.test.cjs tests/v046-release.test.cjs tests/page-runtime.test.cjs",
+    "test": "node tools/run-tests.cjs",
     "build:assets": "node tools/build-assets.cjs",
     "build:cloudflare": "node tools/build-cloudflare.cjs",
     "build:git": "node tools/build-git.cjs",
@@ -13,13 +13,15 @@
     "upload:r2": "node tools/upload-r2.cjs",
     "publish:media": "npm run build:assets && npm run pack:media && npm run upload:r2",
     "deploy:cloudflare": "node tools/deploy-cloudflare.cjs",
-    "test:v042": "node --test tests/v042-release.test.cjs",
-    "test:v043": "node --test tests/v043-release.test.cjs",
     "test:v046": "node --test tests/v046-release.test.cjs",
-    "upload:ui": "node tools/upload-ui-assets.cjs"
+    "upload:ui": "node tools/upload-ui-assets.cjs",
+    "fetch:derived": "node tools/fetch-derived-assets.cjs",
+    "pack:originals": "node tools/pack-originals.cjs",
+    "restore:ui:history": "node tools/restore-ui-history.cjs",
+    "test:ui": "python tests/browser/ui-regression.py"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.16"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

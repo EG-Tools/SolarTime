@@ -1,5 +1,4 @@
-/* Solar Time v0.46 r1 runtime performance owner.
-   Keeps adaptive DPR/FPS and direct-GPU texture memory policy outside renderer.js. */
+/* Solar Time v0.47 — performance implementation owner. */
 (function(root){
   'use strict';
   const coarse=(()=>{
@@ -55,34 +54,7 @@
     }
     renderer.stats.textureBytes=Math.max(0,bytes);
   }
-  const Direct=root.SolarSurface?.DirectRenderer;
-  if(Direct?.prototype&&!Direct.prototype.__solarBudgetInstalled){
-    const texture=Direct.prototype.texture,end=Direct.prototype.end;
-    Direct.prototype.texture=function(name,target){
-      const result=texture.call(this,name,target),record=this.textures?.get(name);if(record)record.lastUsed=(this.__solarTextureUseSerial=(this.__solarTextureUseSerial||0)+1);return result;
-    };
-    Direct.prototype.end=function(){
-      const value=end.call(this),budget=textureBudget(),bytes=Math.max(0,(this.stats?.texturePixels||0)*4);
-      this.stats.textureBudgetBytes=budget;this.stats.textureBytes=bytes;
-      if(bytes>budget){const now=performance.now();if(now-(this.__solarLastTextureTrim||0)>500){this.__solarLastTextureTrim=now;trimTextures(this);}}
-      return value;
-    };
-    Object.defineProperty(Direct.prototype,'__solarBudgetInstalled',{value:true});
-  }
-  const Renderer=root.SolarRenderer;
-  if(Renderer?.prototype&&!Renderer.prototype.__solarAdaptiveDprInstalled){
-    Renderer.prototype.resize=function(){
-      const box=this.canvas.getBoundingClientRect(),w=Math.max(1,box.width),h=Math.max(1,box.height),dpr=pixelRatio(w,h,this.options.quality);
-      if(w===this.w&&h===this.h&&Math.abs(dpr-this.dpr)<.001)return;
-      this.w=w;this.h=h;this.dpr=dpr;this.starSprites?.clear();this.labelWidths?.clear();
-      this.lensStretch=Math.max(1,Math.min(1.72,this.w/this.h));
-      this.canvas.width=Math.round(this.w*this.dpr);this.canvas.height=Math.round(this.h*this.dpr);
-      this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
-      this.gpu?.resize(this.w,this.h,this.dpr);
-      this.sky.resize(this.w,this.h,this.dpr);this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate(false);this.clearLabels();
-      this.stats.adaptiveDpr=this.dpr;
-    };
-    Object.defineProperty(Renderer.prototype,'__solarAdaptiveDprInstalled',{value:true});
-  }
-  root.SolarPerformance=Object.freeze({pixelRatio,frameInterval,reportRenderCost,reportFrameTiming,textureBudget,trimTextures,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
+  function touchTexture(renderer,name){const record=renderer.textures?.get(name);if(record)record.lastUsed=(renderer.__solarTextureUseSerial=(renderer.__solarTextureUseSerial||0)+1);}
+  function enforceTextureBudget(renderer){const budget=textureBudget(),bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);renderer.stats.textureBudgetBytes=budget;renderer.stats.textureBytes=bytes;if(bytes>budget){const now=performance.now();if(now-(renderer.__solarLastTextureTrim||0)>500){renderer.__solarLastTextureTrim=now;trimTextures(renderer);}}}
+  root.SolarPerformance=Object.freeze({pixelRatio,frameInterval,reportRenderCost,reportFrameTiming,textureBudget,trimTextures,touchTexture,enforceTextureBudget,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
 })(window);

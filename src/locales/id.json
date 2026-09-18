@@ -170,7 +170,10 @@
     "zenOff": "Matikan mode menikmati",
     "zenOn": "Aktifkan mode menikmati",
     "normalMode": "Mode normal",
-    "yearLimit": "Berhenti pada akhir tahun 2999. Anda dapat kembali ke Waktu nyata."
+    "yearLimit": "Berhenti pada akhir tahun 2999. Anda dapat kembali ke Waktu nyata.",
+    "layoutDiagnostics": "Diagnostik tata letak",
+    "closeCard": "Tutup",
+    "reloadPage": "Muat ulang"
   },
   "bodies": {
     "sun": [

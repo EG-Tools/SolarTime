@@ -170,7 +170,10 @@
     "zenOff": "दर्शन मोड बंद करें",
     "zenOn": "दर्शन मोड चालू करें",
     "normalMode": "सामान्य मोड",
-    "yearLimit": "वर्ष 2999 के अंत पर रुक गया।"
+    "yearLimit": "वर्ष 2999 के अंत पर रुक गया।",
+    "layoutDiagnostics": "लेआउट जाँच",
+    "closeCard": "बंद करें",
+    "reloadPage": "फिर से लोड करें"
   },
   "bodies": {
     "sun": [

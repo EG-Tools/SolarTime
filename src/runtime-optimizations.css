@@ -5,19 +5,22 @@
   --solar-safe-left:env(safe-area-inset-left,0px);
   --solar-safe-right:env(safe-area-inset-right,0px);
 }
-@supports(height:100dvh){html,body{height:100dvh;min-height:100dvh}}
+@supports(height:100dvh){html{height:100dvh;min-height:100dvh}body{height:100dvh;min-height:100dvh}}
 
 /* Safe areas are minimum boundaries, not extra padding. */
 .masthead{top:max(31px,calc(var(--solar-safe-top) + 6px))}
-.clock-face,body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
+.clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
+body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
 .scene-status{top:199px}
 .settings-panel{top:max(87px,calc(var(--solar-safe-top) + 10px))}
 .timezone-readout{pointer-events:auto;cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:6px;transition:color .18s ease,background .18s ease}
-.timezone-readout:hover,.timezone-readout:focus-visible{color:var(--accent);background:rgba(233,200,141,.07);outline:none}
+.timezone-readout:hover{color:var(--accent);background:rgba(233,200,141,.07);outline:none}
+.timezone-readout:focus-visible{color:var(--accent);background:rgba(233,200,141,.07);outline:none}
 .timezone-readout:focus-visible{box-shadow:0 0 0 1px rgba(233,200,141,.55)}
 
 @media(min-width:1800px){
-  .clock-face,body.zen .clock-face{top:max(70px,calc(var(--solar-safe-top) + 8px))}
+  .clock-face{top:max(70px,calc(var(--solar-safe-top) + 8px))}
+  body.zen .clock-face{top:max(70px,calc(var(--solar-safe-top) + 8px))}
   .scene-status{top:219px}
 }
 @media(max-width:1050px){
@@ -29,7 +32,8 @@
     left:max(21px,calc(var(--solar-safe-left) + 6px));
     right:max(17px,calc(var(--solar-safe-right) + 6px))
   }
-  .clock-face,body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
+  .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
+  body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
   .scene-status{top:186px}
   .settings-panel{top:max(61px,calc(var(--solar-safe-top) + 8px))}
   .footer{
@@ -49,7 +53,8 @@
     left:max(16px,calc(var(--solar-safe-left) + 6px));
     right:max(16px,calc(var(--solar-safe-right) + 6px))
   }
-  .clock-face,body.zen .clock-face{top:max(17px,calc(var(--solar-safe-top) + 4px))}
+  .clock-face{top:max(17px,calc(var(--solar-safe-top) + 4px))}
+  body.zen .clock-face{top:max(17px,calc(var(--solar-safe-top) + 4px))}
   .scene-status{top:max(104px,calc(var(--solar-safe-top) + 91px))}
   .settings-panel{top:max(60px,calc(var(--solar-safe-top) + 8px))}
   .footer{
@@ -66,16 +71,14 @@
 
 /* v0.46 r4: one phone-layout flag is shared by CSS and the sky renderer.
    Keep the approved top boundaries and the home-indicator safety inset. */
-:root{--solar-layout-revision:r6}
+:root{--solar-layout-revision:r1}
 html.solar-phone-layout .edge-shade{display:none}
 html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}
 html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 32px)}
 .solar-build-info{display:block;margin:8px auto 0;padding:5px 8px;background:transparent;color:var(--muted);font-size:10px;letter-spacing:.5px}
-.solar-layout-diagnostics{position:fixed;inset:0;margin:auto;width:min(430px,calc(100vw - 24px));max-height:calc(100dvh - var(--solar-safe-top) - var(--solar-safe-bottom) - 24px);padding:16px;border:1px solid var(--line);border-radius:12px;background:#0a1019;color:var(--fg);overflow:auto;font-size:12px;z-index:1000}
-.solar-layout-diagnostics::backdrop{background:rgba(0,0,0,.3)}
+.solar-layout-diagnostics{
+  width:min(430px,calc(100vw - 24px))}
 .solar-layout-diagnostics pre{font:11px/1.45 monospace;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
-.solar-layout-actions{display:flex;justify-content:flex-end;gap:8px}
-.solar-layout-actions button{padding:8px 14px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--fg)}
 body.zen .solar-layout-diagnostics button{visibility:visible!important;pointer-events:auto!important}
 
 
@@ -83,23 +86,26 @@ body.zen .solar-layout-diagnostics button{visibility:visible!important;pointer-e
    display:contents keeps the browser-tab layout exactly as it was. No translate
    or containment here: native top-layer dialogs keep viewport coordinates. */
 #solar-viewport{display:contents}
-html.solar-standalone,html.solar-standalone body{height:100%;min-height:0;overscroll-behavior:none}
+html.solar-standalone{height:100%;min-height:0;overscroll-behavior:none}
+html.solar-standalone body{height:100%;min-height:0;overscroll-behavior:none}
 html.solar-standalone #solar-viewport{
   display:block;position:fixed;
   left:var(--solar-viewport-left,0px);top:var(--solar-viewport-top,0px);
   width:var(--solar-viewport-width,100%);height:var(--solar-viewport-height,100%);
   overflow:hidden;
 }
-html.solar-standalone #starfield,html.solar-standalone #planet-layer,html.solar-standalone #universe,
-html.solar-standalone .edge-shade,html.solar-standalone .loading,html.solar-standalone .fatal-error{position:absolute}
+html.solar-standalone #starfield{position:absolute}
+html.solar-standalone #planet-layer{position:absolute}
+html.solar-standalone #universe{position:absolute}
+html.solar-standalone .edge-shade{position:absolute}
+html.solar-standalone .loading{position:absolute}
+html.solar-standalone .fatal-error{position:absolute}
 html.solar-standalone .view-controls{max-height:calc(var(--solar-viewport-height,100dvh) - 24px)}
-html.solar-standalone .modal,html.solar-standalone #reset-defaults-dialog{
+html.solar-standalone .modal{
   top:calc(var(--solar-viewport-top,0px) + var(--solar-viewport-height,100dvh)/2);
   left:calc(var(--solar-viewport-left,0px) + var(--solar-viewport-width,100vw)/2);
 }
-html.solar-standalone .solar-layout-diagnostics{
-  inset:auto;margin:0;transform:translate(-50%,-50%);
+html.solar-standalone #reset-defaults-dialog{
   top:calc(var(--solar-viewport-top,0px) + var(--solar-viewport-height,100dvh)/2);
   left:calc(var(--solar-viewport-left,0px) + var(--solar-viewport-width,100vw)/2);
-  max-height:calc(var(--solar-viewport-height,100dvh) - var(--solar-safe-top) - var(--solar-safe-bottom) - 24px);
 }

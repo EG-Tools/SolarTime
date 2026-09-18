@@ -170,7 +170,10 @@
     "zenOff": "Turn off viewing mode",
     "zenOn": "Turn on viewing mode",
     "normalMode": "Normal mode",
-    "yearLimit": "Stopped at the end of year 2999. You can return to Real time."
+    "yearLimit": "Stopped at the end of year 2999. You can return to Real time.",
+    "layoutDiagnostics": "Layout diagnostics",
+    "closeCard": "Close",
+    "reloadPage": "Reload"
   },
   "bodies": {
     "sun": [

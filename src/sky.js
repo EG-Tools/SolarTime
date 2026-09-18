@@ -1,6 +1,4 @@
-/* Solar Time v0.14 — continuous spherical sky, bounded rendering and recovery.
-   Artistic panorama/galaxies, not a physical star catalogue. Camera and effects
-   remain independent of simulation time. No external libraries or downloads. */
+/* Solar Time v0.47 — sky implementation owner. */
 (function(root){'use strict';
 const TAU=Math.PI*2,DRIFT=.22*Math.PI/180,COS30=Math.sqrt(.75);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -144,26 +142,8 @@ class Sky{
    // Base-level linear sampling avoids the atan/fract derivative seam.
    g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
    this.edgeShadeStrength=null;g.useProgram(program);g.uniform1i(this.u.sky,0);g.uniform1f(this.u.fov,this.tanFov);
-   const starVertex=shader(g,g.VERTEX_SHADER,`precision ${precision} float;
-    attribute vec3 position,appearance;uniform vec3 right,down,forward;uniform vec2 size;uniform float fov,pointScale,seconds;
-    varying float intensity;
-    void main(){
-     float z=dot(position,forward),phase=appearance.z;
-     float pulse=pow(max(0.,sin((seconds+phase)/(6.+phase)*6.28318530718)),16.);
-     intensity=appearance.y*(.55+pulse*.65);
-     if(z>=-.08){gl_Position=vec4(2.,2.,1.,1.);gl_PointSize=1.;return;}
-     vec2 ndc=vec2(dot(position,right)/(-z*fov*size.x/size.y),-dot(position,down)/(-z*fov));
-     gl_Position=vec4(ndc,0.,1.);gl_PointSize=clamp(appearance.x*10.*pointScale,1.,30.);
-    }`);
-   const starFragment=shader(g,g.FRAGMENT_SHADER,`precision ${precision} float;varying float intensity;
-    void main(){
-     vec2 q=gl_PointCoord-.5;float d=length(q);
-     float halo=1.-smoothstep(.08,.5,d),core=1.-smoothstep(.015,.21,d);
-     float cross=(1.-smoothstep(.012,.042,min(abs(q.x),abs(q.y))))*(1.-smoothstep(.12,.5,max(abs(q.x),abs(q.y))));
-     float alpha=(halo*.24+core*.94+cross*.14)*intensity;if(alpha<.002)discard;
-     vec3 color=mix(vec3(.45,.66,.94),vec3(1.,.99,.96),core);
-     gl_FragColor=vec4(color,alpha);
-    }`);
+   const sources=root.SolarVisualEffects.starShaderSources(precision);
+   const starVertex=shader(g,g.VERTEX_SHADER,sources.vertex),starFragment=shader(g,g.FRAGMENT_SHADER,sources.fragment);
    this.starProgram=g.createProgram();g.attachShader(this.starProgram,starVertex);g.attachShader(this.starProgram,starFragment);g.linkProgram(this.starProgram);g.deleteShader(starVertex);g.deleteShader(starFragment);
    if(!g.getProgramParameter(this.starProgram,g.LINK_STATUS))throw Error(g.getProgramInfoLog(this.starProgram)||'Star link failed');
    const stars=starField(root.SolarAssets?.starData||root.SolarAssets?.stars),starData=stars instanceof Float32Array?stars:new Float32Array(stars.length*6);
@@ -221,6 +201,7 @@ class Sky{
  }
  draw(seconds,camera,options){
   if(this.disposed||this.paused)return;
+  const drawCount=root.SolarVisualEffects.drawCount(this,options);
   if(this.lastEffect!==null&&options.skyMotion)this.offset=(this.offset+Math.max(0,seconds-this.lastEffect)*DRIFT)%TAU;
   this.lastEffect=seconds;this.camera=camera;this.updateAxes(camera);
   if(!this.ready||!this.w||!this.h)return;
@@ -246,14 +227,14 @@ class Sky{
   g.uniform2f(this.u.size,this.w,this.h);g.uniform1f(this.u.drift,this.offset);
   if(this.edgeShadeStrength!==shade){g.uniform1f(this.u.edgeShade,shade);this.edgeShadeStrength=shade;}
   g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,this.texture);g.drawArrays(g.TRIANGLES,0,6);
-  if(options.twinkle&&this.starProgram&&this.starCount){
+  if(options.twinkle&&this.starProgram&&drawCount){
    g.enable(g.BLEND);g.blendFunc(g.SRC_ALPHA,g.ONE);g.useProgram(this.starProgram);g.bindBuffer(g.ARRAY_BUFFER,this.starBuffer);
    g.enableVertexAttribArray(this.starA.position);g.vertexAttribPointer(this.starA.position,3,g.FLOAT,false,24,0);
    g.enableVertexAttribArray(this.starA.appearance);g.vertexAttribPointer(this.starA.appearance,3,g.FLOAT,false,24,12);
    for(const k of ['right','down','forward'])g.uniform3fv(this.starU[k],this.panAxes[k]);
    g.uniform2f(this.starU.size,this.w,this.h);g.uniform1f(this.starU.fov,this.tanFov);
    g.uniform1f(this.starU.pointScale,this.canvas.width/this.w);g.uniform1f(this.starU.seconds,seconds);
-   g.drawArrays(g.POINTS,0,this.starCount);g.disable(g.BLEND);
+   g.drawArrays(g.POINTS,0,drawCount);g.disable(g.BLEND);
   }
   this.lastPose={a,e,offset:this.offset,w:this.w,h:this.h,starTick,shade};this.lastGPU=now;this.stats.frames++;
  }
@@ -322,7 +303,7 @@ class Sky{
  decorate(ctx,seconds,options,glow){
   if(!this.axesNow||this.paused||this.disposed)return;
   if(options.twinkle&&!this.gl){
-   const stars=root.SolarAssets?.stars||[],pose=this.starPose;
+   const stars=root.SolarVisualEffects.starsFor(this,options),pose=this.starPose;
    if(!pose||pose.source!==stars||pose.axes!==this.panAxes||pose.w!==this.w||pose.h!==this.h){
     this.visibleStars=[];
     for(const [x,y,z,r,brightness,phase]of stars){const p=this.project({x,y,z});if(p&&p.x>=0&&p.x<=this.w&&p.y>=0&&p.y<=this.h)this.visibleStars.push([p.x,p.y,r,brightness,phase]);}
