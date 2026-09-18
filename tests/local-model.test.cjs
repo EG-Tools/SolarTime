@@ -2,6 +2,30 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const A=require('../src/astro.js'),all=[A.SUN,...A.BODIES,A.MOON],signed=n=>A.wrap(n+Math.PI)-Math.PI;
 const close=(a,b,tol=1e-8)=>assert.ok(Math.abs(a-b)<tol,`${a} != ${b}`);
+
+// Static code stays local. The install icon is the sole remote <link> exception;
+// its origin and object path come from the same configuration as the media CDN.
+function assertStaticAssetLinks(html,deployment){
+ const prefix=String(deployment.prefix||'releases').replace(/^\/+|\/+$/g,'');
+ const expected=new URL(prefix+'/content/ui/apple-touch-icon.png',deployment.cdnBase);
+ for(const match of html.matchAll(/<(script|img|link)\b[^>]*>/gi)){
+  const kind=match[1].toLowerCase(),attrs={};
+  for(const attr of match[0].matchAll(/\s([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g))
+   attrs[attr[1].toLowerCase()]=attr[2]??attr[3]??attr[4];
+  const address=String(attrs[kind==='link'?'href':'src']||'').trim();
+  if(!/^(?:https?:|\/\/)/i.test(address))continue;
+  assert.equal(kind,'link','Static scripts and images must stay local: '+address);
+  assert.equal(String(attrs.rel||'').trim().toLowerCase(),'apple-touch-icon','Only the install icon may use a remote link: '+address);
+  assert.match(address,/^https:\/\//i,'The install icon must use explicit HTTPS');
+  const url=new URL(address);
+  assert.equal(url.origin,expected.origin,'Unexpected install-icon CDN');
+  assert.equal(url.pathname,expected.pathname,'Unexpected install-icon object path');
+  assert.equal(url.username+url.password+url.hash,'','Icon URLs must not contain credentials or fragments');
+  assert.deepEqual([...url.searchParams.keys()],['v'],'The install icon must have exactly one version cache key');
+  assert.match(url.searchParams.get('v'),/^\d+(?:\.\d+)+-r\d+(?:-[a-z0-9-]+)?$/i,'The install-icon cache key must be versioned');
+ }
+}
+
 test('Offline boot calibrates every body at current device time in under five seconds',()=>{
  const t=Date.UTC(2026,8,11,7,45,12),start=performance.now();const status=A.calibrateAt(t);
  for(const b of A.BODIES){const p=A.positionAt(b,t,true);assert.ok(Number.isFinite(p.x+p.y+p.z));}
@@ -46,5 +70,34 @@ test('Astronomy stays local while network access is limited to versioned visual 
  for(const name of ['astro','app','renderer']){const s=fs.readFileSync(path.join(root,'src',name+'.js'),'utf8');assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|navigator\.onLine/);}
  const materials=fs.readFileSync(path.join(root,'src/materials.js'),'utf8');assert.doesNotMatch(materials,/\bfetch\s*\(|indexedDB|solarsystemscope|jsdelivr/);
  const surface=fs.readFileSync(path.join(root,'src/surface.js'),'utf8');assert.match(surface,/fetch\(url,\{mode:'cors',credentials:'omit',cache:'force-cache'\}\)/);
- const html=fs.readFileSync(path.join(root,'index.html'),'utf8');assert.doesNotMatch(html,/<(?:script|img)[^>]+src=["']https?:/);assert.doesNotMatch(html,/<link[^>]+href=["']https?:/);
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),deployment=JSON.parse(fs.readFileSync(path.join(root,'assets/deployment.json'),'utf8'));
+ assertStaticAssetLinks(html,deployment);
+});
+
+test('Static asset policy allows only the versioned official HTTPS install icon',()=>{
+ const deployment={cdnBase:'https://media.example.test/media/',prefix:'releases'};
+ const icon=new URL('releases/content/ui/apple-touch-icon.png',deployment.cdnBase).href;
+ const valid=`<link rel="icon" href="data:image/svg+xml,test"><link rel="stylesheet" href="styles.css?v=0.45-r15"><script src="src/app.js?v=0.46-r3"></script><link sizes="180x180" href="${icon}?v=0.46-r3" rel="apple-touch-icon">`;
+ assert.doesNotThrow(()=>assertStaticAssetLinks(valid,deployment));
+ // A new cache revision must not require another hard-coded test edit.
+ assert.doesNotThrow(()=>assertStaticAssetLinks(valid.replace('v=0.46-r3" rel','v=0.46-r4" rel'),deployment));
+ const forbidden=[
+  `<link rel="stylesheet" href="${icon}?v=0.46-r3">`,
+  `<link rel="apple-touch-icon stylesheet" href="${icon}?v=0.46-r3">`,
+  `<link rel="apple-touch-icon" href="${icon.replace('media.example.test','other.example.test')}?v=0.46-r3">`,
+  `<link rel="apple-touch-icon" href="${icon.replace('apple-touch-icon.png','other.png')}?v=0.46-r3">`,
+  `<link rel="apple-touch-icon" href="${icon.replace('https:','http:')}?v=0.46-r3">`,
+  `<link rel="apple-touch-icon" href="${icon.replace('https:','')}?v=0.46-r3">`,
+  `<link rel="apple-touch-icon" href="${icon}">`,
+  `<link rel="apple-touch-icon" href="${icon}?v=">`,
+  `<link rel="apple-touch-icon" href="${icon}?v=latest">`,
+  `<link rel="apple-touch-icon" href="${icon}?v=0.46-r3&v=0.46-r4">`,
+  `<link rel="apple-touch-icon" href="${icon}?v=0.46-r3#fragment">`,
+  `<link rel="apple-touch-icon" href="${icon.replace('https://','https://user@')}?v=0.46-r3">`,
+  '<script src="https://other.example.test/app.js"></script>',
+  '<script src="//other.example.test/app.js"></script>',
+  '<img src="https://other.example.test/image.png">',
+  "<LINK HREF = 'https://other.example.test/style.css' REL = 'stylesheet'>"
+ ];
+ for(const html of forbidden)assert.throws(()=>assertStaticAssetLinks(html,deployment),{code:'ERR_ASSERTION'},html);
 });
