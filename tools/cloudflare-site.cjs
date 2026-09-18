@@ -1,8 +1,8 @@
 'use strict';
-const fs=require('node:fs'),path=require('node:path'),{atomicWrite,projectConfig,runtimeScripts}=require('./asset-pipeline.cjs');
+const fs=require('node:fs'),path=require('node:path'),sharp=require('sharp'),{atomicWrite,projectConfig,runtimeScripts}=require('./asset-pipeline.cjs');
 
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
-function prepareSite(root,{manifest=null,deployment=null,cdnBase=null}={}){
+async function prepareSite(root,{manifest=null,deployment=null,cdnBase=null}={}){
  const configured=projectConfig(root);manifest=manifest||readJson(path.join(root,'assets/manifest.json'));deployment=deployment||configured.deployment;
  if(manifest.revision!==configured.revision)throw Error('Asset manifest revision does not match assets/revision.json.');
  const site=path.join(root,'.cloudflare/site'),resolved=path.resolve(site),cloudflareRoot=path.resolve(root,'.cloudflare');
@@ -14,6 +14,9 @@ function prepareSite(root,{manifest=null,deployment=null,cdnBase=null}={}){
  for(const file of ['index.html','styles.css','version.json','manifest.webmanifest','kakao-pay-qr.svg'])copy(file);
  for(const file of fs.readdirSync(path.join(root,'src')).filter(name=>name.endsWith('.js')||name.endsWith('.css')))copy('src/'+file);
  fs.cpSync(path.join(root,'src/locales'),path.join(site,'src/locales'),{recursive:true});
+ const iconSource=path.join(root,'assets','solar-time-icon.svg');
+ for(const [file,size] of [['apple-touch-icon.png',180],['app-icon-192.png',192],['app-icon-512.png',512]])
+  await sharp(iconSource,{density:384}).resize(size,size,{fit:'fill'}).png({compressionLevel:9,adaptiveFiltering:true}).toFile(path.join(site,file));
  atomicWrite(path.join(site,'src/assets.js'),scripts.assets);atomicWrite(path.join(site,'src/sky-asset.js'),scripts.sky);
  atomicWrite(path.join(site,'_headers'),'/version.json\n  Cache-Control: no-store\n/index.html\n  Cache-Control: no-cache\n/src/locales/*\n  Access-Control-Allow-Origin: *\n  Cross-Origin-Resource-Policy: cross-origin\n/src/*\n  Cache-Control: public, max-age=3600, must-revalidate\n');
  return {site,manifest,deployment};
