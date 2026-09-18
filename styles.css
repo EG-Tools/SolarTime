@@ -63,7 +63,7 @@ body.zen #preset-dialog[open] button{visibility:visible!important;pointer-events
 .view-controls{align-items:center;top:50%;transform:translateY(-50%);--tool-size:32px;--preset-size:19px;--preset-hit:29px;--tool-gap:5px;gap:var(--tool-gap);max-height:calc(100dvh - 24px);overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:6px;width:50px}
 .view-controls::-webkit-scrollbar{display:none}
 .view-controls .icon-button{flex-shrink:0;width:var(--tool-size);height:var(--tool-size)}
-.view-controls #zoom-value{padding:0;min-width:0;font-size:8px;line-height:1}
+.view-controls #zoom-value{padding:0;min-width:0;font-size:9px;line-height:1}
 .camera-presets{display:flex;position:static;flex-direction:column;align-items:center;gap:var(--tool-gap);margin:0;width:100%}
 .camera-presets .camera-preset{position:relative;display:grid;place-items:center;isolation:isolate;width:var(--preset-hit);height:var(--preset-hit);min-width:var(--preset-hit);padding:0;border:none;background:transparent;font-size:10px;font-variant-numeric:tabular-nums;color:var(--muted)}
 .camera-preset::before{content:"";position:absolute;inset:calc((var(--preset-hit) - var(--preset-size))/2);border:1px dashed var(--line);border-radius:50%;background:rgba(9,14,23,.64);z-index:-1}

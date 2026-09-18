@@ -3,14 +3,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r13 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r14 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
   assert.ok(html.includes('name="solar-time-version" content="0.45"'));
-  assert.ok(html.includes('name="solar-time-revision" content="r13"'));
-  assert.deepEqual(version,{version:'0.45',revision:'r13'});
+  assert.ok(html.includes('name="solar-time-revision" content="r14"'));
+  assert.deepEqual(version,{version:'0.45',revision:'r14'});
   assert.equal(pkg.version,'0.0.45');
-  assert.ok(app.includes("version:'0.45',revision:'r13'"));
-  assert.ok(html.includes('src/app.js?v=0.45-r13'));
+  assert.ok(app.includes("version:'0.45',revision:'r14'"));
+  assert.ok(html.includes('src/app.js?v=0.45-r14'));
   assert.ok(html.includes('src/localization.js?v=0.45-r11'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -203,13 +203,13 @@ test('r12 simplifies and reorders the right-side view controls',()=>{
   assert.ok(!app.includes("'zoom-in'"));
   assert.ok(!app.includes("'zoom-out'"));
   const start=html.indexOf('<div id="view-controls"'),end=html.indexOf('<section class="playback ui"',start),block=html.slice(start,end);
-  const ordered=['id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="camera-mode-toggle"','id="zoom-value"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
+  assert.ok(block.includes('id="zoom-value"'));
+  const ordered=['id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="camera-mode-toggle"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
   let cursor=-1;
   for(const token of ordered){const next=block.indexOf(token);assert.ok(next>cursor,token+' order');cursor=next;}
   assert.ok(app.includes("key==='+'||key==='='"));
   assert.ok(app.includes("key==='-'"));
 });
-
 test('r12 serves install icons and watermark from R2 releases content ui',()=>{
   const html=read('index.html'),manifest=JSON.parse(read('manifest.webmanifest')),site=read('tools/cloudflare-site.cjs');
   assert.ok(html.includes('/media/releases/content/ui/apple-touch-icon.png?v=0.45-r12'));
@@ -224,18 +224,27 @@ test('r12 serves install icons and watermark from R2 releases content ui',()=>{
 
 
 test('r13 uses the rotate-button gap for every right-side control interval',()=>{
-  const html=read('index.html'),css=read('styles.css');
-  assert.ok(html.includes('href="styles.css?v=0.45-r13"'));
+  const css=read('styles.css');
   assert.match(css,/\.view-controls\{[^}]*--tool-gap:5px;gap:var\(--tool-gap\)/);
   assert.match(css,/\.camera-presets\{[^}]*gap:var\(--tool-gap\);margin:0/);
   assert.match(css,/\.view-controls #zoom-value\{padding:0;[^}]*line-height:1/);
   assert.doesNotMatch(css,/\.camera-presets\{gap:0;margin:1px 0\}/);
   assert.doesNotMatch(css,/\.view-controls #zoom-value\{padding:1px 0/);
 });
-
 test('r13 removes unused sky reference images from the repository',()=>{
   assert.ok(!fs.existsSync(path.join(root,'assets/sky/dust-reference.webp')));
   assert.ok(!fs.existsSync(path.join(root,'assets/sky/galaxy-reference.webp')));
   const ignore=read('.gitignore');
   assert.ok(ignore.split(/\r?\n/).includes('assets/sky/*.webp'));
+});
+
+
+test('r14 moves the scale readout to the top and enlarges it by one pixel',()=>{
+  const html=read('index.html'),css=read('styles.css');
+  assert.ok(html.includes('href="styles.css?v=0.45-r14"'));
+  const start=html.indexOf('<div id="view-controls"'),end=html.indexOf('<section class="playback ui"',start),block=html.slice(start,end);
+  const ordered=['id="zoom-value"','id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="camera-mode-toggle"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
+  let cursor=-1;
+  for(const token of ordered){const next=block.indexOf(token);assert.ok(next>cursor,token+' order');cursor=next;}
+  assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1\}/);
 });
