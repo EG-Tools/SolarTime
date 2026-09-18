@@ -1,27 +1,64 @@
-/* v0.41 mobile safe-area and region-tracking interaction layer. */
-:root{--solar-safe-top:env(safe-area-inset-top,0px);--solar-safe-bottom:env(safe-area-inset-bottom,0px)}
-.masthead{top:calc(31px + var(--solar-safe-top))}
-.clock-face,body.zen .clock-face{top:calc(56px + var(--solar-safe-top))}
-.scene-status{top:calc(199px + var(--solar-safe-top))}
-.settings-panel{top:calc(87px + var(--solar-safe-top))}
+/* v0.46 r2: safe-area boundaries and compact-height layout. */
+:root{
+  --solar-safe-top:env(safe-area-inset-top,0px);
+  --solar-safe-bottom:env(safe-area-inset-bottom,0px);
+  --solar-safe-left:env(safe-area-inset-left,0px);
+  --solar-safe-right:env(safe-area-inset-right,0px);
+}
+@supports(height:100dvh){html,body{height:100dvh;min-height:100dvh}}
+
+/* Safe areas are minimum boundaries, not extra padding. */
+.masthead{top:max(31px,calc(var(--solar-safe-top) + 6px))}
+.clock-face,body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
+.scene-status{top:199px}
+.settings-panel{top:max(87px,calc(var(--solar-safe-top) + 10px))}
 .timezone-readout{pointer-events:auto;cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:6px;transition:color .18s ease,background .18s ease}
 .timezone-readout:hover,.timezone-readout:focus-visible{color:var(--accent);background:rgba(233,200,141,.07);outline:none}
 .timezone-readout:focus-visible{box-shadow:0 0 0 1px rgba(233,200,141,.55)}
-@media(min-width:1800px){.clock-face,body.zen .clock-face{top:calc(70px + var(--solar-safe-top))}.scene-status{top:calc(219px + var(--solar-safe-top))}}
-@media(max-width:1050px){.masthead{top:calc(25px + var(--solar-safe-top))}}
-@media(max-width:680px){
-  .masthead{top:calc(19px + var(--solar-safe-top))}
-  .clock-face,body.zen .clock-face{top:calc(56px + var(--solar-safe-top))}
-  .scene-status{top:calc(186px + var(--solar-safe-top))}
-  .settings-panel{top:calc(61px + var(--solar-safe-top))}
-  .footer{bottom:calc(24px + var(--solar-safe-bottom))}
-  .playback{bottom:calc(92px + var(--solar-safe-bottom))}
+
+@media(min-width:1800px){
+  .clock-face,body.zen .clock-face{top:max(70px,calc(var(--solar-safe-top) + 8px))}
+  .scene-status{top:219px}
 }
+@media(max-width:1050px){
+  .masthead{top:max(25px,calc(var(--solar-safe-top) + 6px))}
+}
+@media(max-width:680px){
+  .masthead{
+    top:max(19px,calc(var(--solar-safe-top) + 6px));
+    left:max(21px,calc(var(--solar-safe-left) + 6px));
+    right:max(17px,calc(var(--solar-safe-right) + 6px))
+  }
+  .clock-face,body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
+  .scene-status{top:186px}
+  .settings-panel{top:max(61px,calc(var(--solar-safe-top) + 8px))}
+  .footer{
+    bottom:max(8px,var(--solar-safe-bottom));
+    left:max(20px,calc(var(--solar-safe-left) + 6px));
+    right:max(20px,calc(var(--solar-safe-right) + 6px))
+  }
+  .playback{bottom:max(76px,calc(var(--solar-safe-bottom) + 44px))}
+  .view-controls{right:max(5px,var(--solar-safe-right))}
+  .body-panel{left:max(16px,calc(var(--solar-safe-left) + 6px))}
+}
+
+/* Browser zoom around 150% and phone landscape both enter this compact-height path. */
 @media(max-height:630px) and (min-width:681px){
-  .masthead{top:calc(16px + var(--solar-safe-top))}
-  .clock-face,body.zen .clock-face{top:calc(56px + var(--solar-safe-top))}
-  .scene-status{top:calc(89px + var(--solar-safe-top))}
-  .settings-panel{top:calc(60px + var(--solar-safe-top))}
+  .masthead{
+    top:max(8px,calc(var(--solar-safe-top) + 4px));
+    left:max(16px,calc(var(--solar-safe-left) + 6px));
+    right:max(16px,calc(var(--solar-safe-right) + 6px))
+  }
+  .clock-face,body.zen .clock-face{top:max(17px,calc(var(--solar-safe-top) + 4px))}
+  .scene-status{top:max(104px,calc(var(--solar-safe-top) + 91px))}
+  .settings-panel{top:max(60px,calc(var(--solar-safe-top) + 8px))}
+  .footer{
+    bottom:max(8px,var(--solar-safe-bottom));
+    left:max(12px,calc(var(--solar-safe-left) + 6px));
+    right:max(12px,calc(var(--solar-safe-right) + 6px))
+  }
+  .playback{bottom:max(44px,calc(var(--solar-safe-bottom) + 10px))}
+  .view-controls{right:max(15px,calc(var(--solar-safe-right) + 4px))}
 }
 
 /* v0.43: star density belongs visually to orbit brightness without a divider. */
