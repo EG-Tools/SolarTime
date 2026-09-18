@@ -211,17 +211,18 @@ test('r12 simplifies and reorders the right-side view controls',()=>{
   assert.ok(app.includes("key==='-'"));
 });
 test('v0.46 r3 keeps install icons on R2 and forces PNG MIME delivery',()=>{
-  const html=read('index.html'),manifest=JSON.parse(read('manifest.webmanifest')),site=read('tools/cloudflare-site.cjs'),worker=read('cloudflare/worker.js');
-  assert.ok(html.includes('/media/releases/content/ui/apple-touch-icon.png?v=0.46-r3'));
+  const html=read('index.html'),manifest=JSON.parse(read('manifest.webmanifest')),site=read('tools/cloudflare-site.cjs'),worker=read('cloudflare/worker.js'),wrangler=JSON.parse(read('wrangler.jsonc'));
+  assert.ok(html.includes('https://solar-time.keg0320.workers.dev/media/releases/content/ui/apple-touch-icon.png?v=0.46-r3'));
   assert.equal((html.match(/data-life-user-watermark/g)||[]).length,2);
   assert.ok(read('src/app.js').includes("releases/content/ui/life-user-watermark.webp"));
   assert.deepEqual(manifest.icons.map(icon=>icon.src),[
-    '/media/releases/content/ui/app-icon-192.png?v=0.46-r3',
-    '/media/releases/content/ui/app-icon-512.png?v=0.46-r3'
+    'https://solar-time.keg0320.workers.dev/media/releases/content/ui/app-icon-192.png?v=0.46-r3',
+    'https://solar-time.keg0320.workers.dev/media/releases/content/ui/app-icon-512.png?v=0.46-r3'
   ]);
   for(const name of ['apple-touch-icon.png','app-icon-192.png','app-icon-512.png','life-user-watermark.webp'])assert.ok(!site.includes("'"+name+"'"),name);
   assert.match(worker,/if\(value\.endsWith\('\.png'\)\)return 'image\/png'/);
   assert.match(worker,/headers=mediaHeaders\(object,status,key\)/);
+  assert.deepEqual(wrangler.assets.run_worker_first,['/media/*']);
 });
 
 
