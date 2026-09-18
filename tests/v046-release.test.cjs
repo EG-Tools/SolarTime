@@ -12,9 +12,9 @@ test('v0.46 page build stays consistent while unchanged coordinator keeps its bu
   assert.match(version.revision,/^r[1-9]\d*$/);
   assert.equal(version.version,'0.47');
   assert.equal(pkg.version,'0.0.47');
-  assert.ok(app.includes("version:'0.47',revision:'r1'"));
-  assert.ok(html.includes('src/app.js?v=0.47-r1'));
-  assert.ok(html.includes('src/localization.js?v='+JSON.parse(read('version.json')).version+'-'+JSON.parse(read('version.json')).revision));
+  assert.ok(app.includes("version:'0.47',revision:'r2'"));
+  assert.ok(html.includes('src/app.js?v=0.47-r2'));
+  assert.ok(html.includes('src/localization.js?v=0.47-r1'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
@@ -43,7 +43,7 @@ test('most stars stay steady while only some twinkle and very few enter a 5-10 s
 });
 
 test('yellow stars are rare while red, white and blue-white remain available',()=>{
-  const effects=read('src/visual-effects.js');assert.match(effects,/starTone<\.07/);assert.match(effects,/starTone<\.10/);assert.match(effects,/starTone>\.82/);assert.match(effects,/step\(\.9985/);
+  const api=visualApi(),p=api.STAR_PALETTE;assert.equal(p.redEnd,.049);assert.ok(Math.abs(p.warmEnd-p.redEnd-.021)<1e-12);assert.equal(p.blueStart,.805);assert.match(read('src/visual-effects.js'),/step\(\.9985/);
 });
 
 test('Sun keeps approved fine frequencies and softened motion parameters',()=>{const {sun}=require('../src/surface-style.js');assert.equal(sun.warpY,150);assert.equal(sun.warpX,56);assert.equal(sun.warpAmountX,.00121125);assert.equal(sun.warpAmountY,.0009025);assert.equal(sun.brightBase,-.00855);assert.equal(sun.brightAmount,.073625);assert.equal(sun.darkBase,-.01425);assert.equal(sun.darkAmount,.03705);assert.deepEqual(sun.glow,[.08075,.0247,.0019]);});
@@ -85,22 +85,22 @@ test('r6 pushes the starfield farther away without slowing the background drift'
   assert.match(sky,/pow\(haze,vec3\(\.95\)\)\*\.5984/);
   assert.match(sky,/255\*\.5896/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
-  assert.match(html,/src\/sky\.js\?v=0\.47-r1/);
+  assert.match(html,/src\/sky\.js\?v=0\.47-r2/);
   assert.ok(html.includes('src/renderer.js?v='));
 });
-test('r7 removes tiny-star one-pixel raster shimmer at the source',()=>{
+test('tiny-star stability uses pixel-area filtering, not just the former r7 footprint clamp',()=>{
   const effects=read('src/visual-effects.js'),sky=read('src/sky.js'),renderer=read('src/renderer.js'),html=read('index.html'),api=visualApi();
   assert.match(effects,/tinyStar=1\.-lively/);
   assert.match(effects,/max\(basePoint,3\.0\)/);
-  assert.match(effects,/tinyAlpha=\(tinyHalo\*\.08\+tinyCore\*\.48\)\*intensity/);
-  assert.match(effects,/varying float intensity,starTone,flarePulse,tinyStar/);
+  assert.match(effects,/tinyEnergy\*covered\.x\*covered\.y\*intensity/);
+  assert.match(api.starShaderSources("highp").fragment,/varying highp float intensity,starTone,flarePulse,tinyStar/);
   assert.match(sky,/Math\.sqrt\(8388608\/\(w\*h\)\)/);
   assert.doesNotMatch(sky,/pulse=Math\.max\(0,Math\.sin\(t\*TAU\)\)\*\*16/);
-  assert.match(sky,/if\(r<\.55\)\{glow\(ctx,x,y,Math\.max\(\.18,r\*\.58\),brightness\*\.56\)/);
+  assert.match(sky,/if\(r<\.55\)\{root\.SolarVisualEffects\.drawTinyStar/);
   assert.match(sky,/DRIFT=\.22\*Math\.PI\/180/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
-  assert.match(html,/src\/sky\.js\?v=0\.47-r1/);
-  assert.match(html,/src\/visual-effects\.js\?v=0\.47-r1/);
+  assert.match(html,/src\/sky\.js\?v=0\.47-r2/);
+  assert.match(html,/src\/visual-effects\.js\?v=0\.47-r2/);
 });
 test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
   const effects=read('src/visual-effects.js'),html=read('index.html'),app=read('src/app.js'),api=visualApi();
@@ -137,7 +137,7 @@ test('r10 removes the extra WebGL star canvas while keeping the safe r9 optimiza
   const html=read('index.html'),effects=read('src/visual-effects.js'),sky=read('src/sky.js'),surface=read('src/surface.js'),performance=read('src/performance.js');
   assert.ok(!html.includes('src/star-layer.js'));
   assert.ok(!fs.existsSync(path.join(root,'src/star-layer.js')));
-  assert.ok(html.includes('src/sky.js?v=0.47-r1'));
+  assert.ok(html.includes('src/sky.js?v=0.47-r2'));
   assert.match(sky,/Math\.sqrt\(8388608\/\(w\*h\)\)/);
   assert.match(sky,/g\.drawArrays\(g\.POINTS,0,drawCount\)/);
   assert.match(effects,/function buildNaturalStarData/);
@@ -296,7 +296,7 @@ test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
   const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.47');assert.deepEqual(notes.RELEASES.slice(0,5).map(r=>r.version),['0.47','0.46','0.45','0.43','0.42']);
   for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(notes.itemsFor(notes.RELEASES[0],code).length>0,code);
-  assert.ok(app.includes('src/release-notes.js?v=0.47-r1'));assert.ok(html.includes('<h3 id="release-notes-version">v0.47</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
+  assert.ok(app.includes('src/release-notes.js?v=0.47-r2'));assert.ok(html.includes('<h3 id="release-notes-version">v0.47</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
 
   assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));

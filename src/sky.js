@@ -309,7 +309,8 @@ class Sky{
     for(const [x,y,z,r,brightness,phase]of stars){const p=this.project({x,y,z});if(p&&p.x>=0&&p.x<=this.w&&p.y>=0&&p.y<=this.h)this.visibleStars.push([p.x,p.y,r,brightness,phase]);}
     this.starPose={source:stars,axes:this.panAxes,w:this.w,h:this.h};this.stats.starProjections+=stars.length;
    }
-   for(const [x,y,r,brightness,phase]of this.visibleStars){if(r<.55){glow(ctx,x,y,Math.max(.18,r*.58),brightness*.56);continue;}const period=5+Math.abs(Math.sin(phase*.754877666))*20,primary=.5+.5*Math.sin(seconds/period*TAU+phase),secondary=.5+.5*Math.sin(seconds/(period*1.618+3)*TAU+phase*.37),irregular=primary*.68+secondary*.32;glow(ctx,x,y,r*.66,brightness*(.62+.30*irregular));}
+   const starRatio=ctx.getTransform().a||1;
+   for(const [x,y,r,brightness,phase]of this.visibleStars){if(r<.55){root.SolarVisualEffects.drawTinyStar(ctx,x,y,r,brightness,phase,starRatio);continue;}const period=5+Math.abs(Math.sin(phase*.754877666))*20,primary=.5+.5*Math.sin(seconds/period*TAU+phase),secondary=.5+.5*Math.sin(seconds/(period*1.618+3)*TAU+phase*.37),irregular=primary*.68+secondary*.32;glow(ctx,x,y,r*.66,brightness*(.62+.30*irregular));}
   }
   if(!options.comets){this.comet=null;this.nextComet=Math.max(this.nextComet,seconds+15);return;}
   if(seconds<this.lastTime){this.nextComet=seconds+20;this.comet=null;}this.lastTime=seconds;
