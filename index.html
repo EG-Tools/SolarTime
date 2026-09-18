@@ -8,12 +8,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
   <meta name="solar-time-version" content="0.45">
-  <meta name="solar-time-revision" content="r11">
+  <meta name="solar-time-revision" content="r12">
   <meta id="meta-description" name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주." data-i18n-content="metaDescription">
   <title>Solar Time</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23060910'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='12' transform='rotate(-28 32 32)' fill='none' stroke='%23748295' stroke-width='1.4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23efbf76'/%3E%3Ccircle cx='54' cy='20' r='3' fill='%23b6d8ed'/%3E%3C/svg%3E">
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=0.45">
-  <link rel="manifest" href="manifest.webmanifest?v=0.45">
+  <link rel="apple-touch-icon" sizes="180x180" href="/media/releases/content/ui/apple-touch-icon.png?v=0.45-r12">
+  <link rel="manifest" href="manifest.webmanifest?v=0.45-r12">
   <script>
     (()=>{
       'use strict';
@@ -197,20 +197,18 @@
 
   <div id="view-controls" class="view-controls ui" role="group" aria-label="시점 조절" data-i18n-aria="viewControls">
     <button id="fit-view" class="icon-button" aria-label="기본 시점" title="기본 시점 · 0"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></button>
+    <div id="camera-presets" class="camera-presets" role="group" aria-label="카메라 시점 저장" data-i18n-aria="cameraPresets">
+      <button type="button" id="camera-preset-1" class="icon-button camera-preset" data-preset="1" aria-label="1번 시점 저장">1</button>
+      <button type="button" id="camera-preset-2" class="icon-button camera-preset" data-preset="2" aria-label="2번 시점 저장">2</button>
+      <button type="button" id="camera-preset-3" class="icon-button camera-preset" data-preset="3" aria-label="3번 시점 저장">3</button>
+    </div>
     <button id="camera-mode-toggle" class="icon-button camera-mode-toggle" type="button" data-mode="zoom" aria-label="휠 모드: 줌. 눌러 이동 방식으로 전환" aria-pressed="false" title="휠 작동 방식 · 줌">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <g class="mode-icon mode-icon-zoom"><path d="M4 8.5h3.2l1.35-2h6.9l1.35 2H20v9H4z"/><circle cx="12" cy="13" r="3"/></g>
         <g class="mode-icon mode-icon-move"><path d="M3.5 9h3l1.2-1.8h5.6L14.5 9H18v8H3.5z"/><circle cx="10.75" cy="13" r="2.5"/><path d="M18.5 3.8v5.6M15.7 6.6h5.6"/></g>
       </svg>
     </button>
-    <button id="zoom-in" class="icon-button" aria-label="확대" title="확대"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
-    <button id="zoom-out" class="icon-button" aria-label="축소" title="축소"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
     <output id="zoom-value" aria-label="화면 확대 배율" data-i18n-aria="zoomValue">1.0×</output>
-    <div id="camera-presets" class="camera-presets" role="group" aria-label="카메라 시점 저장" data-i18n-aria="cameraPresets">
-        <button type="button" id="camera-preset-1" class="icon-button camera-preset" data-preset="1" aria-label="1번 시점 저장">1</button>
-        <button type="button" id="camera-preset-2" class="icon-button camera-preset" data-preset="2" aria-label="2번 시점 저장">2</button>
-        <button type="button" id="camera-preset-3" class="icon-button camera-preset" data-preset="3" aria-label="3번 시점 저장">3</button>
-      </div>
     <button id="rotate-left" class="icon-button rotate-button" type="button" aria-label="우회전 시작" aria-pressed="false" title="우회전 · 다시 누르면 정지">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path transform="translate(24 0) scale(-1 1)" d="M3 10a9 9 0 1 1 2.4 8.3M3 10V4m0 6h6"/></svg>
     </button>
@@ -219,6 +217,8 @@
     </button>
     <button id="zen-toggle" class="icon-button mode-toggle" type="button" aria-label="감상 모드 켜기" aria-pressed="false" title="감상 모드 · H"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg></button>
   </div>
+
+  
 
 
   <section class="playback ui" aria-label="공전 재생 조절" data-i18n-aria="playbackControls">
@@ -239,7 +239,7 @@
 
   <footer class="footer ui">
     <div class="signature">
-      <img class="life-user-watermark life-user-watermark-footer" src="life-user-watermark.webp" alt="Life User">
+      <img class="life-user-watermark life-user-watermark-footer" src="/media/releases/content/ui/life-user-watermark.webp?v=0.45-r12" alt="Life User">
       <span class="credit-line"><span data-i18n="scaleNoteLineOne">크기·거리 축척 조정 · 평균 궤도 근사</span> ·</span>
       <span class="credit-line"><span data-i18n="scaleNoteLineTwo">자전·공전 시간 연동</span> · <a class="source-link" href="https://github.com/EG-Tools/SolarTime/blob/main/assets/CREDITS.md" target="_blank" rel="noopener" data-i18n="sources">출처</a></span>
       <span class="credit-line">Solar Time v0.45 · <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
@@ -284,7 +284,7 @@
       <p data-i18n="timeHelp">상단 시계는 기기 실제 시간입니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.</p>
       <p data-i18n="orbitHelp">행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.</p>
       <div class="shortcuts"><span><kbd>Space</kbd> <span data-i18n="pause">일시정지</span></span><span><kbd>R</kbd> <span data-i18n="realTime">실제 시간</span></span><span><kbd>F</kbd> <span data-i18n="fullscreen">전체 화면</span></span><span><kbd>H</kbd> <span data-i18n="zenMode">감상 모드</span></span><span><kbd>0</kbd> <span data-i18n="homeView">기본 시점</span></span><span><kbd>1 · 2 · 3</kbd> <span data-i18n="savedViews">저장 시점</span></span><span><kbd>Esc</kbd> <span data-i18n="stepExit">단계별 종료</span></span></div>
-      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><span class="support-option-row"><span class="support-label" data-i18n="supportUsd">달러로 후원</span><span class="support-providers"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a></span></span><span class="support-option-row"><span class="support-label" data-i18n="supportKrw">원화로 후원</span><span class="support-providers"><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><span aria-hidden="true">·</span><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span></span></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span class="music-credit support-credit">BACKGROUND MUSIC · SUNO AI</span><span class="support-identity">Life User • Solar Time v0.45 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" src="life-user-watermark.webp" alt="Life User"></p>
+      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><span class="support-option-row"><span class="support-label" data-i18n="supportUsd">달러로 후원</span><span class="support-providers"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a></span></span><span class="support-option-row"><span class="support-label" data-i18n="supportKrw">원화로 후원</span><span class="support-providers"><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><span aria-hidden="true">·</span><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span></span></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span class="music-credit support-credit">BACKGROUND MUSIC · SUNO AI</span><span class="support-identity">Life User • Solar Time v0.45 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" src="/media/releases/content/ui/life-user-watermark.webp?v=0.45-r12" alt="Life User"></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </dialog>
@@ -322,6 +322,6 @@
   <script src="src/preferences.js?v=0.45"></script>
   <script src="src/ui-runtime.js?v=0.45"></script>
   <script src="src/music-player.js?v=0.45"></script>
-  <script src="src/app.js?v=0.45-r11"></script>
+  <script src="src/app.js?v=0.45-r12"></script>
 </body>
 </html>

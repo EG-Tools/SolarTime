@@ -3,14 +3,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r11 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r12 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
   assert.ok(html.includes('name="solar-time-version" content="0.45"'));
-  assert.ok(html.includes('name="solar-time-revision" content="r11"'));
-  assert.deepEqual(version,{version:'0.45',revision:'r11'});
+  assert.ok(html.includes('name="solar-time-revision" content="r12"'));
+  assert.deepEqual(version,{version:'0.45',revision:'r12'});
   assert.equal(pkg.version,'0.0.45');
-  assert.ok(app.includes("version:'0.45',revision:'r11'"));
-  assert.ok(html.includes('src/app.js?v=0.45-r11'));
+  assert.ok(app.includes("version:'0.45',revision:'r12'"));
+  assert.ok(html.includes('src/app.js?v=0.45-r12'));
   assert.ok(html.includes('src/localization.js?v=0.45-r11'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -193,4 +193,31 @@ test('r11 reuses existing language bundles for additional countries',()=>{
   assert.match(app,/STAR_DENSITY_COPY\[copyLanguage\(\)\]/);
   for(const token of ["['en-ca','ca']","['es-ar','ar']","['pt-ao','ao']","['de-at','at']"])
     assert.ok(localization.includes(token),token);
+});
+
+
+test('r12 simplifies and reorders the right-side view controls',()=>{
+  const html=read('index.html'),app=read('src/app.js');
+  assert.ok(!html.includes('id="zoom-in"'));
+  assert.ok(!html.includes('id="zoom-out"'));
+  assert.ok(!app.includes("'zoom-in'"));
+  assert.ok(!app.includes("'zoom-out'"));
+  const start=html.indexOf('<div id="view-controls"'),end=html.indexOf('<section class="playback ui"',start),block=html.slice(start,end);
+  const ordered=['id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="camera-mode-toggle"','id="zoom-value"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
+  let cursor=-1;
+  for(const token of ordered){const next=block.indexOf(token);assert.ok(next>cursor,token+' order');cursor=next;}
+  assert.ok(app.includes("key==='+'||key==='='"));
+  assert.ok(app.includes("key==='-'"));
+});
+
+test('r12 serves install icons and watermark from R2 releases content ui',()=>{
+  const html=read('index.html'),manifest=JSON.parse(read('manifest.webmanifest')),site=read('tools/cloudflare-site.cjs');
+  assert.ok(html.includes('/media/releases/content/ui/apple-touch-icon.png?v=0.45-r12'));
+  assert.ok(html.includes('/media/releases/content/ui/life-user-watermark.webp?v=0.45-r12'));
+  assert.deepEqual(manifest.icons.map(icon=>icon.src),[
+    '/media/releases/content/ui/app-icon-192.png?v=0.45-r12',
+    '/media/releases/content/ui/app-icon-512.png?v=0.45-r12'
+  ]);
+  for(const name of ['apple-touch-icon.png','app-icon-192.png','app-icon-512.png','life-user-watermark.webp'])
+    assert.ok(!site.includes("'"+name+"'"),name);
 });
