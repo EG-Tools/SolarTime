@@ -703,7 +703,13 @@
         ];
         const known=new Set((base.RELEASES||[]).map(release=>release.version));
         const additions=patches.filter(entry=>!known.has(entry.meta.version)).map(entry=>Object.freeze({...entry.meta,items:entry.items.kor}));
-        const releases=Object.freeze([...additions,...(base.RELEASES||[])]);
+        const releaseByVersion=new Map((base.RELEASES||[]).map(release=>[release.version,release]));
+        for(const release of additions)releaseByVersion.set(release.version,release);
+        const patchVersions=new Set(patches.map(entry=>entry.meta.version));
+        const releases=Object.freeze([
+          ...patches.map(entry=>releaseByVersion.get(entry.meta.version)).filter(Boolean),
+          ...(base.RELEASES||[]).filter(release=>!patchVersions.has(release.version))
+        ]);
         const extra=patches.filter(entry=>!known.has(entry.meta.version)).reduce((sum,entry)=>sum+JSON.stringify(entry.items).length,0);
         const maps=Object.fromEntries(patches.map(entry=>[entry.meta.version,entry.items]));
         return Object.freeze({...base,RELEASES:releases,SOURCE_BYTES:(base.SOURCE_BYTES||0)+extra,itemsFor(release,code='kor'){const map=maps[release?.version];if(map)return map[code==='eu'?'en':code]||map.en;return base.itemsFor(release,code);},createReleaseNotesNavigator(){return base.createReleaseNotesNavigator(releases);}});
