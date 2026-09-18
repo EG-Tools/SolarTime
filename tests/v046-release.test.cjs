@@ -289,6 +289,9 @@ test('v0.46 r1 adds the remaining runtime and asset-pipeline optimizations',()=>
   for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(app.includes(code+':Object.freeze('),code+' v0.46 release notes');
   assert.ok(app.includes("src/release-notes.js?v=0.46-r1"));
   assert.ok(app.includes("THIRD_PREVIOUS_RELEASE=Object.freeze({version:'0.42'"));
+  assert.ok(html.includes('<h3 id="release-notes-version">v0.46</h3>'));
+  assert.match(app,/const releaseByVersion=new Map\(\(base\.RELEASES\|\|\[\]\)\.map\(release=>\[release\.version,release\]\)\)/);
+  assert.match(app,/\.\.\.patches\.map\(entry=>releaseByVersion\.get\(entry\.meta\.version\)\)\.filter\(Boolean\)/);
 
   assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));
