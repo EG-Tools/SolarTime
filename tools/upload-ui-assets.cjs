@@ -1,43 +1,31 @@
+/* Validate every approved UI file before writing. Default: dry run, icons only. */
 'use strict';
-const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process'),sharp=require('sharp'),{projectConfig}=require('./asset-pipeline.cjs');
-
-const root=path.resolve(__dirname,'..'),{deployment}=projectConfig(root);
-const wranglerBin=path.join(root,'node_modules','wrangler','bin','wrangler.js');
-const HISTORICAL_REF='c1ee7e2b7f3c431a3702fe2f5d04675cab4f9dc6';
-const UI_ASSETS=Object.freeze([
-  {name:'apple-touch-icon.png',type:'image/png',width:180,height:180},
-  {name:'app-icon-192.png',type:'image/png',width:192,height:192},
-  {name:'app-icon-512.png',type:'image/png',width:512,height:512},
-  {name:'life-user-watermark.webp',type:'image/webp'}
-]);
-
-async function restoreMissing(asset){
-  const file=path.join(root,asset.name);
-  if(fs.existsSync(file))return file;
-  const url=`https://raw.githubusercontent.com/EG-Tools/SolarTime/${HISTORICAL_REF}/${asset.name}`;
-  console.log(`Restoring missing ${asset.name} from Git history...`);
-  const response=await fetch(url,{headers:{'user-agent':'SolarTime-R2-UI-Repair/1.0'}});
-  if(!response.ok)throw Error(`Could not restore ${asset.name}: HTTP ${response.status}`);
-  const bytes=Buffer.from(await response.arrayBuffer());
-  if(!bytes.length)throw Error('Restored file is empty: '+asset.name);
-  fs.writeFileSync(file,bytes);
-  return file;
-}
-
+const fs=require('node:fs'),path=require('node:path'),sharp=require('sharp');
+const {putR2}=require('./r2-upload.cjs'),{projectConfig,atomicWrite}=require('./asset-pipeline.cjs'),{digest}=require('./source-guard.cjs');
+const root=path.resolve(__dirname,'..'),{deployment}=projectConfig(root),args=new Set(process.argv.slice(2));
+const assets=[{name:'apple-touch-icon.png',size:180,type:'image/png'},{name:'app-icon-192.png',size:192,type:'image/png'},{name:'app-icon-512.png',size:512,type:'image/png'}];
+if(args.has('--watermark'))assets.push({name:'life-user-watermark.webp',type:'image/webp'});
 (async()=>{
-  if(!fs.existsSync(wranglerBin))throw Error('Run npm install before uploading UI assets.');
-  for(const asset of UI_ASSETS){
-    const file=await restoreMissing(asset);
-    if(asset.width){
-      const metadata=await sharp(file).metadata();
-      if(metadata.width!==asset.width||metadata.height!==asset.height)throw Error(`${asset.name} must be ${asset.width}x${asset.height}.`);
-    }
-    const key=`${deployment.prefix}/content/ui/${asset.name}`;
-    const object=`${deployment.bucket}/${key}`;
-    console.log(`Uploading ${asset.name} -> ${key}`);
-    const result=spawnSync(process.execPath,[wranglerBin,'r2','object','put',object,'--remote','--file',file,'--content-type',asset.type,'--cache-control','public, max-age=31536000, immutable','--force'],{cwd:root,stdio:'inherit'});
-    if(result.error)throw result.error;
-    if(result.status!==0)process.exit(result.status||1);
-  }
-  console.log('R2 UI assets uploaded.');
-})().catch(error=>{console.error('UI asset upload failed: '+error.message);process.exitCode=1;});
+ for(const arg of args)if(!['--watermark','--approve','--apply'].includes(arg))throw Error('Unknown option: '+arg);
+ if(args.has('--approve')&&args.has('--apply'))throw Error('Approval and upload must be separate commands.');
+ const approvalFile=path.join(root,'assets/ui-approval.json'),approved=fs.existsSync(approvalFile)?JSON.parse(fs.readFileSync(approvalFile,'utf8')):{schema:1,files:{}};
+ if(approved.schema!==1||!approved.files||typeof approved.files!=='object')throw Error('Invalid approval record.');
+ const consumers=['index.html','manifest.webmanifest','src/app.js'].map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n'),ready=[];
+ for(const asset of assets){
+  const file=path.join(root,asset.name);if(!fs.existsSync(file))throw Error('Missing '+asset.name+'. Supply the current approved file; history recovery is separate.');
+  const bytes=fs.readFileSync(file),meta=await sharp(bytes).metadata(),format=asset.type==='image/png'?'png':'webp';
+  if(meta.format!==format||!(meta.width>0&&meta.height>0)||asset.size&&(meta.width!==asset.size||meta.height!==asset.size))throw Error('Invalid image format/dimensions: '+asset.name);
+  const escaped=asset.name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const versions=[...new Set([...consumers.matchAll(new RegExp(escaped+'\\?v=([^\\s"\'<>]+)','g'))].map(m=>m[1]))];
+  if(versions.length!==1||!/^\d+(?:\.\d+)+-r\d+(?:-[a-z0-9-]+)?$/i.test(versions[0]))throw Error('One versioned consumer URL is required: '+asset.name);
+  const sha256=digest(bytes),previous=approved.files[asset.name];
+  if(previous&&previous.sha256!==sha256&&previous.version===versions[0])throw Error('Image changed but cache version did not: '+asset.name);
+  ready.push({...asset,file,sha256,version:versions[0],bytes:bytes.length});
+ }
+ if(args.has('--approve')){for(const row of ready)approved.files[row.name]={sha256:row.sha256,version:row.version,bytes:row.bytes};atomicWrite(approvalFile,JSON.stringify(approved,null,2)+'\n');console.log('Local approvals recorded. Review and commit the approval record; no upload performed.');return;}
+ for(const row of ready){const ok=approved.files[row.name]?.sha256===row.sha256&&approved.files[row.name]?.version===row.version;console.log((ok?'APPROVED ':'UNAPPROVED ')+row.name+' '+row.sha256);if(args.has('--apply')&&!ok)throw Error('Unapproved image: '+row.name);}
+ if(!args.has('--apply')){console.log('Dry run. Use --apply explicitly. Watermark is excluded unless --watermark is specified.');return;}
+ let completed=0;
+ for(const row of ready){try{putR2(root,{bucket:deployment.bucket,key:deployment.prefix+'/content/ui/'+row.name,file:row.file,type:row.type,cacheControl:'public, max-age=3600, must-revalidate'});completed++;}catch(error){throw Error('Stopped after '+completed+' uploads; completed objects are not rolled back. '+error.message);}}
+ console.log('Approved uploads completed: '+completed);
+})().catch(error=>{console.error(error.message);process.exitCode=1;});
