@@ -3,8 +3,8 @@
   "prefix": "releases",
   "cdnBase": "https://solar-time.keg0320.workers.dev/media/",
   "bundle": {
-    "path": "releases/bundles/assetpack-20260917-r7.d93fc0d7da321ae4.tar.gz",
-    "sha256": "d93fc0d7da321ae4d57e6387b900464a7c532652f9e1d942f0afb9a76e1254ab",
-    "bytes": 59259033
+    "path": "releases/bundles/assetpack-20260918-r1.1d41c51f726ddf8c.tar.gz",
+    "sha256": "1d41c51f726ddf8c4f8647d7fb1dc6cecad1066cc8ddea5b792137a595750242",
+    "bytes": 64227374
   }
 }

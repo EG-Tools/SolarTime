@@ -34,3 +34,9 @@ SolarTime_v0.45_r14_Release.bat
 SolarTime_v0.45_r15_Release.bat
 SolarTime_v0.45_r16_Release.bat
 tools/upload-r16-watermark.cjs
+SolarTime_v0.45_r17_Release.bat
+SolarTime_v0.46_r1_Release.bat
+tools/apply-r17.cjs
+tools/verify-r17-media.cjs
+tools/apply-v046-r1.cjs
+tools/verify-v046-media.cjs

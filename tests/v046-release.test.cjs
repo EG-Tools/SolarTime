@@ -3,14 +3,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r16 exposes the same public version with a new patch revision',()=>{
+test('v0.46 r1 exposes the new public version with localized release notes',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.ok(html.includes('name="solar-time-version" content="0.45"'));
-  assert.ok(html.includes('name="solar-time-revision" content="r16"'));
-  assert.deepEqual(version,{version:'0.45',revision:'r16'});
-  assert.equal(pkg.version,'0.0.45');
-  assert.ok(app.includes("version:'0.45',revision:'r16'"));
-  assert.ok(html.includes('src/app.js?v=0.45-r16'));
+  assert.ok(html.includes('name="solar-time-version" content="0.46"'));
+  assert.ok(html.includes('name="solar-time-revision" content="r1"'));
+  assert.deepEqual(version,{version:'0.46',revision:'r1'});
+  assert.equal(pkg.version,'0.0.46');
+  assert.ok(app.includes("version:'0.46',revision:'r1'"));
+  assert.ok(html.includes('src/app.js?v=0.46-r1'));
   assert.ok(html.includes('src/localization.js?v=0.45-r11'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -54,7 +54,7 @@ test('Jupiter experimental shader is removed so the stock gas-giant path is used
 });
 
 test('v0.45 release notes match the calmer stars, softer Sun and restored Jupiter shader',()=>{
-  const app=read('src/app.js');assert.match(app,/CURRENT_RELEASE=Object\.freeze\(\{version:'0\.45'/);assert.match(app,/황색 별 비중을 줄였습니다/);assert.match(app,/5~25초/);assert.match(app,/5~10초/);assert.match(app,/약 5% 더 낮춰/);assert.match(app,/기본 가스행성 셰이더로 완전히 복원/);
+  const app=read('src/app.js');assert.match(app,/PREVIOUS_RELEASE=Object\.freeze\(\{version:'0\.45'/);assert.match(app,/황색 별 비중을 줄였습니다/);assert.match(app,/5~25초/);assert.match(app,/5~10초/);assert.match(app,/약 5% 더 낮춰/);assert.match(app,/기본 가스행성 셰이더로 완전히 복원/);
 });
 
 test('right mouse drag temporarily dollies the camera without changing the wheel mode',()=>{
@@ -68,14 +68,14 @@ test('right mouse drag temporarily dollies the camera without changing the wheel
 });
 
 test('v0.43 notes no longer advertise the discarded Jupiter shader experiment',()=>{
-  const app=read('src/app.js'),start=app.indexOf("const PREVIOUS_RELEASE=Object.freeze({version:'0.43'"),end=app.indexOf("const SECOND_PREVIOUS_RELEASE=",start),block=app.slice(start,end);
+  const app=read('src/app.js'),start=app.indexOf("const SECOND_PREVIOUS_RELEASE=Object.freeze({version:'0.43'"),end=app.indexOf("const THIRD_PREVIOUS_RELEASE=",start),block=app.slice(start,end);
   assert.ok(start>=0&&end>start);
   assert.doesNotMatch(block,/대적점|Great Red Spot|大红斑|大赤斑|Gran Mancha Roja|Großen Roten Fleck|Grande Tache rouge/);
   assert.match(block,/GPU에 한 번 올린 뒤 슬라이더 값에 따라 그리는 개수만 바꾸도록/);
 });
 
 test('v0.45 notes include the right-drag dolly control',()=>{
-  const app=read('src/app.js'),start=app.indexOf("const CURRENT_RELEASE=Object.freeze({version:'0.45'"),end=app.indexOf("const PREVIOUS_RELEASE=",start),block=app.slice(start,end);
+  const app=read('src/app.js'),start=app.indexOf("const PREVIOUS_RELEASE=Object.freeze({version:'0.45'"),end=app.indexOf("const SECOND_PREVIOUS_RELEASE=",start),block=app.slice(start,end);
   assert.match(block,/마우스 오른쪽 버튼을 누른 채 위아래로 드래그/);
 });
 
@@ -214,7 +214,7 @@ test('r12 serves install icons and watermark from R2 releases content ui',()=>{
   const html=read('index.html'),manifest=JSON.parse(read('manifest.webmanifest')),site=read('tools/cloudflare-site.cjs');
   assert.ok(html.includes('/media/releases/content/ui/apple-touch-icon.png?v=0.45-r12'));
   assert.equal((html.match(/data-life-user-watermark/g)||[]).length,2);
-  assert.ok(read('src/app.js').includes("releases/content/ui/life-user-watermark.webp?v=0.45-r16"));
+  assert.ok(read('src/app.js').includes("releases/content/ui/life-user-watermark.webp"));
   assert.deepEqual(manifest.icons.map(icon=>icon.src),[
     '/media/releases/content/ui/app-icon-192.png?v=0.45-r12',
     '/media/releases/content/ui/app-icon-512.png?v=0.45-r12'
@@ -261,9 +261,9 @@ test('r15 adds one extra pixel only between the scale readout and home',()=>{
 
 test('r16 removes avoidable renderer hot-path work and restores the watermark',()=>{
   const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js');
-  for(const file of ['surface','renderer','performance','app'])assert.ok(html.includes('src/'+file+'.js?v=0.45-r16'),file);
+  for(const file of ['surface','renderer','performance','app'])assert.ok(html.includes('src/'+file+'.js?v='),file);
   assert.equal((html.match(/data-life-user-watermark/g)||[]).length,2);
-  assert.ok(app.includes("LIFE_USER_WATERMARK_KEY='releases/content/ui/life-user-watermark.webp?v=0.45-r16'"));
+  assert.ok(app.includes('releases/content/ui/life-user-watermark.webp'));
   assert.ok(app.includes("window.SolarAssets?.materials?.earth?.base"));
   assert.match(renderer,/this\.frameBodies=\[\];this\.surfaceBodies=\[\];this\.directBodies=\[\];this\.labelBodies=\[\]/);
   assert.match(renderer,/displayPhysicalPoint\(physical,out\)/);
@@ -280,4 +280,36 @@ test('r16 removes avoidable renderer hot-path work and restores the watermark',(
   assert.doesNotMatch(surface,/for\(const \[unit,texture,uniform\] of/);
   assert.match(performance,/__solarTextureUseSerial/);
   assert.doesNotMatch(performance,/record\.lastUsed=performance\.now\(\)/);
+});
+
+test('v0.46 r1 adds the remaining runtime and asset-pipeline optimizations',()=>{
+  const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js'),pipeline=read('tools/asset-pipeline.cjs');
+  const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
+  assert.match(app,/CURRENT_RELEASE=Object\.freeze\(\{version:'0\.46',date:'2026\.09\.18'\}\)/);
+  for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(app.includes(code+':Object.freeze('),code+' v0.46 release notes');
+  assert.ok(app.includes("src/release-notes.js?v=0.46-r1"));
+  assert.ok(app.includes("THIRD_PREVIOUS_RELEASE=Object.freeze({version:'0.42'"));
+
+  assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
+  assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));
+  for(const file of ['surface','renderer','performance','app'])assert.ok(html.includes('src/'+file+'.js?v=0.46-r1'),file);
+  assert.deepEqual(assetRevision,{version:'assetpack-20260918-r1'});
+  assert.equal(manifest.revision,'assetpack-20260918-r1');
+  for(const entry of Object.values(manifest.materials))assert.equal(entry.seamBaked,true,entry.source);
+  assert.match(pipeline,/async function seamBakedVariant/);
+  assert.match(pipeline,/seamBaked:group==='textures'/);
+  assert.match(pipeline,/rightPixel=y\*width\+\(width-1-x\)/);
+  assert.match(surface,/seamBaked:!!asset\.seamBaked/);
+  assert.match(surface,/if\(!source\.seamBaked\|\|bitmap\.width!==width\|\|bitmap\.height!==height\)/);
+  assert.match(surface,/g\.pixelStorei\(g\.UNPACK_FLIP_Y_WEBGL,false\)/);
+  assert.match(surface,/this\.orbitState=\{valid:false\}/);
+  assert.match(surface,/if\(!s\.valid\|\|s\.centerX!==centerX/);
+  assert.match(renderer,/this\.labelObstacleMap=new Map\(\)/);
+  assert.match(renderer,/this\.labelCandidateMap=new Map\(\)/);
+  assert.match(renderer,/byId\.clear\(\);ordered\.length=0;reserved\.length=0;active\.clear\(\)/);
+  assert.match(renderer,/const camera=direct\?this\.gpuOrbitCamera\(\):null/);
+  assert.match(app,/let cameraUiSignature=''/);
+  assert.match(app,/const activeMotion=!!drag\|\|pointers\.size>0/);
+  assert.match(performance,/function reportFrameTiming\(elapsed,target\)/);
+  assert.match(performance,/constrained\|\|!active\?1000\/30:1000\/60/);
 });

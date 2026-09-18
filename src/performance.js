@@ -1,4 +1,4 @@
-/* Solar Time v0.42 runtime performance owner.
+/* Solar Time v0.46 r1 runtime performance owner.
    Keeps adaptive DPR/FPS and direct-GPU texture memory policy outside renderer.js. */
 (function(root){
   'use strict';
@@ -10,7 +10,7 @@
       return !!(uaMobile||iPadOS||(coarsePointer&&shortSide<=820));
     }catch(_){return false;}
   })();
-  let renderCost=coarse?9:6,slowUntil=0;
+  let renderCost=coarse?9:6,frameLag=0,slowUntil=0;
   const MiB=1024*1024;
   const textureBudget=()=>coarse?96*MiB:192*MiB;
   function pixelRatio(width,height,quality='auto'){
@@ -24,9 +24,16 @@
     renderCost=renderCost*.90+Math.min(ms,80)*.10;
     if(renderCost>13)slowUntil=performance.now()+4000;
   }
-  function frameInterval(width,height){
+  function reportFrameTiming(elapsed,target){
+    if(!Number.isFinite(elapsed)||!Number.isFinite(target)||elapsed<0||target<=0)return;
+    const lag=Math.max(0,elapsed-target);
+    frameLag=frameLag*.90+Math.min(lag,80)*.10;
+    if(target<25&&frameLag>4)slowUntil=performance.now()+4000;
+  }
+  function frameInterval(width,height,active=true){
     const phone=coarse&&Math.min(width,height)<900;
-    return phone||renderCost>13||performance.now()<slowUntil?1000/30:1000/60;
+    const constrained=phone||renderCost>13||frameLag>4||performance.now()<slowUntil;
+    return constrained||!active?1000/30:1000/60;
   }
   function protectTexture(renderer,name){
     const desired=renderer.desired;
@@ -77,5 +84,5 @@
     };
     Object.defineProperty(Renderer.prototype,'__solarAdaptiveDprInstalled',{value:true});
   }
-  root.SolarPerformance=Object.freeze({pixelRatio,frameInterval,reportRenderCost,textureBudget,trimTextures,get renderCost(){return renderCost;},coarse});
+  root.SolarPerformance=Object.freeze({pixelRatio,frameInterval,reportRenderCost,reportFrameTiming,textureBudget,trimTextures,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
 })(window);

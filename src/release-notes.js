@@ -4,6 +4,13 @@
 
   const release=(version,date,items)=>Object.freeze({version,date,items:Object.freeze(items)});
   const RELEASES=Object.freeze([
+    release('0.46','2026.09.18',[
+      '정지 화면 30fps와 활동 중 60fps 전환, 실제 RAF 지연 감지로 렌더 부하를 더 정교하게 조절합니다.',
+      '배율·회전 UI의 중복 DOM 갱신과 라벨 충돌 계산을 줄였습니다.',
+      'GPU 궤도 카메라·uniform 상태 재사용과 텍스처 업로드 상태 처리를 개선했습니다.',
+      '행성 텍스처 seam 보정을 빌드 단계로 옮겨 확대 시 픽셀 작업과 순간 메모리 사용을 줄였습니다.',
+      '렌더링·텍스처·라벨·UI hot path를 추가 정리해 미세 끊김을 줄였습니다.'
+    ]),
     release('0.41','2026.09.16',[
       '시계 숫자를 누르면 설정된 폰트가 순서대로 전환됩니다.',
       'AM/PM을 눌러 12시간·24시간 표기를 바로 전환할 수 있습니다.',
@@ -158,6 +165,7 @@
   // arrow-navigable history instead of falling back to Korean.
   const LOCALIZED_SUMMARIES=Object.freeze({
     en:Object.freeze([
+      "Static scenes now render at 30 fps, while dragging, auto-rotation, camera transitions and accelerated time continue at 60 fps.; Real RAF delay is monitored so sustained frame drops can lower load automatically, while duplicate zoom/rotation DOM writes and label-collision calculations are reduced.; GPU orbit rendering now reuses shared camera and uniform state, and texture-upload state handling has been cleaned up.; Planet-texture seam correction has moved from runtime to the build pipeline, reducing pixel read/write work and temporary memory use during close-ups.; Additional renderer, texture, label and UI hot-path cleanup reduces small stutters during long sessions and on lower-end hardware.",
       'Clicking the clock cycles through the configured fonts; clicking AM/PM switches directly between 12- and 24-hour time; iPhone home-screen icons and two-finger panning are now supported; spacing and behavior were refined across date, status, branding, and support areas.',
       'Moved solar corona and prominence compositing to the GPU, cloud-hosted language and high-resolution assets, increased maximum orbit brightness, and removed duplicate heavy builds.',
       'Moved orbit coordinates and camera projection to GPU buffers, separated language, music, storage, and popup modules, and reorganized the main controls.',
@@ -184,6 +192,7 @@
       'Created a 4K spherical space background and stabilized dedicated background rendering, projection caching, tab suspension, and WebGL recovery.'
     ]),
     chn:Object.freeze([
+      "静止画面改为 30fps 渲染，而拖动、自动旋转、相机切换和时间加速时仍保持 60fps。; 现在会监测真实的 RAF 延迟，在持续掉帧时自动降低负载，同时减少倍率/旋转界面的重复 DOM 更新和标签碰撞计算。; GPU 轨道渲染会复用共享的相机与 uniform 状态，并整理了纹理上传时的状态处理。; 行星纹理的接缝修正从运行时移到构建阶段，减少近距离放大时的像素读写与临时内存占用。; 进一步精简渲染、纹理、标签和界面的热路径，降低长时间运行及低性能设备上的细微卡顿。",
       '点击时钟可依次切换已配置字体；点击 AM/PM 可直接切换 12/24 小时制；现已支持 iPhone 主屏幕官方图标与双指平移；日期、状态、品牌和赞助区域的间距与行为得到优化。',
       '将太阳日冕与日珥合成迁移到 GPU，语言和高清素材改由云端加载，提高轨道最大亮度，并移除重复的大型构建。',
       '将轨道坐标与相机投影迁移到 GPU 缓冲区，拆分语言、音乐、存储和弹窗模块，并重新整理主要控制项。',
@@ -210,6 +219,7 @@
       '制作 4K 球形宇宙背景，并稳定背景渲染、投影缓存、标签页暂停和 WebGL 恢复。'
     ]),
     jpn:Object.freeze([
+      "静止した通常画面は 30fps に抑え、ドラッグ・自動回転・カメラ遷移・時間加速中は 60fps を維持するよう描画周期を最適化しました。; 実際の RAF 遅延を監視し、フレーム落ちが続く場合は自動的に負荷を下げるほか、倍率・回転 UI の重複 DOM 更新とラベル衝突計算を削減しました。; GPU の軌道描画で共通のカメラと uniform 状態を再利用し、テクスチャアップロード時の状態処理を整理しました。; 惑星テクスチャの継ぎ目補正を実行時からビルド時へ移し、接近表示時のピクセル読み書きと一時メモリ使用量を削減しました。; レンダリング・テクスチャ・ラベル・UI のホットパスをさらに整理し、長時間実行や低性能環境での細かな引っ掛かりを減らしました。",
       '時計を押すと設定済みフォントが順番に切り替わります；AM/PM を押すと 12/24 時間表示を直接切り替えられます；iPhone の公式ホーム画面アイコンと2本指パンに対応しました；日付・状態・ブランド・支援領域の間隔と動作を整えました。',
       '太陽コロナとプロミネンスの合成を GPU に移し、言語と高解像度素材をクラウド化し、軌道の最大輝度を上げ、重複する大型ビルドを削除しました。',
       '軌道座標とカメラ投影を GPU バッファへ移し、言語・音楽・保存・ポップアップを分離して主要操作を整理しました。',
@@ -236,6 +246,7 @@
       '4K 球面宇宙背景を作成し、背景描画・投影キャッシュ・タブ休止・WebGL 復旧を安定化しました。'
     ]),
     hi:Object.freeze([
+      "स्थिर सामान्य दृश्य अब 30fps पर चलते हैं, जबकि drag, auto-rotation, camera transition और तेज समय-गति के दौरान 60fps बनाए रखा जाता है।; वास्तविक RAF delay को मॉनिटर किया जाता है ताकि लगातार frame drop होने पर load अपने-आप कम हो, और zoom/rotation UI के दोहराए गए DOM updates तथा label-collision गणना भी घटे।; GPU orbit rendering अब साझा camera और uniform state को reuse करता है, और texture upload state handling को व्यवस्थित किया गया है।; Planet texture seam correction को runtime से build stage में ले जाया गया है, जिससे close-up के समय pixel read/write और temporary memory उपयोग कम होता है।; Renderer, texture, label और UI hot paths की अतिरिक्त सफाई से लंबे उपयोग और कम-शक्ति वाले hardware पर छोटे stutter कम होते हैं।",
       'घड़ी पर क्लिक करने से चुने हुए फ़ॉन्ट क्रम से बदलते हैं; AM/PM पर क्लिक करके 12 और 24 घंटे का प्रारूप तुरंत बदला जा सकता है; iPhone होम-स्क्रीन आइकन और दो उंगली पैन अब समर्थित हैं; तारीख, स्थिति, ब्रांड और सहयोग क्षेत्रों का अंतर व व्यवहार सुधारा गया।',
       'सौर कोरोना और प्रोमिनेंस संयोजन को GPU पर ले जाया गया, भाषा व उच्च-रिज़ॉल्यूशन सामग्री क्लाउड से जोड़ी गई, कक्षा की अधिकतम चमक बढ़ी और दोहराए गए बड़े बिल्ड हटे।',
       'कक्षा निर्देशांक और कैमरा प्रोजेक्शन GPU बफ़र पर ले जाए गए, भाषा, संगीत, संग्रह और पॉपअप मॉड्यूल अलग किए गए तथा मुख्य नियंत्रण व्यवस्थित हुए।',
@@ -262,6 +273,7 @@
       '4K गोलाकार अंतरिक्ष पृष्ठभूमि बनाई गई और पृष्ठभूमि रेंडरिंग, प्रोजेक्शन कैश, टैब निलंबन व WebGL पुनर्प्राप्ति स्थिर हुई।'
     ]),
     es:Object.freeze([
+      "Las escenas estáticas pasan a 30 fps, mientras que el arrastre, la rotación automática, las transiciones de cámara y el tiempo acelerado mantienen 60 fps.; Se supervisa el retraso real de RAF para reducir automáticamente la carga si persisten las caídas de fotogramas, y se reducen las escrituras DOM repetidas de zoom/rotación y los cálculos de colisión de etiquetas.; El renderizado GPU de órbitas reutiliza el estado compartido de cámara y uniforms, y se ha ordenado el manejo del estado durante la carga de texturas.; La corrección de costuras de las texturas planetarias pasa del tiempo de ejecución a la fase de compilación, reduciendo lecturas/escrituras de píxeles y memoria temporal en primeros planos.; Se han depurado más las rutas críticas de renderizado, texturas, etiquetas e interfaz para reducir pequeños tirones en sesiones largas y equipos modestos.",
       'Al pulsar el reloj se recorren las fuentes configuradas; al pulsar AM/PM se cambia directamente entre 12 y 24 horas; ahora hay icono oficial y paneo con dos dedos en iPhone; se ajustaron espacios y comportamientos de fecha, estado, marca y apoyo.',
       'Se trasladó la corona y las prominencias solares a la GPU, se alojaron idiomas y recursos HD en la nube, se aumentó el brillo orbital máximo y se eliminaron compilaciones pesadas duplicadas.',
       'Las coordenadas orbitales y la proyección de cámara pasaron a búferes GPU; idioma, música, almacenamiento y ventanas se separaron en módulos y se reorganizaron los controles.',
@@ -288,6 +300,7 @@
       'Se creó un fondo espacial esférico 4K y se estabilizaron su renderizado, la caché de proyección, la suspensión de pestañas y la recuperación WebGL.'
     ]),
     de:Object.freeze([
+      "Statische Ansichten werden nun mit 30 fps gerendert, während Ziehen, automatische Rotation, Kameraübergänge und beschleunigte Zeit weiterhin 60 fps nutzen.; Die tatsächliche RAF-Verzögerung wird überwacht, sodass bei anhaltenden Frame-Drops die Last automatisch sinkt; zugleich werden doppelte DOM-Aktualisierungen für Zoom/Rotation und Label-Kollisionsberechnungen reduziert.; Das GPU-Orbit-Rendering verwendet gemeinsame Kamera- und Uniform-Zustände wieder, und die Zustandsverwaltung beim Textur-Upload wurde bereinigt.; Die Nahtkorrektur von Planetentexturen wurde von der Laufzeit in den Build-Prozess verlagert, wodurch Pixel-Lese-/Schreibarbeit und temporärer Speicher bei Nahansichten sinken.; Weitere Bereinigungen der Hot Paths für Rendering, Texturen, Labels und UI reduzieren kleine Ruckler bei langen Sitzungen und auf schwächerer Hardware.",
       'Ein Klick auf die Uhr wechselt der Reihe nach durch die eingerichteten Schriften; ein Klick auf AM/PM schaltet direkt zwischen 12 und 24 Stunden um; iPhone-Startsymbol und Zwei-Finger-Schwenken werden unterstützt; Abstände und Verhalten von Datum, Status, Marke und Unterstützung wurden verfeinert.',
       'Sonnenkorona und Protuberanzen wurden auf die GPU verlagert, Sprach- und HD-Daten in die Cloud gelegt, die maximale Orbithelligkeit erhöht und doppelte große Builds entfernt.',
       'Orbitkoordinaten und Kameraprojektion wurden in GPU-Puffer verlagert, Sprach-, Musik-, Speicher- und Popupmodule getrennt und die Hauptsteuerung neu geordnet.',
@@ -314,6 +327,7 @@
       'Ein sphärischer 4K-Weltraumhintergrund wurde erstellt und Hintergrundrendering, Projektionscache, Tab-Pause und WebGL-Wiederherstellung stabilisiert.'
     ]),
     fr:Object.freeze([
+      "Les scènes statiques passent à 30 i/s, tandis que le glissement, la rotation automatique, les transitions de caméra et le temps accéléré restent à 60 i/s.; Le retard RAF réel est surveillé afin de réduire automatiquement la charge en cas de pertes d’images persistantes, tout en diminuant les écritures DOM répétées du zoom/de la rotation et les calculs de collision des étiquettes.; Le rendu GPU des orbites réutilise l’état commun de la caméra et des uniforms, et la gestion d’état lors du chargement des textures a été simplifiée.; La correction des coutures des textures planétaires est déplacée de l’exécution vers la phase de build, réduisant les lectures/écritures de pixels et la mémoire temporaire lors des gros plans.; Un nettoyage supplémentaire des chemins critiques du rendu, des textures, des étiquettes et de l’interface réduit les petits à-coups pendant les longues sessions et sur les machines modestes.",
       'Un clic sur l’horloge fait défiler les polices configurées; un clic sur AM/PM bascule directement entre 12 et 24 heures; l’icône officielle et le panoramique à deux doigts sont pris en charge sur iPhone; les espacements et comportements de la date, du statut, de la marque et du soutien ont été affinés.',
       'La couronne et les protubérances solaires ont été transférées au GPU, les langues et ressources HD au cloud, la luminosité orbitale maximale augmentée et les builds lourds en double supprimés.',
       'Les coordonnées orbitales et la projection caméra ont été déplacées vers des tampons GPU, les modules langue, musique, stockage et fenêtres séparés, et les commandes réorganisées.',
@@ -338,7 +352,10 @@
       'Les transitions caméra ont été unifiées avec accélération, le recadrage inutile supprimé, le cadrage conservé en rotation automatique et les vues proches étendues.',
       'L’animation caméra et les entrées continues ont été unifiées, les préréglages et touches plein écran stabilisés, et le fond sphérique ainsi que le cache améliorés.',
       'Un fond spatial sphérique 4K a été créé et le rendu de fond, le cache de projection, la suspension d’onglet et la récupération WebGL stabilisés.'
-    ])
+    ]),
+    pt:Object.freeze(["As cenas estáticas passam a 30 fps, enquanto arrasto, rotação automática, transições de câmara e tempo acelerado continuam a 60 fps.; O atraso real do RAF é monitorizado para reduzir automaticamente a carga quando há quedas persistentes de frames, ao mesmo tempo que se reduzem escritas DOM repetidas de zoom/rotação e cálculos de colisão das etiquetas.; A renderização GPU das órbitas reutiliza o estado partilhado da câmara e dos uniforms, e o tratamento do estado no carregamento de texturas foi simplificado.; A correção das costuras das texturas planetárias passou do runtime para a fase de build, reduzindo leituras/escritas de píxeis e memória temporária nos close-ups.; Uma limpeza adicional dos caminhos críticos de renderização, texturas, etiquetas e interface reduz pequenos engasgos em sessões longas e em hardware mais modesto."]),
+    it:Object.freeze(["Le scene statiche ora vengono renderizzate a 30 fps, mentre trascinamento, rotazione automatica, transizioni della camera e tempo accelerato restano a 60 fps.; Viene monitorato il ritardo reale del RAF per ridurre automaticamente il carico in caso di cali di frame persistenti, diminuendo anche le scritture DOM duplicate di zoom/rotazione e i calcoli di collisione delle etichette.; Il rendering GPU delle orbite riutilizza lo stato condiviso di camera e uniform, mentre la gestione dello stato durante il caricamento delle texture è stata ripulita.; La correzione delle giunzioni delle texture planetarie è stata spostata dal runtime alla fase di build, riducendo letture/scritture dei pixel e memoria temporanea nei primi piani.; Ulteriori ottimizzazioni dei percorsi critici di rendering, texture, etichette e UI riducono i piccoli scatti nelle sessioni lunghe e sui sistemi meno potenti."]),
+    id:Object.freeze(["Adegan statis kini dirender pada 30 fps, sedangkan drag, rotasi otomatis, transisi kamera, dan percepatan waktu tetap berjalan pada 60 fps.; Delay RAF nyata dipantau agar beban dapat diturunkan otomatis saat frame drop berlanjut, sekaligus mengurangi penulisan DOM zoom/rotasi yang berulang dan perhitungan benturan label.; Render orbit GPU kini memakai ulang state kamera dan uniform yang sama, serta penanganan state saat upload tekstur dirapikan.; Koreksi seam tekstur planet dipindahkan dari runtime ke tahap build, sehingga pembacaan/penulisan piksel dan penggunaan memori sementara saat close-up berkurang.; Hot path renderer, tekstur, label, dan UI dirapikan lebih lanjut untuk mengurangi stutter kecil pada sesi panjang dan perangkat dengan performa lebih rendah."])
   });
 
   function splitSummary(summary,count,language) {

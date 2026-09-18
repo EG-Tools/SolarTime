@@ -480,7 +480,7 @@ function directSource(asset,width){
   if(typeof asset==='string')return {url:asset,fallback:'',key:asset};
   const tiers=asset?.tiers||[],tier=tiers.find(row=>row.width>=width)||tiers[tiers.length-1];if(!tier)return null;
   const remote=asset.base?new URL(tier.path,asset.base).href:'',url=remote||asset.fallback;
-  return {url,fallback:remote&&asset.fallback!==remote?asset.fallback:'',key:url+'|'+(remote?asset.fallback:'')};
+  return {url,fallback:remote&&asset.fallback!==remote?asset.fallback:'',key:url+'|'+(remote?asset.fallback:''),seamBaked:!!asset.seamBaked};
 }
 async function directBitmap(source){
   let lastError;
@@ -502,7 +502,7 @@ class DirectRenderer{
     if(!this.gl)throw Error('WebGL is required for the direct planet renderer.');
     this.disposed=false;this.paused=false;this.generation=0;this.textureToken=0;this.width=1;this.height=1;this.dpr=1;
     this.textures=new Map();this.frames=new Map();this.desired=new Map();this.orbitBuffers=new Map();this.textureSources=new Map();this.coronaTexture=null;this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
-    this.boundProgram=null;this.boundBuffer=null;this.boundAttrib=-1;this.boundAttribSize=0;this.boundAttribBuffer=null;this.activeTextureUnit=-1;this.boundTextures=[null,null,null,null];this.canvasViewportW=0;this.canvasViewportH=0;
+    this.boundProgram=null;this.boundBuffer=null;this.boundAttrib=-1;this.boundAttribSize=0;this.boundAttribBuffer=null;this.activeTextureUnit=-1;this.boundTextures=[null,null,null,null];this.canvasViewportW=0;this.canvasViewportH=0;this.orbitState={valid:false};
     this.stats={backend:'gpu-direct',accepted:0,discarded:0,drawCalls:0,frames:0,texturesLoaded:0,texturePixels:0,orbitUploads:0,kernel:{backend:'gpu-direct'}};
     this.contextLost=false;this.onLost=event=>{event.preventDefault();this.contextLost=true;this.generation++;this.loadQueue=[];this.pendingCount=0;this.orbitBuffers.clear();this.resetBindings();this.stats.contextLost=true;};
     this.onRestored=()=>{this.contextLost=false;this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.resetBindings();this.setup();};
@@ -510,6 +510,7 @@ class DirectRenderer{
     this.setup();
   }
   resetBindings(){
+    if(this.orbitState)this.orbitState.valid=false;
     this.boundProgram=null;this.boundBuffer=null;this.boundAttrib=-1;this.boundAttribSize=0;this.boundAttribBuffer=null;this.activeTextureUnit=-1;
     for(let i=0;i<this.boundTextures.length;i++)this.boundTextures[i]=null;this.canvasViewportW=0;this.canvasViewportH=0;
   }
@@ -583,19 +584,22 @@ class DirectRenderer{
       const requested=this.textures.get(name);if(!requested||requested.token!==token||requested.source.key!==source.key||generation!==this.generation)return;
       bitmap=await directBitmap(source);if(this.disposed||generation!==this.generation)return;
       const natural=2**Math.floor(Math.log2(Math.max(2,bitmap.width))),width=Math.max(2,Math.min(target,natural)),height=width/2;
-      canvas=typeof OffscreenCanvas==='function'?new OffscreenCanvas(width,height):document.createElement('canvas');canvas.width=width;canvas.height=height;
-      const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0,width,height);bitmap.close();bitmap=null;
-      // Read only the two narrow antimeridian strips. A 4096px detail texture no
-      // longer allocates another full 32 MB ImageData merely to repair its seam.
-      const band=Math.max(2,Math.min(32,Math.round(width*.012))),leftStrip=ctx.getImageData(0,0,band,height),rightStrip=ctx.getImageData(width-band,0,band,height);
-      for(let y=0;y<height;y++)for(let x=0;x<band;x++){
-        const t=1-x/(band-1),weight=t*t*(3-2*t),a=(y*band+x)*4,b=(y*band+band-1-x)*4;
-        for(let k=0;k<4;k++){const left=leftStrip.data[a+k],right=rightStrip.data[b+k],middle=(left+right)*.5;leftStrip.data[a+k]=left+(middle-left)*weight;rightStrip.data[b+k]=right+(middle-right)*weight;}
+      let upload=bitmap;
+      if(!source.seamBaked||bitmap.width!==width||bitmap.height!==height){
+        canvas=typeof OffscreenCanvas==='function'?new OffscreenCanvas(width,height):document.createElement('canvas');canvas.width=width;canvas.height=height;
+        const ctx=canvas.getContext('2d',{willReadFrequently:!source.seamBaked});ctx.drawImage(bitmap,0,0,width,height);upload=canvas;
+        if(!source.seamBaked){
+          const band=Math.max(2,Math.min(32,Math.round(width*.012))),leftStrip=ctx.getImageData(0,0,band,height),rightStrip=ctx.getImageData(width-band,0,band,height);
+          for(let y=0;y<height;y++)for(let x=0;x<band;x++){
+            const t=1-x/(band-1),weight=t*t*(3-2*t),a=(y*band+x)*4,b=(y*band+band-1-x)*4;
+            for(let k=0;k<4;k++){const left=leftStrip.data[a+k],right=rightStrip.data[b+k],middle=(left+right)*.5;leftStrip.data[a+k]=left+(middle-left)*weight;rightStrip.data[b+k]=right+(middle-right)*weight;}
+          }
+          ctx.putImageData(leftStrip,0,0);ctx.putImageData(rightStrip,width-band,0);
+        }
       }
-      ctx.putImageData(leftStrip,0,0);ctx.putImageData(rightStrip,width-band,0);
       if(this.disposed||generation!==this.generation)return;
-      const g=this.gl;texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei
-      g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,canvas);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
+      const g=this.gl;texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);
+      g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,upload);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
       // Explicit screen-size texture tiers provide LOD without the longitude
       // derivative seam that implicit mip selection creates on a sphere.
       g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
@@ -617,21 +621,29 @@ class DirectRenderer{
     return record?.texture?record:null;
   }
   orbit(key,xyz,worldOffset,camera,scale,centerX,centerY,color,alpha){
-    if(!key||!xyz?.length)return;const g=this.gl,p=this.line,data=xyz instanceof Float32Array?xyz:new Float32Array(xyz);
+    if(!key||!xyz?.length||!(alpha>0))return;
+    const g=this.gl,p=this.line,data=xyz instanceof Float32Array?xyz:new Float32Array(xyz);
     let record=this.orbitBuffers.get(key);
     if(!record){record={buffer:g.createBuffer(),source:null,count:0};this.orbitBuffers.set(key,record);}
     this.bind(p,record.buffer,3);
     if(record.source!==xyz){g.bufferData(g.ARRAY_BUFFER,data,g.STATIC_DRAW);record.source=xyz;record.count=data.length/3;this.stats.orbitUploads++;}
     const offset=worldOffset||{x:0,y:0,z:0},anchor=camera.anchor||{x:0,y:0,z:0};
-    this.viewport(p);g.uniform2f(p.u.center,centerX,centerY);g.uniform3f(p.u.worldOffset,offset.x,offset.y,offset.z);g.uniform3f(p.u.anchor,anchor.x,anchor.y,anchor.z);
-    g.uniform4f(p.u.camera,camera.ca,camera.sa,camera.ce,camera.se);g.uniform1f(p.u.lens,camera.lens);g.uniform1f(p.u.travel,camera.travel);g.uniform1f(p.u.scale,scale);g.uniform4f(p.u.color,color[0],color[1],color[2],alpha);
+    this.viewport(p);
+    const s=this.orbitState;
+    if(!s.valid||s.centerX!==centerX||s.centerY!==centerY||s.anchorX!==anchor.x||s.anchorY!==anchor.y||s.anchorZ!==anchor.z||
+      s.ca!==camera.ca||s.sa!==camera.sa||s.ce!==camera.ce||s.se!==camera.se||s.lens!==camera.lens||s.travel!==camera.travel||s.scale!==scale){
+      g.uniform2f(p.u.center,centerX,centerY);g.uniform3f(p.u.anchor,anchor.x,anchor.y,anchor.z);
+      g.uniform4f(p.u.camera,camera.ca,camera.sa,camera.ce,camera.se);g.uniform1f(p.u.lens,camera.lens);g.uniform1f(p.u.travel,camera.travel);g.uniform1f(p.u.scale,scale);
+      Object.assign(s,{valid:true,centerX,centerY,anchorX:anchor.x,anchorY:anchor.y,anchorZ:anchor.z,ca:camera.ca,sa:camera.sa,ce:camera.ce,se:camera.se,lens:camera.lens,travel:camera.travel,scale});
+    }
+    g.uniform3f(p.u.worldOffset,offset.x,offset.y,offset.z);g.uniform4f(p.u.color,color[0],color[1],color[2],alpha);
     g.drawArrays(g.LINE_STRIP,0,record.count);this.stats.drawCalls++;
   }
   corona(source,screen,radius,time){
     if(!source||radius<=0)return;
     const g=this.gl;let record=this.coronaTexture;
     if(!record||record.source!==source){
-      const texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei
+      const texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);
       g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,source);
       g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
       g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
@@ -680,5 +692,5 @@ class DirectRenderer{
     this.canvas.removeEventListener('webglcontextlost',this.onLost);this.canvas.removeEventListener('webglcontextrestored',this.onRestored);
   }
 }
-root.SolarSurface={kernel:surfaceKernel,Service:SurfaceService,DirectRenderer,effectRevision:'solar-surface-r24'};if(typeof module==='object'&&module.exports)module.exports=root.SolarSurface;
+root.SolarSurface={kernel:surfaceKernel,Service:SurfaceService,DirectRenderer,effectRevision:'solar-surface-r25'};if(typeof module==='object'&&module.exports)module.exports=root.SolarSurface;
 })(typeof window==='object'?window:globalThis);

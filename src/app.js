@@ -1,4 +1,4 @@
-/* Solar Time v0.45 r16 — renderer hot-path optimizations and restored R2 watermark. */
+/* Solar Time v0.46 r1 — adaptive static FPS, UI caching and final runtime optimizations. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -117,7 +117,7 @@
   });
   const interpolate=Localization.interpolate,showFading=UI.show,hideFading=UI.hide,uiElementVisible=UI.visible;
   UI.installDocumentGuards(document);
-  const LIFE_USER_WATERMARK_KEY='releases/content/ui/life-user-watermark.webp?v=0.45-r16';
+  const LIFE_USER_WATERMARK_KEY='releases/content/ui/life-user-watermark.webp?v=0.46-r1';
   function hydrateLifeUserWatermarks(){
     const base=window.SolarAssets?.materials?.earth?.base;if(!base)return;
     const url=new URL(LIFE_USER_WATERMARK_KEY,base).href;
@@ -251,16 +251,21 @@
         control.setAttribute('aria-pressed',String(twentyFour));
       }
       function persist() {const camera=renderer.cameraSnapshot();if(camera.focus===null)overviewCamera={...camera,focus:null};Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockFont,speedMode,speedValues,language,camera:overviewCamera,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});}
-      function cameraUi() {
+      let cameraUiSignature='';
+      function cameraUi(force=false) {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
-        const limits=renderer.zoomLimits,move=renderer.options.dollyZoom,level=move?(controlState.dolly??1):controlState.zoom;
-        $('zoom-value').textContent=level.toFixed(1)+'×';
-        $('zoom-value').setAttribute('aria-label',t(move?'moveValue':'zoomValue'));
-        const mode=$('camera-mode-toggle'),modeLabel=t(move?'moveMode':'zoomMode');
+        const move=renderer.options.dollyZoom,level=move?(controlState.dolly??1):controlState.zoom,levelText=level.toFixed(1)+'×';
+        const mode=$('camera-mode-toggle'),modeLabel=t(move?'moveMode':'zoomMode'),zoomLabel=t(move?'moveValue':'zoomValue');
+        const rotateRight=t('rotateRight'),rotateLeft=t('rotateLeft'),direction=renderer.autoRotateDirection;
+        const signature=[levelText,move,direction,language,zoomLabel,modeLabel,rotateRight,rotateLeft].join('|');
+        if(!force&&signature===cameraUiSignature)return;
+        cameraUiSignature=signature;
+        const zoomValue=$('zoom-value');if(zoomValue.textContent!==levelText)zoomValue.textContent=levelText;
+        zoomValue.setAttribute('aria-label',zoomLabel);
         mode.dataset.mode=move?'move':'zoom';mode.setAttribute('aria-pressed',String(move));
         mode.setAttribute('aria-label',t('cameraModeAria',{mode:modeLabel}));mode.title=t('cameraMode',{mode:modeLabel});
-        for(const [id,direction,label] of [['rotate-left',-1,t('rotateRight')],['rotate-right',1,t('rotateLeft')]]){
-          const active=renderer.autoRotateDirection===direction,b=$(id);
+        for(const [id,turn,label] of [['rotate-left',-1,rotateRight],['rotate-right',1,rotateLeft]]){
+          const active=direction===turn,b=$(id);
           b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-label',label+' '+t(active?'stop':'start'));
           b.title=t(active?'rotateRunning':'rotateRate',{direction:label});
         }
@@ -638,8 +643,22 @@
       kakaoPayDialog.addEventListener('cancel',event=>{event.preventDefault();closeKakaoPay();});
       kakaoPayDialog.addEventListener('click',event=>{if(event.target===kakaoPayDialog)closeKakaoPay();});
       const updateHelpScrollCues=bindScrollCues(helpDialog,helpScroll);
-      const CURRENT_RELEASE=Object.freeze({version:'0.45',date:'2026.09.17'});
+      const CURRENT_RELEASE=Object.freeze({version:'0.46',date:'2026.09.18'});
       const CURRENT_RELEASE_ITEMS=Object.freeze({
+        kor:Object.freeze(["정지된 일반 화면은 30fps로 낮추고, 드래그·자동 회전·카메라 전환·시간 가속 중에는 60fps를 유지하도록 렌더 주기를 최적화했습니다.","실제 RAF 지연을 감지해 프레임 드롭이 이어질 때 자동으로 부하를 낮추고, 배율·회전 UI의 중복 DOM 갱신과 라벨 충돌 계산을 줄였습니다.","GPU 궤도 렌더링에서 공통 카메라와 uniform 상태를 재사용하고 텍스처 업로드 상태 처리를 정리했습니다.","행성 텍스처의 경계 이음새 보정을 런타임에서 빌드 단계로 옮겨 확대 시 픽셀 읽기·쓰기와 순간 메모리 사용을 줄였습니다.","렌더링·텍스처·라벨·UI hot path를 추가 정리해 장시간 실행과 저사양 환경에서의 미세 끊김을 줄였습니다."]),
+        en:Object.freeze(["Static scenes now render at 30 fps, while dragging, auto-rotation, camera transitions and accelerated time continue at 60 fps.","Real RAF delay is monitored so sustained frame drops can lower load automatically, while duplicate zoom/rotation DOM writes and label-collision calculations are reduced.","GPU orbit rendering now reuses shared camera and uniform state, and texture-upload state handling has been cleaned up.","Planet-texture seam correction has moved from runtime to the build pipeline, reducing pixel read/write work and temporary memory use during close-ups.","Additional renderer, texture, label and UI hot-path cleanup reduces small stutters during long sessions and on lower-end hardware."]),
+        chn:Object.freeze(["静止画面改为 30fps 渲染，而拖动、自动旋转、相机切换和时间加速时仍保持 60fps。","现在会监测真实的 RAF 延迟，在持续掉帧时自动降低负载，同时减少倍率/旋转界面的重复 DOM 更新和标签碰撞计算。","GPU 轨道渲染会复用共享的相机与 uniform 状态，并整理了纹理上传时的状态处理。","行星纹理的接缝修正从运行时移到构建阶段，减少近距离放大时的像素读写与临时内存占用。","进一步精简渲染、纹理、标签和界面的热路径，降低长时间运行及低性能设备上的细微卡顿。"]),
+        jpn:Object.freeze(["静止した通常画面は 30fps に抑え、ドラッグ・自動回転・カメラ遷移・時間加速中は 60fps を維持するよう描画周期を最適化しました。","実際の RAF 遅延を監視し、フレーム落ちが続く場合は自動的に負荷を下げるほか、倍率・回転 UI の重複 DOM 更新とラベル衝突計算を削減しました。","GPU の軌道描画で共通のカメラと uniform 状態を再利用し、テクスチャアップロード時の状態処理を整理しました。","惑星テクスチャの継ぎ目補正を実行時からビルド時へ移し、接近表示時のピクセル読み書きと一時メモリ使用量を削減しました。","レンダリング・テクスチャ・ラベル・UI のホットパスをさらに整理し、長時間実行や低性能環境での細かな引っ掛かりを減らしました。"]),
+        hi:Object.freeze(["स्थिर सामान्य दृश्य अब 30fps पर चलते हैं, जबकि drag, auto-rotation, camera transition और तेज समय-गति के दौरान 60fps बनाए रखा जाता है।","वास्तविक RAF delay को मॉनिटर किया जाता है ताकि लगातार frame drop होने पर load अपने-आप कम हो, और zoom/rotation UI के दोहराए गए DOM updates तथा label-collision गणना भी घटे।","GPU orbit rendering अब साझा camera और uniform state को reuse करता है, और texture upload state handling को व्यवस्थित किया गया है।","Planet texture seam correction को runtime से build stage में ले जाया गया है, जिससे close-up के समय pixel read/write और temporary memory उपयोग कम होता है।","Renderer, texture, label और UI hot paths की अतिरिक्त सफाई से लंबे उपयोग और कम-शक्ति वाले hardware पर छोटे stutter कम होते हैं।"]),
+        es:Object.freeze(["Las escenas estáticas pasan a 30 fps, mientras que el arrastre, la rotación automática, las transiciones de cámara y el tiempo acelerado mantienen 60 fps.","Se supervisa el retraso real de RAF para reducir automáticamente la carga si persisten las caídas de fotogramas, y se reducen las escrituras DOM repetidas de zoom/rotación y los cálculos de colisión de etiquetas.","El renderizado GPU de órbitas reutiliza el estado compartido de cámara y uniforms, y se ha ordenado el manejo del estado durante la carga de texturas.","La corrección de costuras de las texturas planetarias pasa del tiempo de ejecución a la fase de compilación, reduciendo lecturas/escrituras de píxeles y memoria temporal en primeros planos.","Se han depurado más las rutas críticas de renderizado, texturas, etiquetas e interfaz para reducir pequeños tirones en sesiones largas y equipos modestos."]),
+        de:Object.freeze(["Statische Ansichten werden nun mit 30 fps gerendert, während Ziehen, automatische Rotation, Kameraübergänge und beschleunigte Zeit weiterhin 60 fps nutzen.","Die tatsächliche RAF-Verzögerung wird überwacht, sodass bei anhaltenden Frame-Drops die Last automatisch sinkt; zugleich werden doppelte DOM-Aktualisierungen für Zoom/Rotation und Label-Kollisionsberechnungen reduziert.","Das GPU-Orbit-Rendering verwendet gemeinsame Kamera- und Uniform-Zustände wieder, und die Zustandsverwaltung beim Textur-Upload wurde bereinigt.","Die Nahtkorrektur von Planetentexturen wurde von der Laufzeit in den Build-Prozess verlagert, wodurch Pixel-Lese-/Schreibarbeit und temporärer Speicher bei Nahansichten sinken.","Weitere Bereinigungen der Hot Paths für Rendering, Texturen, Labels und UI reduzieren kleine Ruckler bei langen Sitzungen und auf schwächerer Hardware."]),
+        fr:Object.freeze(["Les scènes statiques passent à 30 i/s, tandis que le glissement, la rotation automatique, les transitions de caméra et le temps accéléré restent à 60 i/s.","Le retard RAF réel est surveillé afin de réduire automatiquement la charge en cas de pertes d’images persistantes, tout en diminuant les écritures DOM répétées du zoom/de la rotation et les calculs de collision des étiquettes.","Le rendu GPU des orbites réutilise l’état commun de la caméra et des uniforms, et la gestion d’état lors du chargement des textures a été simplifiée.","La correction des coutures des textures planétaires est déplacée de l’exécution vers la phase de build, réduisant les lectures/écritures de pixels et la mémoire temporaire lors des gros plans.","Un nettoyage supplémentaire des chemins critiques du rendu, des textures, des étiquettes et de l’interface réduit les petits à-coups pendant les longues sessions et sur les machines modestes."]),
+        pt:Object.freeze(["As cenas estáticas passam a 30 fps, enquanto arrasto, rotação automática, transições de câmara e tempo acelerado continuam a 60 fps.","O atraso real do RAF é monitorizado para reduzir automaticamente a carga quando há quedas persistentes de frames, ao mesmo tempo que se reduzem escritas DOM repetidas de zoom/rotação e cálculos de colisão das etiquetas.","A renderização GPU das órbitas reutiliza o estado partilhado da câmara e dos uniforms, e o tratamento do estado no carregamento de texturas foi simplificado.","A correção das costuras das texturas planetárias passou do runtime para a fase de build, reduzindo leituras/escritas de píxeis e memória temporária nos close-ups.","Uma limpeza adicional dos caminhos críticos de renderização, texturas, etiquetas e interface reduz pequenos engasgos em sessões longas e em hardware mais modesto."]),
+        it:Object.freeze(["Le scene statiche ora vengono renderizzate a 30 fps, mentre trascinamento, rotazione automatica, transizioni della camera e tempo accelerato restano a 60 fps.","Viene monitorato il ritardo reale del RAF per ridurre automaticamente il carico in caso di cali di frame persistenti, diminuendo anche le scritture DOM duplicate di zoom/rotazione e i calcoli di collisione delle etichette.","Il rendering GPU delle orbite riutilizza lo stato condiviso di camera e uniform, mentre la gestione dello stato durante il caricamento delle texture è stata ripulita.","La correzione delle giunzioni delle texture planetarie è stata spostata dal runtime alla fase di build, riducendo letture/scritture dei pixel e memoria temporanea nei primi piani.","Ulteriori ottimizzazioni dei percorsi critici di rendering, texture, etichette e UI riducono i piccoli scatti nelle sessioni lunghe e sui sistemi meno potenti."]),
+        id:Object.freeze(["Adegan statis kini dirender pada 30 fps, sedangkan drag, rotasi otomatis, transisi kamera, dan percepatan waktu tetap berjalan pada 60 fps.","Delay RAF nyata dipantau agar beban dapat diturunkan otomatis saat frame drop berlanjut, sekaligus mengurangi penulisan DOM zoom/rotasi yang berulang dan perhitungan benturan label.","Render orbit GPU kini memakai ulang state kamera dan uniform yang sama, serta penanganan state saat upload tekstur dirapikan.","Koreksi seam tekstur planet dipindahkan dari runtime ke tahap build, sehingga pembacaan/penulisan piksel dan penggunaan memori sementara saat close-up berkurang.","Hot path renderer, tekstur, label, dan UI dirapikan lebih lanjut untuk mengurangi stutter kecil pada sesi panjang dan perangkat dengan performa lebih rendah."])
+      });
+      const PREVIOUS_RELEASE=Object.freeze({version:'0.45',date:'2026.09.17'});
+      const PREVIOUS_RELEASE_ITEMS=Object.freeze({
         kor:Object.freeze(['별 밀도 기본값을 100%로 조정하고 새로고침·재실행·초기화 때마다 별 위치를 새롭게 랜덤 배치하며, 크기·밝기·색상도 서로 독립적으로 랜덤화하고 황색 별 비중을 줄였습니다.','대부분의 별은 안정된 밝기를 유지하고 일부만 5~25초 범위로 느리고 불규칙하게 반짝이며, 아주 소수만 5~10초 동안 잠시 사라지거나 드물게 십자 광채를 냅니다.','태양 표면의 촘촘한 흐름 구조는 유지하면서 현재 효과에서 약 5% 더 낮춰 움직임을 조금 더 차분하게 조정했습니다.','목성의 실험적 제트·난류·대적점 셰이더를 제거하고 업그레이드 전 기본 가스행성 셰이더로 완전히 복원했습니다.','뷰포트에서 마우스 오른쪽 버튼을 누른 채 위아래로 드래그하면 휠 설정과 무관하게 카메라를 전진·후진할 수 있습니다.']),
         en:Object.freeze(['Star density now defaults to 100%; positions are randomized again on reload, restart and reset, while size, brightness and colour remain independently randomized.','Most stars remain steady; only some twinkle slowly and irregularly over 5–25 seconds, while a very small minority briefly disappear for 5–10 seconds or show rare cross flares.','The Sun keeps its fine flow structure while the current motion strength is reduced by another 5% for a calmer result.','Jupiter’s experimental jets, turbulence and Great Red Spot shader are removed, fully restoring the original gas-giant shader.','Dragging vertically with the right mouse button over the viewport now dollies the camera in and out independently of the wheel mode.']),
         chn:Object.freeze(['星星密度默认调整为 100%；页面刷新、重新启动或重置时都会重新随机分布星星位置，大小、亮度和颜色也保持彼此独立随机。','大多数星星保持稳定亮度，只有部分星星以 5～25 秒的周期缓慢且不规则地闪烁；极少数会短暂隐藏 5～10 秒或偶尔出现十字光芒。','太阳保留细密流动结构，并在当前效果基础上再降低约 5% 的运动强度。','移除木星实验性的喷流、湍流和大红斑着色效果，完全恢复升级前的基础气态巨行星着色器。','在视口中按住鼠标右键上下拖动，可不受滚轮模式影响直接前后移动相机。']),
@@ -650,8 +669,8 @@
         fr:Object.freeze(['La densité d’étoiles passe à 100% par défaut ; les positions sont de nouveau randomisées au rechargement, au redémarrage et à la réinitialisation, tandis que taille, luminosité et couleur restent indépendantes.','La plupart restent presque stables ; seules certaines scintillent lentement et irrégulièrement sur 5 à 25 secondes, tandis qu’une très petite minorité disparaît 5 à 10 secondes ou produit rarement une lueur en croix.','Le Soleil conserve sa structure fine, mais l’intensité actuelle du mouvement est encore réduite d’environ 5%.','Les jets, turbulences et le shader expérimental de la Grande Tache rouge de Jupiter sont supprimés, rétablissant complètement le shader original de géante gazeuse.','Un glisser vertical avec le bouton droit dans la vue avance ou recule la caméra indépendamment du mode de la molette.']),
         id:Object.freeze(["Kepadatan bintang kini memakai 100% sebagai nilai awal; posisi diacak ulang saat memuat ulang, memulai ulang, atau mengatur ulang, sementara ukuran, kecerahan, dan warna tetap diacak secara independen.","Sebagian besar bintang tetap stabil; hanya sebagian yang berkelip lambat dan tidak teratur selama 5–25 detik, dan sangat sedikit yang menghilang 5–10 detik atau sesekali menampilkan pijar silang.","Matahari mempertahankan struktur aliran halusnya, sementara kekuatan gerak saat ini dikurangi sekitar 5% lagi agar terlihat lebih tenang.","Jet, turbulensi, dan shader Bintik Merah Besar eksperimental Jupiter dihapus sehingga shader raksasa gas asli dipulihkan sepenuhnya.","Seret vertikal dengan tombol kanan mouse pada viewport untuk menggerakkan kamera maju atau mundur tanpa bergantung pada mode roda mouse."])
       });
-      const PREVIOUS_RELEASE=Object.freeze({version:'0.43',date:'2026.09.17'});
-      const PREVIOUS_RELEASE_ITEMS=Object.freeze({
+      const SECOND_PREVIOUS_RELEASE=Object.freeze({version:'0.43',date:'2026.09.17'});
+      const SECOND_PREVIOUS_RELEASE_ITEMS=Object.freeze({
         kor:Object.freeze(['별 밀도 기본값은 200%로 유지하면서 위치·크기·밝기·색·반짝임 주기를 서로 독립적으로 랜덤화해 규칙적인 별 배열을 없앴습니다.','별은 적색·백색·청백색·황색 계열이 낮은 채도로 섞이며, 아주 밝은 별 일부만 드물게 십자 광채가 나타납니다.','태양 표면은 속도는 유지하면서 더 촘촘한 흐름의 변형 강도를 높여 작은 규모의 꿈틀거림이 분명히 보이도록 조정했습니다.','별 파티클은 최대 풀을 GPU에 한 번 올린 뒤 슬라이더 값에 따라 그리는 개수만 바꾸도록 해 오래된 그래픽카드의 추가 부담을 제한했습니다.']),
         en:Object.freeze(['Star density stays at a 200% default while position, size, brightness, colour and twinkle timing are randomized independently to remove regular spacing.','Low-saturation red, white, blue-white and yellow stars are mixed, with rare cross-shaped flares only on a few bright stars.','The Sun keeps its motion speed but uses stronger fine-scale warping so small-scale surface motion is clearly visible.','The maximum star pool is uploaded to the GPU once, and the density slider changes only the draw count to keep extra load modest on older graphics cards.']),
         chn:Object.freeze(['星星密度默认保持 200%，位置、大小、亮度、颜色和闪烁周期彼此独立随机，去除规则排列感。','低饱和度的红、白、蓝白和黄色星光混合出现，只有极少数亮星偶尔出现十字光芒。','太阳保持原有运动速度，同时增强细密尺度的形变，让小范围表面运动更明显。','星星粒子最大池只上传到 GPU 一次，密度滑块只改变绘制数量，以限制旧显卡上的额外负担。']),
@@ -662,8 +681,8 @@
         fr:Object.freeze(['La densité reste à 200% par défaut, tandis que position, taille, luminosité, couleur et période de scintillement sont randomisées indépendamment.','Des étoiles rouges, blanches, bleu-blanc et jaunes peu saturées sont mélangées, avec de rares éclats en croix sur quelques étoiles brillantes.','Le Soleil conserve sa vitesse mais renforce les déformations fines afin de rendre les petits mouvements de surface bien visibles.','Le pool maximal d’étoiles est envoyé une seule fois au GPU et le curseur de densité ne change que le nombre dessiné, afin de limiter la charge supplémentaire sur les anciens GPU.']),
         id:Object.freeze(["Kepadatan bintang tetap 200% sebagai dasar pada rilis tersebut, sementara posisi, ukuran, kecerahan, warna, dan periode kelap-kelip diacak secara independen.","Bintang merah, putih, biru-putih, dan kuning lembut dicampur; hanya sedikit bintang terang yang sesekali menampilkan pijar silang.","Matahari mempertahankan kecepatannya tetapi memperkuat deformasi aliran halus agar gerak permukaan skala kecil lebih mudah terlihat.","Kumpulan maksimum bintang diunggah sekali ke GPU; penggeser kepadatan hanya mengubah jumlah yang digambar."])
       });
-      const SECOND_PREVIOUS_RELEASE=Object.freeze({version:'0.42',date:'2026.09.17'});
-      const SECOND_PREVIOUS_RELEASE_ITEMS=Object.freeze({
+      const THIRD_PREVIOUS_RELEASE=Object.freeze({version:'0.42',date:'2026.09.17'});
+      const THIRD_PREVIOUS_RELEASE_ITEMS=Object.freeze({
         kor:Object.freeze(['iPhone 안전 영역을 적용하고 국가명을 누르면 해당 지역의 지구를 바로 추적합니다.','GPU 텍스처 LRU와 자동 DPR·30/60fps 조절로 모바일 메모리와 렌더 부하를 줄였습니다.','256×128 저해상도 텍스처 단계를 추가하고 Cloudflare 배포에서 미디어를 같은 도메인으로 불러옵니다.','업데이트 내역을 필요할 때만 불러오고 같은 공개 버전 안의 r1·r2 패치도 자동 감지합니다.']),
         en:Object.freeze(['iPhone safe areas are respected, and clicking the region label tracks that location on Earth.','GPU texture LRU plus adaptive DPR and 30/60 fps reduce mobile memory and rendering load.','A 256×128 texture tier and same-origin Cloudflare media loading reduce transfer and connection overhead.','Release notes now load on demand, and r1/r2 patches can update automatically within the same public version.']),
         chn:Object.freeze(['适配 iPhone 安全区域，点击地区名称即可追踪地球上的对应位置。','加入 GPU 纹理 LRU、自动 DPR 与 30/60fps 调节，降低移动端内存和渲染负载。','新增 256×128 纹理层级，并在 Cloudflare 部署中使用同源媒体路径。','更新记录改为按需加载，同一公开版本内的 r1、r2 补丁也可自动检测。']),
@@ -679,7 +698,8 @@
         const patches=[
           Object.freeze({meta:CURRENT_RELEASE,items:CURRENT_RELEASE_ITEMS}),
           Object.freeze({meta:PREVIOUS_RELEASE,items:PREVIOUS_RELEASE_ITEMS}),
-          Object.freeze({meta:SECOND_PREVIOUS_RELEASE,items:SECOND_PREVIOUS_RELEASE_ITEMS})
+          Object.freeze({meta:SECOND_PREVIOUS_RELEASE,items:SECOND_PREVIOUS_RELEASE_ITEMS}),
+          Object.freeze({meta:THIRD_PREVIOUS_RELEASE,items:THIRD_PREVIOUS_RELEASE_ITEMS})
         ];
         const known=new Set((base.RELEASES||[]).map(release=>release.version));
         const additions=patches.filter(entry=>!known.has(entry.meta.version)).map(entry=>Object.freeze({...entry.meta,items:entry.items.kor}));
@@ -696,7 +716,7 @@
           const existing=document.querySelector('script[data-solar-release-notes]');
           const finish=()=>{releaseNotesApi=withCurrentRelease(window.SolarReleaseNotes);if(!releaseNotesApi){reject(Error('Release notes module did not initialize.'));return;}releaseNotesNavigator=releaseNotesApi.createReleaseNotesNavigator?.()||null;resolve(releaseNotesApi);};
           if(existing){if(window.SolarReleaseNotes)finish();else{existing.addEventListener('load',finish,{once:true});existing.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});}return;}
-          const script=document.createElement('script');script.src='src/release-notes.js?v=0.45';script.async=true;script.dataset.solarReleaseNotes='true';script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});document.head.append(script);
+          const script=document.createElement('script');script.src='src/release-notes.js?v=0.46-r1';script.async=true;script.dataset.solarReleaseNotes='true';script.addEventListener('load',finish,{once:true});script.addEventListener('error',()=>reject(Error('Release notes could not be loaded.')),{once:true});document.head.append(script);
         }).finally(()=>{if(!releaseNotesApi)releaseNotesLoading=null;});
         return releaseNotesLoading;
       }
@@ -913,17 +933,19 @@
       function frame(mono) {
         if(disposed||document.hidden){raf=0;return;}
         raf=requestAnimationFrame(frame);
-        const frameInterval=window.SolarPerformance?.frameInterval(window.innerWidth,window.innerHeight)??(1000/(window.innerWidth<680?30:60));
-        if(mono-lastFrame<frameInterval-.5)return;
-        const dt=lastFrame?Math.max(0,(mono-lastFrame)/1000):0;lastFrame=mono;
+        const activeMotion=!!drag||pointers.size>0||!!renderer.cameraTween||!!renderer.autoRotation||
+          mono-(renderer.cameraChangeAt??-Infinity)<180||(!clock.live&&!clock.paused);
+        const frameInterval=window.SolarPerformance?.frameInterval(window.innerWidth,window.innerHeight,activeMotion)??(1000/(activeMotion&&window.innerWidth>=680?60:30));
+        const frameDelta=lastFrame?Math.max(0,mono-lastFrame):frameInterval;
+        if(frameDelta<frameInterval-.5)return;
+        const dt=lastFrame?frameDelta/1000:0;lastFrame=mono;
+        window.SolarPerformance?.reportFrameTiming?.(frameDelta,frameInterval);
         if(!clock.paused)effectTime+=dt;
         const wall=Date.now(),ms=clock.value(mono,wall);
         if(!clock.paused&&!clock.live&&ms>=A.MAX_TIME){clock.anchorMs=A.MAX_TIME;clock.anchorMono=mono;clock.paused=true;toast(t('yearLimit'));}
         try {
           const wasTransitioning=!!renderer.cameraTween,renderStarted=performance.now();
           renderer.draw(ms,effectTime,mono);window.SolarPerformance?.reportRenderCost(performance.now()-renderStarted);
-          // Keep the lens readout on the same painted camera frame. The broader
-          // clock/card refresh remains throttled, but zoom must not trail presets.
           if(wasTransitioning||renderer.cameraTween)cameraUi();
           if(wasTransitioning&&!renderer.cameraTween)persist();
           if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);}
@@ -936,7 +958,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.45',revision:'r16',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.46',revision:'r1',clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

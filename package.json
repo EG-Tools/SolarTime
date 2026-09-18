@@ -1,10 +1,10 @@
 {
   "name": "eg-solar-time",
-  "version": "0.0.45",
+  "version": "0.0.46",
   "private": true,
   "description": "Cloud-backed solar-system clock with smooth camera transitions and a spherical night sky.",
   "scripts": {
-    "test": "node --test tests/astro.test.cjs tests/labels.test.cjs tests/local-model.test.cjs tests/materials.test.cjs tests/modules.test.cjs tests/presentation.test.cjs tests/v045-release.test.cjs",
+    "test": "node --test tests/astro.test.cjs tests/labels.test.cjs tests/local-model.test.cjs tests/materials.test.cjs tests/modules.test.cjs tests/presentation.test.cjs tests/v046-release.test.cjs",
     "build:assets": "node tools/build-assets.cjs",
     "build:cloudflare": "node tools/build-cloudflare.cjs",
     "build:git": "node tools/build-git.cjs",
@@ -15,7 +15,7 @@
     "deploy:cloudflare": "node tools/deploy-cloudflare.cjs",
     "test:v042": "node --test tests/v042-release.test.cjs",
     "test:v043": "node --test tests/v043-release.test.cjs",
-    "test:v045": "node --test tests/v045-release.test.cjs"
+    "test:v046": "node --test tests/v046-release.test.cjs"
   },
   "engines": {
     "node": ">=18"

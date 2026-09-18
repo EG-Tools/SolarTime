@@ -1,4 +1,4 @@
-/* Solar Time v0.45 r16 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.46 r1 — dependency-free, depth-projected Canvas renderer.
    Credited spherical maps are packaged in resolution tiers for every body. */
 (function () {
   'use strict';
@@ -43,7 +43,7 @@
       this.site={label:'KOREA',latitude:37.5665,longitude:126.978};
       this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.rotationGeneration=0;this.actualScaleMix=0;this.actualScaleTween=null;this.projectionAnchor=null;
       this.surface=this.gpu||new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
-      this.labelStates=new Map();this.lastLabelMono=null;this.labelWidths=new Map();
+      this.labelStates=new Map();this.lastLabelMono=null;this.labelWidths=new Map();this.labelBodyMap=new Map();this.labelOrdered=[];this.labelReserved=[];this.labelActive=new Set();this.labelObstacleMap=new Map();this.labelCandidateMap=new Map();
       this.orbitCache=new WeakMap();this.orbitModelCache=new WeakMap();this.satelliteOrbitCache=new Map();this.frameCache=new Map();this.starSprites=new Map();
       this.frameBodies=[];this.surfaceBodies=[];this.directBodies=[];this.labelBodies=[];this.satelliteLayouts=[];this.compatSurfaceJobs=[];
       this.frameItems=new Map();this.frameSerial=0;
@@ -733,7 +733,7 @@
       this.surface?.pause();this.sky?.pause?.();
     }
     resume() {if(!this.surface)this.surface=this.gpu||new window.SolarSurface.Service();this.surface.resume();this.sky?.resume?.();}
-    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets.length=0;this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.labelWidths.clear();this.frameItems.clear();this.frameBodies.length=this.surfaceBodies.length=this.directBodies.length=this.labelBodies.length=this.satelliteLayouts.length=this.compatSurfaceJobs.length=0;this.orbitCache=new WeakMap();this.sky?.dispose();}
+    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets.length=0;this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.labelWidths.clear();this.labelBodyMap.clear();this.labelOrdered.length=0;this.labelReserved.length=0;this.labelActive.clear();this.labelObstacleMap.clear();this.labelCandidateMap.clear();this.frameItems.clear();this.frameBodies.length=this.surfaceBodies.length=this.directBodies.length=this.labelBodies.length=this.satelliteLayouts.length=this.compatSurfaceJobs.length=0;this.orbitCache=new WeakMap();this.sky?.dispose();}
     makeCoronaTexture(size=384) {
       // One shared public-site filament texture. Direct rendering uploads it once
       // to WebGL; the compatibility renderer draws it directly.
@@ -847,74 +847,41 @@
     }
     clearLabels() {this.labelStates.clear();this.lastLabelMono=null;}
     labels(c,bodies,mono) {
-      // Stable identity order, not depth order: crossing orbits cannot change priority.
-      // Store offsets from the CURRENT body, so smoothing never trails an orbiting body.
       if(this.lastLabelMono!==null&&mono<this.lastLabelMono)this.clearLabels();
       const dt=this.lastLabelMono===null?0:clamp((mono-this.lastLabelMono)/1000,0,.05);
       this.lastLabelMono=mono;
-      const avoid=!!this.options?.avoidLabels;
-      const alpha=avoid?1-Math.exp(-dt/LABEL.response):1,reserved=[],active=new Set();
-      const byId=new Map(bodies.map(p=>[p.body.id,p]));
-      const ordered=[A.SUN,...A.BODIES,...SATELLITES].map(b=>byId.get(b.id)).filter(Boolean);
-      const overlap=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*
-        Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
+      const avoid=!!this.options?.avoidLabels,alpha=avoid?1-Math.exp(-dt/LABEL.response):1;
+      const byId=this.labelBodyMap||(this.labelBodyMap=new Map()),ordered=this.labelOrdered||(this.labelOrdered=[]),reserved=this.labelReserved||(this.labelReserved=[]),active=this.labelActive||(this.labelActive=new Set()),obstacleMap=this.labelObstacleMap||(this.labelObstacleMap=new Map()),candidateMap=this.labelCandidateMap||(this.labelCandidateMap=new Map());
+      byId.clear();ordered.length=0;reserved.length=0;active.clear();
+      for(const item of bodies){byId.set(item.body.id,item);let o=obstacleMap.get(item.body.id);if(!o){o={x:0,y:0,w:0,h:0};obstacleMap.set(item.body.id,o);}o.x=item.screen.x-item.r-LABEL.padding;o.y=item.screen.y-item.r-LABEL.padding;o.w=item.r*2+LABEL.padding*2;o.h=item.r*2+LABEL.padding*2;}
+      for(const body of [A.SUN,...A.BODIES,...SATELLITES]){const item=byId.get(body.id);if(item)ordered.push(item);}
+      const overlap=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
       c.textAlign='center';c.textBaseline='top';
       for(const item of ordered) {
         const {body:b,screen:s,r}=item,satellite=!!b.parent;active.add(b.id);
-        const font=satellite?8:this.w<680?9:10,h=font+10;
-        c.font=`500 ${font}px "Segoe UI", Arial, sans-serif`;
+        const font=satellite?8:this.w<680?9:10,h=font+10;c.font=`500 ${font}px "Segoe UI", Arial, sans-serif`;
         if('letterSpacing' in c)c.letterSpacing=satellite?'1px':'1.65px';
         const widths=this.labelWidths||(this.labelWidths=new Map()),metricKey=font+':'+satellite+':'+b.en;
         let w=widths.get(metricKey);if(w===undefined){w=c.measureText(b.en).width+10;widths.set(metricKey,w);}
-        const gap=satellite?7:b.id==='saturn'?13:9;
-        const offsets=avoid?[[0,r+gap],[0,-r-h-gap],[r+w/2+gap,-h/2],[-r-w/2-gap,-h/2],[0,r+gap+h+4]]:[[0,r+gap]];
-        const candidates=offsets.map(([dx,dy],slot)=>({slot,
-          x:clamp(s.x+dx-w/2,8,Math.max(8,this.w-w-8)),
-          y:clamp(s.y+dy,8,Math.max(8,this.h-h-8)),w,h}));
-        const obstacles=(avoid?bodies:[]).filter(p=>p!==item).map(p=>({
-          x:p.screen.x-p.r-LABEL.padding,y:p.screen.y-p.r-LABEL.padding,
-          w:p.r*2+LABEL.padding*2,h:p.r*2+LABEL.padding*2}));
-        if(!avoid){candidates[0].x=s.x-w/2;candidates[0].y=s.y+r+gap;}
-        for(const q of (avoid?candidates:[])) {
-          q.score=q.slot*7;
-          for(const obstacle of [...reserved,...obstacles]) {
-            q.score+=overlap(q,obstacle)/Math.max(1,Math.min(w*h,obstacle.w*obstacle.h))*1000;
-          }
+        const gap=satellite?7:b.id==='saturn'?13:9,count=avoid?5:1;
+        let candidates=candidateMap.get(b.id);if(!candidates){candidates=[];candidateMap.set(b.id,candidates);}
+        for(let slot=0;slot<count;slot++){
+          let dx=0,dy=r+gap;
+          if(avoid){if(slot===1)dy=-r-h-gap;else if(slot===2){dx=r+w/2+gap;dy=-h/2;}else if(slot===3){dx=-r-w/2-gap;dy=-h/2;}else if(slot===4)dy=r+gap+h+4;}
+          let q=candidates[slot];if(!q){q={slot,x:0,y:0,w:0,h:0,score:0};candidates[slot]=q;}
+          q.slot=slot;q.w=w;q.h=h;q.x=avoid?clamp(s.x+dx-w/2,8,Math.max(8,this.w-w-8)):s.x-w/2;q.y=avoid?clamp(s.y+dy,8,Math.max(8,this.h-h-8)):s.y+dy;q.score=slot*7;
+          if(avoid){for(const obstacle of reserved)q.score+=overlap(q,obstacle)/Math.max(1,Math.min(w*h,obstacle.w*obstacle.h))*1000;for(const other of bodies)if(other!==item){const obstacle=obstacleMap.get(other.body.id);q.score+=overlap(q,obstacle)/Math.max(1,Math.min(w*h,obstacle.w*obstacle.h))*1000;}}
         }
-        const best=avoid?candidates.reduce((a,b)=>a.score<=b.score?a:b):candidates[0];
+        let best=candidates[0];if(avoid)for(let slot=1;slot<count;slot++)if(candidates[slot].score<best.score)best=candidates[slot];
         let state=this.labelStates.get(b.id);
-        if(!state) {
-          state={slot:best.slot,dx:best.x+w/2-s.x,dy:best.y-s.y,
-            switchedAt:mono-LABEL.dwell,pending:null,pendingSince:mono};
-          this.labelStates.set(b.id,state);
-        } else if(!avoid) {state.slot=0;state.pending=null;} else {
-          const current=candidates[state.slot];
-          // A small or one-frame overlap must not flip a label to the other side.
-          if(best.slot!==state.slot&&current.score-best.score>LABEL.margin) {
-            if(state.pending!==best.slot){state.pending=best.slot;state.pendingSince=mono;}
-            if(mono-state.pendingSince>=LABEL.switchDelay&&mono-state.switchedAt>=LABEL.dwell) {
-              state.slot=best.slot;state.switchedAt=mono;state.pending=null;
-            }
-          } else state.pending=null;
-        }
-        const target=candidates[state.slot];
-        // Frame-rate-independent easing is shared by Sun, Moon and EVERY planet.
-        state.dx+=(target.x+w/2-s.x-state.dx)*alpha;
-        state.dy+=(target.y-s.y-state.dy)*alpha;
-        if(Math.abs(target.x+w/2-s.x-state.dx)<.02)state.dx=target.x+w/2-s.x;
-        if(Math.abs(target.y-s.y-state.dy)<.02)state.dy=target.y-s.y;
+        if(!state){state={slot:best.slot,dx:best.x+w/2-s.x,dy:best.y-s.y,switchedAt:mono-LABEL.dwell,pending:null,pendingSince:mono};this.labelStates.set(b.id,state);}
+        else if(!avoid){state.slot=0;state.pending=null;}else{const current=candidates[state.slot]||candidates[0];if(best.slot!==state.slot&&current.score-best.score>LABEL.margin){if(state.pending!==best.slot){state.pending=best.slot;state.pendingSince=mono;}if(mono-state.pendingSince>=LABEL.switchDelay&&mono-state.switchedAt>=LABEL.dwell){state.slot=best.slot;state.switchedAt=mono;state.pending=null;}}else state.pending=null;}
+        const target=candidates[state.slot]||candidates[0];state.dx+=(target.x+w/2-s.x-state.dx)*alpha;state.dy+=(target.y-s.y-state.dy)*alpha;
+        if(Math.abs(target.x+w/2-s.x-state.dx)<.02)state.dx=target.x+w/2-s.x;if(Math.abs(target.y-s.y-state.dy)<.02)state.dy=target.y-s.y;
         reserved.push(target);
-        const x=s.x+state.dx,y=s.y+state.dy,box={id:b.id,x:x-w/2,y,w,h,label:true};
-        // Connector and hit area follow the displayed position, never the destination.
-        const ex=clamp(s.x,box.x,box.x+w),ey=clamp(s.y,box.y,box.y+h);
-        const dx=ex-s.x,dy=ey-s.y,distance=Math.hypot(dx,dy);
-        if(distance>r+6) {
-          c.strokeStyle='rgba(161,179,201,.22)';c.lineWidth=.6;c.beginPath();
-          c.moveTo(s.x+dx/distance*(r+3),s.y+dy/distance*(r+3));c.lineTo(ex,ey);c.stroke();
-        }
-        c.shadowColor='rgba(0,0,0,.95)';c.shadowBlur=6;
-        c.fillStyle=this.selected===b.id?'#eedbb8':b.id==='sun'?'#f1c889':satellite?'#8f9cac':'#b9c4d2';
-        c.fillText(b.en,x,y);c.shadowBlur=0;this.hitTargets.push(box);
+        const x=s.x+state.dx,y=s.y+state.dy,box={id:b.id,x:x-w/2,y,w,h,label:true},ex=clamp(s.x,box.x,box.x+w),ey=clamp(s.y,box.y,box.y+h),dx=ex-s.x,dy=ey-s.y,distance=Math.hypot(dx,dy);
+        if(distance>r+6){c.strokeStyle='rgba(161,179,201,.22)';c.lineWidth=.6;c.beginPath();c.moveTo(s.x+dx/distance*(r+3),s.y+dy/distance*(r+3));c.lineTo(ex,ey);c.stroke();}
+        c.shadowColor='rgba(0,0,0,.95)';c.shadowBlur=6;c.fillStyle=this.selected===b.id?'#eedbb8':b.id==='sun'?'#f1c889':satellite?'#8f9cac':'#b9c4d2';c.fillText(b.en,x,y);c.shadowBlur=0;this.hitTargets.push(box);
       }
       for(const id of this.labelStates.keys())if(!active.has(id))this.labelStates.delete(id);
       if('letterSpacing' in c)c.letterSpacing='0px';
@@ -974,15 +941,16 @@
       const direct=!!this.gpu&&this.gpu.begin();
       const orbitBrightness=clamp(Number(this.options.orbitBrightness)||0,0,1),orbitStrength=orbitBrightness*3;
       if(orbitBrightness>0) {
+        const camera=direct?this.gpuOrbitCamera():null;
         const reveal=this.orbitRevealAlpha(mono);
         if(direct){
-          const camera=this.gpuOrbitCamera(),origin={x:0,y:0,z:0};
+          const origin=this.orbitOrigin||(this.orbitOrigin={x:0,y:0,z:0});
           for(const path of this.paths){const selected=this.selected===path.body.id;
             this.gpu.orbit('solar:'+path.body.id,this.orbitModel(path),origin,camera,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],clamp((selected?.64:.22)*reveal*orbitStrength,0,1));}
         }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id,reveal,orbitStrength);
         for(const satellite of satelliteLayouts) {
           const points=direct?null:A.satelliteOrbit(satellite.body,ms,satellite.orbitRadius,90),parent=satellite.parent.world;
-          if(direct){this.gpu.orbit('satellite:'+satellite.body.id,this.satelliteOrbitModel(satellite.body,ms,satellite.orbitRadius),parent,this.gpuOrbitCamera(),this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],clamp(.26*reveal*orbitStrength,0,1));}
+          if(direct){this.gpu.orbit('satellite:'+satellite.body.id,this.satelliteOrbitModel(satellite.body,ms,satellite.orbitRadius),parent,camera,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],clamp(.26*reveal*orbitStrength,0,1));}
           else if(!this.gpu){c.save();c.globalAlpha*=reveal;const alpha=clamp(.26*orbitStrength,0,1);c.strokeStyle=satellite.body.id==='moon'?`rgba(115,155,189,${alpha})`:`rgba(171,158,117,${alpha})`;c.lineWidth=.65;c.beginPath();for(let i=0;i<points.length;i++){const p=points[i],s=this.project({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();c.restore();}
         }
       }

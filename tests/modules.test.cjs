@@ -8,9 +8,9 @@ test('runtime concerns load as modules before the application coordinator',()=>{
   assert.ok(html.includes('href="styles.css?v=0.45-r15"'));
   assert.ok(html.includes('href="src/runtime-optimizations.css?v=0.45-r1"'));
   assert.doesNotMatch(html,/styles-v016/);
-  assert.ok(html.includes('src/surface.js?v=0.45-r16'));
-  assert.ok(html.includes('src/renderer.js?v=0.45-r16'));
-  assert.ok(html.includes('src/performance.js?v=0.45-r16'));
+  assert.ok(html.includes('src/surface.js?v=0.46-r1'));
+  assert.ok(html.includes('src/renderer.js?v=0.46-r1'));
+  assert.ok(html.includes('src/performance.js?v=0.46-r1'));
   assert.ok(html.indexOf('src/performance.js')<html.indexOf('src/app.js'),'performance');
   assert.ok(html.includes('src/visual-effects.js?v=0.45-r10'));
   assert.ok(html.indexOf('src/visual-effects.js')<html.indexOf('src/renderer.js'),'visual-effects');
