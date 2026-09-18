@@ -2,10 +2,10 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'../src/page-runtime.js'),'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-function harness({revision='r4',manifest={version:'0.46',revision:'r4'},small=true,coarse=true,standalone=false,legacyStandalone=false,storageFails=false}={}){
+function harness({revision='r4',manifest={version:'0.46',revision:'r4'},small=true,coarse=true,standalone=false,legacyStandalone=false,storageFails=false,visual={width:390,height:844,offsetTop:0,offsetLeft:0,scale:1}}={}){
  const classes=new Set(),windowEvents={},documentEvents={},queries={},requests=[],redirects=[],storage=new Map(),intervals=[];
- const state={now:1000000,manifest,networkFails:false};
- const element={classList:{toggle(name,on){if(on)classes.add(name);else classes.delete(name);},contains:name=>classes.has(name)}};
+ const state={now:1000000,manifest,networkFails:false},css=new Map(),frames=new Map(),visualEvents={},notices=[];let frameId=0;
+ const element={style:{setProperty:(key,value)=>css.set(key,value),removeProperty:key=>css.delete(key)},classList:{toggle(name,on){if(on)classes.add(name);else classes.delete(name);},contains:name=>classes.has(name)}};
  const document={documentElement:element,hidden:false,readyState:'loading',
   querySelector:selector=>selector.includes('solar-time-version')?{content:'0.46'}:selector.includes('solar-time-revision')?{content:revision}:null,
   addEventListener:(name,callback)=>documentEvents[name]=callback};
@@ -13,13 +13,19 @@ function harness({revision='r4',manifest={version:'0.46',revision:'r4'},small=tr
   location:{protocol:'https:',href:'https://solartime.example/?saved=1',host:'solartime.example',replace:url=>redirects.push(url)},
   matchMedia(query){return queries[query]={matches:query.includes('max-width')?small:query.includes('any-pointer')?coarse:standalone,addEventListener(_event,callback){this.changed=callback;}};},
   addEventListener:(name,callback)=>windowEvents[name]=callback,
+  visualViewport:visual?{...visual,addEventListener:(name,callback)=>visualEvents[name]=callback}:null,
+  Event:class{constructor(type){this.type=type;}},
+  dispatchEvent(event){notices.push(event.type);windowEvents[event.type]?.(event);},
+  requestAnimationFrame(callback){const id=++frameId;frames.set(id,callback);return id;},
+  cancelAnimationFrame:id=>frames.delete(id),
   setInterval:(callback,ms)=>{intervals.push({callback,ms});return 1;},
   sessionStorage:{getItem(key){if(storageFails)throw Error('Storage blocked');return storage.get(key)||null;},setItem(key,value){if(storageFails)throw Error('Storage blocked');storage.set(key,value);}},
   async fetch(url,options){requests.push({url:String(url),options});if(state.networkFails)throw Error('Offline');return {ok:true,json:async()=>state.manifest};}
  };
  const context={window,URL,Date:class extends Date{static now(){return state.now;}},console};
  vm.runInNewContext(source,context);
- return {window,document,state,queries,classes,windowEvents,documentEvents,requests,redirects,storage,intervals};
+ function tick(){const callbacks=[...frames.values()];frames.clear();for(const callback of callbacks)callback(state.now);}
+ return {window,document,state,queries,classes,windowEvents,documentEvents,requests,redirects,storage,intervals,css,frames,visualEvents,notices,tick};
 }
 test('unchanged r3 is not an update, but foregrounding detects r4 within five minutes',async()=>{
  const h=harness({revision:'r3',manifest:{version:'0.46',revision:'r3'}});await flush();
@@ -84,4 +90,81 @@ test('software sky shading uses the same phone flag and never reuses a shaded ra
  const shaded=sky.rayTable(8,8,1);assert.ok(shaded[3]<1);
  phone=true;const flat=sky.rayTable(8,8,1);assert.notEqual(flat,shaded);for(let i=3;i<flat.length;i+=4)assert.equal(flat[i],1);
  phone=false;assert.equal(sky.rayTable(8,8,1),shaded);
+});
+
+
+test('standalone measures the visible viewport before body parsing, without guessing safe-area offsets',()=>{
+ const h=harness({standalone:true,visual:{width:390,height:844,offsetTop:24,offsetLeft:0,scale:1}});
+ assert.ok(h.classes.has('solar-standalone'));
+ assert.equal(h.css.get('--solar-viewport-top'),'24px');assert.equal(h.css.get('--solar-viewport-height'),'844px');
+ assert.equal(h.window.SolarPageRuntime.getViewport().source,'visualViewport');
+ assert.equal(h.document.readyState,'loading');
+});
+test('ordinary browser tabs keep their original layout even when visual and layout viewport sizes differ',()=>{
+ const h=harness({visual:{width:390,height:720,offsetTop:48,offsetLeft:0,scale:1}});
+ assert.equal(h.css.size,0);assert.equal(h.window.SolarPageRuntime.getViewport(),null);
+ h.visualEvents.resize();h.visualEvents.scroll();assert.equal(h.frames.size,0);
+ assert.ok(!h.classes.has('solar-standalone'));
+});
+test('visual-only resize notifies the existing renderer resize path after updating CSS',()=>{
+ const h=harness({standalone:true});h.tick();h.notices.length=0;
+ h.window.visualViewport.height=780;h.visualEvents.resize();
+ assert.equal(h.css.get('--solar-viewport-height'),'844px');h.tick();
+ assert.equal(h.css.get('--solar-viewport-height'),'780px');assert.equal(h.notices.length,0);
+ h.tick();assert.deepEqual(h.notices,['resize']);assert.equal(h.frames.size,0);
+});
+test('visual viewport scroll uses the measured origin and coalesces an event burst',()=>{
+ const h=harness({legacyStandalone:true});h.tick();h.notices.length=0;
+ Object.assign(h.window.visualViewport,{offsetTop:20.125,offsetLeft:3.125});
+ for(let i=0;i<20;i++){h.visualEvents.scroll();h.visualEvents.resize();}
+ assert.equal(h.frames.size,1);h.tick();h.tick();
+ assert.equal(h.css.get('--solar-viewport-top'),'20.13px');assert.equal(h.css.get('--solar-viewport-left'),'3.13px');
+ assert.deepEqual(h.notices,['resize']);assert.equal(h.frames.size,0);
+});
+test('unchanged viewport does not trigger an endless resize/paint loop',()=>{
+ const h=harness({standalone:true});h.tick();h.notices.length=0;
+ for(let i=0;i<5;i++){h.windowEvents.resize();h.visualEvents.resize();h.tick();}
+ assert.equal(h.notices.length,0);assert.equal(h.frames.size,0);
+});
+test('pinch zoom never overwrites the unzoomed app rectangle',()=>{
+ const h=harness({standalone:true});h.tick();h.notices.length=0;
+ Object.assign(h.window.visualViewport,{width:195,height:422,scale:2,offsetTop:80});h.visualEvents.resize();h.tick();
+ assert.equal(h.css.get('--solar-viewport-width'),'390px');assert.equal(h.css.get('--solar-viewport-top'),'0px');
+ assert.equal(h.notices.length,0);
+ Object.assign(h.window.visualViewport,{width:390,height:824,scale:1,offsetTop:20});h.visualEvents.resize();h.tick();h.tick();
+ assert.equal(h.css.get('--solar-viewport-height'),'824px');assert.equal(h.css.get('--solar-viewport-top'),'20px');
+});
+test('no VisualViewport API falls back to the window size and refreshes on rotation',()=>{
+ const h=harness({standalone:true,visual:null});h.tick();
+ assert.equal(h.window.SolarPageRuntime.getViewport().source,'innerSize');
+ h.window.innerWidth=844;h.window.innerHeight=390;h.windowEvents.orientationchange();h.tick();h.tick();
+ assert.equal(h.css.get('--solar-viewport-width'),'844px');assert.equal(h.css.get('--solar-viewport-height'),'390px');
+});
+test('invalid visual geometry falls back safely and cannot write NaN or zero sizes',()=>{
+ const h=harness({standalone:true,visual:{width:NaN,height:0,offsetTop:Infinity,scale:1}});h.tick();
+ assert.equal(h.css.get('--solar-viewport-height'),'844px');assert.equal(h.css.get('--solar-viewport-top'),'0px');
+ h.window.innerHeight=0;h.window.innerWidth=NaN;h.windowEvents.resize();
+ assert.equal(h.css.get('--solar-viewport-height'),'844px');assert.equal(h.css.get('--solar-viewport-width'),'390px');
+});
+test('standalone exit clears viewport overrides rather than affecting subsequent browser mode',()=>{
+ const h=harness({standalone:true});h.tick();
+ h.queries['(display-mode:standalone)'].matches=false;h.queries['(display-mode:standalone)'].changed();h.tick();
+ assert.ok(!h.classes.has('solar-standalone'));assert.equal(h.css.size,0);assert.equal(h.window.SolarPageRuntime.getViewport(),null);
+});
+test('foregrounding and persisted restoration resample standalone geometry',async()=>{
+ const h=harness({standalone:true});await flush();h.tick();
+ h.window.visualViewport.height=800;h.documentEvents.visibilitychange();h.tick();
+ assert.equal(h.css.get('--solar-viewport-height'),'800px');
+ h.window.visualViewport.height=844;h.windowEvents.pageshow({persisted:true});h.tick();
+ assert.equal(h.css.get('--solar-viewport-height'),'844px');
+});
+test('standalone stage owns loading and scene coordinates without transforming native dialogs',()=>{
+ const root=path.resolve(__dirname,'..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8'),css=fs.readFileSync(path.join(root,'src/runtime-optimizations.css'),'utf8');
+ assert.ok(html.indexOf('id="solar-viewport"')<html.indexOf('id="starfield"'));
+ assert.ok(html.indexOf('id="loading"')<html.indexOf('</div>\n  <script id="solar-assets"'));
+ assert.match(css,/#solar-viewport\{display:contents\}/);
+ const stage=/html\.solar-standalone #solar-viewport\{([^}]+)\}/.exec(css)?.[1];assert.ok(stage);
+ assert.match(stage,/position:fixed/);assert.match(stage,/height:var\(--solar-viewport-height,100%\)/);
+ assert.doesNotMatch(stage,/transform|contain\s*:/);
+ assert.match(css,/html\.solar-standalone \.loading[^}]*position:absolute/);
 });

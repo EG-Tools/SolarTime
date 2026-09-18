@@ -11,13 +11,66 @@
   const coarse=root.matchMedia('(any-pointer:coarse)');
   const standalone=root.matchMedia('(display-mode:standalone)');
   const installed=()=>standalone.matches||root.navigator?.standalone===true;
-  const updateLayout=()=>element.classList.toggle('solar-phone-layout',small.matches&&(coarse.matches||installed()));
+  // Installed WebClips can report different visual/layout viewport bounds at
+  // launch, rotation and resume. Read the visible rectangle, never screen.height
+  // or a guessed status-bar offset. Keep browser tabs and pinch zoom unchanged.
+  let viewportBounds=null,viewportFrame=0,resizeNotice=0;
+  const finite=value=>typeof value==='number'&&Number.isFinite(value);
+  const positive=value=>finite(value)&&value>0;
+  const rounded=value=>Math.round(value*100)/100;
+  function readViewport(){
+    const visual=root.visualViewport;
+    if(visual&&finite(visual.scale)&&Math.abs(visual.scale-1)>.01)return null;
+    const useVisual=visual&&positive(visual.width)&&positive(visual.height);
+    const width=useVisual?visual.width:root.innerWidth,height=useVisual?visual.height:root.innerHeight;
+    if(!positive(width)||!positive(height))return null;
+    return {left:rounded(useVisual&&finite(visual.offsetLeft)?Math.max(0,visual.offsetLeft):0),
+      top:rounded(useVisual&&finite(visual.offsetTop)?Math.max(0,visual.offsetTop):0),
+      width:rounded(width),height:rounded(height),source:useVisual?'visualViewport':'innerSize'};
+  }
+  function notifyViewportResize(){
+    if(resizeNotice)return;
+    resizeNotice=root.requestAnimationFrame(()=>{
+      resizeNotice=0;
+      // Reuse the coordinator's existing resize/paint/settle path. It reads the
+      // canvas rectangle AFTER the new viewport CSS has been applied.
+      root.dispatchEvent(new root.Event('resize'));
+    });
+  }
+  function syncViewport(){
+    if(!installed()){
+      if(viewportBounds){
+        viewportBounds=null;
+        for(const key of ['left','top','width','height'])element.style.removeProperty('--solar-viewport-'+key);
+        notifyViewportResize();
+      }
+      return;
+    }
+    const next=readViewport();if(!next)return;
+    if(viewportBounds&&['left','top','width','height','source'].every(key=>viewportBounds[key]===next[key]))return;
+    viewportBounds=Object.freeze(next);
+    for(const key of ['left','top','width','height'])element.style.setProperty('--solar-viewport-'+key,next[key]+'px');
+    notifyViewportResize();
+  }
+  function scheduleViewportSync(){
+    if(!installed()||viewportFrame)return;
+    viewportFrame=root.requestAnimationFrame(()=>{viewportFrame=0;syncViewport();});
+  }
+  const updateLayout=()=>{
+    element.classList.toggle('solar-phone-layout',small.matches&&(coarse.matches||installed()));
+    element.classList.toggle('solar-standalone',installed());
+    syncViewport();
+  };
   for(const query of [small,coarse,standalone]){
     if(query.addEventListener)query.addEventListener('change',updateLayout);
     else query.addListener?.(updateLayout);
   }
   updateLayout();
   root.addEventListener('resize',updateLayout,{passive:true});
+  root.addEventListener('orientationchange',scheduleViewportSync,{passive:true});
+  root.addEventListener('load',scheduleViewportSync,{passive:true});
+  root.visualViewport?.addEventListener('resize',scheduleViewportSync,{passive:true});
+  root.visualViewport?.addEventListener('scroll',scheduleViewportSync,{passive:true});
 
   const interval=5*60*1000,attemptKey='solar-time.update-attempt';
   let checkedAt=-Infinity,checking=false,reloading=false,lastAttempt=null;
@@ -57,16 +110,21 @@
   }
 
   function layoutInfo(){
-    const css=root.getComputedStyle(element),rect=selector=>{
+    const css=root.getComputedStyle(element),visual=root.visualViewport;
+    const visibleBottom=viewportBounds?viewportBounds.top+viewportBounds.height:root.innerHeight;
+    const rect=selector=>{
       const target=document.querySelector(selector);if(!target)return null;
       const r=target.getBoundingClientRect(),s=root.getComputedStyle(target);
-      return {top:Math.round(r.top),bottom:Math.round(r.bottom),gapBelow:Math.round(root.innerHeight-r.bottom),paddingBottom:s.paddingBottom,display:s.display};
+      return {left:Math.round(r.left),top:Math.round(r.top),width:Math.round(r.width),height:Math.round(r.height),bottom:Math.round(r.bottom),gapBelow:Math.round(visibleBottom-r.bottom),paddingBottom:s.paddingBottom,display:s.display};
     };
     return {
       build:version+' '+revision,host:root.location.host,
       layoutCSS:css.getPropertyValue('--solar-layout-revision').trim()||'OLD / NOT LOADED',
       mode:installed()?'standalone':'browser',phoneLayout:element.classList.contains('solar-phone-layout'),coarsePointer:coarse.matches,
-      viewport:{width:root.innerWidth,height:root.innerHeight,visualHeight:root.visualViewport?Math.round(root.visualViewport.height):null},
+      viewport:{width:root.innerWidth,height:root.innerHeight,clientHeight:element.clientHeight,
+        visualWidth:visual?.width,visualHeight:visual?.height,offsetTop:visual?.offsetTop,offsetLeft:visual?.offsetLeft,scale:visual?.scale,scrollY:root.scrollY},
+      viewportSync:viewportBounds,stage:rect('#solar-viewport'),loading:rect('#loading'),canvas:rect('#universe'),
+      renderSize:root.SolarTime?.renderer?{width:root.SolarTime.renderer.w,height:root.SolarTime.renderer.h}:null,
       safeTop:css.getPropertyValue('--solar-safe-top').trim(),safeBottom:css.getPropertyValue('--solar-safe-bottom').trim(),
       shade:document.querySelector('.edge-shade')?root.getComputedStyle(document.querySelector('.edge-shade')).display:null,
       skyShade:root.SolarTime?.renderer?.sky?.edgeShadeStrength??null,
@@ -89,6 +147,7 @@
     if(!dialog.open)dialog.showModal();
   }
   function ready(){
+    updateLayout();scheduleViewportSync();
     const target=document.querySelector('.support-identity');
     if(target){
       const button=document.createElement('button');button.type='button';button.className='solar-build-info';
@@ -97,5 +156,5 @@
     if(new URL(root.location.href).searchParams.get('layout-debug')==='1')showDiagnostics();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
-  root.SolarPageRuntime=Object.freeze({checkForUpdate,layoutInfo,showDiagnostics});
+  root.SolarPageRuntime=Object.freeze({checkForUpdate,layoutInfo,showDiagnostics,getViewport:()=>viewportBounds});
 })(window);

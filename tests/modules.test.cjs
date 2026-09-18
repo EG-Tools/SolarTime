@@ -40,8 +40,8 @@ test('phone layout shares an explicit standalone-aware flag with the sky rendere
   assert.ok(page.includes('root.navigator?.standalone===true'));
   assert.ok(page.includes("(any-pointer:coarse)"));
   assert.ok(sky.includes("classList?.contains('solar-phone-layout')?0:.24"));
-  assert.ok(read('index.html').includes('src/runtime-optimizations.css?v=0.46-r4'));
-  assert.ok(read('index.html').includes('src/page-runtime.js?v=0.46-r4'));
+  assert.ok(read('index.html').includes('src/runtime-optimizations.css?v=0.46-'+JSON.parse(read('version.json')).revision));
+  assert.ok(read('index.html').includes('src/page-runtime.js?v=0.46-'+JSON.parse(read('version.json')).revision));
 });
 
 test('phone layout refinement leaves the approved top boundary and home-indicator safety intact',()=>{

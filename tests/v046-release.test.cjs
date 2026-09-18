@@ -7,7 +7,7 @@ test('v0.46 page build stays consistent while unchanged coordinator keeps its bu
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
   assert.ok(html.includes('name="solar-time-version" content="0.46"'));
   assert.ok(html.includes('name="solar-time-revision" content="'+version.revision+'"'));
-  assert.equal(version.revision,'r4');
+  assert.match(version.revision,/^r[1-9]\d*$/);
   assert.equal(version.version,'0.46');
   assert.equal(pkg.version,'0.0.46');
   assert.ok(app.includes("version:'0.46',revision:'r3'"));
@@ -288,7 +288,7 @@ test('r16 removes avoidable renderer hot-path work and restores the watermark',(
 
 test('v0.46 r3 keeps compact LIVE status separate and treats iPhone safe areas as boundaries',()=>{
   const html=read('index.html'),css=read('src/runtime-optimizations.css');
-  assert.ok(html.includes('src/runtime-optimizations.css?v=0.46-r4'));
+  assert.ok(html.includes('src/runtime-optimizations.css?v=0.46-'+JSON.parse(read('version.json')).revision));
   assert.match(css,/--solar-safe-left:env\(safe-area-inset-left,0px\)/);
   assert.match(css,/--solar-safe-right:env\(safe-area-inset-right,0px\)/);
   assert.match(css,/\.clock-face,body\.zen \.clock-face\{top:max\(56px,calc\(var\(--solar-safe-top\) \+ 8px\)\)\}/);

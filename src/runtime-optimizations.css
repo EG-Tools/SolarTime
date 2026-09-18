@@ -66,7 +66,7 @@
 
 /* v0.46 r4: one phone-layout flag is shared by CSS and the sky renderer.
    Keep the approved top boundaries and the home-indicator safety inset. */
-:root{--solar-layout-revision:r4}
+:root{--solar-layout-revision:r5}
 html.solar-phone-layout .edge-shade{display:none}
 html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}
 html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 32px)}
@@ -77,3 +77,29 @@ html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) 
 .solar-layout-actions{display:flex;justify-content:flex-end;gap:8px}
 .solar-layout-actions button{padding:8px 14px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--fg)}
 body.zen .solar-layout-diagnostics button{visibility:visible!important;pointer-events:auto!important}
+
+
+/* v0.46 r5: one visible viewport for standalone loading, canvases and main UI.
+   display:contents keeps the browser-tab layout exactly as it was. No translate
+   or containment here: native top-layer dialogs keep viewport coordinates. */
+#solar-viewport{display:contents}
+html.solar-standalone,html.solar-standalone body{height:100%;min-height:0;overscroll-behavior:none}
+html.solar-standalone #solar-viewport{
+  display:block;position:fixed;
+  left:var(--solar-viewport-left,0px);top:var(--solar-viewport-top,0px);
+  width:var(--solar-viewport-width,100%);height:var(--solar-viewport-height,100%);
+  overflow:hidden;
+}
+html.solar-standalone #starfield,html.solar-standalone #planet-layer,html.solar-standalone #universe,
+html.solar-standalone .edge-shade,html.solar-standalone .loading,html.solar-standalone .fatal-error{position:absolute}
+html.solar-standalone .view-controls{max-height:calc(var(--solar-viewport-height,100dvh) - 24px)}
+html.solar-standalone .modal,html.solar-standalone #reset-defaults-dialog{
+  top:calc(var(--solar-viewport-top,0px) + var(--solar-viewport-height,100dvh)/2);
+  left:calc(var(--solar-viewport-left,0px) + var(--solar-viewport-width,100vw)/2);
+}
+html.solar-standalone .solar-layout-diagnostics{
+  inset:auto;margin:0;transform:translate(-50%,-50%);
+  top:calc(var(--solar-viewport-top,0px) + var(--solar-viewport-height,100dvh)/2);
+  left:calc(var(--solar-viewport-left,0px) + var(--solar-viewport-width,100vw)/2);
+  max-height:calc(var(--solar-viewport-height,100dvh) - var(--solar-safe-top) - var(--solar-safe-bottom) - 24px);
+}
