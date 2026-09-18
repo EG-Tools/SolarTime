@@ -245,7 +245,7 @@ test('r14 moves the scale readout to the top and enlarges it by one pixel',()=>{
   const ordered=['id="zoom-value"','id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="camera-mode-toggle"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
   let cursor=-1;
   for(const token of ordered){const next=block.indexOf(token);assert.ok(next>cursor,token+' order');cursor=next;}
-  assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1(?:;margin-bottom:1px)?\}/);
+  assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1(?:;margin-bottom:5px)?\}/);
 });
 
 
