@@ -6,11 +6,11 @@ function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createCo
 test('v0.46 r1 exposes the new public version with localized release notes',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
   assert.ok(html.includes('name="solar-time-version" content="0.46"'));
-  assert.ok(html.includes('name="solar-time-revision" content="r2"'));
-  assert.deepEqual(version,{version:'0.46',revision:'r2'});
+  assert.ok(html.includes('name="solar-time-revision" content="r3"'));
+  assert.deepEqual(version,{version:'0.46',revision:'r3'});
   assert.equal(pkg.version,'0.0.46');
   assert.ok(app.includes("version:'0.46',revision:'r2'"));
-  assert.ok(html.includes('src/app.js?v=0.46-r2'));
+  assert.ok(html.includes('src/app.js?v=0.46-r3'));
   assert.ok(html.includes('src/localization.js?v=0.45-r11'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -210,17 +210,18 @@ test('r12 simplifies and reorders the right-side view controls',()=>{
   assert.ok(app.includes("key==='+'||key==='='"));
   assert.ok(app.includes("key==='-'"));
 });
-test('r12 serves install icons and watermark from R2 releases content ui',()=>{
+test('install icons are generated into the Cloudflare site while the watermark remains on R2',()=>{
   const html=read('index.html'),manifest=JSON.parse(read('manifest.webmanifest')),site=read('tools/cloudflare-site.cjs');
-  assert.ok(html.includes('/media/releases/content/ui/apple-touch-icon.png?v=0.45-r12'));
+  assert.ok(html.includes('/apple-touch-icon.png?v=0.46-r3'));
   assert.equal((html.match(/data-life-user-watermark/g)||[]).length,2);
   assert.ok(read('src/app.js').includes("releases/content/ui/life-user-watermark.webp"));
   assert.deepEqual(manifest.icons.map(icon=>icon.src),[
-    '/media/releases/content/ui/app-icon-192.png?v=0.45-r12',
-    '/media/releases/content/ui/app-icon-512.png?v=0.45-r12'
+    '/app-icon-192.png?v=0.46-r3',
+    '/app-icon-512.png?v=0.46-r3'
   ]);
-  for(const name of ['apple-touch-icon.png','app-icon-192.png','app-icon-512.png','life-user-watermark.webp'])
-    assert.ok(!site.includes("'"+name+"'"),name);
+  assert.ok(site.includes("assets','solar-time-icon.svg"));
+  for(const name of ['apple-touch-icon.png','app-icon-192.png','app-icon-512.png'])assert.ok(site.includes(name),name);
+  assert.ok(!site.includes("'life-user-watermark.webp'"));
 });
 
 
@@ -283,7 +284,7 @@ test('r16 removes avoidable renderer hot-path work and restores the watermark',(
 });
 
 
-test('v0.46 r2 keeps compact LIVE status separate and treats iPhone safe areas as boundaries',()=>{
+test('v0.46 r3 keeps compact LIVE status separate and treats iPhone safe areas as boundaries',()=>{
   const html=read('index.html'),css=read('src/runtime-optimizations.css');
   assert.ok(html.includes('src/runtime-optimizations.css?v=0.46-r2'));
   assert.match(css,/--solar-safe-left:env\(safe-area-inset-left,0px\)/);
