@@ -295,7 +295,8 @@ test('v0.46 r1 adds the remaining runtime and asset-pipeline optimizations',()=>
 
   assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));
-  for(const file of ['surface','renderer','performance','app'])assert.ok(html.includes('src/'+file+'.js?v=0.46-r1'),file);
+  for(const file of ['surface','renderer','performance'])assert.ok(html.includes('src/'+file+'.js?v=0.46-r1'),file);
+  assert.ok(html.includes('src/app.js?v=0.46-r1-fix1'));
   assert.deepEqual(assetRevision,{version:'assetpack-20260918-r1'});
   assert.equal(manifest.revision,'assetpack-20260918-r1');
   for(const entry of Object.values(manifest.materials))assert.equal(entry.seamBaked,true,entry.source);
