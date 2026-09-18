@@ -168,3 +168,40 @@ test('standalone stage owns loading and scene coordinates without transforming n
  assert.doesNotMatch(stage,/transform|contain\s*:/);
  assert.match(css,/html\.solar-standalone \.loading[^}]*position:absolute/);
 });
+
+
+// Match the non-overlay Home Screen setting used by ReStartHuman. The shell,
+// safe-area values and camera stay unchanged in this isolated status-bar fix.
+test('Home Screen metadata selects one default status bar before startup scripts',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const tags=[...html.matchAll(/<meta\b[^>]*>/gi)];
+ const settings=tags.filter(match=>/name=["']apple-mobile-web-app-status-bar-style["']/i.test(match[0]));
+ assert.equal(settings.length,1,'A single declaration avoids conflicting install metadata');
+ assert.match(settings[0][0],/content=["']default["']/);
+ assert.ok(settings[0].index<html.indexOf('<script'),'The setting must be present before startup');
+ assert.ok(html.includes('name="apple-mobile-web-app-capable" content="yes"'));
+ assert.ok(html.includes('viewport-fit=cover'),'Do not change viewport-fit or safe-area policy here');
+ const release=JSON.parse(fs.readFileSync(path.join(__dirname,'../version.json'),'utf8'));
+ const css=fs.readFileSync(path.join(__dirname,'../src/runtime-optimizations.css'),'utf8');
+ assert.ok(css.includes('--solar-layout-revision:'+release.revision+'}'));
+});
+
+test('an existing r5 Home Screen page detects the newer status-bar page build',async()=>{
+ const release=JSON.parse(fs.readFileSync(path.join(__dirname,'../version.json'),'utf8'));
+ const h=harness({revision:'r5',manifest:release,standalone:true});await flush();
+ assert.equal(h.redirects.length,1);
+ const next=new URL(h.redirects[0]);
+ assert.equal(next.searchParams.get('revision'),release.revision);
+ assert.equal(next.searchParams.get('saved'),'1');
+});
+
+test('layout diagnostics expose the declared status-bar setting without inferring native state',()=>{
+ const h=harness({revision:'r6',standalone:true});
+ const query=h.document.querySelector;
+ h.document.querySelector=selector=>selector==='meta[name="apple-mobile-web-app-status-bar-style"]'?{content:'default'}:query(selector);
+ h.window.getComputedStyle=()=>({getPropertyValue:()=>''});
+ const info=h.window.SolarPageRuntime.layoutInfo();
+ assert.equal(info.statusBarMeta,'default');
+ assert.equal(info.mode,'standalone');
+ assert.equal(info.build,'0.46 r6');
+});

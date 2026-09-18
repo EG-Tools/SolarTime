@@ -119,6 +119,8 @@
     };
     return {
       build:version+' '+revision,host:root.location.host,
+      // Declared page setting only; iOS may retain installed WebClip metadata.
+      statusBarMeta:document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')?.content||'not specified',
       layoutCSS:css.getPropertyValue('--solar-layout-revision').trim()||'OLD / NOT LOADED',
       mode:installed()?'standalone':'browser',phoneLayout:element.classList.contains('solar-phone-layout'),coarsePointer:coarse.matches,
       viewport:{width:root.innerWidth,height:root.innerHeight,clientHeight:element.clientHeight,
