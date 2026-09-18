@@ -8,47 +8,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
   <meta name="solar-time-version" content="0.46">
-  <meta name="solar-time-revision" content="r3">
+  <meta name="solar-time-revision" content="r4">
   <meta id="meta-description" name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주." data-i18n-content="metaDescription">
   <title>Solar Time</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23060910'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='12' transform='rotate(-28 32 32)' fill='none' stroke='%23748295' stroke-width='1.4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23efbf76'/%3E%3Ccircle cx='54' cy='20' r='3' fill='%23b6d8ed'/%3E%3C/svg%3E">
   <link rel="apple-touch-icon" sizes="180x180" href="https://solar-time.keg0320.workers.dev/media/releases/content/ui/apple-touch-icon.png?v=0.46-r3">
   <link rel="manifest" href="manifest.webmanifest?v=0.46-r3">
-  <script>
-    (()=>{
-      'use strict';
-      const currentVersion=document.querySelector('meta[name="solar-time-version"]')?.content;
-      const currentRevision=document.querySelector('meta[name="solar-time-revision"]')?.content||'r0';
-      if(!currentVersion||!/^https?:$/.test(location.protocol))return;
-      const interval=5*60*1000,attemptKey='solar-time.update-attempt';let checkedAt=0;
-      const compareVersion=(candidate,installed)=>{
-        const a=String(candidate).split('.').map(Number),b=String(installed).split('.').map(Number);
-        if(a.some(Number.isNaN)||b.some(Number.isNaN))return 0;
-        for(let i=0;i<Math.max(a.length,b.length);i++){const x=a[i]||0,y=b[i]||0;if(x!==y)return x>y?1:-1;}
-        return 0;
-      };
-      const revisionNumber=value=>{const match=String(value||'').match(/(\d+)$/);return match?Number(match[1]):0;};
-      const newer=(version,revision)=>{const releaseOrder=compareVersion(version,currentVersion);return releaseOrder>0||(releaseOrder===0&&revisionNumber(revision)>revisionNumber(currentRevision));};
-      const check=async()=>{
-        const now=Date.now();if(now-checkedAt<interval)return;checkedAt=now;
-        try{
-          const manifest=new URL('version.json',location.href);manifest.searchParams.set('check',String(now));
-          const response=await fetch(manifest,{cache:'no-store'});if(!response.ok)return;
-          const update=await response.json(),latest=String(update.version||''),revision=String(update.revision||'r0');if(!newer(latest,revision))return;
-          const previous=JSON.parse(sessionStorage.getItem(attemptKey)||'null');
-          if(previous?.version===latest&&previous?.revision===revision&&now-previous.at<60000)return;
-          sessionStorage.setItem(attemptKey,JSON.stringify({version:latest,revision,at:now}));
-          const next=new URL(location.href);next.searchParams.set('release',latest);next.searchParams.set('revision',revision);next.searchParams.set('refresh',now.toString(36));
-          location.replace(next.href);
-        }catch(_){/* Offline and file-based copies continue without an update check. */}
-      };
-      check();
-      addEventListener('pageshow',check);
-      document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
-    })();
-  </script>
+  <script src="src/page-runtime.js?v=0.46-r4"></script>
   <link rel="stylesheet" href="styles.css?v=0.45-r15">
-  <link rel="stylesheet" href="src/runtime-optimizations.css?v=0.46-r2-layout1">
+  <link rel="stylesheet" href="src/runtime-optimizations.css?v=0.46-r4">
 </head>
 <body>
   <canvas id="starfield" aria-hidden="true"></canvas>
@@ -313,7 +281,7 @@
   <script src="src/materials.js?v=0.45"></script>
   <script src="src/astro.js?v=0.45"></script>
   <script src="src/surface.js?v=0.46-r1"></script>
-  <script src="src/sky.js?v=0.45-r10"></script>
+  <script src="src/sky.js?v=0.46-r4"></script>
   <script src="src/visual-effects.js?v=0.45-r10"></script>
   <script src="src/renderer.js?v=0.46-r1"></script>
   <script src="src/performance.js?v=0.46-r1"></script>

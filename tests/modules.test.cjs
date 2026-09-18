@@ -31,21 +31,22 @@ test('runtime concerns load as modules before the application coordinator',()=>{
 });
 
 
-test('phone layout refinement removes decorative edge shading and duplicate bottom spacing',()=>{
-  const css=read('src/runtime-optimizations.css');
-  const start=css.indexOf('/* v0.46 r3 layout1:');
-  assert.ok(start>=0,'The phone refinement must be present');
-  const mobile=css.slice(start);
-  assert.ok(mobile.includes('@media(max-width:680px) and (pointer:coarse), (max-height:630px) and (pointer:coarse)'));
-  assert.match(mobile,/\.edge-shade\{background:none\}/);
-  assert.match(mobile,/\.planet-nav\{padding-top:0;padding-bottom:0\}/);
-  assert.match(mobile,/\.playback\{bottom:calc\(max\(8px,var\(--solar-safe-bottom\)\) \+ 32px\)\}/);
-  assert.ok(read('index.html').includes('src/runtime-optimizations.css?v=0.46-r2-layout1'));
+test('phone layout shares an explicit standalone-aware flag with the sky renderer',()=>{
+  const css=read('src/runtime-optimizations.css'),page=read('src/page-runtime.js'),sky=read('src/sky.js');
+  const mobile=css.slice(css.indexOf('/* v0.46 r4:'));
+  assert.ok(mobile.includes('html.solar-phone-layout .edge-shade{display:none}'));
+  assert.ok(mobile.includes('html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}'));
+  assert.ok(mobile.includes('html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 32px)}'));
+  assert.ok(page.includes('root.navigator?.standalone===true'));
+  assert.ok(page.includes("(any-pointer:coarse)"));
+  assert.ok(sky.includes("classList?.contains('solar-phone-layout')?0:.24"));
+  assert.ok(read('index.html').includes('src/runtime-optimizations.css?v=0.46-r4'));
+  assert.ok(read('index.html').includes('src/page-runtime.js?v=0.46-r4'));
 });
 
 test('phone layout refinement leaves the approved top boundary and home-indicator safety intact',()=>{
   const css=read('src/runtime-optimizations.css');
-  const mobile=css.slice(css.indexOf('/* v0.46 r3 layout1:'));
+  const mobile=css.slice(css.indexOf('/* v0.46 r4:'));
   assert.doesNotMatch(mobile,/\.(?:masthead|clock-face|scene-status|footer)\s*\{/);
   assert.match(css,/--solar-safe-bottom:env\(safe-area-inset-bottom,0px\)/);
   assert.match(css,/\.footer\{\s*bottom:max\(8px,var\(--solar-safe-bottom\)\)/);

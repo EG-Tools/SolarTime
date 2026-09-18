@@ -4,6 +4,7 @@
 (function(root){'use strict';
 const TAU=Math.PI*2,DRIFT=.22*Math.PI/180,COS30=Math.sqrt(.75);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const edgeShadeStrength=()=>root.document?.documentElement?.classList?.contains('solar-phone-layout')?0:.24;
 function samplePanorama(tex,u,v,out,index=0){
  const w=tex.width,h=tex.height,tx=((u%1+1)%1)*w-.5,ty=clamp(v*h-.5,0,h-1);
  const ix=Math.floor(tx),y0=Math.floor(ty),x0=(ix%w+w)%w,x1=(x0+1)%w,y1=Math.min(h-1,y0+1),fx=tx-ix,fy=ty-y0;
@@ -114,14 +115,14 @@ class Sky{
    const vs=shader(g,g.VERTEX_SHADER,'attribute vec2 a;varying vec2 p;void main(){p=a;gl_Position=vec4(a,0.,1.);}');
    let fs;
    try{fs=shader(g,g.FRAGMENT_SHADER,`precision ${precision} float;
-    varying vec2 p;uniform sampler2D sky;uniform vec3 right,down,forward;uniform vec2 size;uniform float drift,fov;
+    varying vec2 p;uniform sampler2D sky;uniform vec3 right,down,forward;uniform vec2 size;uniform float drift,fov,edgeShade;
     void main(){
      vec3 ray=normalize(vec3(p.x*size.x/size.y*fov,-p.y*fov,-1.));vec3 q=right*ray.x+down*ray.y+forward*ray.z;
      float cs=cos(drift),sn=sin(drift);q=vec3(q.x*cs-q.y*sn,q.x*sn+q.y*cs,q.z);
      q=normalize(vec3(q.x,q.y*.866025403784-q.z*.5,q.y*.5+q.z*.866025403784));
      float longitude=length(q.xy)>.0000001?atan(q.y,q.x):0.;
      vec2 uv=vec2(fract(longitude/6.28318530718+.5),.5-asin(clamp(q.z,-1.,1.))/3.14159265359);
-     vec3 haze=texture2D(sky,uv).rgb;float vignette=1.-.24*pow(clamp(length(p)*.6,0.,1.),2.);
+     vec3 haze=texture2D(sky,uv).rgb;float vignette=1.-edgeShade*pow(clamp(length(p)*.6,0.,1.),2.);
      vec3 col=vec3(.001,.002,.006)+pow(haze,vec3(.95))*.5984;
      gl_FragColor=vec4(col*vignette,1.);
     }`);}catch(error){g.deleteShader(vs);throw error;}
@@ -132,7 +133,7 @@ class Sky{
    g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
    // Cache all locations once. Never query driver state in the drawing loop.
    this.attribute=g.getAttribLocation(program,'a');g.enableVertexAttribArray(this.attribute);g.vertexAttribPointer(this.attribute,2,g.FLOAT,false,0,0);
-   this.u=Object.fromEntries(['right','down','forward','size','drift','fov','sky'].map(k=>[k,g.getUniformLocation(program,k)]));
+   this.u=Object.fromEntries(['right','down','forward','size','drift','fov','sky','edgeShade'].map(k=>[k,g.getUniformLocation(program,k)]));
    const max=g.getParameter(g.MAX_TEXTURE_SIZE),source=this.image;
    const width=2**Math.floor(Math.log2(Math.min(source.width,max))),height=width/2;
    let upload=source;
@@ -142,7 +143,7 @@ class Sky{
    g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
    // Base-level linear sampling avoids the atan/fract derivative seam.
    g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
-   g.useProgram(program);g.uniform1i(this.u.sky,0);g.uniform1f(this.u.fov,this.tanFov);
+   this.edgeShadeStrength=null;g.useProgram(program);g.uniform1i(this.u.sky,0);g.uniform1f(this.u.fov,this.tanFov);
    const starVertex=shader(g,g.VERTEX_SHADER,`precision ${precision} float;
     attribute vec3 position,appearance;uniform vec3 right,down,forward;uniform vec2 size;uniform float fov,pointScale,seconds;
     varying float intensity;
@@ -223,16 +224,16 @@ class Sky{
   if(this.lastEffect!==null&&options.skyMotion)this.offset=(this.offset+Math.max(0,seconds-this.lastEffect)*DRIFT)%TAU;
   this.lastEffect=seconds;this.camera=camera;this.updateAxes(camera);
   if(!this.ready||!this.w||!this.h)return;
-  const now=performance.now(),a=camera.azimuth,e=camera.elevation,pose=this.lastPose,starTick=options.twinkle?Math.floor(seconds*30):0;
-  const cameraChanged=!pose||pose.a!==a||pose.e!==e||pose.w!==this.w||pose.h!==this.h;
+  const now=performance.now(),a=camera.azimuth,e=camera.elevation,pose=this.lastPose,shade=edgeShadeStrength(),starTick=options.twinkle?Math.floor(seconds*30):0;
+  const cameraChanged=!pose||pose.a!==a||pose.e!==e||pose.w!==this.w||pose.h!==this.h||pose.shade!==shade;
   const unchanged=!cameraChanged&&pose.offset===this.offset&&pose.starTick===starTick;
   if(unchanged){this.stats.skipped++;return;}
   if(!this.gl){
    if(this.softwareA!==a||this.softwareE!==e){this.cameraMotionAt=now;this.softwareA=a;this.softwareE=e;}
    const moving=now-this.cameraMotionAt<180;
-   const key=[a,e,this.offset,this.w,this.h,moving].join(':');
+   const key=[a,e,this.offset,this.w,this.h,moving,shade].join(':');
    if(this.softwareDesired?.key!==key)this.softwareDesired={key,revision:(this.softwareRevision=(this.softwareRevision||0)+1),a,e,
-    moving,axes:this.panAxes,offset:this.offset,w:this.w,h:this.h,epoch:this.softwareEpoch};
+    moving,shade,axes:this.panAxes,offset:this.offset,w:this.w,h:this.h,epoch:this.softwareEpoch};
    this.softwarePump();return;
   }
   // Passive .22-degree/s drift: 30 updates/s. Actual camera movement stays at
@@ -243,6 +244,7 @@ class Sky{
   g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.enableVertexAttribArray(this.attribute);g.vertexAttribPointer(this.attribute,2,g.FLOAT,false,0,0);
   for(const k of ['right','down','forward'])g.uniform3fv(this.u[k],this.axesNow[k]);
   g.uniform2f(this.u.size,this.w,this.h);g.uniform1f(this.u.drift,this.offset);
+  if(this.edgeShadeStrength!==shade){g.uniform1f(this.u.edgeShade,shade);this.edgeShadeStrength=shade;}
   g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,this.texture);g.drawArrays(g.TRIANGLES,0,6);
   if(options.twinkle&&this.starProgram&&this.starCount){
    g.enable(g.BLEND);g.blendFunc(g.SRC_ALPHA,g.ONE);g.useProgram(this.starProgram);g.bindBuffer(g.ARRAY_BUFFER,this.starBuffer);
@@ -253,14 +255,14 @@ class Sky{
    g.uniform1f(this.starU.pointScale,this.canvas.width/this.w);g.uniform1f(this.starU.seconds,seconds);
    g.drawArrays(g.POINTS,0,this.starCount);g.disable(g.BLEND);
   }
-  this.lastPose={a,e,offset:this.offset,w:this.w,h:this.h,starTick};this.lastGPU=now;this.stats.frames++;
+  this.lastPose={a,e,offset:this.offset,w:this.w,h:this.h,starTick,shade};this.lastGPU=now;this.stats.frames++;
  }
- rayTable(sw,sh,aspect){
-  const key=[sw,sh,aspect,this.tanFov].join(':');let table=this.rayTables.get(key);if(table)return table;
+ rayTable(sw,sh,aspect,shade=edgeShadeStrength()){
+  const key=[sw,sh,aspect,this.tanFov,shade].join(':');let table=this.rayTables.get(key);if(table)return table;
   table=new Float32Array(sw*sh*4);
   for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){
    const sx=(x+.5)/sw*2-1,sy=(y+.5)/sh*2-1,qx=sx*aspect*this.tanFov,qy=sy*this.tanFov,inv=1/Math.hypot(qx,qy,1),i=(y*sw+x)*4;
-   table[i]=qx*inv;table[i+1]=qy*inv;table[i+2]=inv;table[i+3]=1-.24*Math.min(1,Math.hypot(sx,sy)*.6)**2;
+   table[i]=qx*inv;table[i+1]=qy*inv;table[i+2]=inv;table[i+3]=1-shade*Math.min(1,Math.hypot(sx,sy)*.6)**2;
   }
   if(this.rayTables.size>=2)this.rayTables.delete(this.rayTables.keys().next().value);this.rayTables.set(key,table);return table;
  }
@@ -271,7 +273,7 @@ class Sky{
   if(delay>0){if(!this.softwareTimer)this.softwareTimer=setTimeout(()=>{this.softwareTimer=null;this.softwarePump();},delay);return;}
   if(this.softwareTimer){clearTimeout(this.softwareTimer);this.softwareTimer=null;}
   this.softwareBusy=true;this.lastSoftware=now;request.started=now;
-  const [sw,sh]=rasterSize(request.w,request.h,request.moving),rays=this.rayTable(sw,sh,request.w/request.h);
+  const [sw,sh]=rasterSize(request.w,request.h,request.moving),rays=this.rayTable(sw,sh,request.w/request.h,request.shade);this.edgeShadeStrength=request.shade;
   if(!this.softwareCanvas)this.softwareCanvas=document.createElement('canvas');
   const canvas=this.softwareCanvas;
   if(canvas.width!==sw||canvas.height!==sh||!this.softwareImage){canvas.width=sw;canvas.height=sh;this.softwareImage=canvas.getContext('2d').createImageData(sw,sh);}

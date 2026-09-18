@@ -3,11 +3,12 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.46 r3 exposes the current public revision with localized release notes',()=>{
+test('v0.46 page build stays consistent while unchanged coordinator keeps its bundle revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
   assert.ok(html.includes('name="solar-time-version" content="0.46"'));
-  assert.ok(html.includes('name="solar-time-revision" content="r3"'));
-  assert.deepEqual(version,{version:'0.46',revision:'r3'});
+  assert.ok(html.includes('name="solar-time-revision" content="'+version.revision+'"'));
+  assert.equal(version.revision,'r4');
+  assert.equal(version.version,'0.46');
   assert.equal(pkg.version,'0.0.46');
   assert.ok(app.includes("version:'0.46',revision:'r3'"));
   assert.ok(html.includes('src/app.js?v=0.46-r3'));
@@ -89,7 +90,7 @@ test('r6 pushes the starfield farther away without slowing the background drift'
   assert.match(sky,/pow\(haze,vec3\(\.95\)\)\*\.5984/);
   assert.match(sky,/255\*\.5896/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
-  assert.match(html,/src\/sky\.js\?v=0\.45-r10/);
+  assert.match(html,/src\/sky\.js\?v=0\.46-r4/);
   assert.ok(html.includes('src/renderer.js?v='));
 });
 test('r7 removes tiny-star one-pixel raster shimmer at the source',()=>{
@@ -103,7 +104,7 @@ test('r7 removes tiny-star one-pixel raster shimmer at the source',()=>{
   assert.match(sky,/if\(r<\.55\)\{glow\(ctx,x,y,Math\.max\(\.18,r\*\.58\),brightness\*\.56\)/);
   assert.match(sky,/DRIFT=\.22\*Math\.PI\/180/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
-  assert.match(html,/src\/sky\.js\?v=0\.45-r10/);
+  assert.match(html,/src\/sky\.js\?v=0\.46-r4/);
   assert.match(html,/src\/visual-effects\.js\?v=0\.45-r10/);
 });
 test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
@@ -141,7 +142,7 @@ test('r10 removes the extra WebGL star canvas while keeping the safe r9 optimiza
   const html=read('index.html'),effects=read('src/visual-effects.js'),sky=read('src/sky.js'),surface=read('src/surface.js'),performance=read('src/performance.js');
   assert.ok(!html.includes('src/star-layer.js'));
   assert.ok(!fs.existsSync(path.join(root,'src/star-layer.js')));
-  assert.ok(html.includes('src/sky.js?v=0.45-r10'));
+  assert.ok(html.includes('src/sky.js?v=0.46-r4'));
   assert.match(sky,/Math\.sqrt\(8388608\/\(w\*h\)\)/);
   assert.match(sky,/g\.drawArrays\(g\.POINTS,0,this\.starCount\)/);
   assert.match(effects,/function buildNaturalStarData/);
@@ -287,7 +288,7 @@ test('r16 removes avoidable renderer hot-path work and restores the watermark',(
 
 test('v0.46 r3 keeps compact LIVE status separate and treats iPhone safe areas as boundaries',()=>{
   const html=read('index.html'),css=read('src/runtime-optimizations.css');
-  assert.ok(html.includes('src/runtime-optimizations.css?v=0.46-r2'));
+  assert.ok(html.includes('src/runtime-optimizations.css?v=0.46-r4'));
   assert.match(css,/--solar-safe-left:env\(safe-area-inset-left,0px\)/);
   assert.match(css,/--solar-safe-right:env\(safe-area-inset-right,0px\)/);
   assert.match(css,/\.clock-face,body\.zen \.clock-face\{top:max\(56px,calc\(var\(--solar-safe-top\) \+ 8px\)\)\}/);

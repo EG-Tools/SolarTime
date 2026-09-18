@@ -64,11 +64,16 @@
 /* v0.43: star density belongs visually to orbit brightness without a divider. */
 #star-density-control{border-top:0;margin-top:0;padding-top:5px}
 
-/* v0.46 r3 layout1: keep the approved top insets, remove phone edge shading.
-   Navigation already sits above --solar-safe-bottom. Do not add a second
-   bottom pad or reserve a fixed 76px gap for the playback controls. */
-@media(max-width:680px) and (pointer:coarse), (max-height:630px) and (pointer:coarse){
-  .edge-shade{background:none}
-  .planet-nav{padding-top:0;padding-bottom:0}
-  .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 32px)}
-}
+/* v0.46 r4: one phone-layout flag is shared by CSS and the sky renderer.
+   Keep the approved top boundaries and the home-indicator safety inset. */
+:root{--solar-layout-revision:r4}
+html.solar-phone-layout .edge-shade{display:none}
+html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}
+html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 32px)}
+.solar-build-info{display:block;margin:8px auto 0;padding:5px 8px;background:transparent;color:var(--muted);font-size:10px;letter-spacing:.5px}
+.solar-layout-diagnostics{position:fixed;inset:0;margin:auto;width:min(430px,calc(100vw - 24px));max-height:calc(100dvh - var(--solar-safe-top) - var(--solar-safe-bottom) - 24px);padding:16px;border:1px solid var(--line);border-radius:12px;background:#0a1019;color:var(--fg);overflow:auto;font-size:12px;z-index:1000}
+.solar-layout-diagnostics::backdrop{background:rgba(0,0,0,.3)}
+.solar-layout-diagnostics pre{font:11px/1.45 monospace;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
+.solar-layout-actions{display:flex;justify-content:flex-end;gap:8px}
+.solar-layout-actions button{padding:8px 14px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--fg)}
+body.zen .solar-layout-diagnostics button{visibility:visible!important;pointer-events:auto!important}

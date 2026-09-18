@@ -4,7 +4,7 @@
   "private": true,
   "description": "Cloud-backed solar-system clock with smooth camera transitions and a spherical night sky.",
   "scripts": {
-    "test": "node --test tests/astro.test.cjs tests/labels.test.cjs tests/local-model.test.cjs tests/materials.test.cjs tests/modules.test.cjs tests/presentation.test.cjs tests/v046-release.test.cjs",
+    "test": "node --test tests/astro.test.cjs tests/labels.test.cjs tests/local-model.test.cjs tests/materials.test.cjs tests/modules.test.cjs tests/presentation.test.cjs tests/v046-release.test.cjs tests/page-runtime.test.cjs",
     "build:assets": "node tools/build-assets.cjs",
     "build:cloudflare": "node tools/build-cloudflare.cjs",
     "build:git": "node tools/build-git.cjs",
