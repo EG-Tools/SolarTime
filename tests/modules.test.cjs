@@ -6,7 +6,10 @@ test('runtime concerns load as modules before the application coordinator',()=>{
   const html=read('index.html'),app=read('src/app.js');
   assert.equal((html.match(/rel="stylesheet"/g)||[]).length,2);
   assert.ok(html.includes('href="styles.css?v=0.45-r15"'));
-  assert.ok(html.includes('href="src/runtime-optimizations.css?v=0.46-r2"'));
+  const runtimeStyle=[...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)].map(match=>match[1]).find(href=>href.startsWith('src/runtime-optimizations.css?'));
+  assert.ok(runtimeStyle,'The runtime layout stylesheet must be loaded');
+  const runtimeUrl=new URL(runtimeStyle,'https://local.example/');
+  assert.match(runtimeUrl.searchParams.get('v'),/^\d+(?:\.\d+)+-r\d+(?:-[a-z0-9-]+)?$/i,'The runtime stylesheet must have a versioned cache key');
   assert.doesNotMatch(html,/styles-v016/);
   assert.ok(html.includes('src/surface.js?v=0.46-r1'));
   assert.ok(html.includes('src/renderer.js?v=0.46-r1'));
@@ -25,4 +28,26 @@ test('runtime concerns load as modules before the application coordinator',()=>{
   assert.match(app,/Preferences\.read\(STORAGE_KEY\)/);
   assert.match(app,/Preferences\.write\(STORAGE_KEY/);
   assert.match(app,/Modules\.MusicPlayer\.create/);
+});
+
+
+test('phone layout refinement removes decorative edge shading and duplicate bottom spacing',()=>{
+  const css=read('src/runtime-optimizations.css');
+  const start=css.indexOf('/* v0.46 r3 layout1:');
+  assert.ok(start>=0,'The phone refinement must be present');
+  const mobile=css.slice(start);
+  assert.ok(mobile.includes('@media(max-width:680px) and (pointer:coarse), (max-height:630px) and (pointer:coarse)'));
+  assert.match(mobile,/\.edge-shade\{background:none\}/);
+  assert.match(mobile,/\.planet-nav\{padding-top:0;padding-bottom:0\}/);
+  assert.match(mobile,/\.playback\{bottom:calc\(max\(8px,var\(--solar-safe-bottom\)\) \+ 32px\)\}/);
+  assert.ok(read('index.html').includes('src/runtime-optimizations.css?v=0.46-r2-layout1'));
+});
+
+test('phone layout refinement leaves the approved top boundary and home-indicator safety intact',()=>{
+  const css=read('src/runtime-optimizations.css');
+  const mobile=css.slice(css.indexOf('/* v0.46 r3 layout1:'));
+  assert.doesNotMatch(mobile,/\.(?:masthead|clock-face|scene-status|footer)\s*\{/);
+  assert.match(css,/--solar-safe-bottom:env\(safe-area-inset-bottom,0px\)/);
+  assert.match(css,/\.footer\{\s*bottom:max\(8px,var\(--solar-safe-bottom\)\)/);
+  assert.match(css,/top:max\(19px,calc\(var\(--solar-safe-top\) \+ 6px\)\)/);
 });

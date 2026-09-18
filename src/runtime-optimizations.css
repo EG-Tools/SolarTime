@@ -63,3 +63,12 @@
 
 /* v0.43: star density belongs visually to orbit brightness without a divider. */
 #star-density-control{border-top:0;margin-top:0;padding-top:5px}
+
+/* v0.46 r3 layout1: keep the approved top insets, remove phone edge shading.
+   Navigation already sits above --solar-safe-bottom. Do not add a second
+   bottom pad or reserve a fixed 76px gap for the playback controls. */
+@media(max-width:680px) and (pointer:coarse), (max-height:630px) and (pointer:coarse){
+  .edge-shade{background:none}
+  .planet-nav{padding-top:0;padding-bottom:0}
+  .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 32px)}
+}
