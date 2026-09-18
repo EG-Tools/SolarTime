@@ -3,14 +3,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
-test('v0.45 r15 exposes the same public version with a new patch revision',()=>{
+test('v0.45 r16 exposes the same public version with a new patch revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
   assert.ok(html.includes('name="solar-time-version" content="0.45"'));
-  assert.ok(html.includes('name="solar-time-revision" content="r15"'));
-  assert.deepEqual(version,{version:'0.45',revision:'r15'});
+  assert.ok(html.includes('name="solar-time-revision" content="r16"'));
+  assert.deepEqual(version,{version:'0.45',revision:'r16'});
   assert.equal(pkg.version,'0.0.45');
-  assert.ok(app.includes("version:'0.45',revision:'r15'"));
-  assert.ok(html.includes('src/app.js?v=0.45-r15'));
+  assert.ok(app.includes("version:'0.45',revision:'r16'"));
+  assert.ok(html.includes('src/app.js?v=0.45-r16'));
   assert.ok(html.includes('src/localization.js?v=0.45-r11'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -90,7 +90,7 @@ test('r6 pushes the starfield farther away without slowing the background drift'
   assert.match(sky,/255\*\.5896/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
   assert.match(html,/src\/sky\.js\?v=0\.45-r10/);
-  assert.match(html,/src\/renderer\.js\?v=0\.45-r6/);
+  assert.ok(html.includes('src/renderer.js?v='));
 });
 test('r7 removes tiny-star one-pixel raster shimmer at the source',()=>{
   const effects=read('src/visual-effects.js'),sky=read('src/sky.js'),renderer=read('src/renderer.js'),html=read('index.html'),api=visualApi();
@@ -213,7 +213,8 @@ test('r12 simplifies and reorders the right-side view controls',()=>{
 test('r12 serves install icons and watermark from R2 releases content ui',()=>{
   const html=read('index.html'),manifest=JSON.parse(read('manifest.webmanifest')),site=read('tools/cloudflare-site.cjs');
   assert.ok(html.includes('/media/releases/content/ui/apple-touch-icon.png?v=0.45-r12'));
-  assert.ok(html.includes('/media/releases/content/ui/life-user-watermark.webp?v=0.45-r12'));
+  assert.equal((html.match(/data-life-user-watermark/g)||[]).length,2);
+  assert.ok(read('src/app.js').includes("releases/content/ui/life-user-watermark.webp?v=0.45-r16"));
   assert.deepEqual(manifest.icons.map(icon=>icon.src),[
     '/media/releases/content/ui/app-icon-192.png?v=0.45-r12',
     '/media/releases/content/ui/app-icon-512.png?v=0.45-r12'
@@ -252,7 +253,31 @@ test('r14 moves the scale readout to the top and enlarges it by one pixel',()=>{
 test('r15 adds one extra pixel only between the scale readout and home',()=>{
   const html=read('index.html'),css=read('styles.css');
   assert.ok(html.includes('href="styles.css?v=0.45-r15"'));
-  assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1;margin-bottom:1px\}/);
+  assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1;margin-bottom:5px\}/);
   assert.match(css,/\.view-controls\{[^}]*--tool-gap:5px;gap:var\(--tool-gap\)/);
   assert.match(css,/\.camera-presets\{[^}]*gap:var\(--tool-gap\);margin:0/);
+});
+
+
+test('r16 removes avoidable renderer hot-path work and restores the watermark',()=>{
+  const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js');
+  for(const file of ['surface','renderer','performance','app'])assert.ok(html.includes('src/'+file+'.js?v=0.45-r16'),file);
+  assert.equal((html.match(/data-life-user-watermark/g)||[]).length,2);
+  assert.ok(app.includes("LIFE_USER_WATERMARK_KEY='releases/content/ui/life-user-watermark.webp?v=0.45-r16'"));
+  assert.ok(app.includes("window.SolarAssets?.materials?.earth?.base"));
+  assert.match(renderer,/this\.frameBodies=\[\];this\.surfaceBodies=\[\];this\.directBodies=\[\];this\.labelBodies=\[\]/);
+  assert.match(renderer,/displayPhysicalPoint\(physical,out\)/);
+  assert.match(renderer,/surfaceJob\(body,physical,r,ms,seconds,direct=false,target=null\)/);
+  assert.match(renderer,/if\(direct\)return job/);
+  assert.doesNotMatch(renderer,/directJobs=new Map/);
+  assert.doesNotMatch(renderer,/surfaceBodies\.map\(p=>this\.surfaceJob/);
+  assert.match(renderer,/this\.project\(body\.world,body\.screen\)/);
+  assert.match(surface,/this\.textureSources=new Map\(\)/);
+  assert.match(surface,/textureSource\(name,asset,target\)/);
+  assert.match(surface,/bindTextureUnit\(unit,texture\)/);
+  assert.match(surface,/if\(this\.boundProgram!==program\.program\)/);
+  assert.match(surface,/program\.viewportWidth===this\.width&&program\.viewportHeight===this\.height/);
+  assert.doesNotMatch(surface,/for\(const \[unit,texture,uniform\] of/);
+  assert.match(performance,/__solarTextureUseSerial/);
+  assert.doesNotMatch(performance,/record\.lastUsed=performance\.now\(\)/);
 });

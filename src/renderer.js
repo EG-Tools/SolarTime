@@ -1,4 +1,4 @@
-/* Solar Time v0.38 — dependency-free, depth-projected Canvas renderer.
+/* Solar Time v0.45 r16 — dependency-free, depth-projected Canvas renderer.
    Credited spherical maps are packaged in resolution tiers for every body. */
 (function () {
   'use strict';
@@ -45,6 +45,8 @@
       this.surface=this.gpu||new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
       this.labelStates=new Map();this.lastLabelMono=null;this.labelWidths=new Map();
       this.orbitCache=new WeakMap();this.orbitModelCache=new WeakMap();this.satelliteOrbitCache=new Map();this.frameCache=new Map();this.starSprites=new Map();
+      this.frameBodies=[];this.surfaceBodies=[];this.directBodies=[];this.labelBodies=[];this.satelliteLayouts=[];this.compatSurfaceJobs=[];
+      this.frameItems=new Map();this.frameSerial=0;
       this.stats={orbitProjections:0,orbitBufferBuilds:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
       this.selected=null;this.hover=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
       this.orbitRevealStart=performance.now();
@@ -335,8 +337,29 @@
       if(Math.abs(displayRadius-radius)<1e-9)return point;
       const scale=displayRadius/radius;return {...point,x:point.x*scale,y:point.y*scale,z:point.z*scale};
     }
-    project(p) {const v=this.projectView(p);return {x:this.cx+v.x*this.scale,y:this.cy+v.y*this.scale,z:v.z,perspective:v.perspective??1,behind:!!v.behind};}
+    project(p,out=null) {
+      const v=this.projectView(p),result=out||{};
+      result.x=this.cx+v.x*this.scale;result.y=this.cy+v.y*this.scale;result.z=v.z;result.perspective=v.perspective??1;result.behind=!!v.behind;
+      return result;
+    }
     getBodies() { return this.options.pluto?A.BODIES:(this.bodiesWithoutPluto||(this.bodiesWithoutPluto=A.BODIES.filter(b=>b.id!=='pluto'))); }
+    frameItem(body) {
+      let item=this.frameItems.get(body.id);
+      if(!item){
+        item={body,physical:{x:0,y:0,z:0},world:{x:0,y:0,z:0},screen:{x:0,y:0,z:0,perspective:1,behind:false},r:0,parent:null,orbitRadius:0,directJob:{light:[0,0,0]},directReady:false,frameSerial:0};
+        this.frameItems.set(body.id,item);
+      }
+      item.body=body;item.parent=null;item.orbitRadius=0;item.directReady=false;item.frameSerial=this.frameSerial;
+      return item;
+    }
+    currentFrameItem(id) {const item=this.frameItems.get(id);return item?.frameSerial===this.frameSerial?item:null;}
+    displayPhysicalPoint(physical,out) {
+      const radius=Math.hypot(physical.x,physical.y,physical.z);
+      if(!(radius>1e-9)){out.x=physical.x;out.y=physical.y;out.z=physical.z;return out;}
+      const orbitRadius=A.displayDistance(radius,this.actualScaleMix,this.options.overviewOrbitGap??OVERVIEW_ORBIT.gap);
+      const displayRadius=orbitRadius*this.solarOrbitHierarchyScale()+(this.solarOrbitOffset||0),scale=displayRadius/radius;
+      out.x=physical.x*scale;out.y=physical.y*scale;out.z=physical.z*scale;return out;
+    }
     rebuild(ms) {
       const pathKey=A.modelYear(ms)+':'+this.options.pluto;
       if(this.pathKey!==pathKey){this.paths=this.getBodies().map(body=>({body,points:A.orbitAt(body,ms,360)}));this.pathKey=pathKey;}
@@ -680,44 +703,28 @@
       c.restore();c.setLineDash([]);
     }
     // All bodies submit to the same bounded surface owner; no CPU pixel loop here.
-    surfaceJob(body,world,r,ms,seconds,mono) {
-      const focused=body.id===this.camera.focus;
-      const selected=body.id===this.selected,priority=focused||selected;
+    surfaceJob(body,physical,r,ms,seconds,direct=false,target=null) {
+      const focused=body.id===this.camera.focus,selected=body.id===this.selected,priority=focused||selected;
       const screenDiameter=Math.max(32,r*2*this.dpr);
-      const maximum=priority?SURFACE.maxRaster:384;
-      const wanted=Math.min(maximum,screenDiameter);
-      const diam=[32,64,128,192,256,384,512,768,1024].find(n=>n>=wanted)||1024;
-      // Stable detail while dragging and on tab return. No flat->256->4096
-      // ladder: choose from actual screen coverage rather than the raster cap,
-      // then reuse that image across camera angles. A selected body is warmed at
-      // 2K and a focused close-up always receives the native tier.
       const nativeWidth=window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth;
       const detailFloor=focused?SURFACE.detailWidth:selected?2048:0;
       const textureDemand=Math.max(screenDiameter*4,detailFloor);
-      const textureTarget=this.gpu?(TEXTURE_TIERS.find(n=>n>=textureDemand)||SURFACE.detailWidth):(priority?SURFACE.detailWidth:1024);
+      const textureTarget=direct?(TEXTURE_TIERS.find(n=>n>=textureDemand)||SURFACE.detailWidth):(priority?SURFACE.detailWidth:1024);
       const textureWidth=Math.min(nativeWidth,textureTarget);
-      // One parent body frame owns every visual child (surface, rings, markers).
-      // There is intentionally no independently rotatable ring transform.
       const vectors=this.bodyFrame(body),frame=vectors.gpu||(vectors.gpu=Object.fromEntries(Object.entries(vectors).filter(([k])=>k!=='gpu').map(([k,v])=>[k,new Float32Array([v.x,v.y,v.z])])));
-      // Satellites inherit their parent's heliocentric position for lighting.
-      let physical;
-      if(body.id==='sun')physical={x:0,y:0,z:0};
-      else if(body.parent){
-        const parent=A.BODIES.find(candidate=>candidate.id===body.parent),parentPhysical=A.positionAt(parent,ms);
-        const physicalRadius=body.id==='moon'?.0025696:.004484;
-        const local=A.satelliteAt(body,ms,physicalRadius);
-        physical={x:parentPhysical.x+local.x,y:parentPhysical.y+local.y,z:parentPhysical.z+local.z};
-      }else physical=A.positionAt(body,ms);
-      const lightVector=this.viewDirection({x:-physical.x,y:-physical.y,z:-physical.z});
-      const len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
-      // Solar activity changes emissive brightness only; geometry and rotation remain physical.
-      const activity=body.id==='sun'&&this.options.activity;
-      const spin=A.rotationAt(body,ms);
-      const geometry=[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,'camera-3d',A.rotationPoleTilt(body),this.camera.azimuth.toFixed(5),this.camera.elevation.toFixed(5),Number(activity)].join(':');
-      const viewState={yaw:this.camera.azimuth,pitch:this.camera.elevation,limit:this.autoRotation?Math.PI/120:Math.PI/36,
+      const lightVector=this.viewDirection({x:-physical.x,y:-physical.y,z:-physical.z}),len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
+      const activity=body.id==='sun'&&this.options.activity,spin=A.rotationAt(body,ms),job=direct&&target?target:{};
+      job.id=body.id;job.textureWidth=textureWidth;job.frame=frame;job.phase=spin/TAU;job.activity=activity;job.seconds=activity?seconds:0;
+      const light=direct?(job.light||(job.light=[0,0,0])):[0,0,0];
+      light[0]=lightVector.x/len;light[1]=lightVector.y/len;light[2]=lightVector.z/len;job.light=light;
+      if(direct)return job;
+      const maximum=priority?SURFACE.maxRaster:384,wanted=Math.min(maximum,screenDiameter);
+      const diam=[32,64,128,192,256,384,512,768,1024].find(n=>n>=wanted)||1024;
+      job.diam=diam;
+      job.geometry=[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,'camera-3d',A.rotationPoleTilt(body),this.camera.azimuth.toFixed(5),this.camera.elevation.toFixed(5),Number(activity)].join(':');
+      job.viewState={yaw:this.camera.azimuth,pitch:this.camera.elevation,limit:this.autoRotation?Math.PI/120:Math.PI/36,
         key:[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,A.rotationPoleTilt(body),this.autoRotation?.generation||0].join(':')};
-      return {id:body.id,diam,textureWidth,frame,geometry,viewState,phase:spin/TAU,
-        light:[lightVector.x/len,lightVector.y/len,lightVector.z/len],activity,seconds:activity?seconds:0};
+      return job;
     }
     invalidateSurfaces() {this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate();}
     suspend() {
@@ -726,7 +733,7 @@
       this.surface?.pause();this.sky?.pause?.();
     }
     resume() {if(!this.surface)this.surface=this.gpu||new window.SolarSurface.Service();this.surface.resume();this.sky?.resume?.();}
-    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets=[];this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.labelWidths.clear();this.orbitCache=new WeakMap();this.sky?.dispose();}
+    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets.length=0;this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.labelWidths.clear();this.frameItems.clear();this.frameBodies.length=this.surfaceBodies.length=this.directBodies.length=this.labelBodies.length=this.satelliteLayouts.length=this.compatSurfaceJobs.length=0;this.orbitCache=new WeakMap();this.sky?.dispose();}
     makeCoronaTexture(size=384) {
       // One shared public-site filament texture. Direct rendering uploads it once
       // to WebGL; the compatibility renderer draws it directly.
@@ -919,19 +926,27 @@
       this.solarOrbitOffset=this.actualSolarOrbitOffset();
       this.sky.draw(seconds,this.camera,this.options);
       this.sky.decorate(c,seconds,this.options,this.boundStarGlow);
-      const bodies=this.getBodies().map(body=>{const world=this.displaySolarPoint(A.positionAt(body,ms,true));return {body,world,r:this.bodyRadiusAtZoom(body)};});
-      bodies.push({body:A.SUN,world:{x:0,y:0,z:0},r:this.bodyRadiusAtZoom(A.SUN)});
-      const satelliteLayouts=[];
+      this.frameSerial++;
+      const bodies=this.frameBodies;bodies.length=0;
+      for(const body of this.getBodies()){
+        const physical=A.positionAt(body,ms),item=this.frameItem(body);
+        item.physical.x=physical.x;item.physical.y=physical.y;item.physical.z=physical.z;
+        this.displayPhysicalPoint(item.physical,item.world);item.r=this.bodyRadiusAtZoom(body);bodies.push(item);
+      }
+      const sunItem=this.frameItem(A.SUN);sunItem.physical.x=sunItem.physical.y=sunItem.physical.z=0;sunItem.world.x=sunItem.world.y=sunItem.world.z=0;sunItem.r=this.bodyRadiusAtZoom(A.SUN);bodies.push(sunItem);
+      const satelliteLayouts=this.satelliteLayouts;satelliteLayouts.length=0;
       if(this.options.moon) {
         for(const satellite of SATELLITES){
-          const parent=bodies.find(item=>item.body.id===satellite.parent);if(!parent)continue;
+          const parent=this.currentFrameItem(satellite.parent);if(!parent)continue;
           const r=this.bodyRadiusAtZoom(satellite),orbitRadius=this.satelliteOrbitRadius(parent.r,r,satellite,parent.body);
-          const local=A.satelliteAt(satellite,ms,orbitRadius);
-          const world={x:parent.world.x+local.x,y:parent.world.y+local.y,z:parent.world.z+local.z};
-          const item={body:satellite,world,r,parent,orbitRadius};bodies.push(item);satelliteLayouts.push(item);
+          const local=A.satelliteAt(satellite,ms,orbitRadius),physicalRadius=satellite.id==='moon'?.0025696:.004484,physicalLocal=A.satelliteAt(satellite,ms,physicalRadius),item=this.frameItem(satellite);
+          item.parent=parent;item.orbitRadius=orbitRadius;item.r=r;
+          item.world.x=parent.world.x+local.x;item.world.y=parent.world.y+local.y;item.world.z=parent.world.z+local.z;
+          item.physical.x=parent.physical.x+physicalLocal.x;item.physical.y=parent.physical.y+physicalLocal.y;item.physical.z=parent.physical.z+physicalLocal.z;
+          bodies.push(item);satelliteLayouts.push(item);
         }
       }
-      const earth=bodies.find(p=>p.body.id==='earth');
+      const earth=this.currentFrameItem('earth');
       // Saved-view/focus transitions interpolate ONE tracking anchor between the
       // source and destination states. Null focus is the scene origin. Because the
       // anchor itself is blended, there is no focus hand-off frame and no camera
@@ -939,12 +954,12 @@
       const move=this.cameraTween;
       let anchor={x:0,y:0,z:0};
       if(move){
-        const from=move.from.focus?bodies.find(p=>p.body.id===move.from.focus):null;
-        const to=move.to.focus?bodies.find(p=>p.body.id===move.to.focus):null;
+        const from=move.from.focus?this.currentFrameItem(move.from.focus):null;
+        const to=move.to.focus?this.currentFrameItem(move.to.focus):null;
         const a=from?.world||{x:0,y:0,z:0},b=to?.world||{x:0,y:0,z:0},p=move.progress||0;
         anchor={x:mix(a.x,b.x,p),y:mix(a.y,b.y,p),z:mix(a.z,b.z,p)};
       }else{
-        const target=bodies.find(p=>p.body.id===this.camera.focus);
+        const target=this.currentFrameItem(this.camera.focus);
         if(target)anchor=target.world;
       }
       const perspectiveActive=Math.abs((this.camera.dolly??1)-1)>1e-8;
@@ -955,7 +970,7 @@
       }else{
         this.projectionAnchor=null;const v=this.view(anchor);this.cx=this.centerX-v.x*this.scale;this.cy=this.centerY-v.y*this.scale;
       }
-      for(const body of bodies){body.screen=this.project(body.world);if(perspectiveActive)body.r*=body.screen.perspective;}
+      for(const body of bodies){this.project(body.world,body.screen);if(perspectiveActive)body.r*=body.screen.perspective;}
       const direct=!!this.gpu&&this.gpu.begin();
       const orbitBrightness=clamp(Number(this.options.orbitBrightness)||0,0,1),orbitStrength=orbitBrightness*3;
       if(orbitBrightness>0) {
@@ -972,11 +987,12 @@
         }
       }
       bodies.sort((a,b)=>a.screen.z-b.screen.z);
-      this.hitTargets=[];
+      this.hitTargets.length=0;
       // Surface/sky resume is handled once on visibility/pageshow. Avoid doing
       // resume()+pump() in the 60 fps draw hot path.
       // A corona that crosses the viewport does NOT make the hidden solar disk visible.
-      const surfaceBodies=bodies.filter(p=>this.visible(p.screen,p.r+2));
+      const surfaceBodies=this.surfaceBodies;surfaceBodies.length=0;
+      for(const p of bodies)if(this.visible(p.screen,p.r+2))surfaceBodies.push(p);
       surfaceBodies.sort((a,b)=>{
         const focus=Number(b.body.id===this.camera.focus)-Number(a.body.id===this.camera.focus);
         return focus||b.r-a.r;
@@ -987,13 +1003,13 @@
       // worker batch completed. Use a stable producer cadence instead. Large/focus
       // bodies still refresh at ~30 fps in accelerated time while real-time motion
       // uses a lighter cadence. Camera motion gets an immediate-enough 40 ms path.
-      let directJobs=null,directBodies=[];
+      const directBodies=this.directBodies;directBodies.length=0;
       if(direct){
-        directJobs=new Map(surfaceBodies.map(p=>[p.body.id,this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)]));
-        const sun=bodies.find(p=>p.body.id==='sun');
+        for(const p of surfaceBodies){this.surfaceJob(p.body,p.physical,p.r,ms,seconds,true,p.directJob);p.directReady=true;}
+        const sun=this.currentFrameItem('sun');
         if(sun&&this.options.activity&&this.visible(sun.screen,sun.r*5.1+16))this.gpu.corona(this.coronaSource(sun.r),sun.screen,sun.r,seconds);
         for(const p of bodies){const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;if(!this.visible(p.screen,p.r*extent+16))continue;
-          const job=directJobs.get(p.body.id);if(job&&this.gpu.planet(job,p.body,p.screen,p.r,seconds,this.options.activity))directBodies.push(p);
+          const job=p.directReady?p.directJob:null;if(job&&this.gpu.planet(job,p.body,p.screen,p.r,seconds,this.options.activity))directBodies.push(p);
         }
         this.gpu.end();
       }else if(!this.gpu){
@@ -1003,7 +1019,8 @@
         const surfaceInterval=moving?40:simRate>1000?34:90;
         if(mono-this.lastSurfaceSubmit>=surfaceInterval){
           this.lastSurfaceSubmit=mono;this.lastSurfaceSimMs=ms;this.lastSurfaceMono=mono;
-          this.surface.update(surfaceBodies.map(p=>this.surfaceJob(p.body,p.world,p.r,ms,seconds,mono)),mono);
+          const jobs=this.compatSurfaceJobs;jobs.length=0;for(const p of surfaceBodies)jobs.push(this.surfaceJob(p.body,p.physical,p.r,ms,seconds,false));
+          this.surface.update(jobs,mono);
         }
       }
       if(direct)this.occludeDirectBodies(c,directBodies);
@@ -1023,7 +1040,7 @@
           c.font='11px "Segoe UI",sans-serif';c.textAlign='left';c.shadowColor='#000';c.shadowBlur=5;c.fillText(site.label+' · '+(day?'DAY':'NIGHT'),x+11,y-9);c.shadowBlur=0;
         }
       }
-      if(this.options.labels)this.labels(c,bodies.filter(p=>this.visible(p.screen,p.r+20)),mono);
+      if(this.options.labels){const labelBodies=this.labelBodies;labelBodies.length=0;for(const p of bodies)if(this.visible(p.screen,p.r+20))labelBodies.push(p);this.labels(c,labelBodies,mono);}
       else this.clearLabels();
       this.projected=bodies;
     }

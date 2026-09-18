@@ -52,9 +52,14 @@
   if(Direct?.prototype&&!Direct.prototype.__solarBudgetInstalled){
     const texture=Direct.prototype.texture,end=Direct.prototype.end;
     Direct.prototype.texture=function(name,target){
-      const result=texture.call(this,name,target),record=this.textures?.get(name);if(record)record.lastUsed=performance.now();return result;
+      const result=texture.call(this,name,target),record=this.textures?.get(name);if(record)record.lastUsed=(this.__solarTextureUseSerial=(this.__solarTextureUseSerial||0)+1);return result;
     };
-    Direct.prototype.end=function(){const value=end.call(this),budget=textureBudget(),bytes=Math.max(0,(this.stats?.texturePixels||0)*4),now=performance.now();this.stats.textureBudgetBytes=budget;this.stats.textureBytes=bytes;if(bytes>budget&&now-(this.__solarLastTextureTrim||0)>500){this.__solarLastTextureTrim=now;trimTextures(this);}return value;};
+    Direct.prototype.end=function(){
+      const value=end.call(this),budget=textureBudget(),bytes=Math.max(0,(this.stats?.texturePixels||0)*4);
+      this.stats.textureBudgetBytes=budget;this.stats.textureBytes=bytes;
+      if(bytes>budget){const now=performance.now();if(now-(this.__solarLastTextureTrim||0)>500){this.__solarLastTextureTrim=now;trimTextures(this);}}
+      return value;
+    };
     Object.defineProperty(Direct.prototype,'__solarBudgetInstalled',{value:true});
   }
   const Renderer=root.SolarRenderer;
