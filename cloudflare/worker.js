@@ -1,7 +1,19 @@
 const MEDIA_PREFIX='/media/';
 
-function mediaHeaders(object,status){
+function mediaType(key){
+ const value=String(key||'').toLowerCase();
+ if(value.endsWith('.png'))return 'image/png';
+ if(value.endsWith('.webp'))return 'image/webp';
+ if(value.endsWith('.mp3'))return 'audio/mpeg';
+ if(value.endsWith('.json'))return 'application/json; charset=utf-8';
+ if(value.endsWith('.svg'))return 'image/svg+xml';
+ if(value.endsWith('.gz'))return 'application/gzip';
+ return '';
+}
+
+function mediaHeaders(object,status,key){
  const headers=new Headers();object.writeHttpMetadata(headers);
+ const type=mediaType(key);if(type)headers.set('content-type',type);
  headers.set('etag',object.httpEtag);headers.set('accept-ranges','bytes');
  headers.set('access-control-allow-origin','*');headers.set('cross-origin-resource-policy','cross-origin');
  headers.set('cache-control','public, max-age=31536000, immutable');
@@ -20,7 +32,7 @@ async function mediaResponse(request,env,ctx,key){
   const object=await env.SOLAR_TIME_MEDIA.get(key,{range:request.headers});
   if(!object)return new Response('Not Found',{status:404});
   if(request.headers.get('if-none-match')===object.httpEtag)return new Response(null,{status:304,headers:{etag:object.httpEtag,'cache-control':'public, max-age=31536000, immutable'}});
-  const partial=!!request.headers.get('range')&&!!object.range,status=partial?206:200,headers=mediaHeaders(object,status);
+  const partial=!!request.headers.get('range')&&!!object.range,status=partial?206:200,headers=mediaHeaders(object,status,key);
   if(request.method==='HEAD')return new Response(null,{status,headers});
   const response=new Response(object.body,{status,headers});if(cache)ctx.waitUntil(cache.put(request,response.clone()));return response;
 }
