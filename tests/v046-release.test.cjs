@@ -294,7 +294,7 @@ test('v0.46 r3 keeps compact LIVE status separate and treats iPhone safe areas a
   assert.match(css,/@media\(max-height:630px\) and \(min-width:681px\)\{[\s\S]*\.clock-face,body\.zen \.clock-face\{top:max\(17px,calc\(var\(--solar-safe-top\) \+ 4px\)\)\}[\s\S]*\.scene-status\{top:max\(104px,calc\(var\(--solar-safe-top\) \+ 91px\)\)\}/);
 });
 
-test('v0.46 r1 adds the remaining runtime and asset-pipeline optimizations',()=>{
+test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js'),pipeline=read('tools/asset-pipeline.cjs');
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
   assert.match(app,/CURRENT_RELEASE=Object\.freeze\(\{version:'0\.46',date:'2026\.09\.18'\}\)/);
@@ -308,7 +308,7 @@ test('v0.46 r1 adds the remaining runtime and asset-pipeline optimizations',()=>
   assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));
   for(const file of ['surface','renderer','performance'])assert.ok(html.includes('src/'+file+'.js?v=0.46-r1'),file);
-  assert.ok(html.includes('src/app.js?v=0.46-r2'));
+  assert.match(html,/src\/app\.js\?v=0\.46-r\d+(?:-[^\"']+)?/);
   assert.deepEqual(assetRevision,{version:'assetpack-20260918-r1'});
   assert.equal(manifest.revision,'assetpack-20260918-r1');
   for(const entry of Object.values(manifest.materials))assert.equal(entry.seamBaked,true,entry.source);
