@@ -3,6 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:
 
 const root=path.resolve(__dirname,'..'),{deployment}=projectConfig(root);
 const wranglerBin=path.join(root,'node_modules','wrangler','bin','wrangler.js');
+const HISTORICAL_REF='c1ee7e2b7f3c431a3702fe2f5d04675cab4f9dc6';
 const UI_ASSETS=Object.freeze([
   {name:'apple-touch-icon.png',type:'image/png',width:180,height:180},
   {name:'app-icon-192.png',type:'image/png',width:192,height:192},
@@ -10,11 +11,23 @@ const UI_ASSETS=Object.freeze([
   {name:'life-user-watermark.webp',type:'image/webp'}
 ]);
 
+async function restoreMissing(asset){
+  const file=path.join(root,asset.name);
+  if(fs.existsSync(file))return file;
+  const url=`https://raw.githubusercontent.com/EG-Tools/SolarTime/${HISTORICAL_REF}/${asset.name}`;
+  console.log(`Restoring missing ${asset.name} from Git history...`);
+  const response=await fetch(url,{headers:{'user-agent':'SolarTime-R2-UI-Repair/1.0'}});
+  if(!response.ok)throw Error(`Could not restore ${asset.name}: HTTP ${response.status}`);
+  const bytes=Buffer.from(await response.arrayBuffer());
+  if(!bytes.length)throw Error('Restored file is empty: '+asset.name);
+  fs.writeFileSync(file,bytes);
+  return file;
+}
+
 (async()=>{
   if(!fs.existsSync(wranglerBin))throw Error('Run npm install before uploading UI assets.');
   for(const asset of UI_ASSETS){
-    const file=path.join(root,asset.name);
-    if(!fs.existsSync(file))throw Error('Missing local UI asset: '+asset.name);
+    const file=await restoreMissing(asset);
     if(asset.width){
       const metadata=await sharp(file).metadata();
       if(metadata.width!==asset.width||metadata.height!==asset.height)throw Error(`${asset.name} must be ${asset.width}x${asset.height}.`);
