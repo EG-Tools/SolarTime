@@ -89,27 +89,24 @@
     const m=tinyStarMetrics(size,ratio);
     return m.energy*(tinyAxisCDF(x+.5,m.radius)-tinyAxisCDF(x-.5,m.radius))*(tinyAxisCDF(y+.5,m.radius)-tinyAxisCDF(y-.5,m.radius));
   }
-  // Compatibility rendering uses an already pixel-filtered, native-size
-  // sprite. It must not minify the general 64px flare sprite down to ~1px.
-  const tinySprites=new Map();
+  // Paint whole output pixels in compatibility mode. Rescaling even a
+  // prefiltered sprite adds a second sampling/8-bit-alpha pass and can shimmer.
+  const STAR_CSS_COLORS=STAR_COLORS.map(c=>'rgb('+c.map(v=>Math.round(v*255)).join(',')+')');
   function drawTinyStar(ctx,x,y,size,brightness,seed,ratio=1){
     if(!(brightness>0)||!(ratio>0))return;
-    const point=Math.round(tinyStarMetrics(size,ratio).point*4)/4;
-    const tone=((seed*.173205+size*.37)%1+1)%1,colorIndex=starColorIndex(tone),key=point+':'+colorIndex;
-    let sprite=tinySprites.get(key);
-    if(!sprite){
-      const canvas=root.document.createElement('canvas'),n=Math.ceil(point)+2;
-      canvas.width=canvas.height=n;const c=canvas.getContext('2d'),image=c.createImageData(n,n),color=STAR_COLORS[colorIndex];
-      for(let py=0;py<n;py++)for(let px=0;px<n;px++){
-        const i=(py*n+px)*4;for(let k=0;k<3;k++)image.data[i+k]=Math.round(color[k]*255);
-        image.data[i+3]=Math.round(255*tinyStarCoverage(px+.5-n/2,py+.5-n/2,point/10));
+    const m=tinyStarMetrics(size,ratio),cx=x*ratio,cy=y*ratio,r=m.radius;
+    const tone=((seed*.173205+size*.37)%1+1)%1;
+    const alpha=ctx.globalAlpha,fill=ctx.fillStyle,energy=alpha*clamp(brightness,0,1)*m.energy;
+    ctx.fillStyle=STAR_CSS_COLORS[starColorIndex(tone)];
+    const right=Math.ceil(cx+r),bottom=Math.ceil(cy+r),pixel=1/ratio;
+    for(let py=Math.floor(cy-r);py<bottom;py++){
+      const wy=tinyAxisCDF(py+1-cy,r)-tinyAxisCDF(py-cy,r);
+      for(let px=Math.floor(cx-r);px<right;px++){
+        const wx=tinyAxisCDF(px+1-cx,r)-tinyAxisCDF(px-cx,r);
+        ctx.globalAlpha=energy*wx*wy;ctx.fillRect(px/ratio,py/ratio,pixel,pixel);
       }
-      c.putImageData(image,0,0);sprite=canvas;
-      if(tinySprites.size>=96)tinySprites.delete(tinySprites.keys().next().value);
-      tinySprites.set(key,sprite);
     }
-    const alpha=ctx.globalAlpha;ctx.globalAlpha=alpha*clamp(brightness,0,1);
-    const n=sprite.width/ratio;ctx.drawImage(sprite,x-n/2,y-n/2,n,n);ctx.globalAlpha=alpha;
+    ctx.globalAlpha=alpha;ctx.fillStyle=fill;
   }
   function starShaderSources(precision){return {vertex:`precision highp float;
     attribute vec3 position,appearance;uniform vec3 right,down,forward;uniform vec2 size;uniform float fov,pointScale,seconds;

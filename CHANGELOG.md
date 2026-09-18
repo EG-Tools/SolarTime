@@ -2,7 +2,7 @@
 
 ## v0.47 r2
 
-- Stabilize tiny stars using pixel-integrated footprints in GPU and native-sized cached sprites in the compatibility path; preserve large-star animation and drift.
+- Stabilize tiny stars using pixel-integrated footprints in GPU and whole-output-pixel coverage in the compatibility path; preserve large-star animation and drift.
 - Reduce red and yellow probabilities by 30% each (7% -> 4.9%; 3% -> 2.1%); split the freed 3% equally between white (73.5%) and blue (19.5%), retaining total star count.
 
 ## v0.47 · 2026-09-18

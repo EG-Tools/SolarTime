@@ -39,13 +39,10 @@ test('tiny stars bypass animation and alpha cutoff without removing large-star a
   assert.match(s.vertex,/twinklePeriod=mix\(5\.0,25\.0/);assert.match(s.fragment,/cross\*\.58\*flarePulse/);
  }
 });
-test('compatibility sprite cache is bounded and restores the caller alpha',()=>{
- const created=[];const document={createElement(){const canvas={width:0,height:0,getContext(){return {createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),putImageData(){}};}};created.push(canvas);return canvas;}};
- const effects=api({document}),calls=[],ctx={globalAlpha:.8,drawImage(...a){calls.push([this.globalAlpha,...a]);}};
- effects.drawTinyStar(ctx,10.125,20.75,.3,.5,1,1);assert.equal(ctx.globalAlpha,.8);assert.equal(calls[0][0],.4);
- effects.drawTinyStar(ctx,11.25,21.75,.3,.5,1,1);assert.equal(created.length,1,'moving stars reuse their filtered sprite');
- const unchanged=calls.length;effects.drawTinyStar(ctx,0,0,.3,0,1,1);assert.equal(calls.length,unchanged);
- // Exhaust the cache with more than 96 distinct native sizes, then request the first key.
- for(let i=0;i<110;i++)effects.drawTinyStar(ctx,0,0,.3,.5,1,1+i/10);
- effects.drawTinyStar(ctx,0,0,.3,.5,1,1);assert.equal(ctx.globalAlpha,.8);
+test('compatibility draws whole output pixels and restores caller paint state',()=>{
+ const effects=api(),calls=[],ctx={globalAlpha:.8,fillStyle:'#123456',fillRect(...a){calls.push([this.globalAlpha,...a]);}};
+ effects.drawTinyStar(ctx,10.125,20.75,.3,.5,1,1.5);
+ assert.equal(ctx.globalAlpha,.8);assert.equal(ctx.fillStyle,'#123456');assert.ok(calls.length>0);
+ for(const [alpha,x,y,w,h]of calls){assert.ok(alpha>=0&&alpha<=1);assert.ok(Math.abs(x*1.5-Math.round(x*1.5))<1e-10);assert.ok(Math.abs(y*1.5-Math.round(y*1.5))<1e-10);assert.equal(w,1/1.5);assert.equal(h,1/1.5);}
+ const count=calls.length;effects.drawTinyStar(ctx,0,0,.3,0,1,1);assert.equal(calls.length,count);
 });
