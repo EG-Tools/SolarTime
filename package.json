@@ -15,7 +15,8 @@
     "deploy:cloudflare": "node tools/deploy-cloudflare.cjs",
     "test:v042": "node --test tests/v042-release.test.cjs",
     "test:v043": "node --test tests/v043-release.test.cjs",
-    "test:v046": "node --test tests/v046-release.test.cjs"
+    "test:v046": "node --test tests/v046-release.test.cjs",
+    "upload:ui": "node tools/upload-ui-assets.cjs"
   },
   "engines": {
     "node": ">=18"
