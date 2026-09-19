@@ -22,8 +22,8 @@ test('runtime concerns load as modules before the application coordinator',()=>{
     assert.ok(html.includes('src/'+name+'.js?v='+ (['ui-runtime','localization'].includes(name)?'0.47-r1':'0.45')));
     assert.ok(html.indexOf('src/'+name+'.js')<html.indexOf('src/app.js'),name);
   }
-  assert.ok(html.includes('src/language-data.js?v=0.47-r1'));
-  assert.ok(html.includes('src/localization.js?v=0.47-r1')); // unchanged bundle
+  assert.ok(html.includes('src/language-data.js?v=0.47-r3'));
+  assert.ok(html.includes('src/localization.js?v=0.47-r3')); // unchanged bundle
   assert.match(app,/Localization=Modules\.Localization,LanguageData=Modules\.LanguageData,Preferences=Modules\.Preferences,UI=Modules\.UI/);
   assert.match(app,/Preferences\.read\(STORAGE_KEY\)/);
   assert.match(app,/Preferences\.write\(STORAGE_KEY/);
