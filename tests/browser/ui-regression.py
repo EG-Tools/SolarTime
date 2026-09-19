@@ -132,6 +132,7 @@ def suite(browser,root,size,installed):
   window.__starPoolBefore=SolarAssets.starData;
   const r=SolarTime.renderer,advance=r.advanceAutoRotate.bind(r);
   window.__rotationSpeed={seconds:0,travel:0,frames:0};
+  window.__fixedDirectionErrors=[];
   r.advanceAutoRotate=function(mono){
    const old=this.autoRotation,dt=old&&old.mono!==null?Math.max(0,mono-old.mono)/1000:0;
    const a=this.camera.azimuth,e=this.camera.elevation,result=advance(mono);
@@ -140,6 +141,10 @@ def suite(browser,root,size,installed):
     __rotationSpeed.seconds+=old.direction===2?Math.min(.25,dt):dt;
     __rotationSpeed.travel+=Math.hypot(delta(this.camera.azimuth,a),delta(this.camera.elevation,e))*180/Math.PI;
     __rotationSpeed.frames++;
+    if(old.direction===2){
+     const path=this.randomRotation,t=Math.min(.25,dt);
+     __fixedDirectionErrors.push(Math.max(Math.abs(delta(this.camera.azimuth,a)/t-path.yawRate),Math.abs(delta(this.camera.elevation,e)/t-path.pitchRate)));
+    }
    }
    return result;
   };
@@ -154,6 +159,8 @@ def suite(browser,root,size,installed):
  check(speed['frames']>=5 and speed['seconds']>.5,tag+' random is advanced by the real frame loop')
  check(abs(speed['travel']/speed['seconds']-1.8)<.002,tag+' random moves at 1.8 degrees/s immediately, not a tiny nonzero delta')
  check(page.evaluate('SolarAssets.starData===__starPoolBefore'),tag+' random toggle never regenerates stars')
+ check(page.evaluate('Object.isFrozen(SolarTime.renderer.randomRotation)'),tag+' chosen rotation direction is immutable')
+ check(page.evaluate('__fixedDirectionErrors.length>=5 && __fixedDirectionErrors.every(e=>Number.isFinite(e)&&e<1e-7)'),tag+' every real frame follows the selected fixed direction')
  page.locator('#random-rotate').click();stopped=page.evaluate('({...SolarTime.renderer.camera})');page.wait_for_timeout(200)
  check(page.evaluate('({...SolarTime.renderer.camera})')==stopped,tag+' random off freezes camera')
  for direction in ['rotate-left','rotate-right']:
@@ -175,6 +182,7 @@ def suite(browser,root,size,installed):
  check(page.evaluate('SolarTime.renderer.camera.elevation<0'),tag+' manual drag crosses 180 without clipping')
  check(page.evaluate("__orbitInput.length>0&&__orbitInput.every(v=>Math.abs(((v.after.elevation-v.before.elevation+Math.PI*3)%(Math.PI*2)-Math.PI)-v.e)<.015)"),tag+' no pole snap or stale-pointerdown reset')
  after_drag=page.evaluate('({...SolarTime.renderer.camera})');page.wait_for_timeout(300)
+ check(page.evaluate('__fixedDirectionErrors.every(e=>Number.isFinite(e)&&e<1e-7)'),tag+' same direction survives manual control and resumes without reselecting')
  check(page.evaluate('SolarTime.renderer.camera.elevation')!=after_drag['elevation'],tag+' random continues after releasing pointer')
  page.locator('#random-rotate').click()
  check(page.locator('#random-rotate').get_attribute('aria-pressed')=='false',tag+' explicit toggle turns random OFF')

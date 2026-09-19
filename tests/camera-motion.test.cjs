@@ -4,7 +4,7 @@ const A=require('../src/astro.js'),read=file=>fs.readFileSync(path.join(__dirnam
 const plain=x=>JSON.parse(JSON.stringify(x));
 const close=(a,b,e=1e-8)=>assert.ok(Math.abs(a-b)<e,`${a} != ${b}`);
 function renderer(seed=.127694){
- let now=0;const M=Object.create(Math);M.random=()=>seed;
+ let now=0;const M=Object.create(Math);M.random=()=>typeof seed==='function'?seed():seed;
  const window={SolarAstro:A},sandbox={window,performance:{now:()=>now},Math:M};
  vm.runInNewContext(read('src/renderer.js'),sandbox);const R=window.SolarRenderer,r=Object.create(R.prototype);
  Object.assign(r,{w:1280,h:800,options:{pluto:true,moon:true,dollyZoom:false},camera:r.defaultCameraSnapshot(),cameraTween:null,autoRotation:null,pendingAutoRotation:null,rotationGeneration:0,bodyScales:{earth:5.05},actualScaleMix:0,clearLabels(){},surface:{invalidate(){},pause(){}},sky:{pause(){}},projected:[]});
@@ -46,11 +46,11 @@ test('random mode is opt-in, exclusive with left/right and does not change frami
  r.setAutoRotate(-1,30000);assert.equal(r.randomRotateEnabled,false);assert.equal(r.autoRotateDirection,-1);
  r.setRandomRotate(false,30000);assert.equal(r.autoRotateDirection,-1,'OFF must not disable ordinary rotation');
 });
-test('random angles are frame-rate independent across many segment boundaries',()=>{
+test('fixed random direction is frame-rate independent across multiple full revolutions',()=>{
  const results=[];for(const fps of [30,60,90,144,165]){const {r}=renderer();r.setRandomRotate(true,0);for(let i=1;i<=fps*120;i++)r.advanceAutoRotate(i*1000/fps);results.push(r.camera);}
  for(const value of results.slice(1)){close(value.azimuth,results[0].azimuth);close(value.elevation,results[0].elevation);}
 });
-test('random angular speeds remain bounded and continuous at direction changes',()=>{
+test('fixed random angular speed remains identical to left/right over long runs',()=>{
  const {r}=renderer();r.setRandomRotate(true,0);let prior=plain(r.camera),velocity=null;
  for(let i=1;i<=7200;i++){
   r.advanceAutoRotate(i*1000/60);const v=[(A.wrap(r.camera.azimuth-prior.azimuth+Math.PI)-Math.PI)*60,(A.wrap(r.camera.elevation-prior.elevation+Math.PI)-Math.PI)*60];
@@ -180,16 +180,38 @@ test('random rotation starts at full left/right speed for varied seeds and updat
   close(travel/A.DEG,1.8,.00001);close(travel,leftTravel,.000001);
  }
 });
-test('random heading turns through an opposite direction without slowing through zero',()=>{
- const {r}=renderer();r.setRandomRotate(true,0);
- Object.assign(r.randomRotation,{heading:0,turn:Math.PI,duration:8,elapsed:0});
- let previous=plain(r.camera),total=0;
- for(let i=1;i<=8*60;i++){
+test('one sampled direction stays fixed for ten minutes, across the former 8-16 second turns',()=>{
+ const {r}=renderer();r.setRandomRotate(true,0);const path=r.randomRotation,beforePath=plain(path);
+ assert.ok(Object.isFrozen(path));close(Math.hypot(path.yawRate,path.pitchRate)/A.DEG,1.8);
+ let previous=plain(r.camera);
+ for(let i=1;i<=600*60;i++){
   r.advanceAutoRotate(i*1000/60);
-  const d=Math.hypot(wrapDelta(r.camera.azimuth,previous.azimuth),wrapDelta(r.camera.elevation,previous.elevation));
-  assert.ok(Math.abs(d*60/A.DEG-1.8)<.0001);total+=d;previous=plain(r.camera);
+  close(wrapDelta(r.camera.azimuth,previous.azimuth)*60,path.yawRate);
+  close(wrapDelta(r.camera.elevation,previous.elevation)*60,path.pitchRate);
+  previous=plain(r.camera);
  }
- close(total/A.DEG,14.4,.0001);
+ assert.equal(r.randomRotation,path);assert.deepEqual(plain(path),beforePath);
+});
+test('only a fresh activation samples another direction; frames and repeated ON do not',()=>{
+ let samples=0;const seeds=[.127694,.75,.25];const {r}=renderer(()=>seeds[samples++]);
+ r.setRandomRotate(true,0);const first=r.randomRotation;assert.equal(samples,1);
+ for(let i=1;i<=1200;i++)r.advanceAutoRotate(i*1000/60);
+ r.setRandomRotate(true,20000);r.rotateViewBy(.02,-.04,20000);
+ r.animateHome(20000,1000);r.advanceCamera(21000);
+ assert.equal(samples,1);assert.equal(r.randomRotation,first);
+ r.setRandomRotate(false,21000);const stopped=plain(r.camera);r.advanceAutoRotate(30000);
+ assert.deepEqual(plain(r.camera),stopped);
+ r.setRandomRotate(true,30000);assert.equal(samples,2);assert.notEqual(r.randomRotation.heading,first.heading);
+ const second=r.randomRotation;r.setAutoRotate(1,30000);assert.equal(samples,2);
+ r.setRandomRotate(true,30000);assert.equal(samples,3);assert.notEqual(r.randomRotation.heading,second.heading);
+});
+test('manual drag, zoom, presets and tab suspension retain the same signed yaw/pitch rates',()=>{
+ const {r,now}=renderer();r.setRandomRotate(true,0);const path=r.randomRotation;
+ const advance=mono=>{const before=plain(r.camera);r.advanceAutoRotate(mono+20);close(wrapDelta(r.camera.azimuth,before.azimuth),path.yawRate*.02);close(wrapDelta(r.camera.elevation,before.elevation),path.pitchRate*.02);assert.equal(r.randomRotation,path);};
+ r.rotateViewBy(.1,2,100);advance(100);
+ r.smoothZoom(350,null,200);r.advanceCamera(400);advance(400);
+ r.animateHome(500,1000);r.advanceCamera(1500);advance(1500);
+ now(1520);r.suspend();r.advanceAutoRotate(60000);advance(60000);
 });
 test('manual release and tween completion resume random rotation at unchanged speed',()=>{
  const {r}=renderer();r.setRandomRotate(true,0);r.advanceAutoRotate(100);

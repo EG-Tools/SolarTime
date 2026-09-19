@@ -1,5 +1,12 @@
 # Maintenance changelog
 
+## v0.48 r3 · 2026-09-19
+
+- Clarified random rotation: choose one yaw/pitch direction on each OFF-to-ON activation and keep that direction until OFF. Re-enabling selects a new direction.
+- Keep the same 1.8 degrees/second speed as left/right, with no direction-change timer or easing.
+- Preserve the direction through manual input, wheel/preset transitions and tab suspension.
+- No changes to stars, palette, 250x country view, camera limits, shared card styling, iPhone layout, icons or R2 media.
+
 ## v0.48 r2 · 2026-09-19
 
 - Fixed the almost-stationary random rotation startup. Its speed now uses the same 1.8 degrees/second constant as left/right; only the yaw/pitch heading changes.
