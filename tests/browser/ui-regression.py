@@ -93,9 +93,26 @@ def suite(browser,root,size,installed):
  page.locator('#help-button').click();page.locator('#release-notes-toggle').click()
  page.wait_for_function('!!window.SolarReleaseNotes')
  check(page.locator('#release-notes-version').inner_text()=='v0.47',tag+' visible release version')
- check(page.locator('#release-notes-list li').count()==7 and 'Singapore' in page.locator('#release-notes-list').inner_text(),tag+' visible English SG release note')
+ check(page.locator('#release-notes-list li').count()==8 and 'Singapore' in page.locator('#release-notes-list').inner_text(),tag+' visible English SG release note')
  page.locator('#release-notes-older').click();check(page.locator('#release-notes-version').inner_text()=='v0.46',tag+' historical release navigation')
  page.locator('#release-notes-newer').click();check(page.locator('#release-notes-version').inner_text()=='v0.47',tag+' current release navigation')
+ page.locator('#help-dialog .close-button').first.click()
+ for country,lang,zone,label,city,lat,lon in [('nl','nl-NL','Europe/Amsterdam','NETHERLANDS','Amsterdam',52+22/60,4.9),('be','nl-BE','Europe/Brussels','BELGIUM','Brussel',50+50/60,4+20/60)]:
+  page.locator('#language-toggle').click();page.locator('[data-language="'+country+'"]').click()
+  page.wait_for_function('(code)=>SolarTime.getState().language===code',arg=country)
+  state=page.evaluate('SolarTime.getState()')
+  check(state['timeZone']==zone and state['region']==label,tag+' '+country+' regional time')
+  check(page.locator('html').get_attribute('lang')==lang,tag+' '+country+' document language')
+  check(page.locator('#star-density-label').inner_text()=='Sterdichtheid',tag+' '+country+' Dutch setting label')
+  check(page.locator('[data-body="earth"]').inner_text()=='Aarde',tag+' '+country+' Dutch body label')
+  check(page.evaluate("JSON.parse(localStorage.getItem('eg.solar-time.v0.01')).language")==country,tag+' '+country+' persisted selection')
+  page.locator('#timezone-button').click();args=page.evaluate('__featureArgs')
+  check(args[0]=='earth' and abs(args[1]-lat)<1e-8 and abs(args[2]-lon)<1e-8,tag+' '+country+' Earth-view city')
+  page.locator('#help-button').click()
+  if not page.locator('#release-notes-list').is_visible():page.locator('#release-notes-toggle').click()
+  check('België en Nederland' in page.locator('#release-notes-list').inner_text(),tag+' '+country+' Dutch release history')
+  page.locator('#help-dialog .close-button').first.click()
+ check(len([u for u in page.evaluate('__fixtureRequests') if '/locales/nl.json' in u])==1,tag+' one shared Dutch request')
  check(not errors,tag+' no runtime errors')
  ctx.close()
  print('PASS',tag,flush=True)
@@ -104,10 +121,11 @@ def main():
  with sync_playwright() as p:
   options={'headless':True,'args':['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']}
   if os.environ.get('SOLAR_CHROMIUM_EXECUTABLE'):options['executable_path']=os.environ['SOLAR_CHROMIUM_EXECUTABLE']
-  browser=p.chromium.launch(**options)
-  try:
-   for size,installed in [((1280,800),False),((390,844),False),((844,390),False),((390,844),True),((844,390),True)]:suite(browser,root,size,installed)
-  finally:browser.close()
+  for size,installed in [((1280,800),False),((390,844),False),((844,390),False),((390,844),True),((844,390),True)]:
+   # Isolate software-GPU resources and animated cameras between viewport cases.
+   browser=p.chromium.launch(**options)
+   try:suite(browser,root,size,installed)
+   finally:browser.close()
  out=root/'.cloudflare/ui-regression.json';out.parent.mkdir(exist_ok=True)
  out.write_text(json.dumps({'mode':'offline synthetic DOM; installed mode is simulated, not a physical iPhone','passed':len(checks),'checks':checks},ensure_ascii=False,indent=2),encoding='utf8')
  print('UI checks passed:',len(checks),flush=True)

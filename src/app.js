@@ -4,7 +4,7 @@
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
   const Localization=Modules.Localization,LanguageData=Modules.LanguageData,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
-  const LANG_ORDER=['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','sg','es','eu','uy','ve'];
+  const LANG_ORDER=['kor','en','chn','ao','ar','au','at','be','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nl','nz','pa','pe','pt','sg','es','eu','uy','ve'];
   const LANG_META={
     kor:{code:'KOR',name:'한국',locale:'ko-KR',html:'ko',copy:'kor'},
     en:{code:'EN',name:'USA',locale:'en-US',html:'en',copy:'en'},
@@ -17,6 +17,8 @@
     fr:{code:'FR',name:'France',locale:'fr-FR',html:'fr',copy:'fr'}
 ,
     pt:{code:'PT',name:'Portugal',locale:'pt-PT',html:'pt-PT',copy:'pt'},
+    be:{code:'BE',name:'België',locale:'nl-BE',html:'nl-BE',copy:'nl'},
+    nl:{code:'NL',name:'Nederland',locale:'nl-NL',html:'nl-NL',copy:'nl'},
     br:{code:'BR',name:'Brasil',locale:'pt-BR',html:'pt-BR',copy:'pt'},
     it:{code:'IT',name:'Italia',locale:'it-IT',html:'it',copy:'it'},
     mx:{code:'MX',name:'México',locale:'es-MX',html:'es-MX',copy:'es'},
@@ -51,6 +53,9 @@
     fr:{label:'FRANCE',timeZone:'Europe/Paris',latitude:46.2276,longitude:2.2137,region:'France',city:'centre géographique'}
 ,
     pt:{label:'PORTUGAL',timeZone:'Europe/Lisbon',latitude:39.3999,longitude:-8.2245,region:'Portugal',city:'centro de Portugal'},
+    // Representative cities from tzdb zone.tab; both regions share Dutch copy.
+    be:{label:'BELGIUM',timeZone:'Europe/Brussels',latitude:50.833333333333336,longitude:4.333333333333333,region:'België',city:'Brussel'},
+    nl:{label:'NETHERLANDS',timeZone:'Europe/Amsterdam',latitude:52.36666666666667,longitude:4.9,region:'Nederland',city:'Amsterdam'},
     br:{label:'BRAZIL',timeZone:'America/Sao_Paulo',latitude:-14.235,longitude:-51.9253,region:'Brasil',city:'centro do Brasil'},
     it:{label:'ITALY',timeZone:'Europe/Rome',latitude:41.8719,longitude:12.5674,region:'Italia',city:"centro d'Italia"},
     mx:{label:'MEXICO',timeZone:'America/Mexico_City',latitude:23.6345,longitude:-102.5528,region:'México',city:'centro de México'},
@@ -84,6 +89,7 @@
     de:Object.freeze({label:'Sterndichte',aria:'Dichte der Partikelsterne. Bei 0 werden Partikelsterne ausgeblendet.'}),
     fr:Object.freeze({label:'Densité d’étoiles',aria:'Densité des étoiles particules. Zéro masque les étoiles particules.'})
 ,
+    nl:Object.freeze({label:'Sterdichtheid',aria:'Dichtheid van de deeltjessterren. Bij nul zijn de deeltjessterren verborgen.'}),
     pt:Object.freeze({label:'Densidade de estrelas',aria:'Densidade das estrelas de partículas. Zero oculta as estrelas de partículas.'}),
     br:Object.freeze({label:'Densidade de estrelas',aria:'Densidade das estrelas de partículas. Zero oculta as estrelas de partículas.'}),
     it:Object.freeze({label:'Densità stellare',aria:'Densità delle stelle particellari. Zero nasconde le stelle particellari.'}),
@@ -149,7 +155,7 @@
       const t=(key,values)=>interpolate(COPY[copyLanguage()]?.[key]??COPY.kor?.[key]??key,values);
       const bodyCopy=body=>copyLanguage()==='kor'?{name:body.ko,description:body.description}:{name:BODY_COPY[copyLanguage()]?.[body.id]?.[0]||body.en,description:BODY_COPY[copyLanguage()]?.[body.id]?.[1]||body.description};
       const phaseCopy=name=>copyLanguage()==='kor'?name:(PHASE_COPY[copyLanguage()]?.[name]||name);
-      const quantity=(value,unit)=>['en','hi','es','de','fr','pt','it','id'].includes(copyLanguage())?`${value} ${t(unit)}`:`${value}${t(unit)}`;
+      const quantity=(value,unit)=>['en','hi','es','de','fr','pt','it','id','nl'].includes(copyLanguage())?`${value} ${t(unit)}`:`${value}${t(unit)}`;
       const music=Modules.MusicPlayer.create({
         audio:$('background-music'),tracks:MUSIC_TRACKS,
         folder:/\/dist\/[^/]+\.html$/i.test(location.pathname)?'../assets/music/':'assets/music/',
@@ -644,7 +650,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=0.47-r2','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=0.47-r3','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -884,7 +890,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.47',revision:'r2',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.47',revision:'r3',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

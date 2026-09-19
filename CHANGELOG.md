@@ -1,5 +1,12 @@
 # Maintenance changelog
 
+## v0.47 r3 · 2026-09-19
+
+- Added Netherlands (NL) and Belgium (BE) with one complete shared Dutch locale.
+- Kept separate nl-NL/nl-BE date formatting, Europe/Amsterdam/Europe/Brussels time and representative Earth-view cities.
+- Belgium is multilingual; the BE entry currently selects the Dutch interface, following the existing one-language-per-country design.
+- Preserved the r2 tiny-star filter, colour balance, iPhone layout, common cards and approved R2 media.
+
 ## v0.47 r2
 
 - Stabilize tiny stars using pixel-integrated footprints in GPU and whole-output-pixel coverage in the compatibility path; preserve large-star animation and drift.

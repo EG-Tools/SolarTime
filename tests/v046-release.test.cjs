@@ -12,13 +12,13 @@ test('v0.46 page build stays consistent while unchanged coordinator keeps its bu
   assert.match(version.revision,/^r[1-9]\d*$/);
   assert.equal(version.version,'0.47');
   assert.equal(pkg.version,'0.0.47');
-  assert.ok(app.includes("version:'0.47',revision:'r2'"));
-  assert.ok(html.includes('src/app.js?v=0.47-r2'));
-  assert.ok(html.includes('src/localization.js?v=0.47-r1'));
+  assert.ok(app.includes("version:'0.47',revision:'r3'"));
+  assert.ok(html.includes('src/app.js?v=0.47-r3'));
+  assert.ok(html.includes('src/localization.js?v=0.47-r3'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
-  assert.deepEqual(order,['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','sg','es','eu','uy','ve']);
+  assert.deepEqual(order,['kor','en','chn','ao','ar','au','at','be','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nl','nz','pa','pe','pt','sg','es','eu','uy','ve']);
   assert.match(html,/id="star-density-output" for="star-density">100%<\/output>/);assert.match(html,/id="star-density" class="solar-range" type="range" min="0" max="300" step="10" value="100"/);assert.match(app,/orbitBrightness:\.5,starDensity:1/);
 });
 
@@ -112,7 +112,7 @@ test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
 
 test('r10 adds Indonesia and keeps every country on the existing regional-time path',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js'),loader=read('src/language-data.js');
-  assert.ok(app.includes("LANG_ORDER=['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','sg','es','eu','uy','ve']"));
+  assert.ok(app.includes("LANG_ORDER=['kor','en','chn','ao','ar','au','at','be','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nl','nz','pa','pe','pt','sg','es','eu','uy','ve']"));
   assert.ok(app.includes("id:{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'}"));
   assert.ok(app.includes("id:{label:'INDONESIA',timeZone:'Asia/Jakarta'"));
   assert.ok(app.includes("eu:{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'}"));
@@ -152,7 +152,7 @@ test('r10 removes the extra WebGL star canvas while keeping the safe r9 optimiza
 
 test('r11 reuses existing language bundles for additional countries',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js');
-  const expected=['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','sg','es','eu','uy','ve'];
+  const expected=['kor','en','chn','ao','ar','au','at','be','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nl','nz','pa','pe','pt','sg','es','eu','uy','ve'];
   const order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
   assert.deepEqual(order,expected);
 
@@ -296,7 +296,7 @@ test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
   const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.47');assert.deepEqual(notes.RELEASES.slice(0,5).map(r=>r.version),['0.47','0.46','0.45','0.43','0.42']);
   for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(notes.itemsFor(notes.RELEASES[0],code).length>0,code);
-  assert.ok(app.includes('src/release-notes.js?v=0.47-r2'));assert.ok(html.includes('<h3 id="release-notes-version">v0.47</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
+  assert.ok(app.includes('src/release-notes.js?v=0.47-r3'));assert.ok(html.includes('<h3 id="release-notes-version">v0.47</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
 
   assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));

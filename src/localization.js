@@ -6,6 +6,15 @@
     const zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'',languages=(navigator.languages?.length?navigator.languages:[navigator.language||'']).map(value=>String(value).toLowerCase());
     if(/(?:shanghai|chongqing|urumqi|hong_kong|macau)/i.test(zone))return 'chn';
     if(/seoul/i.test(zone))return 'kor';
+    if(/^Europe\/(?:Amsterdam|Brussels)$/i.test(zone)){
+      // These zone IDs can be aliases in tzdb/ICU. An explicit NL/BE locale
+      // disambiguates the country without changing other regions' precedence.
+      for(const value of languages){
+        if(/^nl-nl(?:-|$)/.test(value))return 'nl';
+        if(/^(?:nl|fr|de)-be(?:-|$)/.test(value))return 'be';
+      }
+      return /Amsterdam$/i.test(zone)?'nl':'be';
+    }
     if(/^(?:Asia\/)?Singapore$/i.test(zone))return 'sg';
     if(/jakarta|pontianak|makassar|ujung_pandang|jayapura/i.test(zone))return 'id';
     if(/^Australia\//i.test(zone))return 'au';
@@ -37,6 +46,9 @@
     if(/^America\//i.test(zone))return 'en';
     const localeMap=[
       ['zh','chn'],['ja','jpn'],['ko','kor'],['en-sg','sg'],['en-ca','ca'],['en-au','au'],['en-nz','nz'],['en-ie','ie'],['en-gb','eu'],
+      // Country selection and display language remain linked, as for Canada and Singapore.
+      // Belgium is multilingual; this entry currently uses the Dutch interface.
+      ['nl-be','be'],['fr-be','be'],['de-be','be'],['nl','nl'],
       ['pt-ao','ao'],['pt-mz','mz'],['pt-br','br'],['pt','pt'],
       ['es-ar','ar'],['es-cl','cl'],['es-co','co'],['es-cr','cr'],['es-ec','ec'],['es-mx','mx'],['es-pa','pa'],['es-pe','pe'],['es-uy','uy'],['es-ve','ve'],['es','es'],
       ['de-at','at'],['de','de'],['fr','fr'],['hi','hi'],['it','it'],['id','id']
