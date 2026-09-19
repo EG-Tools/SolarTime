@@ -607,29 +607,34 @@
     get autoRotateDirection() {const value=this.rotationIntent;return value===RANDOM_ROTATION?0:value;}
     get randomRotateEnabled() {return this.rotationIntent===RANDOM_ROTATION;}
     newRandomRotation(generation) {
-      // Separate from the star seed: toggling this must never regenerate stars.
+      // Randomize only direction. Starting from zero velocity made the old
+      // 8-16 second fade-in look stopped; independent components varied speed.
+      // The unit heading keeps the same angular speed as left/right rotation.
       const rng=random(Math.floor(Math.random()*4294967296)>>>0);
-      return {generation,rng,elapsed:0,duration:8+rng()*8,fromYaw:0,fromPitch:0,
-        toYaw:(rng()*2-1)*AUTO_ROTATE_SPEED,toPitch:(rng()*2-1)*AUTO_ROTATE_SPEED*.7};
+      return {generation,rng,elapsed:0,duration:8+rng()*8,
+        heading:rng()*TAU,turn:(rng()*2-1)*Math.PI};
     }
     advanceRandomRotation(seconds) {
-      const path=this.randomRotation;if(!path)return false;
-      // Integral of quintic smoothstep; exact integration keeps normal movement
-      // independent of frame rate, including segment boundaries and direction changes.
-      const integral=t=>t*t*t*t*(2.5+t*(-3+t));
-      let yaw=0,pitch=0,remaining=Math.min(.25,Math.max(0,seconds));
+      const path=this.randomRotation;if(!path||!Number.isFinite(seconds)||seconds<=0)return false;
+      // Ease the heading, never the speed. Integrate its unit yaw/pitch vector
+      // using three-point Gauss quadrature, splitting at segment boundaries.
+      // The bounded .25s step and >=8s segments keep integration error tiny and
+      // avoid frame-rate-dependent drift without another loop or timer owner.
+      const node=Math.sqrt(3/5);
+      let yaw=0,pitch=0,remaining=Math.min(.25,seconds);
       while(remaining>1e-10){
-        const dt=Math.min(remaining,path.duration-path.elapsed);
-        const a=path.elapsed/path.duration,b=(path.elapsed+dt)/path.duration;
-        const weight=path.duration*(integral(b)-integral(a));
-        yaw+=path.fromYaw*dt+(path.toYaw-path.fromYaw)*weight;
-        pitch+=path.fromPitch*dt+(path.toPitch-path.fromPitch)*weight;
+        const dt=Math.min(remaining,path.duration-path.elapsed),half=dt/2;
+        const mid=path.elapsed+half;
+        const a=path.heading+path.turn*ease((mid-half*node)/path.duration);
+        const b=path.heading+path.turn*ease(mid/path.duration);
+        const c=path.heading+path.turn*ease((mid+half*node)/path.duration);
+        const distance=AUTO_ROTATE_SPEED*half/9;
+        yaw+=distance*(5*Math.cos(a)+8*Math.cos(b)+5*Math.cos(c));
+        pitch+=distance*(5*Math.sin(a)+8*Math.sin(b)+5*Math.sin(c));
         path.elapsed+=dt;remaining-=dt;
         if(path.duration-path.elapsed<1e-9){
-          path.fromYaw=path.toYaw;path.fromPitch=path.toPitch;path.elapsed=0;
-          path.duration=8+path.rng()*8;
-          path.toYaw=(path.rng()*2-1)*AUTO_ROTATE_SPEED;
-          path.toPitch=(path.rng()*2-1)*AUTO_ROTATE_SPEED*.7;
+          path.heading=A.wrap(path.heading+path.turn);path.elapsed=0;
+          path.duration=8+path.rng()*8;path.turn=(path.rng()*2-1)*Math.PI;
         }
       }
       this.camera.azimuth=A.wrap(this.camera.azimuth+yaw);

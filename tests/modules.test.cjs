@@ -12,7 +12,7 @@ test('runtime concerns load as modules before the application coordinator',()=>{
   assert.match(runtimeUrl.searchParams.get('v'),/^\d+(?:\.\d+)+-r\d+(?:-[a-z0-9-]+)?$/i,'The runtime stylesheet must have a versioned cache key');
   assert.doesNotMatch(html,/styles-v016/);
   assert.ok(html.includes('src/surface.js?v=0.47-r1'));
-  assert.ok(html.includes('src/renderer.js?v=0.48-r1'));
+  assert.ok(html.includes('src/renderer.js?v=0.48-r2'));
   assert.ok(html.includes('src/performance.js?v=0.48-r1'));
   assert.ok(html.indexOf('src/performance.js')<html.indexOf('src/app.js'),'performance');assert.ok(html.indexOf('src/surface-style.js')<html.indexOf('src/surface.js'));
   assert.ok(html.includes('src/visual-effects.js?v=0.47-r2'));
