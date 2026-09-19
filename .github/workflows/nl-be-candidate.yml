@@ -1,0 +1,31 @@
+name: Prepare verified Dutch region candidate
+on:
+  push:
+    branches: [release/nl-be-r3]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Apply precisely the locally verified changes
+        run: python .maintenance/nl-be.py
+      - run: npm test
+      - run: npm run build:cloudflare
+      - name: Record tested source on candidate branch only
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/release/nl-be-r3'
+          git rm .maintenance/nl-be.py .github/workflows/nl-be-candidate.yml
+          git add CHANGELOG.md index.html src/app.js src/language-data.js src/localization.js src/locales/nl.json src/release-notes.js src/runtime-optimizations.css tests/browser/ui-regression.py tests/cleanup-contracts.test.cjs tests/modules.test.cjs tests/v046-release.test.cjs tests/netherlands-belgium.test.cjs version.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Add Belgium and Netherlands with a shared Dutch locale (v0.47 r3)'
+          git push origin HEAD:refs/heads/release/nl-be-r3
