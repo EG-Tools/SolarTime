@@ -3,8 +3,8 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const A=require('../src/astro.js'),read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 const plain=x=>JSON.parse(JSON.stringify(x));
 const close=(a,b,e=1e-8)=>assert.ok(Math.abs(a-b)<e,`${a} != ${b}`);
-function renderer(){
- let now=0;const M=Object.create(Math);M.random=()=>.127694;
+function renderer(seed=.127694){
+ let now=0;const M=Object.create(Math);M.random=()=>seed;
  const window={SolarAstro:A},sandbox={window,performance:{now:()=>now},Math:M};
  vm.runInNewContext(read('src/renderer.js'),sandbox);const R=window.SolarRenderer,r=Object.create(R.prototype);
  Object.assign(r,{w:1280,h:800,options:{pluto:true,moon:true,dollyZoom:false},camera:r.defaultCameraSnapshot(),cameraTween:null,autoRotation:null,pendingAutoRotation:null,rotationGeneration:0,bodyScales:{earth:5.05},actualScaleMix:0,clearLabels(){},surface:{invalidate(){},pause(){}},sky:{pause(){}},projected:[]});
@@ -54,7 +54,7 @@ test('random angular speeds remain bounded and continuous at direction changes',
  const {r}=renderer();r.setRandomRotate(true,0);let prior=plain(r.camera),velocity=null;
  for(let i=1;i<=7200;i++){
   r.advanceAutoRotate(i*1000/60);const v=[(A.wrap(r.camera.azimuth-prior.azimuth+Math.PI)-Math.PI)*60,(A.wrap(r.camera.elevation-prior.elevation+Math.PI)-Math.PI)*60];
-  assert.ok(Math.abs(v[0])<=1.8001*A.DEG);assert.ok(Math.abs(v[1])<=1.2601*A.DEG);
+  assert.ok(Math.abs(Math.hypot(...v)/A.DEG-1.8)<.0001,'random rotation must keep left/right speed, not merely stay below it');
   if(velocity){assert.ok(Math.abs(v[0]-velocity[0])<.001);assert.ok(Math.abs(v[1]-velocity[1])<.001);}
   prior=plain(r.camera);velocity=v;
  }
@@ -161,4 +161,41 @@ test('pointer input uses current deltas rather than saved start angles; small cl
  const app=read('src/app.js');assert.doesNotMatch(app,/startAzimuth|startElevation/);
  assert.match(app,/renderer\.rotateViewBy\(\(wasMoved\?dx:p\.x-drag\.startX\)/);
  assert.match(app,/Math\.hypot\(p\.x-drag\.startX,p\.y-drag\.startY\)>4/);
+});
+
+// A nonzero floating-point delta is not proof of visible motion: compare the
+// actual angular distance against ordinary auto rotation from the first frame.
+test('random rotation starts at full left/right speed for varied seeds and update rates',()=>{
+ for(const seed of [0,.001,.127694,.25,.5,.75,.999999])for(const fps of [4,30,60,90,144,165]){
+  const {r}=renderer(seed),left=renderer(seed).r;r.setRandomRotate(true,0);left.setAutoRotate(1,0);
+  let travel=0,leftTravel=0;
+  for(let i=1;i<=fps;i++){
+   const before=plain(r.camera),leftBefore=left.camera.azimuth;
+   r.advanceAutoRotate(i*1000/fps);left.advanceAutoRotate(i*1000/fps);
+   const d=Math.hypot(wrapDelta(r.camera.azimuth,before.azimuth),wrapDelta(r.camera.elevation,before.elevation));
+   const expected=Math.abs(wrapDelta(left.camera.azimuth,leftBefore));
+   assert.ok(Math.abs(d/expected-1)<1e-5,`seed ${seed} fps ${fps} frame ${i}: ${d/expected}`);
+   travel+=d;leftTravel+=expected;
+  }
+  close(travel/A.DEG,1.8,.00001);close(travel,leftTravel,.000001);
+ }
+});
+test('random heading turns through an opposite direction without slowing through zero',()=>{
+ const {r}=renderer();r.setRandomRotate(true,0);
+ Object.assign(r.randomRotation,{heading:0,turn:Math.PI,duration:8,elapsed:0});
+ let previous=plain(r.camera),total=0;
+ for(let i=1;i<=8*60;i++){
+  r.advanceAutoRotate(i*1000/60);
+  const d=Math.hypot(wrapDelta(r.camera.azimuth,previous.azimuth),wrapDelta(r.camera.elevation,previous.elevation));
+  assert.ok(Math.abs(d*60/A.DEG-1.8)<.0001);total+=d;previous=plain(r.camera);
+ }
+ close(total/A.DEG,14.4,.0001);
+});
+test('manual release and tween completion resume random rotation at unchanged speed',()=>{
+ const {r}=renderer();r.setRandomRotate(true,0);r.advanceAutoRotate(100);
+ const path=r.randomRotation;r.rotateViewBy(.01,.01,100);let before=plain(r.camera);r.advanceAutoRotate(100+1000/60);
+ close(Math.hypot(wrapDelta(r.camera.azimuth,before.azimuth),wrapDelta(r.camera.elevation,before.elevation))/A.DEG,.03,1e-6);
+ r.animateHome(200,1000);r.advanceCamera(1200);assert.equal(r.randomRotation,path);
+ before=plain(r.camera);r.advanceAutoRotate(1200+1000/60);
+ close(Math.hypot(wrapDelta(r.camera.azimuth,before.azimuth),wrapDelta(r.camera.elevation,before.elevation))/A.DEG,.03,1e-6);
 });

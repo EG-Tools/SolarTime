@@ -12,8 +12,8 @@ test('v0.46 page build stays consistent while unchanged coordinator keeps its bu
   assert.match(version.revision,/^r[1-9]\d*$/);
   assert.equal(version.version,'0.48');
   assert.equal(pkg.version,'0.0.48');
-  assert.ok(app.includes("version:'0.48',revision:'r1'"));
-  assert.ok(html.includes('src/app.js?v=0.48-r1'));
+  assert.ok(app.includes("version:'0.48',revision:'r2'"));
+  assert.ok(html.includes('src/app.js?v=0.48-r2'));
   assert.ok(html.includes('src/localization.js?v=0.47-r3'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -296,11 +296,11 @@ test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
   const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.48');assert.deepEqual(notes.RELEASES.slice(0,5).map(r=>r.version),['0.48','0.47','0.46','0.45','0.43']);
   for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(notes.itemsFor(notes.RELEASES[0],code).length>0,code);
-  assert.ok(app.includes('src/release-notes.js?v=0.48-r1'));assert.ok(html.includes('<h3 id="release-notes-version">v0.48</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
+  assert.ok(app.includes('src/release-notes.js?v=0.48-r2'));assert.ok(html.includes('<h3 id="release-notes-version">v0.48</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
 
   assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));
-  for(const file of ['surface','renderer','performance'])assert.ok(html.includes('src/'+file+'.js?v='+(file==='surface'?'0.47-r1':'0.48-r1')),file);
+  for(const file of ['surface','renderer','performance'])assert.ok(html.includes('src/'+file+'.js?v='+(file==='surface'?'0.47-r1':file==='renderer'?'0.48-r2':'0.48-r1')),file);
   assert.match(html,/src\/app\.js\?v=0\.48-r\d+(?:-[^\"']+)?/);
   assert.deepEqual(assetRevision,{version:'assetpack-20260918-r1'});
   assert.equal(manifest.revision,'assetpack-20260918-r1');

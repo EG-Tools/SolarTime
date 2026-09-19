@@ -128,16 +128,40 @@ def suite(browser,root,size,installed):
  check(random_box['y']>left['y']+left['height'],tag+' random below visual left rotation')
  check(page.locator('#random-rotate svg ellipse').count()==2,tag+' crossed circle icon')
  check(page.locator('#random-rotate').get_attribute('aria-pressed')=='false',tag+' initial random off')
- page.evaluate('window.__starPoolBefore=SolarAssets.starData')
+ page.evaluate("""()=>{
+  window.__starPoolBefore=SolarAssets.starData;
+  const r=SolarTime.renderer,advance=r.advanceAutoRotate.bind(r);
+  window.__rotationSpeed={seconds:0,travel:0,frames:0};
+  r.advanceAutoRotate=function(mono){
+   const old=this.autoRotation,dt=old&&old.mono!==null?Math.max(0,mono-old.mono)/1000:0;
+   const a=this.camera.azimuth,e=this.camera.elevation,result=advance(mono);
+   if(old&&dt>0){
+    const delta=(x,y)=>((x-y+Math.PI*3)%(Math.PI*2))-Math.PI;
+    __rotationSpeed.seconds+=old.direction===2?Math.min(.25,dt):dt;
+    __rotationSpeed.travel+=Math.hypot(delta(this.camera.azimuth,a),delta(this.camera.elevation,e))*180/Math.PI;
+    __rotationSpeed.frames++;
+   }
+   return result;
+  };
+ }""")
  before=page.evaluate('({...SolarTime.renderer.camera})')
  page.locator('#random-rotate').click();page.wait_for_timeout(1200)
  active=page.evaluate('({...SolarTime.renderer.camera})')
  check(page.locator('#random-rotate').get_attribute('aria-pressed')=='true',tag+' random on')
  check(all(active[k]==before[k] for k in ['zoom','dolly','panX','panY','focus']),tag+' random preserves distance and framing')
  check(active['azimuth']!=before['azimuth'] and active['elevation']!=before['elevation'],tag+' random changes both angles')
+ speed=page.evaluate('__rotationSpeed')
+ check(speed['frames']>=5 and speed['seconds']>.5,tag+' random is advanced by the real frame loop')
+ check(abs(speed['travel']/speed['seconds']-1.8)<.002,tag+' random moves at 1.8 degrees/s immediately, not a tiny nonzero delta')
  check(page.evaluate('SolarAssets.starData===__starPoolBefore'),tag+' random toggle never regenerates stars')
  page.locator('#random-rotate').click();stopped=page.evaluate('({...SolarTime.renderer.camera})');page.wait_for_timeout(200)
  check(page.evaluate('({...SolarTime.renderer.camera})')==stopped,tag+' random off freezes camera')
+ for direction in ['rotate-left','rotate-right']:
+  page.evaluate('window.__rotationSpeed={seconds:0,travel:0,frames:0}')
+  page.locator('#'+direction).click();page.wait_for_timeout(600);page.locator('#'+direction).click()
+  turn_speed=page.evaluate('__rotationSpeed')
+  check(turn_speed['seconds']>.3 and abs(turn_speed['travel']/turn_speed['seconds']-1.8)<.00001,tag+' '+direction+' keeps its original speed')
+  check(abs(turn_speed['travel']/turn_speed['seconds']-speed['travel']/speed['seconds'])<.002,tag+' random speed matches '+direction)
  page.locator('#random-rotate').click();page.locator('#rotate-right').click()
  check(page.locator('#random-rotate').get_attribute('aria-pressed')=='false' and page.locator('#rotate-right').get_attribute('aria-pressed')=='true',tag+' left excludes random')
  page.locator('#random-rotate').click()

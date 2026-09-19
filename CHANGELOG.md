@@ -1,5 +1,12 @@
 # Maintenance changelog
 
+## v0.48 r2 · 2026-09-19
+
+- Fixed the almost-stationary random rotation startup. Its speed now uses the same 1.8 degrees/second constant as left/right; only the yaw/pitch heading changes.
+- Smooth heading turns maintain speed without fading through zero. Manual controls, pole crossings, wheel, presets, hidden-tab pause and OFF behavior are preserved.
+- Added quantitative startup/speed/continuity checks; the previous nonzero-angle checks did not reject imperceptibly slow motion.
+- No star generation, star shaders, palette, iPhone layout, media or icon changes.
+
 ## v0.48 r1 · 2026-09-19
 
 - Country inspection starts at a 250× Zoom reference; Move mode keeps its wheel mode with an equivalent Earth radius. Manual wheel range is unchanged.
