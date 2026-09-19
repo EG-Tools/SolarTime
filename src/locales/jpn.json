@@ -173,7 +173,8 @@
     "yearLimit": "2999年末に達したため停止しました。リアルタイムへ戻れます。",
     "layoutDiagnostics": "レイアウト診断",
     "closeCard": "閉じる",
-    "reloadPage": "再読み込み"
+    "reloadPage": "再読み込み",
+    "randomRotate": "ランダム回転"
   },
   "bodies": {
     "sun": [

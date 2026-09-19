@@ -173,7 +173,8 @@
     "yearLimit": "Detenido al final del año 2999.",
     "layoutDiagnostics": "Diagnóstico de diseño",
     "closeCard": "Cerrar",
-    "reloadPage": "Recargar"
+    "reloadPage": "Recargar",
+    "randomRotate": "Rotación aleatoria"
   },
   "bodies": {
     "sun": [

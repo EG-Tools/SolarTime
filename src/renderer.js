@@ -1,4 +1,4 @@
-/* Solar Time v0.47 — renderer implementation owner. */
+/* Solar Time v0.48 — renderer implementation owner. */
 (function () {
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
@@ -13,6 +13,8 @@
   // User-approved normal-view baseline. Horizontal pan is intentionally zero;
   // the vertical composition, lens and orbit angle come from the approved view.
   const DEFAULT_CAMERA=Object.freeze({azimuth:5.393597172693909,elevation:.620064911444322,zoom:1.1853048513203654,dolly:1,focus:null,panY:.033915866075961185,panX:0});
+  const REGION_INSPECTION_ZOOM=250; // UI lens scale is ×, not percent; wheel limits are independent.
+  const RANDOM_ROTATION=2;
   const AUTO_ROTATE_SPEED=1.8*DEG; // radians per real second; independent of orbital time
   const ORBIT_REVEAL=Object.freeze({duration:1400});
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
@@ -130,14 +132,23 @@
       const axes=A.bodyAxes(body),frame={u:this.viewDirection(axes.u),v:this.viewDirection(axes.v),pole:this.viewDirection(axes.pole)};
       (this.frameCache||(this.frameCache=new Map())).set(body.id,{body,tilt,frame});return frame;
     }
-    setOrbitView(azimuth,elevation) {
-      if(!Number.isFinite(azimuth)||!Number.isFinite(elevation))return;
-      this.cancelCameraMotion();
+    setOrbitView(azimuth,elevation,mono=performance.now()) {
+      if(!Number.isFinite(azimuth)||!Number.isFinite(elevation)||!Number.isFinite(mono))return;
+      this.cancelCameraMotion(mono);
       this.camera.azimuth=A.wrap(azimuth);
       // Wrap through both poles instead of stopping at a top/bottom limit. The
       // equivalent end orientations meet continuously at -180/180 degrees.
       this.camera.elevation=normalizeElevation(elevation);
-      this.cameraChangeAt=performance.now();this.dirty=true;
+      this.cameraChangeAt=mono;this.dirty=true;
+    }
+    rotateViewBy(azimuthDelta,elevationDelta,mono=performance.now()) {
+      if(![azimuthDelta,elevationDelta,mono].every(Number.isFinite))return false;
+      // Settle animation at this timestamp before reading the angles. Pointer
+      // deltas extend the CURRENT view, not a stale pointerdown snapshot. All
+      // rotation modes keep their intent/path; +/-180 wrapping is not a clamp.
+      this.cancelCameraMotion(mono);
+      this.setOrbitView(this.camera.azimuth+azimuthDelta,this.camera.elevation+elevationDelta,mono);
+      return true;
     }
     setPanY(value) {
       if(!Number.isFinite(value))return;
@@ -470,7 +481,7 @@
     restoreCamera(state) {
       if(!Renderer.validCamera(state))return false;
       if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
-      const mono=performance.now(),direction=this.autoRotateDirection,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
+      const mono=performance.now(),direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
       this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;if(state.mode!==undefined)this.setDollyMode(state.mode==='move',false);
       // Commit one camera transaction. Time, selected body and display toggles are not preset data.
       this.camera={azimuth:state.azimuth,elevation:state.elevation,zoom:state.zoom,dolly:state.dolly??1,
@@ -485,7 +496,7 @@
       if(!Renderer.validCamera(state)||!Number.isFinite(mono)||!Number.isFinite(duration))return false;
       if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       if(duration<=0)return this.restoreCamera(state);
-      const direction=this.autoRotateDirection,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
+      const direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
       // A camera transition may pause the physical turn, but it never changes the
       // user's rotation toggle. Keep that intent pending and resume on arrival.
       this.pendingAutoRotation=null;this.cancelCameraTween(mono);
@@ -549,14 +560,17 @@
       if(!to||!body||![latitude,longitude,ms].every(Number.isFinite))return false;
       const n=A.surfaceDirection(body,latitude,longitude,ms);
       to.azimuth=A.wrap(Math.atan2(-n.x,-n.y));to.elevation=Math.asin(clamp(n.z,-1,1));
-      // Feature views are inspection shots rather than whole-planet portraits.
-      // Earth reaches roughly 200% of the viewport height, making the active site
-      // readable without changing FOV while Move mode owns the wheel.
+      // A country starts at the 250× lens inspection size, never a new wheel cap.
+      // Clear inherited lens/travel magnification so repeated tracking is identical.
+      // Move mode keeps owning the wheel and uses the equivalent Earth disk size.
       if(id==='earth'){
+        to.zoom=REGION_INSPECTION_ZOOM;to.dolly=1;
         if(to.mode==='move'){
-          const base=this.bodyRadiusForState(body,{...to,dolly:1});
-          to.dolly=Math.max(to.dolly,Math.min(this.w,this.h)*2/Math.max(base,.001));
-        }else to.zoom=Math.max(to.zoom,1800);
+          const radius=this.bodyRadiusForState(body,to);
+          to.zoom=1;
+          const base=this.bodyRadiusForState(body,to);
+          to.dolly=clamp(radius/Math.max(base,.001),VIEW.minZoom,VIEW.maxZoom);
+        }
       }
       return this.animateCamera(to,mono,duration);
     }
@@ -583,16 +597,61 @@
       this.cameraChangeAt=mono;this.dirty=true;return true;
     }
     cancelCameraTween(mono=performance.now()) {
-      if(this.cameraTween){this.advanceCamera(mono);this.cameraTween=null;}
+      if(this.cameraTween){
+        this.advanceCamera(mono);this.cameraTween=null;
+        const pending=this.pendingAutoRotation;this.pendingAutoRotation=null;
+        if(pending)this.beginAutoRotation(pending.direction,mono,pending.generation);
+      }
     }
-    get autoRotateDirection() {return this.autoRotation?.direction||this.pendingAutoRotation?.direction||0;}
+    get rotationIntent() {return this.autoRotation?.direction||this.pendingAutoRotation?.direction||0;}
+    get autoRotateDirection() {const value=this.rotationIntent;return value===RANDOM_ROTATION?0:value;}
+    get randomRotateEnabled() {return this.rotationIntent===RANDOM_ROTATION;}
+    newRandomRotation(generation) {
+      // Separate from the star seed: toggling this must never regenerate stars.
+      const rng=random(Math.floor(Math.random()*4294967296)>>>0);
+      return {generation,rng,elapsed:0,duration:8+rng()*8,fromYaw:0,fromPitch:0,
+        toYaw:(rng()*2-1)*AUTO_ROTATE_SPEED,toPitch:(rng()*2-1)*AUTO_ROTATE_SPEED*.7};
+    }
+    advanceRandomRotation(seconds) {
+      const path=this.randomRotation;if(!path)return false;
+      // Integral of quintic smoothstep; exact integration keeps normal movement
+      // independent of frame rate, including segment boundaries and direction changes.
+      const integral=t=>t*t*t*t*(2.5+t*(-3+t));
+      let yaw=0,pitch=0,remaining=Math.min(.25,Math.max(0,seconds));
+      while(remaining>1e-10){
+        const dt=Math.min(remaining,path.duration-path.elapsed);
+        const a=path.elapsed/path.duration,b=(path.elapsed+dt)/path.duration;
+        const weight=path.duration*(integral(b)-integral(a));
+        yaw+=path.fromYaw*dt+(path.toYaw-path.fromYaw)*weight;
+        pitch+=path.fromPitch*dt+(path.toPitch-path.fromPitch)*weight;
+        path.elapsed+=dt;remaining-=dt;
+        if(path.duration-path.elapsed<1e-9){
+          path.fromYaw=path.toYaw;path.fromPitch=path.toPitch;path.elapsed=0;
+          path.duration=8+path.rng()*8;
+          path.toYaw=(path.rng()*2-1)*AUTO_ROTATE_SPEED;
+          path.toPitch=(path.rng()*2-1)*AUTO_ROTATE_SPEED*.7;
+        }
+      }
+      this.camera.azimuth=A.wrap(this.camera.azimuth+yaw);
+      this.camera.elevation=normalizeElevation(this.camera.elevation+pitch);
+      this.dirty=true;return true;
+    }
     beginAutoRotation(direction,mono,generation=(this.rotationGeneration||0)+1) {
+      if(direction===RANDOM_ROTATION&&this.randomRotation?.generation!==generation)this.randomRotation=this.newRandomRotation(generation);
       this.autoRotation={direction,azimuth:this.camera.azimuth,mono,generation};
       this.rotationGeneration=generation;this.cameraChangeAt=-Infinity;this.dirty=true;return true;
     }
     setAutoRotate(direction,mono=performance.now()) {
       if(![-1,0,1].includes(direction)||!Number.isFinite(mono))return false;
-      const current=this.autoRotateDirection;
+      return this.setRotationIntent(direction,mono);
+    }
+    setRandomRotate(enabled,mono=performance.now()) {
+      if(typeof enabled!=='boolean'||!Number.isFinite(mono))return false;
+      if(enabled===this.randomRotateEnabled)return true;
+      return this.setRotationIntent(enabled?RANDOM_ROTATION:0,mono);
+    }
+    setRotationIntent(direction,mono) {
+      const current=this.rotationIntent;
       if(!direction||current===direction){
         // This is the sole normal OFF path: only an explicit click on the active
         // direction stops it. Do not interrupt an unrelated camera transition.
@@ -610,22 +669,23 @@
       if(motion.mono===null){motion.mono=mono;motion.azimuth=this.camera.azimuth;return false;}
       const elapsed=Math.max(0,mono-motion.mono);motion.mono=mono;
       if(!(elapsed>0)){motion.azimuth=this.camera.azimuth;return false;}
+      if(motion.direction===RANDOM_ROTATION)return this.advanceRandomRotation(elapsed/1000);
       const angle=A.wrap(this.camera.azimuth+motion.direction*AUTO_ROTATE_SPEED*elapsed/1000);
       motion.azimuth=angle;
       if(angle===this.camera.azimuth)return false;
       this.camera.azimuth=angle;this.dirty=true;return true;
     }
     stopAutoRotate(mono=performance.now()) {
-      this.pendingAutoRotation=null;if(this.autoRotation){this.advanceAutoRotate(mono);this.autoRotation=null;}
+      this.pendingAutoRotation=null;if(this.autoRotation){this.advanceAutoRotate(mono);this.autoRotation=null;}this.randomRotation=null;
     }
     cancelCameraMotion(mono=performance.now()) {
-      const direction=this.autoRotateDirection,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
+      const direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
       this.pendingAutoRotation=null;this.cancelCameraTween(mono);
       if(this.autoRotation)this.advanceAutoRotate(mono);
       else if(direction)this.beginAutoRotation(direction,mono,generation);
     }
     resetCamera() {
-      const mono=performance.now(),direction=this.autoRotateDirection,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
+      const mono=performance.now(),direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
       this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.camera={...DEFAULT_CAMERA};
       if(direction)this.beginAutoRotation(direction,mono,generation);
       this.projectionAnchor=null;this.dirty=true;

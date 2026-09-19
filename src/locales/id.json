@@ -173,7 +173,8 @@
     "yearLimit": "Berhenti pada akhir tahun 2999. Anda dapat kembali ke Waktu nyata.",
     "layoutDiagnostics": "Diagnostik tata letak",
     "closeCard": "Tutup",
-    "reloadPage": "Muat ulang"
+    "reloadPage": "Muat ulang",
+    "randomRotate": "Rotasi acak"
   },
   "bodies": {
     "sun": [

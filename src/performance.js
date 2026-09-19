@@ -1,4 +1,4 @@
-/* Solar Time v0.47 — performance implementation owner. */
+/* Solar Time v0.48 — performance implementation owner. */
 (function(root){
   'use strict';
   const coarse=(()=>{
@@ -34,6 +34,16 @@
     const constrained=phone||renderCost>13||frameLag>4||performance.now()<slowUntil;
     return constrained||!active?1000/30:1000/60;
   }
+  function createFrameGate(){
+    let next=NaN,previousInterval=0;
+    return (mono,interval,reset=false)=>{
+      if(!Number.isFinite(mono)||!Number.isFinite(interval)||interval<=0)return false;
+      if(reset||!Number.isFinite(next)||interval!==previousInterval||mono>next+250){next=mono+interval;previousInterval=interval;return true;}
+      if(mono<next-.5)return false;
+      next+=(Math.max(0,Math.floor((mono-next+.5)/interval))+1)*interval;
+      return true;
+    };
+  }
   function protectTexture(renderer,name){
     const desired=renderer.desired;
     if(desired?.has(name))return true;
@@ -56,5 +66,5 @@
   }
   function touchTexture(renderer,name){const record=renderer.textures?.get(name);if(record)record.lastUsed=(renderer.__solarTextureUseSerial=(renderer.__solarTextureUseSerial||0)+1);}
   function enforceTextureBudget(renderer){const budget=textureBudget(),bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);renderer.stats.textureBudgetBytes=budget;renderer.stats.textureBytes=bytes;if(bytes>budget){const now=performance.now();if(now-(renderer.__solarLastTextureTrim||0)>500){renderer.__solarLastTextureTrim=now;trimTextures(renderer);}}}
-  root.SolarPerformance=Object.freeze({pixelRatio,frameInterval,reportRenderCost,reportFrameTiming,textureBudget,trimTextures,touchTexture,enforceTextureBudget,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
+  root.SolarPerformance=Object.freeze({pixelRatio,frameInterval,createFrameGate,reportRenderCost,reportFrameTiming,textureBudget,trimTextures,touchTexture,enforceTextureBudget,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
 })(window);

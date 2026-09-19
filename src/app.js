@@ -1,4 +1,4 @@
-/* Solar Time v0.47 — app implementation owner. */
+/* Solar Time v0.48 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -268,7 +268,7 @@
         const move=renderer.options.dollyZoom,level=move?(controlState.dolly??1):controlState.zoom,levelText=level.toFixed(1)+'×';
         const mode=$('camera-mode-toggle'),modeLabel=t(move?'moveMode':'zoomMode'),zoomLabel=t(move?'moveValue':'zoomValue');
         const rotateRight=t('rotateRight'),rotateLeft=t('rotateLeft'),direction=renderer.autoRotateDirection;
-        const signature=[levelText,move,direction,language,zoomLabel,modeLabel,rotateRight,rotateLeft].join('|');
+        const signature=[levelText,move,direction,renderer.randomRotateEnabled,language,zoomLabel,modeLabel,rotateRight,rotateLeft].join('|');
         if(!force&&signature===cameraUiSignature)return;
         cameraUiSignature=signature;
         const zoomValue=$('zoom-value');if(zoomValue.textContent!==levelText)zoomValue.textContent=levelText;
@@ -280,6 +280,10 @@
           b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-label',label+' '+t(active?'stop':'start'));
           b.title=t(active?'rotateRunning':'rotateRate',{direction:label});
         }
+        const randomButton=$('random-rotate'),randomEnabled=renderer.randomRotateEnabled;
+        randomButton.setAttribute('aria-pressed',String(randomEnabled));
+        randomButton.setAttribute('aria-label',t('randomRotate'));
+        randomButton.title=t('randomRotate')+' · '+t(randomEnabled?'stop':'start');
       }
       cameraUi();
       const PRESETS_KEY='solar-time.camera-presets.v1';
@@ -424,27 +428,38 @@
         const sizeReset=renderer.resetBodyScale(body.id),orbitReset=renderer.resetSatelliteOrbitScale(body.id);
         if(sizeReset||orbitReset){syncBodySizeControl(body);persist();}
       });
-      function setStat(id,value,unit) {const el=$(id);el.replaceChildren(document.createTextNode(value+' '));if(unit){const small=document.createElement('small');small.textContent=unit;el.append(small);}}
+      const statNodes=new Map();let bodyInfoSignature='';
+      function setStat(id,value,unit) {
+        let record=statNodes.get(id);
+        if(!record){const el=$(id),text=document.createTextNode(''),small=document.createElement('small');el.replaceChildren(text,small);record={text,small};statNodes.set(id,record);}
+        const label=String(value)+(unit?' ':'');
+        if(record.text.nodeValue!==label)record.text.nodeValue=label;
+        if(record.small.textContent!==(unit||''))record.small.textContent=unit||'';
+        if(record.small.hidden!==!unit)record.small.hidden=!unit;
+      }
       function updateBody(ms) {
         const b=bodies.find(v=>v.id===renderer.selected);if(!b)return;
-        const material=window.SolarAssets.materialInfo?.[b.id];$('body-material').textContent=material?material.credit+' · '+t('photoMap'):b.id==='earth'?'NASA Blue Marble · '+t('builtInImage'):t('builtInMaterial')+' · '+t('publicPhotoUnavailable');
+        const material=window.SolarAssets.materialInfo?.[b.id],signature=b.id+'|'+copyLanguage()+'|'+(material?.credit||'');
+        const staticChanged=signature!==bodyInfoSignature;bodyInfoSignature=signature;
+        if(staticChanged)$('body-material').textContent=material?material.credit+' · '+t('photoMap'):b.id==='earth'?'NASA Blue Marble · '+t('builtInImage'):t('builtInMaterial')+' · '+t('publicPhotoUnavailable');
         if(b.id==='sun') {
-          $('stat-label-one').textContent=t('representation');setStat('stat-value-one',t('star'),'');
-          $('stat-label-two').textContent=t('systemCenter');setStat('stat-value-two','SUN','');
+          if(staticChanged)$('stat-label-one').textContent=t('representation');setStat('stat-value-one',t('star'),'');
+          if(staticChanged)$('stat-label-two').textContent=t('systemCenter');setStat('stat-value-two','SUN','');
         } else if(b.id==='moon') {
-          $('stat-label-one').textContent=t('earthOrbitPeriod');setStat('stat-value-one','27.32',t('dayUnit'));
-          const phase=A.moonPhase(ms);$('stat-label-two').textContent=t('brightSide');setStat('stat-value-two',t('approximately',{value:Math.round(phase.fraction*100)}),'%');
+          if(staticChanged)$('stat-label-one').textContent=t('earthOrbitPeriod');setStat('stat-value-one','27.32',t('dayUnit'));
+          const phase=A.moonPhase(ms);if(staticChanged)$('stat-label-two').textContent=t('brightSide');setStat('stat-value-two',t('approximately',{value:Math.round(phase.fraction*100)}),'%');
         } else if(b.id==='europa') {
-          $('stat-label-one').textContent=t('jupiterOrbitPeriod');setStat('stat-value-one','3.55',t('dayUnit'));
-          $('stat-label-two').textContent=t('jupiterDistance');setStat('stat-value-two','671,000','km');
+          if(staticChanged)$('stat-label-one').textContent=t('jupiterOrbitPeriod');setStat('stat-value-one','3.55',t('dayUnit'));
+          if(staticChanged)$('stat-label-two').textContent=t('jupiterDistance');setStat('stat-value-two','671,000','km');
         } else {
-          $('stat-label-one').textContent=t('orbitPeriod');setStat('stat-value-one',b.period>1000?(b.period/365.25).toFixed(1):b.period.toFixed(2),t(b.period>1000?'yearUnit':'dayUnit'));
-          const p=A.positionAt(b,ms);$('stat-label-two').textContent=t('sunDistance');setStat('stat-value-two',Math.hypot(p.x,p.y,p.z).toFixed(2),'AU');
+          if(staticChanged)$('stat-label-one').textContent=t('orbitPeriod');setStat('stat-value-one',b.period>1000?(b.period/365.25).toFixed(1):b.period.toFixed(2),t(b.period>1000?'yearUnit':'dayUnit'));
+          const p=A.positionAt(b,ms);if(staticChanged)$('stat-label-two').textContent=t('sunDistance');setStat('stat-value-two',Math.hypot(p.x,p.y,p.z).toFixed(2),'AU');
         }
+        if(!staticChanged)return;
         const environment=BODY_ENVIRONMENT[b.id]||BODY_ENVIRONMENT.earth,gravityRatio=environment.gravity/BODY_ENVIRONMENT.earth.gravity;
-        $('stat-label-temperature').textContent=t('meanTemperature');setStat('stat-value-temperature',String(environment.mean),'°C');
+        if(staticChanged)$('stat-label-temperature').textContent=t('meanTemperature');setStat('stat-value-temperature',String(environment.mean),'°C');
         $('stat-temperature-range').textContent=t('temperatureRange',{min:environment.min,max:environment.max});
-        $('stat-label-gravity').textContent=t('surfaceGravity');setStat('stat-value-gravity',environment.gravity.toFixed(environment.gravity<2?2:1),'m/s²');
+        if(staticChanged)$('stat-label-gravity').textContent=t('surfaceGravity');setStat('stat-value-gravity',environment.gravity.toFixed(environment.gravity<2?2:1),'m/s²');
         $('stat-gravity-ratio').textContent=t('earthGravityRatio',{value:gravityRatio.toFixed(gravityRatio>=10?1:2)});
       }
       function anchorBodyPanel(){const panel=$('body-panel');panel.style.removeProperty('top');panel.style.removeProperty('bottom');panel.style.removeProperty('--body-panel-top');const top=Math.max(8,panel.getBoundingClientRect().top);panel.style.top=top+'px';panel.style.bottom='auto';panel.style.setProperty('--body-panel-top',top+'px');}
@@ -573,6 +588,9 @@
       for(const [id,direction] of [['rotate-left',-1],['rotate-right',1]])$(id).addEventListener('click',()=>{
         renderer.setAutoRotate(renderer.autoRotateDirection===direction?0:direction,performance.now());cameraUi();persist();
       });
+      $('random-rotate').addEventListener('click',()=>{
+        renderer.setRandomRotate(!renderer.randomRotateEnabled,performance.now());cameraUi();persist();
+      });
       let fullscreenBusy=false;
       async function exitFullscreen() {
         if(!document.fullscreenElement||fullscreenBusy)return;
@@ -650,7 +668,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=0.47-r3','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=0.48-r1','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -725,12 +743,12 @@
       function pointerPosition(event) {const r=canvas.getBoundingClientRect();return {x:event.clientX-r.left,y:event.clientY-r.top};}
       canvas.addEventListener('pointerdown',event=>{
         if(event.pointerType==='mouse'&&event.button!==0&&event.button!==1&&event.button!==2)return;
-        // A wake-up click is not a drag: preserve automatic yaw until manual movement begins.
+        // Preserve the active rotation mode. Manual deltas add to its current view.
         renderer.cancelCameraTween(performance.now());
         const pan=event.pointerType==='mouse'&&event.button===1,dolly=event.pointerType==='mouse'&&event.button===2;
         if(pan||dolly)event.preventDefault();
         const p=pointerPosition(event);pointers.set(event.pointerId,p);canvas.setPointerCapture(event.pointerId);
-        if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,startAzimuth:renderer.camera.azimuth,startElevation:renderer.camera.elevation,startDolly:renderer.camera.dolly??1,mode:pan?'pan':dolly?'dolly':'orbit',moved:false};pinched=false;}
+        if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,startDolly:renderer.camera.dolly??1,mode:pan?'pan':dolly?'dolly':'orbit',moved:false};pinched=false;}
         if(zen&&pointers.size===3){setZen(false);pinched=true;if(drag)drag.moved=true;return;}
         if(pointers.size===2){clickGestures=0;const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchLevel=renderer.options.dollyZoom?(renderer.camera.dolly??1):renderer.camera.zoom;pinchOrigin={x:(a.x+b.x)/2,y:(a.y+b.y)/2,panX:renderer.camera.panX,panY:renderer.camera.panY};pinched=true;}
       });
@@ -742,12 +760,12 @@
           const [a,b]=[...pointers.values()];if(pinchDistance>0){const level=pinchLevel*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance;if(renderer.options.dollyZoom)renderer.setDolly(level,renderer.selected);else renderer.setZoom(level);}if(pinchOrigin){const centerX=(a.x+b.x)/2,centerY=(a.y+b.y)/2;renderer.setPan(pinchOrigin.panX+(centerX-pinchOrigin.x)/renderer.w,pinchOrigin.panY+(centerY-pinchOrigin.y)/renderer.h);}cameraUi();if(drag)drag.moved=true;return;
         }
         if(!drag)return;
-        const dx=p.x-drag.x,dy=p.y-drag.y;
+        const wasMoved=drag.moved,dx=p.x-drag.x,dy=p.y-drag.y;
         if(Math.hypot(p.x-drag.startX,p.y-drag.startY)>4)drag.moved=true;
         if(drag.moved&&!pinched){
           if(drag.mode==='pan')renderer.setPan(drag.startPanX+(p.x-drag.startX)/renderer.w,drag.startPanY+(p.y-drag.startY)/renderer.h);
           else if(drag.mode==='dolly')renderer.setDolly(drag.startDolly*Math.exp((drag.startY-p.y)*.006),renderer.selected);
-          else renderer.setOrbitView(drag.startAzimuth+(p.x-drag.startX)*.004,drag.startElevation+(p.y-drag.startY)*.003);
+          else renderer.rotateViewBy((wasMoved?dx:p.x-drag.startX)*.004,(wasMoved?dy:p.y-drag.startY)*.003,performance.now());
           cameraUi();canvas.classList.add('dragging');canvas.style.cursor=drag.mode==='pan'?'move':drag.mode==='dolly'?'ns-resize':'grabbing';
         }
         drag.x=p.x;drag.y=p.y;
@@ -862,6 +880,7 @@
         holdViewportLayers();viewportRevision++;renderer.resize();cameraUi();scheduleViewportSettle();
       }
       window.addEventListener('resize',refreshViewport,{passive:true});
+      const frameGate=window.SolarPerformance.createFrameGate();
       function frame(mono) {
         if(disposed||document.hidden){raf=0;return;}
         raf=requestAnimationFrame(frame);
@@ -869,7 +888,7 @@
           mono-(renderer.cameraChangeAt??-Infinity)<180||(!clock.live&&!clock.paused);
         const frameInterval=window.SolarPerformance?.frameInterval(window.innerWidth,window.innerHeight,activeMotion)??(1000/(activeMotion&&window.innerWidth>=680?60:30));
         const frameDelta=lastFrame?Math.max(0,mono-lastFrame):frameInterval;
-        if(frameDelta<frameInterval-.5)return;
+        if(!frameGate(mono,frameInterval,!lastFrame))return;
         const dt=lastFrame?frameDelta/1000:0;lastFrame=mono;
         window.SolarPerformance?.reportFrameTiming?.(frameDelta,frameInterval);
         if(!clock.paused)effectTime+=dt;
@@ -890,7 +909,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.47',revision:'r3',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.48',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,randomRotate:renderer.randomRotateEnabled,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

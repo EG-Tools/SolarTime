@@ -59,7 +59,7 @@ test('both regional clocks use DST, roll dates correctly and have distinct Earth
  assert.ok(Math.abs(regions.be.latitude-(50+50/60))<1e-8);assert.ok(Math.abs(regions.be.longitude-(4+20/60))<1e-8);
 });
 test('current Dutch release notes explain the addition without duplicating historical history',()=>{
- const api=require('../src/release-notes.js'),release=api.RELEASES[0];assert.equal(release.version,'0.47');
+ const api=require('../src/release-notes.js'),release=api.RELEASES.find(r=>r.version==='0.47');assert.equal(release.version,'0.47');
  const rows=api.itemsFor(release,'nl');assert.equal(rows.length,8);assert.ok(rows.some(s=>s.includes('België en Nederland')));
- assert.notEqual(rows,api.itemsFor(release,'en'));assert.equal(api.itemsFor(api.RELEASES[1],'nl'),api.itemsFor(api.RELEASES[1],'en'));
+ assert.notEqual(rows,api.itemsFor(release,'en'));assert.equal(api.itemsFor(api.RELEASES.find(r=>r.version==='0.46'),'nl'),api.itemsFor(api.RELEASES.find(r=>r.version==='0.46'),'en'));
 });

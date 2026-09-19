@@ -173,7 +173,8 @@
     "yearLimit": "已在 2999 年末停止，可返回实时模式。",
     "layoutDiagnostics": "布局诊断",
     "closeCard": "关闭",
-    "reloadPage": "重新加载"
+    "reloadPage": "重新加载",
+    "randomRotate": "随机旋转"
   },
   "bodies": {
     "sun": [

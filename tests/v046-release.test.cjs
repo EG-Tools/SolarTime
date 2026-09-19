@@ -7,13 +7,13 @@ function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createCo
 
 test('v0.46 page build stays consistent while unchanged coordinator keeps its bundle revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.ok(html.includes('name="solar-time-version" content="0.47"'));
+  assert.ok(html.includes('name="solar-time-version" content="0.48"'));
   assert.ok(html.includes('name="solar-time-revision" content="'+version.revision+'"'));
   assert.match(version.revision,/^r[1-9]\d*$/);
-  assert.equal(version.version,'0.47');
-  assert.equal(pkg.version,'0.0.47');
-  assert.ok(app.includes("version:'0.47',revision:'r3'"));
-  assert.ok(html.includes('src/app.js?v=0.47-r3'));
+  assert.equal(version.version,'0.48');
+  assert.equal(pkg.version,'0.0.48');
+  assert.ok(app.includes("version:'0.48',revision:'r1'"));
+  assert.ok(html.includes('src/app.js?v=0.48-r1'));
   assert.ok(html.includes('src/localization.js?v=0.47-r3'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
@@ -283,7 +283,7 @@ test('r16 removes avoidable renderer hot-path work and restores the watermark',(
 
 test('v0.46 r3 keeps compact LIVE status separate and treats iPhone safe areas as boundaries',()=>{
   const html=read('index.html'),css=read('src/runtime-optimizations.css');
-  assert.ok(html.includes('src/runtime-optimizations.css?v=0.47-'+JSON.parse(read('version.json')).revision));
+  assert.ok(html.includes('src/runtime-optimizations.css?v=0.48-'+JSON.parse(read('version.json')).revision));
   assert.match(css,/--solar-safe-left:env\(safe-area-inset-left,0px\)/);
   assert.match(css,/--solar-safe-right:env\(safe-area-inset-right,0px\)/);
   assert.match(css,/body\.zen \.clock-face\{top:max\(56px,calc\(var\(--solar-safe-top\) \+ 8px\)\)\}/);
@@ -294,14 +294,14 @@ test('v0.46 r3 keeps compact LIVE status separate and treats iPhone safe areas a
 test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js'),pipeline=read('tools/asset-pipeline.cjs');
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
-  const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.47');assert.deepEqual(notes.RELEASES.slice(0,5).map(r=>r.version),['0.47','0.46','0.45','0.43','0.42']);
+  const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.48');assert.deepEqual(notes.RELEASES.slice(0,5).map(r=>r.version),['0.48','0.47','0.46','0.45','0.43']);
   for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(notes.itemsFor(notes.RELEASES[0],code).length>0,code);
-  assert.ok(app.includes('src/release-notes.js?v=0.47-r3'));assert.ok(html.includes('<h3 id="release-notes-version">v0.47</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
+  assert.ok(app.includes('src/release-notes.js?v=0.48-r1'));assert.ok(html.includes('<h3 id="release-notes-version">v0.48</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
 
   assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));
-  for(const file of ['surface','renderer','performance'])assert.ok(html.includes('src/'+file+'.js?v=0.47-r1'),file);
-  assert.match(html,/src\/app\.js\?v=0\.47-r\d+(?:-[^\"']+)?/);
+  for(const file of ['surface','renderer','performance'])assert.ok(html.includes('src/'+file+'.js?v='+(file==='surface'?'0.47-r1':'0.48-r1')),file);
+  assert.match(html,/src\/app\.js\?v=0\.48-r\d+(?:-[^\"']+)?/);
   assert.deepEqual(assetRevision,{version:'assetpack-20260918-r1'});
   assert.equal(manifest.revision,'assetpack-20260918-r1');
   for(const entry of Object.values(manifest.materials))assert.equal(entry.seamBaked,true,entry.source);

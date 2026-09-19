@@ -173,7 +173,8 @@
     "yearLimit": "Am Ende des Jahres 2999 angehalten.",
     "layoutDiagnostics": "Layout-Diagnose",
     "closeCard": "Schließen",
-    "reloadPage": "Neu laden"
+    "reloadPage": "Neu laden",
+    "randomRotate": "Zufällige Drehung"
   },
   "bodies": {
     "sun": [

@@ -173,7 +173,8 @@
     "yearLimit": "Arrêt à la fin de l’année 2999.",
     "layoutDiagnostics": "Diagnostic d’affichage",
     "closeCard": "Fermer",
-    "reloadPage": "Recharger"
+    "reloadPage": "Recharger",
+    "randomRotate": "Rotation aléatoire"
   },
   "bodies": {
     "sun": [
