@@ -173,7 +173,8 @@
     "yearLimit": "Gestopt aan het einde van het jaar 2999. Je kunt terugkeren naar Actuele tijd.",
     "layoutDiagnostics": "Lay-outdiagnose",
     "closeCard": "Sluiten",
-    "reloadPage": "Opnieuw laden"
+    "reloadPage": "Opnieuw laden",
+    "randomRotate": "Willekeurige rotatie"
   },
   "bodies": {
     "sun": ["Zon", "Een ster die voornamelijk uit waterstof en helium bestaat. Kernfusie in de kern levert energie in de vorm van heet plasma en licht."],

@@ -1,5 +1,13 @@
 # Maintenance changelog
 
+## v0.48 r1 · 2026-09-19
+
+- Country inspection starts at a 250× Zoom reference; Move mode keeps its wheel mode with an equivalent Earth radius. Manual wheel range is unchanged.
+- Added the shared-style crossed-orbits random rotation toggle below Rotate left. The existing camera owner integrates smoothly changing yaw/pitch; no extra rAF, zoom or star regeneration. Manual orbit drag, wheel and presets preserve its intent. Pointer deltas are added to the current camera, including beyond both poles and across the +/-180 wrap, without snapping back to pointerdown angles. Random mode starts OFF on a new page.
+- Kept per-launch random stars, r2 tiny-star filter, approved star colours, iPhone status-bar default and all common card surfaces.
+- Reuse stat DOM nodes and cache static body information. Preserve dynamic orbital values.
+- Preserve frame deadlines across 90/144/165 Hz callbacks, without changing actual animation time or adaptive frame-rate policy.
+
 ## v0.47 r3 · 2026-09-19
 
 - Added Netherlands (NL) and Belgium (BE) with one complete shared Dutch locale.

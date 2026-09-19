@@ -173,7 +173,8 @@
     "yearLimit": "वर्ष 2999 के अंत पर रुक गया।",
     "layoutDiagnostics": "लेआउट जाँच",
     "closeCard": "बंद करें",
-    "reloadPage": "फिर से लोड करें"
+    "reloadPage": "फिर से लोड करें",
+    "randomRotate": "यादृच्छिक घुमाव"
   },
   "bodies": {
     "sun": [

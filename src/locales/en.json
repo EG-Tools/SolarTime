@@ -173,7 +173,8 @@
     "yearLimit": "Stopped at the end of year 2999. You can return to Real time.",
     "layoutDiagnostics": "Layout diagnostics",
     "closeCard": "Close",
-    "reloadPage": "Reload"
+    "reloadPage": "Reload",
+    "randomRotate": "Random rotation"
   },
   "bodies": {
     "sun": [

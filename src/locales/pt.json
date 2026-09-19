@@ -173,7 +173,8 @@
     "yearLimit": "Parou no fim do ano 2999. Pode regressar à Hora real.",
     "layoutDiagnostics": "Diagnóstico de layout",
     "closeCard": "Fechar",
-    "reloadPage": "Recarregar"
+    "reloadPage": "Recarregar",
+    "randomRotate": "Rotação aleatória"
   },
   "bodies": {
     "sun": [

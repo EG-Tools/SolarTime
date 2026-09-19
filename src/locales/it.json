@@ -173,7 +173,8 @@
     "yearLimit": "Arresto alla fine dell’anno 2999. Puoi tornare a Ora reale.",
     "layoutDiagnostics": "Diagnostica del layout",
     "closeCard": "Chiudi",
-    "reloadPage": "Ricarica"
+    "reloadPage": "Ricarica",
+    "randomRotate": "Rotazione casuale"
   },
   "bodies": {
     "sun": [

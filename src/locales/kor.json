@@ -173,7 +173,8 @@
     "yearLimit": "2999년 끝에 도달해 정지했습니다. 실제 시간으로 돌아갈 수 있습니다.",
     "layoutDiagnostics": "화면 진단",
     "closeCard": "닫기",
-    "reloadPage": "새로고침"
+    "reloadPage": "새로고침",
+    "randomRotate": "랜덤 회전"
   },
   "bodies": {},
   "phases": {}
