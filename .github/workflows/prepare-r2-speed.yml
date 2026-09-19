@@ -1,0 +1,33 @@
+name: Prepare constant-speed random rotation fix
+on:
+  push:
+    branches: [release/v0.48-r2-speed]
+    paths: ['tools/prepare-r2-speed.cjs', 'tools/r2-speed.part*', '.github/workflows/prepare-r2-speed.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node tools/prepare-r2-speed.cjs
+      - run: npm test
+      - run: npm run build:cloudflare
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r2-source-hashes
+          path: .cloudflare/r2-preparation.json
+          include-hidden-files: true
+          retention-days: 7
+      - name: Save tested source on isolated branch and remove one-time preparation files
+        run: |
+          git rm -- tools/prepare-r2-speed.cjs tools/r2-speed.part0 tools/r2-speed.part1 tools/r2-speed.part2 tools/r2-speed.part3 .github/workflows/prepare-r2-speed.yml
+          git add --update
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Fix random rotation startup and keep the same constant speed as left/right (v0.48 r2)'
+          git push origin HEAD:refs/heads/release/v0.48-r2-speed
