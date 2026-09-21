@@ -67,6 +67,10 @@ def suite(browser,root,size,installed):
  check(surface(page,'#body-panel')==settings_surface,tag+' body surface')
  page.locator('#body-close').click()
  if size==(1280,800):
+  # Freeze the user's optional overview rotation while checking that eclipse and
+  # alignment navigation do not initiate their own camera move. Otherwise the
+  # continuously rotating default camera can advance between two snapshots.
+  page.evaluate('SolarTime.renderer.setAutoRotate(0, performance.now())')
   page.locator('[data-body="moon"]').click();page.wait_for_timeout(100)
   check(page.locator('#eclipse-control').is_visible(),tag+' Moon eclipse controls')
   page.wait_for_function('!SolarTime.renderer.cameraTween',timeout=7000)
