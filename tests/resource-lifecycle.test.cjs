@@ -67,7 +67,7 @@ test('visible texture plans fit the mobile budget while preserving tracked detai
 });
 function languageHarness(detected='kor',detectedCopy=detected){
  const requests={},messages=[],noop=()=>{},loads=[];
- const context={LANG_ORDER:['kor','en','jpn'],LANG_META:{kor:{copy:'kor'},en:{copy:'en'},jpn:{copy:'jpn'}},language:'kor',languageMode:'manual',detectedLanguage:()=>detected,detectedCopyLanguage:()=>detectedCopy,disposed:false,hydrateLanguage:(region,copy)=>new Promise((resolve,reject)=>{loads.push({region,copy});requests[region]={resolve,reject};}),toast:value=>messages.push(value),renderer:{setSite:noop},activeRegion:noop,translateStatic:noop,renderReleaseNotes:noop,refreshTimeFormats:noop,refreshNavLabels:noop,presetUi:noop,cameraUi:noop,syncSpeedUi:noop,presetAction:null,bodies:[],uiNow:noop,persist:noop,helpDialog:{open:false}};
+ const context={LANG_ORDER:['kor','en','jpn'],LANG_META:{kor:{copy:'kor'},en:{copy:'en'},jpn:{copy:'jpn'}},REGIONS:{kor:{timeZone:'Asia/Seoul'},en:{timeZone:'America/New_York'},jpn:{timeZone:'Asia/Tokyo'}},language:'kor',languageMode:'manual',activeCopyCode:'kor',autoTimeZone:'Asia/Seoul',detectedLanguage:()=>detected,detectedCopyLanguage:()=>detectedCopy,detectedTimeZone:()=>detected==='jpn'?'Asia/Tokyo':'Asia/Seoul',disposed:false,hydrateLanguage:(region,copy)=>new Promise((resolve,reject)=>{loads.push({region,copy});requests[region]={resolve,reject};}),toast:value=>messages.push(value),renderer:{setSite:noop},activeRegion:()=>context.REGIONS[context.language],translateStatic:noop,renderReleaseNotes:noop,refreshTimeFormats:noop,refreshNavLabels:noop,presetUi:noop,cameraUi:noop,syncSpeedUi:noop,presetAction:null,bodies:[],uiNow:noop,persist:noop,helpDialog:{open:false}};
  const code=read('src/app.js'),a=code.indexOf('      let languageRequest='),b=code.indexOf('      const languageControl=',a);
  vm.createContext(context);vm.runInContext(code.slice(a,b),context);return {context,requests,messages,loads};
 }
@@ -87,4 +87,11 @@ test('automatic language follows browser detection and manual choices opt out',a
 test('automatic mode loads browser copy independently from the detected country',async()=>{
  const {context:c,requests:r,loads}=languageHarness('kor','en'),automatic=c.setLanguage('auto');r.kor.resolve();await automatic;
  assert.equal(c.language,'kor');assert.equal(c.languageMode,'auto');assert.deepEqual(loads,[{region:'kor',copy:'en'}]);
+});
+test('same AUTO country reloads changed browser copy and keeps the last successful language on failure',async()=>{
+ const {context:c,requests:r,messages,loads}=languageHarness('kor','en');c.languageMode='auto';c.activeCopyCode='en';
+ c.detectedCopyLanguage=()=> 'jpn';const changed=c.setLanguage('auto');r.kor.resolve();await changed;
+ assert.equal(c.language,'kor');assert.equal(c.activeCopyCode,'jpn');assert.deepEqual(loads,[{region:'kor',copy:'jpn'}]);
+ c.detectedCopyLanguage=()=> 'en';const failed=c.setLanguage('auto');r.kor.reject(Error('offline'));await failed;
+ assert.equal(c.activeCopyCode,'jpn');assert.deepEqual(messages,['offline']);
 });

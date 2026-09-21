@@ -117,7 +117,7 @@ test('r10 adds Indonesia and keeps every country on the existing regional-time p
   assert.ok(app.includes("id:{label:'INDONESIA',timeZone:'Asia/Jakarta'"));
   assert.ok(app.includes("eu:{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'}"));
   assert.ok(app.includes("eu:{label:'UNITED KINGDOM',timeZone:'Europe/London'"));
-  assert.match(app,/language=target;languageMode=mode;renderer\.setSite\(activeRegion\(\)\);translateStatic\(\);renderReleaseNotes\(\);refreshTimeFormats\(\)/);
+  assert.match(app,/language=target;languageMode=mode;activeCopyCode=targetCopy;if\(automatic\)autoTimeZone=targetTimeZone;renderer\.setSite\(activeRegion\(\)\);translateStatic\(\);renderReleaseNotes\(\);refreshTimeFormats\(\)/);
   assert.match(localization,/jakarta\|pontianak\|makassar\|ujung_pandang\|jayapura/);
   assert.ok(loader.includes("'pt','it','id'"));
   for(const code of ['pt','br','it','mx','id'])assert.ok(html.includes('data-language="'+code+'"'));

@@ -28,3 +28,30 @@ test('satellite orbit geometry is normalized and zoom is a draw transform',()=>{
   for(let i=0;i<40;i++)assert.equal(instance.satelliteOrbitModel(A.MOON,ms),first);
   assert.equal(instance.stats.orbitBufferBuilds,builds);
 });
+
+test('alignment dates use the selected clock zone without moving the physical event',()=>{
+  const app=read('src/app.js'),astro=read('src/astro.js');
+  assert.match(app,/output\.textContent=available&&alignmentTarget\?compactDay\(alignmentTarget\.ms\):'—'/);
+  assert.match(app,/compactDate\(alignmentTarget\.ms\).*activeTimeZone\(\)/);
+  assert.match(astro,/\['2048-05-28T00:00:00\.000Z'/);
+});
+
+test('Pluto display orbit reuses bounded five-year paths while its body position stays independent',()=>{
+  const source=read('src/renderer.js'),pluto=A.BODIES.find(body=>body.id==='pluto');let builds=0;
+  const fakeA={...A,orbitAt(body,ms,count){builds++;return Object.freeze([{x:ms,y:count,z:0}]);}},window={SolarAstro:null};window.SolarAstro=fakeA;
+  vm.runInNewContext(source,{window,performance});
+  const instance=Object.create(window.SolarRenderer.prototype);instance.precisionOrbitPathCache=new Map();
+  const first=instance.orbitPath(pluto,Date.UTC(2080,0,1)),sameBucket=instance.orbitPath(pluto,Date.UTC(2084,11,31)),nextBucket=instance.orbitPath(pluto,Date.UTC(2085,0,1));
+  assert.equal(first,sameBucket);assert.notEqual(first,nextBucket);assert.equal(builds,2);
+  builds=0;instance.precisionOrbitPathCache.clear();for(let year=2080;year<2110;year++)instance.orbitPath(pluto,Date.UTC(year,0,1));
+  assert.equal(builds,6,'thirty changing years build six display paths instead of thirty');
+  for(let year=2100;year<2160;year+=5)instance.orbitPath(pluto,Date.UTC(year,0,1));
+  assert.equal(instance.precisionOrbitPathCache.size,6);
+  assert.match(source,/actual body position remains precision-evaluated every frame/);
+});
+
+test('inactive speed slider exposes its configured value as pending',()=>{
+  const app=read('src/app.js');
+  assert.match(app,/active=!clock\.live&&Math\.abs\(clock\.rate-cfg\.rate\(speedValues\[speedMode\]\)\)<1e-9/);
+  assert.match(app,/aria-valuetext',active\?selectedText:t\('speedUnitReady',\{unit:selectedText\}\)/);
+});

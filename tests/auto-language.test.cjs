@@ -16,10 +16,28 @@ test('automatic label follows browser language and stays independent from app ch
 
 test('automatic country follows timezone while automatic copy follows browser preference',()=>{
  const source=read('src/localization.js'),window={};
- const DateTimeFormat=()=>({resolvedOptions:()=>({timeZone:'Asia/Seoul'})});
+ const DateTimeFormat=()=>({resolvedOptions:()=>({timeZone:'Asia/Seoul'}),format:()=>''});
  vm.runInNewContext(source,{window,navigator:{languages:['en-US','ko-KR'],language:'en-US'},Intl:{DateTimeFormat}});
  assert.equal(window.SolarModules.Localization.detect(),'kor');
  assert.equal(window.SolarModules.Localization.detectCopy(),'en');
+ assert.equal(window.SolarModules.Localization.detectTimeZone(),'Asia/Seoul');
+});
+
+test('automatic mode keeps loaded copy stable and refreshes browser language atomically',()=>{
+ const app=read('src/app.js');
+ assert.match(app,/activeCopyCode=detectedCopyLanguage\(\),autoTimeZone=detectedTimeZone\(\)/);
+ assert.match(app,/const copyLanguage=\(\)=>activeCopyCode/);
+ assert.match(app,/targetCopy===activeCopyCode/);
+ assert.match(app,/await hydrateLanguage\(target,targetCopy\)/);
+ assert.match(app,/activeCopyCode=targetCopy/);
+ assert.match(app,/addEventListener\('languagechange',[^]*setLanguage\('auto'\)/);
+ assert.doesNotMatch(app,/const copyLanguage=\(\)=>languageMode==='auto'\?detectedCopyLanguage/);
+});
+
+test('automatic time uses the validated device zone while manual countries retain representative zones',()=>{
+ const app=read('src/app.js');
+ assert.match(app,/languageMode==='auto'\?autoTimeZone:activeRegion\(\)\.timeZone/);
+ assert.match(app,/detectedTimeZone\(\)\|\|REGIONS\[target\]\?\.timeZone/);
 });
 
 test('new users and factory reset use automatic mode while old saved countries remain manual',()=>{
@@ -27,6 +45,6 @@ test('new users and factory reset use automatic mode while old saved countries r
  assert.match(app,/language=detectedLanguage\(\),languageMode='auto'/);assert.match(app,/language,languageMode,camera:/);
  assert.match(app,/language=nextLanguage;languageMode='auto'/);
  assert.match(app,/saved\.languageMode==='auto'/);assert.match(app,/languageMode='manual'/);
- assert.match(app,/languageMode==='auto'\?detectedCopyLanguage\(\)/);
+ assert.match(app,/activeCopyCode=languageMode==='auto'\?detectedCopyLanguage\(\)/);
  assert.match(app,/languageMode==='auto'\?languageMenu\.querySelector\('\[data-language-auto\]'\)/);
 });

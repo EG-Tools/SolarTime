@@ -17,6 +17,7 @@
   const RANDOM_ROTATION=2;
   const AUTO_ROTATE_SPEED=1.8*DEG; // radians per real second; independent of orbital time
   const ORBIT_REVEAL=Object.freeze({duration:1400});
+  const PRECISION_ORBIT=Object.freeze({bucketYears:5,cacheEntries:6});
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
   const TRUE_RADIUS_KM=Object.freeze({sun:696340,mercury:2439.7,venus:6051.8,earth:6371,mars:3389.5,jupiter:69911,saturn:58232,uranus:25362,neptune:24622,pluto:1188.3,moon:1737.4,europa:1560.8});
   const TRUE_SCALE_SUN_SIZE=67.2;
@@ -45,7 +46,7 @@
       this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.rotationGeneration=0;this.actualScaleMix=0;this.actualScaleTween=null;this.projectionAnchor=null;
       this.surface=this.gpu||new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
       this.labelStates=new Map();this.lastLabelMono=null;this.labelWidths=new Map();this.labelBodyMap=new Map();this.labelOrdered=[];this.labelReserved=[];this.labelActive=new Set();this.labelObstacleMap=new Map();this.labelCandidateMap=new Map();
-      this.orbitCache=new WeakMap();this.orbitModelCache=new WeakMap();this.satelliteOrbitCache=new Map();this.frameCache=new Map();this.starSprites=new Map();
+      this.orbitCache=new WeakMap();this.orbitModelCache=new WeakMap();this.satelliteOrbitCache=new Map();this.precisionOrbitPathCache=new Map();this.frameCache=new Map();this.starSprites=new Map();
       this.frameBodies=[];this.surfaceBodies=[];this.directBodies=[];this.labelBodies=[];this.satelliteLayouts=[];this.compatSurfaceJobs=[];
       this.frameItems=new Map();this.frameSerial=0;
       this.stats={orbitProjections:0,orbitBufferBuilds:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
@@ -411,9 +412,22 @@
       const displayRadius=orbitRadius*this.solarOrbitHierarchyScale()+(this.solarOrbitOffset||0),scale=displayRadius/radius;
       out.x=physical.x*scale;out.y=physical.y*scale;out.z=physical.z*scale;return out;
     }
+    orbitPath(body,ms,count=360) {
+      if(body.id!=='pluto')return {body,points:A.orbitAt(body,ms,count)};
+      // Pluto's precision path evaluates hundreds of VSOP/gravity samples. Its
+      // displayed 248-year orbit changes imperceptibly within a five-year bucket,
+      // while its actual body position remains precision-evaluated every frame.
+      const year=new Date(ms).getUTCFullYear(),bucket=1800+Math.floor((year-1800)/PRECISION_ORBIT.bucketYears)*PRECISION_ORBIT.bucketYears,key=`${bucket}:${count}`;
+      let path=this.precisionOrbitPathCache.get(key);
+      if(path){this.precisionOrbitPathCache.delete(key);this.precisionOrbitPathCache.set(key,path);return path;}
+      const sampleMs=clamp(Date.UTC(bucket+Math.floor(PRECISION_ORBIT.bucketYears/2),6,1),A.MIN_TIME,A.MAX_TIME);
+      path={body,points:A.orbitAt(body,sampleMs,count)};this.precisionOrbitPathCache.set(key,path);
+      while(this.precisionOrbitPathCache.size>PRECISION_ORBIT.cacheEntries)this.precisionOrbitPathCache.delete(this.precisionOrbitPathCache.keys().next().value);
+      return path;
+    }
     rebuild(ms) {
       const pathKey=A.modelYear(ms)+':'+this.options.pluto;
-      if(this.pathKey!==pathKey){this.paths=this.getBodies().map(body=>({body,points:A.orbitAt(body,ms,360)}));this.pathKey=pathKey;}
+      if(this.pathKey!==pathKey){this.paths=this.getBodies().map(body=>this.orbitPath(body,ms,360));this.pathKey=pathKey;}
       const mobile=this.w<680,compact=this.h<630;
       const left=mobile?24:58,right=this.w-(mobile?24:58),top=compact?100:mobile?192:190,bottom=this.h-(compact?105:mobile?195:190);
       const baseY=(top+bottom)/2+this.h*VIEW.lowerBy,fitY=Math.max(80,2*Math.min(baseY-top,bottom-baseY));
@@ -832,7 +846,7 @@
       this.surface?.pause();this.sky?.pause?.();
     }
     resume() {if(!this.surface)this.surface=this.gpu||new window.SolarSurface.Service();this.surface.resume();this.sky?.resume?.();}
-    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets.length=0;this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.labelWidths.clear();this.labelBodyMap.clear();this.labelOrdered.length=0;this.labelReserved.length=0;this.labelActive.clear();this.labelObstacleMap.clear();this.labelCandidateMap.clear();this.frameItems.clear();this.frameBodies.length=this.surfaceBodies.length=this.directBodies.length=this.labelBodies.length=this.satelliteLayouts.length=this.compatSurfaceJobs.length=0;this.orbitCache=new WeakMap();this.sky?.dispose();}
+    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets.length=0;this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.precisionOrbitPathCache.clear();this.labelWidths.clear();this.labelBodyMap.clear();this.labelOrdered.length=0;this.labelReserved.length=0;this.labelActive.clear();this.labelObstacleMap.clear();this.labelCandidateMap.clear();this.frameItems.clear();this.frameBodies.length=this.surfaceBodies.length=this.directBodies.length=this.labelBodies.length=this.satelliteLayouts.length=this.compatSurfaceJobs.length=0;this.orbitCache=new WeakMap();this.sky?.dispose();}
     makeCoronaTexture(size=384) {
       // One shared public-site filament texture. Direct rendering uploads it once
       // to WebGL; the compatibility renderer draws it directly.

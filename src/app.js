@@ -114,7 +114,7 @@
     {title:'Near-Silence',file:'06 - Near-Silence.mp3'},
     {title:'Weightless Emptiness',file:'07 - Weightless Emptiness.mp3'}
   ]);
-  const detectedLanguage=Localization.detect,detectedCopyLanguage=Localization.detectCopy;
+  const detectedLanguage=Localization.detect,detectedCopyLanguage=Localization.detectCopy,detectedTimeZone=Localization.detectTimeZone;
   // Country owns the clock/site while copy owns the interface language. In
   // automatic mode they may deliberately differ (for example an English
   // browser in Seoul still tracks Korea, but reads an English interface).
@@ -164,11 +164,12 @@
       const renderer=new window.SolarRenderer($('starfield'),$('universe'));
       Object.assign(renderer.options,FACTORY_OPTIONS);renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
       const clock=new A.SimulationClock(Date.now(),performance.now());
-      let timezone='local',showSeconds=false,hourCycle='12',language=detectedLanguage(),languageMode='auto',zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
+      let timezone='local',showSeconds=false,hourCycle='12',language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
       let speedMode='day',speedValues={hour:1,day:1,year:1};
       const activeRegion=()=>REGIONS[language]||REGIONS.kor;
-      const activeTimeZone=()=>timezone==='utc'?'UTC':activeRegion().timeZone;
-      const copyLanguage=()=>languageMode==='auto'?detectedCopyLanguage():(LANG_META[language]?.copy||'kor');
+      autoTimeZone=autoTimeZone||activeRegion().timeZone;
+      const activeTimeZone=()=>timezone==='utc'?'UTC':languageMode==='auto'?autoTimeZone:activeRegion().timeZone;
+      const copyLanguage=()=>activeCopyCode;
       const copyMeta=()=>COPY_META[copyLanguage()]||COPY_META.en;
       const t=(key,values)=>interpolate(COPY[copyLanguage()]?.[key]??COPY.kor?.[key]??key,values);
       const bodyCopy=body=>copyLanguage()==='kor'?{name:body.ko,description:body.description}:{name:BODY_COPY[copyLanguage()]?.[body.id]?.[0]||body.en,description:BODY_COPY[copyLanguage()]?.[body.id]?.[1]||body.description};
@@ -247,7 +248,9 @@
           }
         }
       } catch (_) { /* Private browsing, corrupt JSON and blocked storage must not break the clock. */ }
-      await hydrateLanguage(language,copyLanguage());
+      activeCopyCode=languageMode==='auto'?detectedCopyLanguage():(LANG_META[language]?.copy||'kor');
+      if(languageMode==='auto')autoTimeZone=detectedTimeZone()||activeRegion().timeZone;
+      await hydrateLanguage(language,activeCopyCode);
       overviewCamera={...renderer.cameraSnapshot(),focus:null};
       renderer.setOption('actualScale',renderer.options.actualScale,false);
       renderer.setOption('dollyZoom',renderer.options.dollyZoom,false);
@@ -389,6 +392,7 @@
       const two=v=>String(v).padStart(2,'0');
       function refreshTimeFormats(){dateFormatter=realFormat();wallPartsFormatter=partFormat();}
       function dateParts(ms) {const values={};for(const part of wallPartsFormatter.formatToParts(new Date(ms)))if(part.type!=='literal')values[part.type]=Number(part.value);return {y:values.year,mo:values.month,d:values.day,h:values.hour,mi:values.minute,s:values.second};}
+      function compactDay(ms) {const d=dateParts(ms);return `${d.y}.${two(d.mo)}.${two(d.d)}`;}
       function compactDate(ms) {const d=dateParts(ms);return `${d.y}.${two(d.mo)}.${two(d.d)}  ${two(d.h)}:${two(d.mi)}`;}
       function updateWall(wall) {
         const p=dateParts(wall),key=[p.y,p.mo,p.d,p.h,p.mi,showSeconds?p.s:0,timezone,showSeconds,hourCycle].join('-');if(key===lastWallKey)return;lastWallKey=key;
@@ -472,12 +476,12 @@
       function syncAlignmentControl(bodyId=renderer.selected) {
         const available=bodyId==='sun',output=$('alignment-date');
         $('alignment-control').hidden=!available;
-        output.textContent=available&&alignmentTarget?alignmentTarget.date.replaceAll('-','.'):'—';
+        output.textContent=available&&alignmentTarget?compactDay(alignmentTarget.ms):'—';
         output.classList.toggle('space-alignment',available&&alignmentTarget?.kind==='space');
         output.classList.toggle('sky-alignment',available&&alignmentTarget?.kind==='sky');
         if(available&&alignmentTarget){
           const names=alignmentTarget.planets.map(id=>{const body=bodies.find(value=>value.id===id);return body?bodyCopy(body).name:id;});
-          output.title=`${alignmentTarget.planets.length} · ${names.join(' · ')}`;
+          output.title=`${compactDate(alignmentTarget.ms)} · ${activeTimeZone()} · ${alignmentTarget.planets.length} · ${names.join(' · ')}`;
         }else output.removeAttribute('title');
       }
       function travelToAlignment(direction) {
@@ -557,10 +561,11 @@
       function syncSpeedUi(){
         const cfg=SPEED_MODES[speedMode],slider=$('speed-slider'),button=$('speed-mode-button');
         slider.min=cfg.min;slider.max=cfg.max;slider.step=cfg.step;slider.value=speedValues[speedMode];
-        slider.setAttribute('aria-valuetext',speedText());
+        const selectedText=speedText(),active=!clock.live&&Math.abs(clock.rate-cfg.rate(speedValues[speedMode]))<1e-9;
+        slider.setAttribute('aria-valuetext',active?selectedText:t('speedUnitReady',{unit:selectedText}));
         const label=t(speedMode==='hour'?'hourUnit':speedMode==='day'?'dayUnit':'yearUnit');
         button.textContent=label;button.dataset.speedMode=speedMode;
-        const active=!clock.live;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
+        button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
         button.setAttribute('aria-label',t(active?'speedUnitActive':'speedUnitReady',{unit:label}));
       }
       function applySpeed(value=speedValues[speedMode]){
@@ -625,15 +630,15 @@
       const resetDefaultsDialog=$('reset-defaults-dialog');
       function closeResetDefaults(restoreFocus=true){if(resetDefaultsDialog.open)hideFading(resetDefaultsDialog,()=>resetDefaultsDialog.close());if(restoreFocus)$('reset-defaults').focus({preventScroll:true});}
       async function applyFactoryDefaults(){
-        const nextLanguage=detectedLanguage(),request=++languageRequest;
-        try{await hydrateLanguage(nextLanguage,detectedCopyLanguage());}catch(error){if(request===languageRequest&&!disposed)toast(error.message);return;}
+        const nextLanguage=detectedLanguage(),nextCopy=detectedCopyLanguage(),nextTimeZone=detectedTimeZone()||REGIONS[nextLanguage]?.timeZone||'UTC',request=++languageRequest;
+        try{await hydrateLanguage(nextLanguage,nextCopy);}catch(error){if(request===languageRequest&&!disposed)toast(error.message);return;}
         if(request!==languageRequest||disposed)return;
         const mono=performance.now();closeResetDefaults(false);renderer.cancelCameraMotion(mono);renderer.stopAutoRotate(mono);
         for(const [key,value] of Object.entries(FACTORY_OPTIONS))renderer.setOption(key,value,false);
         window.SolarVisualEffects?.regenerateStars?.(renderer.sky);
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
         renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();
-        timezone='local';showSeconds=false;hourCycle='12';clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';
+        timezone='local';showSeconds=false;hourCycle='12';clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;
         renderer.setSite(activeRegion());for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
         $('show-seconds').checked=showSeconds;$('seconds-group').hidden=true;$('ampm').hidden=false;syncHourCycleUi();
         $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
@@ -789,12 +794,13 @@
       async function setLanguage(next){
         const automatic=next==='auto',target=automatic?detectedLanguage():next,mode=automatic?'auto':'manual';
         const targetCopy=automatic?detectedCopyLanguage():(LANG_META[target]?.copy||'kor');
+        const targetTimeZone=automatic?(detectedTimeZone()||REGIONS[target]?.timeZone||'UTC'):autoTimeZone;
         if(!LANG_ORDER.includes(target))return;
         const request=++languageRequest;
-        if(target===language&&mode===languageMode){translateStatic();persist();return;}
+        if(target===language&&mode===languageMode&&targetCopy===activeCopyCode&&(!automatic||targetTimeZone===autoTimeZone)){translateStatic();persist();return;}
         try{await hydrateLanguage(target,targetCopy);}catch(error){if(request===languageRequest&&!disposed)toast(error.message);return;}
         if(request!==languageRequest||disposed)return;
-        language=target;languageMode=mode;renderer.setSite(activeRegion());translateStatic();renderReleaseNotes();refreshTimeFormats();lastWallKey='';
+        language=target;languageMode=mode;activeCopyCode=targetCopy;if(automatic)autoTimeZone=targetTimeZone;renderer.setSite(activeRegion());translateStatic();renderReleaseNotes();refreshTimeFormats();lastWallKey='';
         refreshNavLabels();presetUi();cameraUi();syncSpeedUi();
         if(presetAction){const value=cameraPresets[presetAction.index];$('preset-title').textContent=t('presetTitle',{n:presetAction.index+1});$('preset-note').textContent=t(value?'presetSavedNote':'presetEmptyNote');}
         const selected=bodies.find(body=>body.id===renderer.selected);
@@ -812,6 +818,7 @@
       languageToggle.addEventListener('click',()=>uiElementVisible(languageMenu)?closeLanguageMenu():openLanguageMenu());
       languageMenu.querySelector('[data-language-auto]').addEventListener('click',()=>{closeLanguageMenu(true);setLanguage('auto');});
       for(const option of languageMenu.querySelectorAll('[data-language]'))option.addEventListener('click',()=>{const next=option.dataset.language;closeLanguageMenu(true);setLanguage(next);});
+      window.addEventListener('languagechange',()=>{if(disposed)return;if(languageMode==='auto')setLanguage('auto').catch(fatal);else translateStatic();});
       languageMenu.addEventListener('keydown',event=>{
         const options=[...languageMenu.querySelectorAll('[role="menuitemradio"]')],index=options.indexOf(document.activeElement);let next=-1;
         if(event.key==='ArrowDown')next=(index+1)%options.length;else if(event.key==='ArrowUp')next=(index-1+options.length)%options.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=options.length-1;else return;

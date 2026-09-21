@@ -70,6 +70,14 @@
     for(const language of languages)for(const [pattern,code] of patterns)if(pattern.test(language))return code;
     return 'en';
   }
+  function detectTimeZone(){
+    try{
+      const timeZone=Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if(typeof timeZone!=='string'||!timeZone)return null;
+      // Validate browser- or test-supplied values before they reach every clock formatter.
+      Intl.DateTimeFormat('en-US',{timeZone}).format(0);return timeZone;
+    }catch(_){return null;}
+  }
   function automaticLanguageLabel(){return AUTO_LANGUAGE_LABELS[detectCopy()]||AUTO_LANGUAGE_LABELS.en;}
   function apply(document,translate){
     for(const element of document.querySelectorAll('[data-i18n]'))element.textContent=translate(element.dataset.i18n);
@@ -77,5 +85,5 @@
     for(const element of document.querySelectorAll('[data-i18n-title]'))element.title=translate(element.dataset.i18nTitle);
     for(const element of document.querySelectorAll('[data-i18n-content]'))element.setAttribute('content',translate(element.dataset.i18nContent));
   }
-  modules.Localization=Object.freeze({detect,detectCopy,automaticLanguageLabel,interpolate,apply});
+  modules.Localization=Object.freeze({detect,detectCopy,detectTimeZone,automaticLanguageLabel,interpolate,apply});
 })(window);
