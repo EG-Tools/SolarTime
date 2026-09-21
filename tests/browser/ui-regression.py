@@ -11,7 +11,7 @@ image=png()
 def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seoul'):
  context=browser.new_context(viewport=dict(width=size[0],height=size[1]),locale=locale,timezone_id=timezone_id,reduced_motion='reduce',has_touch=standalone)
  page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
- html=(root/'index.html').read_text();scripts=re.findall(r'<script[^>]+src="([^"]+)"[^>]*></script>',html)
+ html=(root/'index.html').read_text();scripts=[src for src in re.findall(r'<script[^>]+src="([^"]+)"[^>]*></script>',html) if not urlparse(src).scheme]
  html=re.sub(r'<script[^>]+src="[^"]+"[^>]*></script>','',html)
  html=re.sub(r'<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"[^>]*>',lambda m:'<style>'+ (root/m[1].split('?')[0]).read_text()+'</style>',html)
  html=re.sub(r'<link[^>]*>','',html);html=html.replace('<head>','<head><base href="https://solar.test/">')

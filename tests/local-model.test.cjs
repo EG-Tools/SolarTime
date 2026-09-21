@@ -3,8 +3,8 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const A=require('../src/astro.js'),all=[A.SUN,...A.BODIES,A.MOON],signed=n=>A.wrap(n+Math.PI)-Math.PI;
 const close=(a,b,tol=1e-8)=>assert.ok(Math.abs(a-b)<tol,`${a} != ${b}`);
 
-// Static code stays local. The install icon is the sole remote <link> exception;
-// its origin and object path come from the same configuration as the media CDN.
+// Static application code stays local. The Cloudflare analytics beacon and the
+// install icon are the only remote markup exceptions.
 function assertStaticAssetLinks(html,deployment){
  const prefix=String(deployment.prefix||'releases').replace(/^\/+|\/+$/g,'');
  const expected=new URL(prefix+'/content/ui/apple-touch-icon.png',deployment.cdnBase);
@@ -14,6 +14,12 @@ function assertStaticAssetLinks(html,deployment){
    attrs[attr[1].toLowerCase()]=attr[2]??attr[3]??attr[4];
   const address=String(attrs[kind==='link'?'href':'src']||'').trim();
   if(!/^(?:https?:|\/\/)/i.test(address))continue;
+  if(kind==='script'){
+   assert.equal(address,'https://static.cloudflareinsights.com/beacon.min.js','Only the Cloudflare analytics beacon may be remote');
+   assert.equal(String(attrs.type||'').toLowerCase(),'module','The analytics beacon must use the dashboard snippet type');
+   assert.equal(attrs['data-cf-beacon'],'{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}','Unexpected Cloudflare analytics site token');
+   continue;
+  }
   assert.equal(kind,'link','Static scripts and images must stay local: '+address);
   assert.equal(String(attrs.rel||'').trim().toLowerCase(),'apple-touch-icon','Only the install icon may use a remote link: '+address);
   assert.match(address,/^https:\/\//i,'The install icon must use explicit HTTPS');
@@ -65,7 +71,7 @@ test('Korean solar side is day near local noon and night near local midnight thr
  for(const month of [0,2,5,8,11]){const noon=Date.UTC(2026,month,15,3),midnight=Date.UTC(2026,month,15,15);
  A.calibrateAt(noon);assert.ok(A.siteSun(noon).altitude>10);assert.ok(A.siteSun(midnight).altitude< -10);}
 });
-test('Astronomy stays local while network access is limited to versioned visual assets',()=>{
+test('Astronomy stays local while network access is limited to approved analytics and versioned visual assets',()=>{
  const root=path.resolve(__dirname,'..');
  for(const name of ['astro','app','renderer']){const s=fs.readFileSync(path.join(root,'src',name+'.js'),'utf8');assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|navigator\.onLine/);}
  const materials=fs.readFileSync(path.join(root,'src/materials.js'),'utf8');assert.doesNotMatch(materials,/\bfetch\s*\(|indexedDB|solarsystemscope|jsdelivr/);
