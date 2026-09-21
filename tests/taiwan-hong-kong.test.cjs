@@ -27,11 +27,11 @@ test('Traditional Chinese covers every interface, body and lunar phase key',()=>
 
 test('an older public site missing zht falls back without showing a 404',async()=>{
  const source=read('src/language-data.js'),chn=JSON.parse(read('src/locales/chn.json')),requests=[],window={SolarModules:{}},location={protocol:'file:',href:'file:///D:/_Program/SolarTime/index.html'};
- vm.runInNewContext(source,{window,location,document:{currentScript:{src:'file:///D:/_Program/SolarTime/src/language-data.js?v=0.50-r1'}},URL,AbortSignal,fetch:async url=>{
+ vm.runInNewContext(source,{window,location,document:{currentScript:{src:'file:///D:/_Program/SolarTime/src/language-data.js?v=0.51-r1'}},URL,AbortSignal,fetch:async url=>{
   requests.push(String(url));return String(url).includes('/zht.json')?{ok:false,status:404}:{ok:true,status:200,json:async()=>structuredClone(chn)};
  }});
  const loader=window.SolarModules.LanguageData,bundle=await loader.load('zht');
- assert.deepEqual(requests,['https://solartime.app/src/locales/zht.json?v=0.50-r1','https://solartime.app/src/locales/chn.json?v=0.50-r1']);
+ assert.deepEqual(requests,['https://solartime.app/src/locales/zht.json?v=0.51-r1','https://solartime.app/src/locales/chn.json?v=0.51-r1']);
  assert.equal(bundle.copy.settings,chn.copy.settings);assert.equal(bundle.copy.eclipseView,'日食');assert.equal(loader.loaded('zht'),true);
 });
 
@@ -58,5 +58,5 @@ test('Traditional Chinese release history keeps every translated item',()=>{
   assert.equal(translated.length,source.length,release.version);assert.ok(translated.every(item=>typeof item==='string'&&item.trim()),release.version);
  }
  const current=notes.itemsFor(notes.RELEASES[0],'zht').join(' ');
- assert.match(current,/新增台灣和香港/);assert.match(current,/目前相機構圖/);assert.doesNotMatch(current,/国家|之后|信息|重复/);
+ assert.match(current,/分層天文模型/);assert.match(current,/金色導引線/);assert.doesNotMatch(current,/国家|之后|信息|重复/);
 });

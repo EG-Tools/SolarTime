@@ -195,8 +195,11 @@ body.zen #timezone-button{display:inline-block!important;visibility:visible!impo
 .step-navigation button:not(:disabled):hover{border-color:rgba(233,200,141,.35);color:var(--accent);background:rgba(233,200,141,.035)}
 .step-navigation button:disabled{opacity:.24}
 #release-notes-position{min-width:37px;color:#727e8c;font-size:9px;text-align:center;font-variant-numeric:tabular-nums}
-.eclipse-control{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;color:#9da9b8}
-.eclipse-control>span{font-size:10px;letter-spacing:.25px;white-space:nowrap}.eclipse-navigation{gap:4px}.eclipse-navigation button{width:27px;height:26px}.eclipse-navigation output{min-width:76px;color:#96a3b2;font-size:9px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+.eclipse-control{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;margin-top:8px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;color:#9da9b8}
+.eclipse-control>span{flex:none;width:100%;min-width:0;font-size:10px;letter-spacing:.25px;text-align:center;white-space:nowrap}.eclipse-navigation{flex:none;gap:4px}.eclipse-navigation button{width:27px;height:26px}.eclipse-navigation output{min-width:76px;color:#96a3b2;font-size:9px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap}
+.alignment-control>span{line-height:1.25;white-space:normal;overflow-wrap:anywhere}.alignment-control .eclipse-navigation{flex:none}
+.alignment-control output.space-alignment{color:#e7bd70!important;text-shadow:0 0 8px rgba(231,189,112,.24)}
+.alignment-control output.sky-alignment{color:#96a3b2!important}
 .release-notes-list{display:grid;gap:6px;min-height:82px;margin:9px 0 0;padding:0;list-style:none;color:#aeb9c8;font-size:11px;line-height:1.55}
 .release-notes-list li{position:relative;padding-left:13px;word-break:keep-all}
 .release-notes-list li::before{content:"";position:absolute;left:1px;top:.7em;width:3px;height:3px;border-radius:50%;background:rgba(233,200,141,.72);box-shadow:0 0 6px rgba(233,200,141,.24)}

@@ -1,21 +1,24 @@
-/* Solar Time v0.06 | Annual reference + fixed-period loops.
- * Approximate, heliocentric J2000 ecliptic positions, NOT an observing ephemeris.
- * Planet elements: JPL / Standish & Williams, 3000 BC–3000 AD fit, tables 2a/2b.
+/* Solar Time v0.51 | Layered ephemeris and deterministic display model.
+ * Planet elements: JPL / Standish & Williams table 1 for 1800–2050,
+ * tables 2a/2b for the long-term 1800–2999 presentation range.
  * https://ssd.jpl.nasa.gov/planets/approx_pos.html
- * UTC is used in place of TDB; Earth uses the Earth–Moon barycenter.
- * Pluto is a fixed, illustrative J2000 Kepler orbit, not a JPL ephemeris.
- * Moon and Europa use mild elliptical mean sidereal models phase-anchored to JPL
- * Horizons state vectors at 2026-09-13 00:00 TDB. Eclipse views are visual
- * alignments within that same approximate model, not precision predictions.
+ * UTC is used in place of TDB; the tabulated Earth–Moon barycenter is
+ * corrected to the Earth's center with the precision lunar vector.
+ * Moon, Europa and Pluto use Astronomy Engine's dedicated ELP/VSOP,
+ * Galilean-moon and gravitational models. Global lunar-caused solar eclipses
+ * use its shadow geometry instead of the display orbit.
  */
 (function (root, factory) {
-  const api = factory();
+  let precision=root.Astronomy;
+  if(!precision&&typeof require==='function')try{precision=require('astronomy-engine');}catch(_){/* browser fallback is loaded separately */}
+  const api = factory(precision);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SolarAstro = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Astronomy) {
   'use strict';
   const DAY = 86400000, TAU = Math.PI * 2, DEG = Math.PI / 180;
   const J2000 = Date.UTC(2000, 0, 1, 12), MIN_TIME = Date.UTC(1800, 0, 1), MAX_TIME = Date.UTC(2999, 11, 31, 23, 59, 59);
+  const CURRENT_START=Date.UTC(1800,0,1),CURRENT_END=Date.UTC(2051,0,1),HAS_PRECISION=!!(Astronomy?.GeoMoon&&Astronomy?.JupiterMoons&&Astronomy?.HelioVector&&Astronomy?.SearchGlobalSolarEclipse);
   const round2 = value => Math.round(value*100)/100;
   const round3 = value => Math.round(value*1000)/1000;
   const wrap = (v, m = TAU) => ((v % m) + m) % m;
@@ -68,6 +71,19 @@
       [39.482,.2488,17.14,238.929,224.069,110.304],
       [0,0,0,360*36525/90560,0,0]]
   ];
+  // JPL table 1: fitted specifically for 1800–2050 and measurably tighter than
+  // the long-range table, especially for the outer planets. Pluto is absent
+  // from JPL's table and is handled by the dedicated precision engine below.
+  const CURRENT_ELEMENT_SETS=Object.freeze({
+    mercury:Object.freeze({base:Object.freeze([.38709927,.20563593,7.00497902,252.25032350,77.45779628,48.33076593]),rates:Object.freeze([.00000037,.00001906,-.00594749,149472.67411175,.16047689,-.12534081])}),
+    venus:Object.freeze({base:Object.freeze([.72333566,.00677672,3.39467605,181.97909950,131.60246718,76.67984255]),rates:Object.freeze([.00000390,-.00004107,-.00078890,58517.81538729,.00268329,-.27769418])}),
+    earth:Object.freeze({base:Object.freeze([1.00000261,.01671123,-.00001531,100.46457166,102.93768193,0]),rates:Object.freeze([.00000562,-.00004392,-.01294668,35999.37244981,.32327364,0])}),
+    mars:Object.freeze({base:Object.freeze([1.52371034,.09339410,1.84969142,-4.55343205,-23.94362959,49.55953891]),rates:Object.freeze([.00001847,.00007882,-.00813131,19140.30268499,.44441088,-.29257343])}),
+    jupiter:Object.freeze({base:Object.freeze([5.20288700,.04838624,1.30439695,34.39644051,14.72847983,100.47390909]),rates:Object.freeze([-.00011607,-.00013253,-.00183714,3034.74612775,.21252668,.20469106])}),
+    saturn:Object.freeze({base:Object.freeze([9.53667594,.05386179,2.48599187,49.95424423,92.59887831,113.66242448]),rates:Object.freeze([-.00125060,-.00050991,.00193609,1222.49362201,-.41897216,-.28867794])}),
+    uranus:Object.freeze({base:Object.freeze([19.18916464,.04725744,.77263783,313.23810451,170.95427630,74.01692503]),rates:Object.freeze([-.00196176,-.00004397,-.00242939,428.48202785,.40805281,.04240589])}),
+    neptune:Object.freeze({base:Object.freeze([30.06992276,.00859048,1.77004347,-55.12002969,44.96476227,131.78422574]),rates:Object.freeze([.00026291,.00005105,.00035372,218.45945325,-.32241464,-.00508664])})
+  });
   const descriptions = {
     mercury:'금속성 핵이 매우 큰 암석 행성. 물은 대부분 영구 그늘의 극지 분화구에 얼음 형태로 남아 있습니다.',
     venus:'규산염 암석으로 된 행성. 이산화탄소 대기와 황산 구름이 두껍게 덮고 있어 표면에 액체 물은 없습니다.',
@@ -86,7 +102,7 @@
     Object.freeze({id,ko,en,orbit,overviewOrbit:OVERVIEW_ORBIT.start+OVERVIEW_ORBIT.gap*index,size,color,period:round2(period*86400)/86400,
       periodSeconds:round2(period*86400),spin:round2(spin*86400)/86400,spinSeconds:round2(spin*86400),
       referenceSpinDays:spin,tilt:round3(tilt),base:Object.freeze(base),rates:Object.freeze(rates),
-      correction:correction&&Object.freeze(correction),description:descriptions[id]}));
+      correction:correction&&Object.freeze(correction),current:CURRENT_ELEMENT_SETS[id]||null,description:descriptions[id]}));
   // The overview uses evenly spaced orbit anchors, but radial motion is still
   // derived from the physical AU orbit. Mapping the physical radius through
   // these anchors prevents Pluto's large eccentricity from being multiplied by
@@ -147,9 +163,10 @@
     if(!annual||ms<annual.start||ms>=annual.end)calibrateAt(Date.UTC(new Date(ms).getUTCFullYear(),0,1));
     return annual;
   }
+  function ephemerisTier(ms){return ms>=CURRENT_START&&ms<CURRENT_END?'jpl-1800-2050':'jpl-long-term';}
   function modelStatus() {return annual&&Object.freeze({year:annual.year,epoch:annual.epoch,start:annual.start,end:annual.end,
-    calibrations:yearBuilds,referenceEvaluations,source:'local',networkRequired:false,periodUnit:'seconds',decimals:2});}
-  function modelYear(ms) {const a=annualState(ms);return a.year+':'+a.epoch;}
+    calibrations:yearBuilds,referenceEvaluations,source:ephemerisTier(annual.epoch),precisionBodies:HAS_PRECISION,networkRequired:false,periodUnit:'seconds',decimals:2});}
+  function modelYear(ms) {const a=annualState(ms);return ephemerisTier(ms)+':'+a.year+':'+a.epoch;}
   function rotationAt(body,ms) {
     if(!Number.isFinite(ms)||!Number.isFinite(body.spinSeconds)||body.spinSeconds===0)
       throw new RangeError('Rotation requires a finite timestamp and a nonzero signed period.');
@@ -212,15 +229,19 @@
   function referenceElementsAt(body, ms) {
     if (!Number.isFinite(ms)) throw new TypeError('A finite timestamp is required.');
     const T = (ms-J2000)/DAY/36525;
-    const [a,e,inc,L,peri,node] = body.base.map((v,i)=>v+body.rates[i]*T);
-    const c = body.correction;
+    const current=ms>=CURRENT_START&&ms<CURRENT_END&&body.current,base=current?current.base:body.base,rates=current?current.rates:body.rates;
+    const [a,e,inc,L,peri,node] = base.map((v,i)=>v+rates[i]*T);
+    const c = current?null:body.correction;
     const extra = c ? c[0]*T*T+c[1]*Math.cos(c[3]*T*DEG)+c[2]*Math.sin(c[3]*T*DEG) : 0;
     return {a,e,inc:inc*DEG,node:node*DEG,omega:(peri-node)*DEG,M:wrap((L-peri+extra)*DEG)};
   }
   function elementsAt(body,ms) {
-    const year=annualState(ms),base=year.orbits.get(body.id);
-    if(!base)throw new RangeError('Unknown orbital body.');
-    return {...base,M:wrap(base.M+TAU*wrap((ms-year.epoch)/(body.periodSeconds*1000),1))};
+    if(!BODIES.includes(body))throw new RangeError('Unknown orbital body.');
+    annualState(ms);
+    // Evaluate the fitted rates at the requested instant. The former annual
+    // phase propagation rounded each orbit to a fixed sidereal period and
+    // discarded part of the accuracy supplied by JPL's longitude rate.
+    return referenceElementsAt(body,ms);
   }
   // Both a planet and every point of its orbit use this exact transform.
   function pointOnOrbit(elements, E, semiMajor = elements.a) {
@@ -230,19 +251,39 @@
     return {x:(co*cn-so*sn*ci)*x+(-so*cn-co*sn*ci)*y,
       y:(co*sn+so*cn*ci)*x+(-so*sn+co*cn*ci)*y, z:so*si*x+co*si*y};
   }
+  function equatorialToEcliptic(vector) {
+    const ce=Math.cos(J2000_OBLIQUITY),se=Math.sin(J2000_OBLIQUITY);
+    return {x:vector.x,y:ce*vector.y+se*vector.z,z:-se*vector.y+ce*vector.z};
+  }
+  function precisionBodyVector(bodyId,ms){
+    if(!HAS_PRECISION)return null;
+    const name={pluto:'Pluto'}[bodyId];if(!name)return null;
+    try{return equatorialToEcliptic(Astronomy.HelioVector(Astronomy.Body[name],new Date(ms)));}catch(_){return null;}
+  }
   function positionAt(body, ms, display=false) {
     const elements=elementsAt(body,ms), E=eccentricAnomaly(elements.M,elements.e);
-    const physical=pointOnOrbit(elements,E),point=display?displayPoint(physical):physical;
+    let physical=precisionBodyVector(body.id,ms)||pointOnOrbit(elements,E);
+    // JPL's table supplies the Earth-Moon barycenter. Move it to the Earth's
+    // center using the precision lunar vector whenever that model is present.
+    if(body.id==='earth'&&HAS_PRECISION){
+      try{const moon=equatorialToEcliptic(Astronomy.GeoMoon(new Date(ms))),ratio=82.30056;physical={x:physical.x-moon.x/ratio,y:physical.y-moon.y/ratio,z:physical.z-moon.z/ratio};}catch(_){/* keep EMB fallback */}
+    }
+    const point=display?displayPoint(physical):physical;
     return {...point,elements,E};
   }
   function orbitAt(body, ms, count=360) {
+    if(body.id==='pluto'&&HAS_PRECISION){
+      const span=body.periodSeconds*1000,start=clamp(ms-span/2,MIN_TIME,MAX_TIME-span),points=[];
+      for(let i=0;i<count;i++)points.push(displayPoint(precisionBodyVector('pluto',start+span*i/count)));
+      points.push({...points[0]});return points;
+    }
     const el=elementsAt(body,ms);
     return Array.from({length:count+1},(_,i)=>displayPoint(pointOnOrbit(el,TAU*i/count)));
   }
   const SATELLITE_EPOCH=Date.UTC(2026,8,13);
-  // Fixed osculating ellipses from JPL Horizons parent-relative state vectors
-  // at 2026-09-13 00:00 TDB. Long-term tidal recession and perturbations are
-  // intentionally omitted; each timestamp still resolves directly with Kepler.
+  // Deterministic offline fallback ellipses from JPL Horizons parent-relative
+  // state vectors at 2026-09-13 00:00 TDB. Normal builds use the dedicated
+  // precision models above; these keep the app usable if that script is absent.
   const satelliteStates=Object.freeze({
     moon:Object.freeze({e:.05,M0:1.478549158145498,
       peri:Object.freeze({x:-.2212582051236265,y:.9729528378989719,z:.06638962185318163}),
@@ -261,8 +302,19 @@
     return {a:1,e:state.e,inc,node,omega,M};
   }
   function moonElements(ms) {return satelliteElements(MOON,ms);}
+  const SATELLITE_MEAN_AU=Object.freeze({moon:.00256955529,europa:.004485883});
+  function precisionSatelliteVector(body,ms,radius){
+    if(!HAS_PRECISION)return null;
+    try{
+      const vector=body.id==='moon'?Astronomy.GeoMoon(new Date(ms)):body.id==='europa'?Astronomy.JupiterMoons(new Date(ms)).europa:null;
+      if(!vector)return null;
+      const ecliptic=equatorialToEcliptic(vector),scale=radius/SATELLITE_MEAN_AU[body.id];
+      return {x:ecliptic.x*scale,y:ecliptic.y*scale,z:ecliptic.z*scale};
+    }catch(_){return null;}
+  }
   function satelliteAt(body,ms,radius=body.displayOrbit){
     if(!Number.isFinite(radius))throw new TypeError('A finite radius is required.');
+    const precise=precisionSatelliteVector(body,ms,radius);if(precise)return precise;
     const el=satelliteElements(body,ms),E=eccentricAnomaly(el.M,el.e);
     return pointOnOrbit(el,E,radius);
   }
@@ -270,6 +322,11 @@
   function europaAt(ms,radius=EUROPA.displayOrbit){return satelliteAt(EUROPA,ms,radius);}
   function satelliteOrbit(body,ms,radius=body.displayOrbit,count=90){
     if(!Number.isInteger(count)||count<3)throw new RangeError('Satellite orbit count must be at least 3.');
+    if(HAS_PRECISION){
+      const points=[];
+      for(let i=0;i<count;i++)points.push(satelliteAt(body,ms+body.periodSeconds*1000*i/count,radius));
+      points.push({...points[0]});return points;
+    }
     const el=satelliteElements(body,ms);
     return Array.from({length:count+1},(_,i)=>pointOnOrbit(el,i/count*TAU,radius));
   }
@@ -284,6 +341,7 @@
     moon:Object.freeze({step:DAY/4,span:DAY*550,limit:1.25*DEG}),
     europa:Object.freeze({step:DAY/48,span:DAY*8,limit:6.5*DEG})
   });
+  const AU_KM=Astronomy?.KM_PER_AU||149597870.7,SUN_RADIUS_AU=695700/AU_KM,JUPITER_RADIUS_AU=(Astronomy?.JUPITER_EQUATORIAL_RADIUS_KM||71492)/AU_KM,EUROPA_RADIUS_AU=(Astronomy?.EUROPA_RADIUS_KM||1560.8)/AU_KM;
   function eclipseAlignment(bodyOrId,ms){
     const body=typeof bodyOrId==='string'?SATELLITES.find(value=>value.id===bodyOrId):bodyOrId,spec=body&&ECLIPSE_SEARCH[body.id];
     if(!spec||!Number.isFinite(ms))throw new RangeError('Eclipse alignment requires Moon or Europa and a finite timestamp.');
@@ -300,9 +358,51 @@
     }
     return (left+right)/2;
   }
+  function europaShadowGeometry(ms){
+    if(!HAS_PRECISION)return null;
+    try{
+      const local=precisionSatelliteVector(EUROPA,ms,SATELLITE_MEAN_AU.europa),jupiter=equatorialToEcliptic(Astronomy.HelioVector(Astronomy.Body.Jupiter,new Date(ms)));
+      const sun={x:-jupiter.x,y:-jupiter.y,z:-jupiter.z},sunDistance=Math.hypot(sun.x,sun.y,sun.z),inverse=1/(sunDistance||1),unit={x:sun.x*inverse,y:sun.y*inverse,z:sun.z*inverse};
+      const along=local.x*unit.x+local.y*unit.y+local.z*unit.z,lateral=Math.sqrt(Math.max(0,local.x*local.x+local.y*local.y+local.z*local.z-along*along));
+      const europaSunDistance=Math.max(.1,sunDistance-along),umbraLength=EUROPA_RADIUS_AU*europaSunDistance/(SUN_RADIUS_AU-EUROPA_RADIUS_AU),shadowRadius=Math.max(0,EUROPA_RADIUS_AU*(1-along/umbraLength)),limit=JUPITER_RADIUS_AU+shadowRadius;
+      return Object.freeze({along,lateral,umbraLength,shadowRadius,limit,impact:lateral/limit,intersects:along>0&&along<umbraLength&&lateral<=limit});
+    }catch(_){return null;}
+  }
+  function precisionMoonEclipse(startMs,direction){
+    if(!HAS_PRECISION)return null;
+    const sign=direction<0?-1:1,epsilon=60000,asEvent=value=>{
+      const ms=value?.peak?.date?.getTime?.();
+      return Number.isFinite(ms)&&ms>=MIN_TIME&&ms<=MAX_TIME?Object.freeze({body:'moon',ms:Math.round(ms/1000)*1000,separation:0,direction:sign,kind:value.kind,precision:'shadow'}):null;
+    };
+    try{
+      if(sign>0){
+        // SearchGlobalSolarEclipse may return the eclipse whose peak is just
+        // behind the supplied time. Repeated `next` clicks would then keep
+        // returning the same timestamp. Enforce a strictly future result and
+        // advance by the library's own event cursor when that happens.
+        let value=Astronomy.SearchGlobalSolarEclipse(new Date(startMs+epsilon));
+        for(let guard=0;guard<4;guard++){
+          const event=asEvent(value);if(!event)return null;
+          if(event.ms>startMs+epsilon)return event;
+          value=Astronomy.NextGlobalSolarEclipse(value.peak);
+        }
+        return null;
+      }
+      if(startMs<=MIN_TIME+epsilon)return null;
+      const from=Math.max(MIN_TIME,startMs-DAY*550);let value=Astronomy.SearchGlobalSolarEclipse(new Date(from)),candidate=null;
+      for(let guard=0;guard<8;guard++){
+        const event=asEvent(value);if(!event||event.ms>=startMs-epsilon)break;
+        candidate=event;value=Astronomy.NextGlobalSolarEclipse(value.peak);
+      }
+      return candidate;
+    }catch(_){return null;}
+  }
   function eclipseEvent(bodyOrId,startMs,direction=1){
     const body=typeof bodyOrId==='string'?SATELLITES.find(value=>value.id===bodyOrId):bodyOrId,spec=body&&ECLIPSE_SEARCH[body.id],sign=direction<0?-1:1;
     if(!spec||!Number.isFinite(startMs))throw new RangeError('Eclipse search requires Moon or Europa and a finite timestamp.');
+    if(body.id==='moon'){
+      const precise=precisionMoonEclipse(startMs,sign);if(precise)return precise;
+    }
     let a=clamp(startMs+sign*60000,MIN_TIME,MAX_TIME),sa=eclipseAlignment(body,a),b=a+sign*spec.step;
     const limit=clamp(startMs+sign*spec.span,MIN_TIME,MAX_TIME),threshold=Math.cos(spec.limit);
     if(b<MIN_TIME||b>MAX_TIME)return null;
@@ -312,10 +412,44 @@
       const sc=eclipseAlignment(body,c);
       if(sb>sa&&sb>=sc){
         const ms=refineEclipse(body,Math.min(a,c),Math.max(a,c)),alignment=eclipseAlignment(body,ms);
-        if(alignment>=threshold)return Object.freeze({body:body.id,ms:Math.round(ms/60000)*60000,separation:Math.acos(alignment)/DEG,direction:sign});
+        const shadow=body.id==='europa'?europaShadowGeometry(ms):null;
+        if((shadow?shadow.intersects:alignment>=threshold))return Object.freeze({body:body.id,ms:Math.round(ms/60000)*60000,separation:Math.acos(alignment)/DEG,direction:sign,impact:shadow?.impact,precision:shadow?'shadow':'angular'});
       }
       a=b;sa=sb;b=c;sb=sc;
     }
+    return null;
+  }
+  // Five-or-more-planet alignment dates use two deliberately separate meanings.
+  // `sky` dates are the existing curated Earth-observer parade dates. `space`
+  // dates are rare model-generated heliocentric diameter alignments: at least
+  // five major planets lie within two degrees of one axis through the Sun.
+  // Broad "same side" groupings are not presented as straight space alignments.
+  const PLANETARY_ALIGNMENT_EVENTS=Object.freeze([
+    ['2048-05-28',['earth','jupiter','venus','mercury','mars'],'space',1.995],
+    ['2079-07-25',['saturn','neptune','uranus','earth','venus'],'space',1.824],
+    ['2441-05-07',['mars','uranus','saturn','earth','mercury'],'space',1.937],
+    ['2480-11-05',['uranus','mercury','earth','mars','venus'],'space',1.826],
+    ['1962-02-05',['mercury','venus','mars','jupiter','saturn'],'sky'],
+    ['2000-05-05',['mercury','venus','mars','jupiter','saturn'],'sky'],
+    ['2002-05-13',['mercury','venus','mars','jupiter','saturn'],'sky'],
+    ['2022-06-24',['mercury','venus','mars','jupiter','saturn','uranus','neptune'],'sky'],
+    ['2027-07-02',['mercury','venus','saturn','uranus','neptune'],'sky'],
+    ['2027-12-25',['mercury','venus','mars','saturn','uranus','neptune'],'sky'],
+    ['2028-01-08',['mercury','venus','mars','saturn','neptune'],'sky'],
+    ['2040-09-08',['mercury','venus','mars','jupiter','saturn'],'sky'],
+    ['2080-03-15',['mercury','venus','mars','jupiter','saturn','uranus'],'sky'],
+    ['2675-03-20',['mercury','venus','mars','jupiter','saturn'],'sky']
+  ].map(([date,planets,kind,maxError])=>{
+    const [year,month,day]=date.split('-').map(Number);
+    // 06:00 UTC keeps the reference calendar day unchanged across every
+    // region currently offered by Solar Time (UTC-5 through UTC+13).
+    return Object.freeze({date,ms:Date.UTC(year,month-1,day,6),planets:Object.freeze(planets),kind,...(Number.isFinite(maxError)?{maxError}:null)});
+  }).sort((a,b)=>a.ms-b.ms));
+  function planetaryAlignmentEvent(startMs,direction=1){
+    if(!Number.isFinite(startMs))throw new RangeError('Alignment navigation requires a finite timestamp.');
+    const sign=direction<0?-1:1,epsilon=60000;
+    if(sign>0)return PLANETARY_ALIGNMENT_EVENTS.find(event=>event.ms>startMs+epsilon)||null;
+    for(let i=PLANETARY_ALIGNMENT_EVENTS.length-1;i>=0;i--)if(PLANETARY_ALIGNMENT_EVENTS[i].ms<startMs-epsilon)return PLANETARY_ALIGNMENT_EVENTS[i];
     return null;
   }
   // Anchored to time, never frame count: refresh rate and sleeping tabs cannot slow the orbit.
@@ -351,5 +485,5 @@
     }
     now(mono,wall=Date.now()) { this.travel=null;this.anchorMs=wall; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false; }
   }
-  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,OVERVIEW_ORBIT,BODIES,SUN,MOON,EUROPA,SATELLITES,SATELLITE_EPOCH,wrap,clamp,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,displayDistance,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,eclipseAlignment,eclipseEvent,SimulationClock});
+  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,CURRENT_START,CURRENT_END,OVERVIEW_ORBIT,BODIES,SUN,MOON,EUROPA,SATELLITES,SATELLITE_EPOCH,PLANETARY_ALIGNMENT_EVENTS,wrap,clamp,ephemerisTier,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,displayDistance,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,eclipseAlignment,europaShadowGeometry,eclipseEvent,planetaryAlignmentEvent,SimulationClock});
 });

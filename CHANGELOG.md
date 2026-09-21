@@ -1,5 +1,14 @@
 # Maintenance changelog
 
+## v0.51 r1 · 2026-09-21
+
+- Added layered JPL orbital elements for 1800–2050 and long-range approximation through 2999, with precision Moon, Europa and Pluto models.
+- Fixed repeated previous/next eclipse navigation so it continues strictly beyond the currently displayed event.
+- Separated Earth-sky planetary gatherings from strict heliocentric alignments of five or more planets.
+- Added gold viewport alignment guides and distinct date colours for sky and space events.
+- Centered eclipse and planetary-alignment titles and controls in their cards.
+- Added Horizons comparison fixtures, long-range alignment scanning and regression coverage for the new astronomy paths.
+
 ## v0.50 r1 · 2026-09-21
 
 - Added a browser-language/device-time-zone Auto Language default while preserving explicit country choices, and added Taiwan and Hong Kong with Traditional Chinese locale data.

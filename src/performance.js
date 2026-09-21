@@ -1,4 +1,4 @@
-/* Solar Time v0.50 — performance implementation owner. */
+/* Solar Time v0.51 — performance implementation owner. */
 (function(root){
   'use strict';
   const coarse=(()=>{

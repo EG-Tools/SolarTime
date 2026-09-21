@@ -5,25 +5,25 @@ const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(roo
 test('runtime concerns load as modules before the application coordinator',()=>{
   const html=read('index.html'),app=read('src/app.js');
   assert.equal((html.match(/rel="stylesheet"/g)||[]).length,2);
-  assert.ok(html.includes('href="styles.css?v=0.50-r1"'));
+  assert.ok(html.includes('href="styles.css?v=0.51-r1"'));
   const runtimeStyle=[...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)].map(match=>match[1]).find(href=>href.startsWith('src/runtime-optimizations.css?'));
   assert.ok(runtimeStyle,'The runtime layout stylesheet must be loaded');
   const runtimeUrl=new URL(runtimeStyle,'https://local.example/');
   assert.match(runtimeUrl.searchParams.get('v'),/^\d+(?:\.\d+)+-r\d+(?:-[a-z0-9-]+)?$/i,'The runtime stylesheet must have a versioned cache key');
   assert.doesNotMatch(html,/styles-v016/);
-  assert.ok(html.includes('src/surface.js?v=0.50-r1'));
-  assert.ok(html.includes('src/renderer.js?v=0.50-r1'));
-  assert.ok(html.includes('src/performance.js?v=0.50-r1'));
+  assert.ok(html.includes('src/surface.js?v=0.51-r1'));
+  assert.ok(html.includes('src/renderer.js?v=0.51-r1'));
+  assert.ok(html.includes('src/performance.js?v=0.51-r1'));
   assert.ok(html.indexOf('src/performance.js')<html.indexOf('src/app.js'),'performance');assert.ok(html.indexOf('src/surface-style.js')<html.indexOf('src/surface.js'));
   assert.ok(html.includes('src/visual-effects.js?v=0.47-r2'));
   assert.ok(html.indexOf('src/visual-effects.js')<html.indexOf('src/renderer.js'),'visual-effects');
   assert.ok(!html.includes('src/star-layer.js'),'r10 returns stars to the existing sky WebGL context');
   for(const name of ['preferences','ui-runtime','music-player']){
-    assert.ok(html.includes('src/'+name+'.js?v='+ (name==='ui-runtime'?'0.50-r1':'0.45')));
+    assert.ok(html.includes('src/'+name+'.js?v='+ (name==='ui-runtime'?'0.51-r1':'0.45')));
     assert.ok(html.indexOf('src/'+name+'.js')<html.indexOf('src/app.js'),name);
   }
-  assert.ok(html.includes('src/language-data.js?v=0.50-r1'));
-  assert.ok(html.includes('src/localization.js?v=0.50-r1'));
+  assert.ok(html.includes('src/language-data.js?v=0.51-r1'));
+  assert.ok(html.includes('src/localization.js?v=0.51-r1'));
   assert.match(app,/Localization=Modules\.Localization,LanguageData=Modules\.LanguageData,Preferences=Modules\.Preferences,UI=Modules\.UI/);
   assert.match(app,/Preferences\.read\(STORAGE_KEY\)/);
   assert.match(app,/Preferences\.write\(STORAGE_KEY/);
@@ -40,8 +40,8 @@ test('phone layout shares an explicit standalone-aware flag with the sky rendere
   assert.ok(page.includes('root.navigator?.standalone===true'));
   assert.ok(page.includes("(any-pointer:coarse)"));
   assert.ok(sky.includes("classList?.contains('solar-phone-layout')?0:.24"));
-  assert.ok(read('index.html').includes('src/runtime-optimizations.css?v=0.50-'+JSON.parse(read('version.json')).revision));
-  assert.ok(read('index.html').includes('src/page-runtime.js?v=0.50-'+JSON.parse(read('version.json')).revision));
+  assert.ok(read('index.html').includes('src/runtime-optimizations.css?v=0.51-'+JSON.parse(read('version.json')).revision));
+  assert.ok(read('index.html').includes('src/page-runtime.js?v=0.51-'+JSON.parse(read('version.json')).revision));
 });
 
 test('phone layout refinement leaves the approved top boundary and home-indicator safety intact',()=>{

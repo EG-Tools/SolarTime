@@ -44,12 +44,12 @@ test('Pluto overview keeps its real Neptune crossing without falsely reaching Ur
 test('Perihelion and aphelion radii follow a(1±e)',()=>{
   for(const b of A.BODIES){const el=A.elementsAt(b,A.J2000);for(const [E,sign] of [[0,-1],[Math.PI,1]]){const p=A.pointOnOrbit(el,E);close(Math.hypot(p.x,p.y,p.z),el.a*(1+sign*el.e));}}
 });
-test('Mean lunar model follows a mild fixed ellipse and its ~27.32-day sidereal cycle',()=>{
+test('Precision lunar model retains its ~27.32-day sidereal recurrence without forcing a fixed ellipse',()=>{
   const ms=Date.UTC(2026,8,11),r=38,a=A.moonAt(ms,r),b=A.moonAt(ms+A.MOON.period*A.DAY,r);
-  for(const p of [a,b]){const d=Math.hypot(p.x,p.y,p.z);assert.ok(d>=r*(1-.05)-1e-9&&d<=r*(1+.05)+1e-9);}
-  assert.ok(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<r*.008);
+  for(const p of [a,b]){const d=Math.hypot(p.x,p.y,p.z);assert.ok(d>=r*(1-.06)-1e-9&&d<=r*(1+.06)+1e-9);}
+  assert.ok(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<r*.015);
 });
-test('Moon and Europa are parented satellites on fixed two-decimal ellipses',()=>{
+test('Moon and Europa retain their parent hierarchy and deterministic fallback ellipses',()=>{
   assert.deepEqual(A.SATELLITES.map(body=>[body.id,body.parent]),[['moon','earth'],['europa','jupiter']]);
   assert.equal(A.satelliteElements(A.MOON,A.SATELLITE_EPOCH).e,.05);
   assert.equal(A.satelliteElements(A.EUROPA,A.SATELLITE_EPOCH).e,.01);
@@ -57,7 +57,7 @@ test('Moon and Europa are parented satellites on fixed two-decimal ellipses',()=
 });
 test('Satellite phase at the reference timestamp agrees with JPL parent-relative vectors',()=>{
   const references={moon:{x:-374193.6060204512,y:-86496.75632675059,z:-24304.92683869517},europa:{x:-586207.5623074129,y:-313020.6838634806,z:-21332.16099731004}};
-  for(const body of A.SATELLITES){const p=A.satelliteAt(body,A.SATELLITE_EPOCH),r=references[body.id],cosine=(p.x*r.x+p.y*r.y+p.z*r.z)/(Math.hypot(p.x,p.y,p.z)*Math.hypot(r.x,r.y,r.z));assert.ok(cosine>.999999999,body.id);}
+  for(const body of A.SATELLITES){const p=A.satelliteAt(body,A.SATELLITE_EPOCH),r=references[body.id],cosine=(p.x*r.x+p.y*r.y+p.z*r.z)/(Math.hypot(p.x,p.y,p.z)*Math.hypot(r.x,r.y,r.z));assert.ok(cosine>.999998,body.id);}
 });
 test('Satellite angular motion is faster near periapsis than apoapsis',()=>{
   const angle=(a,b)=>Math.acos(Math.max(-1,Math.min(1,(a.x*b.x+a.y*b.y+a.z*b.z)/(Math.hypot(a.x,a.y,a.z)*Math.hypot(b.x,b.y,b.z)))));

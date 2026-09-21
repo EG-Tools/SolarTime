@@ -1,4 +1,4 @@
-/* Solar Time v0.50 — app implementation owner. */
+/* Solar Time v0.51 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -455,6 +455,30 @@
       }
       $('eclipse-previous').addEventListener('click',()=>travelToEclipse(-1));
       $('eclipse-next').addEventListener('click',()=>travelToEclipse(1));
+      let alignmentTarget=null;
+      function syncAlignmentControl(bodyId=renderer.selected) {
+        const available=bodyId==='sun',output=$('alignment-date');
+        $('alignment-control').hidden=!available;
+        output.textContent=available&&alignmentTarget?alignmentTarget.date.replaceAll('-','.'):'—';
+        output.classList.toggle('space-alignment',available&&alignmentTarget?.kind==='space');
+        output.classList.toggle('sky-alignment',available&&alignmentTarget?.kind==='sky');
+        if(available&&alignmentTarget){
+          const names=alignmentTarget.planets.map(id=>{const body=bodies.find(value=>value.id===id);return body?bodyCopy(body).name:id;});
+          output.title=`${alignmentTarget.planets.length} · ${names.join(' · ')}`;
+        }else output.removeAttribute('title');
+      }
+      function travelToAlignment(direction) {
+        if(renderer.selected!=='sun')return;
+        const mono=performance.now(),base=clock.travel?.targetMs??clock.value(mono),event=A.planetaryAlignmentEvent(base,direction);
+        if(!event){toast(t('alignmentUnavailable'));return;}
+        alignmentTarget=event;renderer.setAlignmentGuide(event);syncAlignmentControl('sun');
+        // Catalog navigation changes time only, matching eclipse navigation and
+        // preserving the user's current free, preset or tracking camera.
+        renderer.invalidateSurfaces();clock.travelTo(event.ms,mono,2000);
+        const ms=clock.value(mono);updateControls(ms);updateBody(ms);
+      }
+      $('alignment-previous').addEventListener('click',()=>travelToAlignment(-1));
+      $('alignment-next').addEventListener('click',()=>travelToAlignment(1));
       const statNodes=new Map();let bodyInfoSignature='';
       function setStat(id,value,unit) {
         let record=statNodes.get(id);
@@ -501,6 +525,7 @@
         $('feature-view').hidden=!['earth','jupiter'].includes(id);$('feature-view').textContent=id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');
         syncBodySizeControl(b);
         syncEclipseControl(id);
+        syncAlignmentControl(id);
         updateBody(clock.value(performance.now()));
         anchorBodyPanel();requestAnimationFrame(()=>updateBodyScrollCues());
       }
@@ -541,7 +566,7 @@
       }
       function uiNow() {const mono=performance.now(),wall=Date.now(),ms=clock.value(mono,wall);updateWall(wall);updateControls(ms);updateBody(ms);}
       function now() {
-        const mono=performance.now();A.calibrateAt(Date.now());renderer.invalidateSurfaces();clock.now(mono);eclipseTargets.clear();syncEclipseControl();
+        const mono=performance.now();A.calibrateAt(Date.now());renderer.invalidateSurfaces();clock.now(mono);eclipseTargets.clear();alignmentTarget=null;renderer.setAlignmentGuide(null);syncEclipseControl();syncAlignmentControl();
         uiNow();toast(t('returnedNow'));
       }
       $('live-button').addEventListener('click',now);
@@ -705,7 +730,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=0.50-r1','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=0.51-r1','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -757,7 +782,7 @@
         refreshNavLabels();presetUi();cameraUi();syncSpeedUi();
         if(presetAction){const value=cameraPresets[presetAction.index];$('preset-title').textContent=t('presetTitle',{n:presetAction.index+1});$('preset-note').textContent=t(value?'presetSavedNote':'presetEmptyNote');}
         const selected=bodies.find(body=>body.id===renderer.selected);
-        if(selected){const copy=bodyCopy(selected);$('body-name').textContent=copy.name;$('body-description').textContent=copy.description;$('feature-view').textContent=selected.id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');syncBodySizeControl(selected);syncEclipseControl(selected.id);updateBody(clock.value(performance.now()));}
+        if(selected){const copy=bodyCopy(selected);$('body-name').textContent=copy.name;$('body-description').textContent=copy.description;$('feature-view').textContent=selected.id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');syncBodySizeControl(selected);syncEclipseControl(selected.id);syncAlignmentControl(selected.id);updateBody(clock.value(performance.now()));}
         uiNow();persist();if(helpDialog.open)requestAnimationFrame(updateHelpScrollCues);
       }
       const languageControl=$('language-control'),languageMenu=$('language-menu'),languageScroll=$('language-scroll'),languageToggle=$('language-toggle');
@@ -950,7 +975,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.50',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,randomRotate:renderer.randomRotateEnabled,language,languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.51',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,randomRotate:renderer.randomRotateEnabled,language,languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

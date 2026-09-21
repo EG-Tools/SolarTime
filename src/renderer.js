@@ -1,4 +1,4 @@
-/* Solar Time v0.50 — renderer implementation owner. */
+/* Solar Time v0.51 — renderer implementation owner. */
 (function () {
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
@@ -49,7 +49,7 @@
       this.frameBodies=[];this.surfaceBodies=[];this.directBodies=[];this.labelBodies=[];this.satelliteLayouts=[];this.compatSurfaceJobs=[];
       this.frameItems=new Map();this.frameSerial=0;
       this.stats={orbitProjections:0,orbitBufferBuilds:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
-      this.selected=null;this.hover=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
+      this.selected=null;this.hover=null;this.alignmentGuide=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
       this.orbitRevealStart=performance.now();
       this.lastSurfaceSubmit=-Infinity;this.lastSurfaceSimMs=NaN;this.lastSurfaceMono=NaN;
       this.sky=new window.SolarSky(background);
@@ -368,6 +368,42 @@
       return item;
     }
     currentFrameItem(id) {const item=this.frameItems.get(id);return item?.frameSerial===this.frameSerial?item:null;}
+    setAlignmentGuide(event) {
+      this.alignmentGuide=event&&Number.isFinite(event.ms)&&Array.isArray(event.planets)?event:null;
+      this.dirty=true;
+    }
+    drawAlignmentGuide(c,ms) {
+      const guide=this.alignmentGuide;if(!guide)return;
+      // The guide belongs to one catalog instant. Fade it in only near that
+      // instant so later manual time travel cannot leave a misleading axis on
+      // an unrelated configuration.
+      const age=Math.abs(ms-guide.ms),alpha=clamp(1-age/(A.DAY*30),0,1);if(!(alpha>0))return;
+      const anchor=this.currentFrameItem(guide.kind==='space'?'sun':'earth');if(!anchor||anchor.screen.behind)return;
+      const points=[];
+      for(const id of guide.planets){const item=this.currentFrameItem(id);if(item&&!item.screen.behind&&Number.isFinite(item.screen.x)&&Number.isFinite(item.screen.y))points.push(item);}
+      if(points.length<2)return;
+      const ax=anchor.screen.x,ay=anchor.screen.y;
+      // Principal axis constrained to the relevant observer: Earth for apparent
+      // sky parades, Sun for heliocentric space alignments.
+      let xx=0,xy=0,yy=0;
+      for(const item of points){const x=item.screen.x-ax,y=item.screen.y-ay;xx+=x*x;xy+=x*y;yy+=y*y;}
+      const angle=.5*Math.atan2(2*xy,xx-yy),dx=Math.cos(angle),dy=Math.sin(angle);
+      let min=0,max=0;
+      for(const item of points){const projection=(item.screen.x-ax)*dx+(item.screen.y-ay)*dy;min=Math.min(min,projection);max=Math.max(max,projection);}
+      const extension=18,start={x:ax+dx*(min-extension),y:ay+dy*(min-extension)},end={x:ax+dx*(max+extension),y:ay+dy*(max+extension)};
+      c.save();c.beginPath();c.rect(0,0,this.w,this.h);c.clip();c.globalCompositeOperation='screen';
+      c.globalAlpha=.78*alpha;c.strokeStyle='#e9bd67';c.lineWidth=1.15;c.shadowColor='rgba(238,188,91,.72)';c.shadowBlur=7;
+      c.beginPath();c.moveTo(start.x,start.y);c.lineTo(end.x,end.y);c.stroke();
+      c.shadowBlur=0;c.globalAlpha=.34*alpha;c.lineWidth=.65;
+      for(const item of points){
+        const projection=(item.screen.x-ax)*dx+(item.screen.y-ay)*dy,fx=ax+dx*projection,fy=ay+dy*projection;
+        c.beginPath();c.moveTo(fx,fy);c.lineTo(item.screen.x,item.screen.y);c.stroke();
+      }
+      c.globalAlpha=.9*alpha;c.lineWidth=.9;
+      for(const item of points){c.beginPath();c.arc(item.screen.x,item.screen.y,Math.max(4,item.r+4),0,TAU);c.stroke();}
+      c.globalAlpha=alpha;c.fillStyle='#f2cb7a';c.beginPath();c.arc(ax,ay,2.2,0,TAU);c.fill();
+      c.restore();
+    }
     displayPhysicalPoint(physical,out) {
       const radius=Math.hypot(physical.x,physical.y,physical.z);
       if(!(radius>1e-9)){out.x=physical.x;out.y=physical.y;out.z=physical.z;return out;}
@@ -710,12 +746,20 @@
       for(let i=0;i<path.points.length;i++){const p=this.displaySolarPoint(path.points[i]);xyz[i*3]=p.x;xyz[i*3+1]=p.y;xyz[i*3+2]=p.z;}
       this.orbitModelCache.set(path,{source:path.points,key,xyz});this.stats.orbitBufferBuilds+=path.points.length;return xyz;
     }
+    satelliteOrbitPoints(body,ms,radius) {
+      // Precision orbit geometry changes slowly. Share one daily path between
+      // the WebGL and canvas renderers instead of evaluating 91 ephemeris
+      // samples on every frame.
+      const key=Number(radius).toFixed(6)+':'+Math.floor(ms/A.DAY),cached=this.satelliteOrbitCache.get(body.id);
+      if(cached&&cached.key===key)return cached;
+      const points=A.satelliteOrbit(body,ms,radius,90),entry={key,points,xyz:null};
+      this.satelliteOrbitCache.set(body.id,entry);return entry;
+    }
     satelliteOrbitModel(body,ms,radius) {
-      const key=Number(radius).toFixed(6),cached=this.satelliteOrbitCache.get(body.id);
-      if(cached&&cached.key===key)return cached.xyz;
-      const points=A.satelliteOrbit(body,ms,radius,90),xyz=new Float32Array(points.length*3);
+      const entry=this.satelliteOrbitPoints(body,ms,radius);if(entry.xyz)return entry.xyz;
+      const {points}=entry,xyz=new Float32Array(points.length*3);
       for(let i=0;i<points.length;i++){xyz[i*3]=points[i].x;xyz[i*3+1]=points[i].y;xyz[i*3+2]=points[i].z;}
-      this.satelliteOrbitCache.set(body.id,{key,xyz});this.stats.orbitBufferBuilds+=points.length;return xyz;
+      entry.xyz=xyz;this.stats.orbitBufferBuilds+=points.length;return xyz;
     }
     gpuOrbitCamera() {
       const {ca,sa,ce,se}=this.cameraBasis(),active=Math.abs((this.camera.dolly??1)-1)>1e-8;
@@ -1004,7 +1048,7 @@
             this.gpu.orbit('solar:'+path.body.id,this.orbitModel(path),origin,camera,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],clamp((selected?.64:.22)*reveal*orbitStrength,0,1));}
         }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id,reveal,orbitStrength);
         for(const satellite of satelliteLayouts) {
-          const points=direct?null:A.satelliteOrbit(satellite.body,ms,satellite.orbitRadius,90),parent=satellite.parent.world;
+          const points=direct?null:this.satelliteOrbitPoints(satellite.body,ms,satellite.orbitRadius).points,parent=satellite.parent.world;
           if(direct){this.gpu.orbit('satellite:'+satellite.body.id,this.satelliteOrbitModel(satellite.body,ms,satellite.orbitRadius),parent,camera,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],clamp(.26*reveal*orbitStrength,0,1));}
           else if(!this.gpu){c.save();c.globalAlpha*=reveal;const alpha=clamp(.26*orbitStrength,0,1);c.strokeStyle=satellite.body.id==='moon'?`rgba(115,155,189,${alpha})`:`rgba(171,158,117,${alpha})`;c.lineWidth=.65;c.beginPath();for(let i=0;i<points.length;i++){const p=points[i],s=this.project({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();c.restore();}
         }
@@ -1056,6 +1100,7 @@
         else this.drawBody(c,p.body,p.world,p.screen,p.r,ms,seconds);
         this.hitTargets.push({id:p.body.id,x:p.screen.x,y:p.screen.y,r:Math.max(p.r+6,11),z:p.screen.z});
       }
+      this.drawAlignmentGuide(c,ms);
       if(this.camera.focus==='earth'&&earth.r>65){
         const site=this.site,normal=this.viewDirection(A.surfaceDirection(earth.body,site.latitude,site.longitude,ms));
         if(normal.z>.03){

@@ -29,7 +29,7 @@ function assertStaticAssetLinks(html,deployment){
 test('Offline boot calibrates every body at current device time in under five seconds',()=>{
  const t=Date.UTC(2026,8,11,7,45,12),start=performance.now();const status=A.calibrateAt(t);
  for(const b of A.BODIES){const p=A.positionAt(b,t,true);assert.ok(Number.isFinite(p.x+p.y+p.z));}
- assert.ok(performance.now()-start<5000);assert.equal(status.epoch,t);assert.equal(status.source,'local');assert.equal(status.networkRequired,false);
+ assert.ok(performance.now()-start<5000);assert.equal(status.epoch,t);assert.equal(status.source,'jpl-1800-2050');assert.equal(status.networkRequired,false);
 });
 test('Stored axial tilts preserve NASA precision and periods use seconds, not degrees per frame',()=>{
  for(const b of all){close(b.spinSeconds*100,Math.round(b.spinSeconds*100),1e-4);assert.notEqual(b.spinSeconds,0);close(b.tilt*1000,Math.round(b.tilt*1000),1e-9);

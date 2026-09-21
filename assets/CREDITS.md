@@ -1,4 +1,4 @@
-# Solar Time v0.41 — image sources and licenses
+# Solar Time v0.51 — sources and licenses
 
 The exact built-in ImageGen prompts used for the current Sun, Pluto, Uranus and Europa reconstructions are recorded in `assets/IMAGEGEN_PROMPTS.md`.
 
@@ -51,11 +51,26 @@ License: Creative Commons Attribution 4.0 International — https://creativecomm
 
 Uranus, Pluto, the Sun and Europa continue to use their separately credited maps above. Earth remains unchanged.
 
-## Orbit reference for the displayed satellites
+## Astronomy and ephemeris reference
 
-Moon relative to Earth (DE441) and Europa relative to Jupiter (`jup365_merged`) were queried from NASA/JPL Horizons at 2026-09-13 00:00 TDB. Solar Time retains the resulting orbital plane and phase, then uses fixed two-decimal eccentricities (Moon 0.05, Europa 0.01) and mean sidereal periods. Positions are calculated directly from the selected simulation timestamp. Long-term perturbations, tidal recession and metre-scale annual distance changes are intentionally excluded.
+Planetary positions use the NASA/JPL approximate-position formula fitted for 1800–2050 and its long-term element table for the remaining 2051–2999 presentation range. Moon, Europa and Pluto positions use dedicated Astronomy Engine models. Solar eclipses caused by the Moon use global shadow-event calculations, while Europa transits use a physical umbral-intersection test rather than the illustrative screen orbit.
 
-https://ssd.jpl.nasa.gov/horizons/
+Multiple reference dates are stored as geometric J2000 ecliptic vectors from NASA/JPL Horizons and compared automatically by the offline test suite. Horizons is a validation source; the released app does not contact it at runtime.
+
+- JPL approximate positions: https://ssd.jpl.nasa.gov/planets/approx_pos.html
+- JPL Horizons: https://ssd.jpl.nasa.gov/horizons/
+- Astronomy Engine 2.1.19 by Don Cross: https://github.com/cosinekitty/astronomy
+
+Astronomy Engine is redistributed under the MIT License. Its copyright notice and license text remain embedded at the beginning of `src/astronomy-engine.min.js`.
+
+## Planetary-alignment catalog
+
+The Sun card lists only dates involving five or more planets and keeps two geometries visibly distinct. The original curated Earth-observer sky-parade dates remain unchanged. Space-centred dates are generated separately by `tools/scan-space-alignments.cjs`: all eight major planets are evaluated once per UTC day from 1800 through 2999, and a date qualifies only when at least five lie within 2° of one three-dimensional diameter through the Sun. Planets on opposite sides of the Sun may share that diameter. A golden viewport guide is anchored to Earth for sky entries and to the Sun for space entries; its small perpendicular connectors show each participating planet's residual from the best-fit projected axis.
+
+Broad same-side groupings are not described as straight-line space alignments. Four-planet dates are intentionally excluded, and the often-repeated claim of seven planets on 2034-02-03 is not included because it conflicts with NASA's late-February five-planet description. The generated space-centred dates are model results, not named official astronomical events.
+
+- NASA explanation and future observing windows: https://science.nasa.gov/solar-system/skywatching/planetary-alignments-and-planet-parades/
+- Published future-date catalog used for the curated day-level entries: https://starwalk.space/en/news/what-is-planet-parade
 
 ## Temperature and gravity reference
 
