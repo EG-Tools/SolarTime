@@ -30,7 +30,7 @@ test('star positions get a fresh runtime seed on launch and factory reset rebuil
 });
 
 test('star pool keeps random sphere positions with independent size and brightness',()=>{
-  const effects=read('src/visual-effects.js'),api=visualApi(),stars=api.buildNaturalStarPool([],8800);assert.equal(stars.length,8800);assert.equal(api.BASE_STAR_COUNT,10000);assert.equal(api.MAX_STAR_MULTIPLIER,3);assert.equal(api.MAX_STAR_COUNT,30000);assert.match(effects,/const z=random\(\)\*2-1,angle=random\(\)\*TAU/);
+  const effects=read('src/visual-effects.js'),api=visualApi(),stars=api.buildNaturalStarPool([],8800,12345);assert.equal(stars.length,8800);assert.equal(api.BASE_STAR_COUNT,10000);assert.equal(api.MAX_STAR_MULTIPLIER,3);assert.equal(api.MAX_STAR_COUNT,30000);assert.match(effects,/const z=random\(\)\*2-1,angle=random\(\)\*TAU/);
   let minSize=Infinity,maxSize=0,minBrightness=Infinity,maxBrightness=0;for(const star of stars){minSize=Math.min(minSize,star[3]);maxSize=Math.max(maxSize,star[3]);minBrightness=Math.min(minBrightness,star[4]);maxBrightness=Math.max(maxBrightness,star[4]);}
   assert.ok(maxSize-minSize>1);assert.ok(maxBrightness-minBrightness>.7);
 });
