@@ -7,18 +7,18 @@ function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createCo
 
 test('v0.46 page build stays consistent while unchanged coordinator keeps its bundle revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.ok(html.includes('name="solar-time-version" content="0.48"'));
+  assert.ok(html.includes('name="solar-time-version" content="0.50"'));
   assert.ok(html.includes('name="solar-time-revision" content="'+version.revision+'"'));
   assert.match(version.revision,/^r[1-9]\d*$/);
-  assert.equal(version.version,'0.48');
-  assert.equal(pkg.version,'0.0.48');
-  assert.ok(app.includes("version:'0.48',revision:'r3'"));
-  assert.ok(html.includes('src/app.js?v=0.48-r3'));
-  assert.ok(html.includes('src/localization.js?v=0.47-r3'));
+  assert.equal(version.version,'0.50');
+  assert.equal(pkg.version,'0.0.50');
+  assert.ok(app.includes("version:'0.50',revision:'r1'"));
+  assert.ok(html.includes('src/app.js?v=0.50-r1'));
+  assert.ok(html.includes('src/localization.js?v=0.50-r1'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
-  assert.deepEqual(order,['kor','en','chn','ao','ar','au','at','be','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nl','nz','pa','pe','pt','sg','es','eu','uy','ve']);
+  assert.deepEqual(order,['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve']);
   assert.match(html,/id="star-density-output" for="star-density">100%<\/output>/);assert.match(html,/id="star-density" class="solar-range" type="range" min="0" max="300" step="10" value="100"/);assert.match(app,/orbitBrightness:\.5,starDensity:1/);
 });
 
@@ -112,12 +112,12 @@ test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
 
 test('r10 adds Indonesia and keeps every country on the existing regional-time path',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js'),loader=read('src/language-data.js');
-  assert.ok(app.includes("LANG_ORDER=['kor','en','chn','ao','ar','au','at','be','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nl','nz','pa','pe','pt','sg','es','eu','uy','ve']"));
+  assert.ok(app.includes("LANG_ORDER=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve']"));
   assert.ok(app.includes("id:{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'}"));
   assert.ok(app.includes("id:{label:'INDONESIA',timeZone:'Asia/Jakarta'"));
   assert.ok(app.includes("eu:{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'}"));
   assert.ok(app.includes("eu:{label:'UNITED KINGDOM',timeZone:'Europe/London'"));
-  assert.match(app,/language=next;renderer\.setSite\(activeRegion\(\)\);translateStatic\(\);renderReleaseNotes\(\);refreshTimeFormats\(\)/);
+  assert.match(app,/language=target;languageMode=mode;renderer\.setSite\(activeRegion\(\)\);translateStatic\(\);renderReleaseNotes\(\);refreshTimeFormats\(\)/);
   assert.match(localization,/jakarta\|pontianak\|makassar\|ujung_pandang\|jayapura/);
   assert.ok(loader.includes("'pt','it','id'"));
   for(const code of ['pt','br','it','mx','id'])assert.ok(html.includes('data-language="'+code+'"'));
@@ -152,7 +152,7 @@ test('r10 removes the extra WebGL star canvas while keeping the safe r9 optimiza
 
 test('r11 reuses existing language bundles for additional countries',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js');
-  const expected=['kor','en','chn','ao','ar','au','at','be','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nl','nz','pa','pe','pt','sg','es','eu','uy','ve'];
+  const expected=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve'];
   const order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
   assert.deepEqual(order,expected);
 
@@ -250,7 +250,7 @@ test('r14 moves the scale readout to the top and enlarges it by one pixel',()=>{
 
 test('r15 adds one extra pixel only between the scale readout and home',()=>{
   const html=read('index.html'),css=read('styles.css');
-  assert.ok(html.includes('href="styles.css?v=0.47-r1"'));
+  assert.ok(html.includes('href="styles.css?v=0.50-r1"'));
   assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1;margin-bottom:5px\}/);
   assert.match(css,/\.view-controls\{[^}]*--tool-gap:5px;gap:var\(--tool-gap\)/);
   assert.match(css,/\.camera-presets\{[^}]*gap:var\(--tool-gap\);margin:0/);
@@ -283,7 +283,7 @@ test('r16 removes avoidable renderer hot-path work and restores the watermark',(
 
 test('v0.46 r3 keeps compact LIVE status separate and treats iPhone safe areas as boundaries',()=>{
   const html=read('index.html'),css=read('src/runtime-optimizations.css');
-  assert.ok(html.includes('src/runtime-optimizations.css?v=0.48-'+JSON.parse(read('version.json')).revision));
+  assert.ok(html.includes('src/runtime-optimizations.css?v=0.50-'+JSON.parse(read('version.json')).revision));
   assert.match(css,/--solar-safe-left:env\(safe-area-inset-left,0px\)/);
   assert.match(css,/--solar-safe-right:env\(safe-area-inset-right,0px\)/);
   assert.match(css,/body\.zen \.clock-face\{top:max\(56px,calc\(var\(--solar-safe-top\) \+ 8px\)\)\}/);
@@ -294,14 +294,14 @@ test('v0.46 r3 keeps compact LIVE status separate and treats iPhone safe areas a
 test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js'),pipeline=read('tools/asset-pipeline.cjs');
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
-  const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.48');assert.deepEqual(notes.RELEASES.slice(0,5).map(r=>r.version),['0.48','0.47','0.46','0.45','0.43']);
+  const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.50');assert.deepEqual(notes.RELEASES.slice(0,5).map(r=>r.version),['0.50','0.48','0.47','0.46','0.45']);
   for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(notes.itemsFor(notes.RELEASES[0],code).length>0,code);
-  assert.ok(app.includes('src/release-notes.js?v=0.48-r3'));assert.ok(html.includes('<h3 id="release-notes-version">v0.48</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
+  assert.ok(app.includes('src/release-notes.js?v=0.50-r1'));assert.ok(html.includes('<h3 id="release-notes-version">v0.50</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
 
   assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));
-  for(const file of ['surface','renderer','performance'])assert.ok(html.includes('src/'+file+'.js?v='+(file==='surface'?'0.47-r1':file==='renderer'?'0.48-r3':'0.48-r1')),file);
-  assert.match(html,/src\/app\.js\?v=0\.48-r\d+(?:-[^\"']+)?/);
+  for(const file of ['surface','renderer','performance'])assert.ok(html.includes('src/'+file+'.js?v=0.50-r1'),file);
+  assert.match(html,/src\/app\.js\?v=0\.50-r\d+(?:-[^\"']+)?/);
   assert.deepEqual(assetRevision,{version:'assetpack-20260918-r1'});
   assert.equal(manifest.revision,'assetpack-20260918-r1');
   for(const entry of Object.values(manifest.materials))assert.equal(entry.seamBaked,true,entry.source);

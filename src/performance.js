@@ -1,4 +1,4 @@
-/* Solar Time v0.48 — performance implementation owner. */
+/* Solar Time v0.50 — performance implementation owner. */
 (function(root){
   'use strict';
   const coarse=(()=>{
@@ -51,6 +51,24 @@
     if(name.endsWith('-relief')&&desired?.has(name.slice(0,-7)))return true;
     return false;
   }
+  // Allocate before uploading. Reserve room for the sky and a texture swap;
+  // lower-priority visible bodies yield detail before the tracked body does.
+  function planTextures(jobs,assets,maxWidth=4096){
+    const entries=[];
+    const add=(name,width,priority)=>{if(assets?.[name])entries.push({name,width:Math.max(128,Math.min(maxWidth,width)),priority});};
+    for(const job of jobs){
+      add(job.id,job.textureWidth,job.priority||0);
+      if(job.id==='earth')add('clouds',Math.min(2048,job.textureWidth),job.priority||0);
+      add(job.id+'-relief',job.textureWidth,job.priority||0);
+    }
+    const budget=textureBudget()*.8;let bytes=entries.reduce((sum,e)=>sum+e.width*e.width*2,0),constrained=bytes>budget;
+    while(bytes>budget){
+      const candidate=entries.filter(e=>e.width>128).sort((a,b)=>a.priority-b.priority||b.width-a.width)[0];
+      if(!candidate)break;
+      bytes-=candidate.width*candidate.width*1.5;candidate.width/=2;
+    }
+    return {targets:new Map(entries.map(e=>[e.name,e.width])),bytes,constrained};
+  }
   function trimTextures(renderer){
     const textures=renderer.textures;if(!textures?.size||!renderer.gl)return;
     const budget=textureBudget();let bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);
@@ -66,5 +84,5 @@
   }
   function touchTexture(renderer,name){const record=renderer.textures?.get(name);if(record)record.lastUsed=(renderer.__solarTextureUseSerial=(renderer.__solarTextureUseSerial||0)+1);}
   function enforceTextureBudget(renderer){const budget=textureBudget(),bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);renderer.stats.textureBudgetBytes=budget;renderer.stats.textureBytes=bytes;if(bytes>budget){const now=performance.now();if(now-(renderer.__solarLastTextureTrim||0)>500){renderer.__solarLastTextureTrim=now;trimTextures(renderer);}}}
-  root.SolarPerformance=Object.freeze({pixelRatio,frameInterval,createFrameGate,reportRenderCost,reportFrameTiming,textureBudget,trimTextures,touchTexture,enforceTextureBudget,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
+  root.SolarPerformance=Object.freeze({pixelRatio,frameInterval,createFrameGate,reportRenderCost,reportFrameTiming,textureBudget,planTextures,protectTexture,trimTextures,touchTexture,enforceTextureBudget,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
 })(window);

@@ -5,7 +5,8 @@
  * UTC is used in place of TDB; Earth uses the Earth–Moon barycenter.
  * Pluto is a fixed, illustrative J2000 Kepler orbit, not a JPL ephemeris.
  * Moon and Europa use mild elliptical mean sidereal models phase-anchored to JPL
- * Horizons state vectors at 2026-09-13 00:00 TDB; no perturbations/eclipses.
+ * Horizons state vectors at 2026-09-13 00:00 TDB. Eclipse views are visual
+ * alignments within that same approximate model, not precision predictions.
  */
 (function (root, factory) {
   const api = factory();
@@ -279,27 +280,76 @@
     const names=['삭 부근','초승달','상현달','차오르는 달','보름달 부근','기우는 달','하현달','그믐달'];
     return {fraction,phase,name:names[Math.round(phase*8)%8]};
   }
+  const ECLIPSE_SEARCH=Object.freeze({
+    moon:Object.freeze({step:DAY/4,span:DAY*550,limit:1.25*DEG}),
+    europa:Object.freeze({step:DAY/48,span:DAY*8,limit:6.5*DEG})
+  });
+  function eclipseAlignment(bodyOrId,ms){
+    const body=typeof bodyOrId==='string'?SATELLITES.find(value=>value.id===bodyOrId):bodyOrId,spec=body&&ECLIPSE_SEARCH[body.id];
+    if(!spec||!Number.isFinite(ms))throw new RangeError('Eclipse alignment requires Moon or Europa and a finite timestamp.');
+    const parent=BODIES.find(value=>value.id===body.parent),local=satelliteAt(body,ms,1),solar=positionAt(parent,ms);
+    const denominator=(Math.hypot(local.x,local.y,local.z)||1)*(Math.hypot(solar.x,solar.y,solar.z)||1);
+    // Both controls represent a transit: the satellite lies between its parent
+    // and the Sun. Moon and Europa therefore share the same alignment sign.
+    return clamp(-(local.x*solar.x+local.y*solar.y+local.z*solar.z)/denominator,-1,1);
+  }
+  function refineEclipse(body,left,right){
+    for(let i=0;i<32;i++){
+      const third=(right-left)/3,a=left+third,b=right-third;
+      if(eclipseAlignment(body,a)<eclipseAlignment(body,b))left=a;else right=b;
+    }
+    return (left+right)/2;
+  }
+  function eclipseEvent(bodyOrId,startMs,direction=1){
+    const body=typeof bodyOrId==='string'?SATELLITES.find(value=>value.id===bodyOrId):bodyOrId,spec=body&&ECLIPSE_SEARCH[body.id],sign=direction<0?-1:1;
+    if(!spec||!Number.isFinite(startMs))throw new RangeError('Eclipse search requires Moon or Europa and a finite timestamp.');
+    let a=clamp(startMs+sign*60000,MIN_TIME,MAX_TIME),sa=eclipseAlignment(body,a),b=a+sign*spec.step;
+    const limit=clamp(startMs+sign*spec.span,MIN_TIME,MAX_TIME),threshold=Math.cos(spec.limit);
+    if(b<MIN_TIME||b>MAX_TIME)return null;
+    let sb=eclipseAlignment(body,b);
+    while(sign>0?b<limit:b>limit){
+      const c=b+sign*spec.step;if(c<MIN_TIME||c>MAX_TIME)break;
+      const sc=eclipseAlignment(body,c);
+      if(sb>sa&&sb>=sc){
+        const ms=refineEclipse(body,Math.min(a,c),Math.max(a,c)),alignment=eclipseAlignment(body,ms);
+        if(alignment>=threshold)return Object.freeze({body:body.id,ms:Math.round(ms/60000)*60000,separation:Math.acos(alignment)/DEG,direction:sign});
+      }
+      a=b;sa=sb;b=c;sb=sc;
+    }
+    return null;
+  }
   // Anchored to time, never frame count: refresh rate and sleeping tabs cannot slow the orbit.
   class SimulationClock {
-    constructor(now=Date.now(), mono=0) { this.anchorMs=now; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false; }
+    constructor(now=Date.now(), mono=0) { this.anchorMs=now; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false;this.travel=null; }
     value(mono,wall=Date.now()) {
+      if(this.travel){
+        const travel=this.travel,p=clamp((mono-travel.startMono)/travel.duration,0,1),eased=p*p*(3-2*p);
+        if(p>=1){this.anchorMs=travel.targetMs;this.anchorMono=mono;this.rate=1;this.live=false;this.paused=true;this.travel=null;return this.anchorMs;}
+        return travel.startMs+(travel.targetMs-travel.startMs)*eased;
+      }
       if (this.paused) return this.anchorMs;
       return clamp(this.live ? wall : this.anchorMs+(mono-this.anchorMono)*this.rate,MIN_TIME,MAX_TIME);
     }
     setRate(rate,mono,wall=Date.now()) {
       if (!Number.isFinite(rate) || rate<=0) throw new RangeError('Playback rate must be positive.');
-      this.anchorMs=this.value(mono,wall); this.anchorMono=mono; this.rate=rate;
+      this.anchorMs=this.value(mono,wall);this.travel=null; this.anchorMono=mono; this.rate=rate;
       this.live=false; this.paused=false;
     }
     setDate(ms,mono) {
       if (!Number.isFinite(ms) || ms<MIN_TIME || ms>MAX_TIME) throw new RangeError('Date outside 1800–2999.');
-      this.anchorMs=ms; this.anchorMono=mono; this.live=false; this.rate=1; this.paused=true;
+      this.travel=null;this.anchorMs=ms; this.anchorMono=mono; this.live=false; this.rate=1; this.paused=true;
+    }
+    travelTo(ms,mono,duration=1800,wall=Date.now()) {
+      if (!Number.isFinite(ms) || ms<MIN_TIME || ms>MAX_TIME) throw new RangeError('Date outside 1800–2999.');
+      if (!Number.isFinite(duration) || duration<=0) throw new RangeError('Travel duration must be positive.');
+      const startMs=this.value(mono,wall);this.travel={startMs,targetMs:ms,startMono:mono,duration};
+      this.anchorMs=startMs;this.anchorMono=mono;this.rate=1;this.live=false;this.paused=false;return ms;
     }
     toggle(mono,wall=Date.now()) {
-      if (!this.paused) { this.anchorMs=this.value(mono,wall); this.anchorMono=mono; this.paused=true; }
+      if (!this.paused) { this.anchorMs=this.value(mono,wall);this.travel=null; this.anchorMono=mono; this.paused=true; }
       else { this.anchorMono=mono; this.paused=false; }
     }
-    now(mono,wall=Date.now()) { this.anchorMs=wall; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false; }
+    now(mono,wall=Date.now()) { this.travel=null;this.anchorMs=wall; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false; }
   }
-  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,OVERVIEW_ORBIT,BODIES,SUN,MOON,EUROPA,SATELLITES,SATELLITE_EPOCH,wrap,clamp,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,displayDistance,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,SimulationClock});
+  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,OVERVIEW_ORBIT,BODIES,SUN,MOON,EUROPA,SATELLITES,SATELLITE_EPOCH,wrap,clamp,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,displayDistance,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,eclipseAlignment,eclipseEvent,SimulationClock});
 });

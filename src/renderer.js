@@ -1,4 +1,4 @@
-/* Solar Time v0.48 — renderer implementation owner. */
+/* Solar Time v0.50 — renderer implementation owner. */
 (function () {
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
@@ -254,8 +254,8 @@
       const p=clamp((Math.sqrt(zoom)-1)/(Math.sqrt(DISPLAY_SAFETY.fullSizeZoom)-1),0,1),e=p*p*(3-2*p);
       return mix(base,1,e);
     }
-    bodyRadiusForState(body,state) {
-      const zoom=state.zoom,designed=body.size*this.effectiveBodySizeScale(body),radius=TRUE_RADIUS_KM[body.id]||TRUE_RADIUS_KM.earth;
+    bodyRadiusForState(body,state,displayScale=this.effectiveBodySizeScale(body)) {
+      const zoom=state.zoom,designed=body.size*displayScale,radius=TRUE_RADIUS_KM[body.id]||TRUE_RADIUS_KM.earth;
       const physical=TRUE_SCALE_SUN_SIZE*radius/TRUE_RADIUS_KM.sun;
       // The Sun is the untracked scene's fixed origin. Its ordinary body scale
       // intentionally tops out at detailZoom, but the old early return also made
@@ -284,13 +284,13 @@
       // projectView contributes only the depth-dependent perspective component.
       return optical*(state.dolly??1);
     }
-    bodyRadiusAtZoom(body) {
+    bodyRadiusAtZoom(body,displayScale=this.effectiveBodySizeScale(body)) {
       // Preset/focus transitions must not switch the special tracked-body size
       // on the first frame. Blend the visible radius continuously from the exact
       // source camera state to the exact destination camera state.
       const move=this.cameraTween&&!this.cameraTween.input?this.cameraTween:null;
-      if(move)return mix(this.bodyRadiusForState(body,move.from),this.bodyRadiusForState(body,move.to),move.progress||0);
-      return this.bodyRadiusForState(body,this.camera);
+      if(move)return mix(this.bodyRadiusForState(body,move.from,displayScale),this.bodyRadiusForState(body,move.to,displayScale),move.progress||0);
+      return this.bodyRadiusForState(body,this.camera,displayScale);
     }
 
     satelliteOrbitRadius(parentRadius,satelliteRadius,satellite,parent) {
@@ -301,12 +301,17 @@
       const designedParent=parent.size;
       const physicalParent=TRUE_SCALE_SUN_SIZE*(TRUE_RADIUS_KM[parent.id]||TRUE_RADIUS_KM.earth)/TRUE_RADIUS_KM.sun;
       const parentGroupScale=mix(1,physicalParent/designedParent,this.actualScaleMix);
-      const parentCustom=this.effectiveBodySizeScale(parent),childCustom=this.effectiveBodySizeScale(satellite);
+      const parentCustom=this.effectiveBodySizeScale(parent);
       const fullDesiredPx=satellite.displayOrbit*this.bodyScale*parentGroupScale;
       const index=A.BODIES.indexOf(parent),inner=index>0?parent.orbit-A.BODIES[index-1].orbit:Infinity;
       const outer=index>=0&&index<A.BODIES.length-1?A.BODIES[index+1].orbit-parent.orbit:Infinity;
       const neighborGapPx=Math.min(inner,outer)*this.scale,overviewLimit=neighborGapPx*DISPLAY_SAFETY.satelliteShell;
-      const baseParentRadius=parentRadius/Math.max(parentCustom,.01),baseSatelliteRadius=satelliteRadius/Math.max(childCustom,.01);
+      // Clearance is measured with both bodies at their original 100% display
+      // size. A tracked body's close-up radius is deliberately viewport-based,
+      // so dividing that radius by its custom scale made Moon/Europa size changes
+      // incorrectly expand or contract their orbit. Keep appearance and orbit
+      // layout as two independent controls.
+      const baseParentRadius=this.bodyRadiusAtZoom(parent,1),baseSatelliteRadius=this.bodyRadiusAtZoom(satellite,1);
       const localGap=Math.max(DISPLAY_SAFETY.localGap,baseParentRadius*.08);
       const clearancePx=baseParentRadius+baseSatelliteRadius+localGap;
       // Zero percent means the orbit used at the parent's original 100% size.
@@ -543,11 +548,13 @@
       const body=this.sceneBodies().find(b=>b.id===id);
       if(!body)return null;
       this.advanceCamera(mono);this.advanceAutoRotate(mono);
-      const snapshot=this.cameraSnapshot(),baseRadius=this.bodyRadiusForState(body,{...snapshot,focus:id,dolly:1}),radius=Math.min(this.w,this.h)*.25;
+      const snapshot=this.cameraSnapshot(),baseRadius=this.bodyDisplaySize(body)*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
       const t=clamp((radius-baseRadius)/(Math.min(this.w,this.h)*VIEW.detailFillRadius-baseRadius),0,1);
       const zoom=(1+t*(Math.sqrt(VIEW.detailZoom)-1))**2;
       // Tracking is always viewport-centred. A previous middle-button pan is a
-      // scene navigation offset, not part of a planet-follow camera preset.
+      // scene navigation offset, not part of a planet-follow camera preset. The
+      // target size is derived from the body's baseline display radius rather
+      // than the current/tweened zoom, so repeated focus commands are idempotent.
       return this.options.dollyZoom
         ?{...snapshot,focus:id,panX:0,panY:0,dolly:clamp(radius/Math.max(baseRadius,.001),VIEW.minZoom,VIEW.maxZoom)}
         :{...snapshot,focus:id,panX:0,panY:0,zoom:clamp(zoom,6,VIEW.detailZoom)};
@@ -762,6 +769,7 @@
       const lightVector=this.viewDirection({x:-physical.x,y:-physical.y,z:-physical.z}),len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
       const activity=body.id==='sun'&&this.options.activity,spin=A.rotationAt(body,ms),job=direct&&target?target:{};
       job.id=body.id;job.textureWidth=textureWidth;job.frame=frame;job.phase=spin/TAU;job.activity=activity;job.seconds=activity?seconds:0;
+      job.priority=focused?2:selected?1:0;
       const light=direct?(job.light||(job.light=[0,0,0])):[0,0,0];
       light[0]=lightVector.x/len;light[1]=lightVector.y/len;light[2]=lightVector.z/len;job.light=light;
       if(direct)return job;
@@ -1020,7 +1028,9 @@
       // uses a lighter cadence. Camera motion gets an immediate-enough 40 ms path.
       const directBodies=this.directBodies;directBodies.length=0;
       if(direct){
-        for(const p of surfaceBodies){this.surfaceJob(p.body,p.physical,p.r,ms,seconds,true,p.directJob);p.directReady=true;}
+        const jobs=this.compatSurfaceJobs;jobs.length=0;
+        for(const p of surfaceBodies){this.surfaceJob(p.body,p.physical,p.r,ms,seconds,true,p.directJob);p.directReady=true;jobs.push(p.directJob);}
+        this.gpu.prepare(jobs);
         const sun=this.currentFrameItem('sun');
         if(sun&&this.options.activity&&this.visible(sun.screen,sun.r*5.1+16))this.gpu.corona(this.coronaSource(sun.r),sun.screen,sun.r,seconds);
         for(const p of bodies){const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;if(!this.visible(p.screen,p.r*extent+16))continue;

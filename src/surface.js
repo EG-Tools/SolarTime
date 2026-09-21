@@ -1,4 +1,4 @@
-/* Solar Time v0.47 — surface implementation owner. */
+/* Solar Time v0.50 — surface implementation owner. */
 (function(root){
 'use strict';
 const STYLE=root.SolarSurfaceStyle;
@@ -15,14 +15,24 @@ function surfaceKernel(style){
     const remote=asset.base?new URL(tier.path,asset.base).href:'',url=remote||asset.fallback;
     return {url,fallback:remote&&asset.fallback!==remote?asset.fallback:'',key:url+'|'+(remote?asset.fallback:''),seamBaked:!!asset.seamBaked};
   }
-  async function bitmapFor(source,width=null,height=null){
+  async function bitmapFor(source,width=null,height=null,{signal,timeoutMs=15000}={}){
     const resize=width&&height?{resizeWidth:width,resizeHeight:height,resizeQuality:'high'}:{};
     let lastError;
-    for(const url of [source.url,source.fallback].filter(Boolean))try{
-      if(url.startsWith('data:'))return await createImageBitmap(dataBlob(url),resize);
-      if(!url.startsWith('file:')){const response=await fetch(url,{mode:'cors',credentials:'omit',cache:'force-cache'});if(!response.ok)throw Error('HTTP '+response.status);return await createImageBitmap(await response.blob(),resize);}
-      if(typeof document==='object'){const image=new Image();image.decoding='async';image.src=url;await image.decode();return await createImageBitmap(image,resize);}
-    }catch(error){lastError=error;}
+    for(const url of [...new Set([source.url,source.fallback].filter(Boolean))]){
+      signal?.throwIfAborted();
+      const controller=new AbortController(),abort=()=>controller.abort(signal.reason);
+      signal?.addEventListener('abort',abort,{once:true});
+      const timer=setTimeout(()=>controller.abort(new DOMException('Material download timed out','TimeoutError')),timeoutMs);
+      try{
+        let bitmap;
+        if(url.startsWith('data:'))bitmap=await createImageBitmap(dataBlob(url),resize);
+        else if(!url.startsWith('file:')){const response=await fetch(url,{mode:'cors',credentials:'omit',cache:'force-cache',signal:controller.signal});if(!response.ok)throw Error('HTTP '+response.status);bitmap=await createImageBitmap(await response.blob(),resize);}
+        else if(typeof document==='object'){const image=new Image();image.decoding='async';image.src=url;await image.decode();bitmap=await createImageBitmap(image,resize);}
+        if(controller.signal.aborted){bitmap?.close();controller.signal.throwIfAborted();}
+        if(bitmap)return bitmap;
+      }catch(error){if(signal?.aborted)throw signal.reason;lastError=error;}
+      finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
+    }
     throw lastError||Error('Material asset could not be decoded.');
   }
   function makeCanvas(n){const c=typeof OffscreenCanvas==='function'?new OffscreenCanvas(n,n):document.createElement('canvas');c.width=c.height=n;return c;}
@@ -445,7 +455,7 @@ class DirectRenderer{
     this.textures=new Map();this.frames=new Map();this.desired=new Map();this.orbitBuffers=new Map();this.textureSources=new Map();this.coronaTexture=null;this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
     this.boundProgram=null;this.boundBuffer=null;this.boundAttrib=-1;this.boundAttribSize=0;this.boundAttribBuffer=null;this.activeTextureUnit=-1;this.boundTextures=[null,null,null,null];this.canvasViewportW=0;this.canvasViewportH=0;this.orbitState={valid:false};
     this.stats={backend:'gpu-direct',accepted:0,discarded:0,drawCalls:0,frames:0,texturesLoaded:0,texturePixels:0,orbitUploads:0,kernel:{backend:'gpu-direct'}};
-    this.contextLost=false;this.onLost=event=>{event.preventDefault();this.contextLost=true;this.generation++;this.loadQueue=[];this.pendingCount=0;this.orbitBuffers.clear();this.resetBindings();this.stats.contextLost=true;};
+    this.contextLost=false;this.onLost=event=>{event.preventDefault();this.contextLost=true;this.invalidate();this.orbitBuffers.clear();this.resetBindings();this.stats.contextLost=true;};
     this.onRestored=()=>{this.contextLost=false;this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.resetBindings();this.setup();};
     canvas.addEventListener('webglcontextlost',this.onLost,false);canvas.addEventListener('webglcontextrestored',this.onRestored,false);
     this.setup();
@@ -497,6 +507,17 @@ class DirectRenderer{
     const g=this.gl;this.applyCanvasViewport();g.clear(g.COLOR_BUFFER_BIT);
     this.stats.frames++;this.stats.drawCalls=0;this.desired.clear();return true;
   }
+  prepare(jobs){
+    for(const job of jobs)this.desired.set(job.id,job);
+    const assets=root.SolarAssets?.materials,key=jobs.map(job=>job.id+':'+job.textureWidth+':'+job.priority).join('|');
+    if(key!==this.planKey||assets!==this.planAssets){
+      this.planKey=key;this.planAssets=assets;this.texturePlan=root.SolarPerformance?.planTextures(jobs,assets,this.maxTextureSize);
+      this.stats.plannedTextureBytes=this.texturePlan?.bytes||0;
+    }
+    // Jobs arrive focus-first, before depth sorting for painting. Start the
+    // important color maps first rather than letting a distant body take a slot.
+    for(const job of jobs)this.texture(job.id,job.textureWidth);
+  }
   bind(program,buffer=this.quad,size=2){
     const g=this.gl;
     if(this.boundProgram!==program.program){g.useProgram(program.program);this.boundProgram=program.program;}
@@ -510,20 +531,27 @@ class DirectRenderer{
     if(program.viewportWidth===this.width&&program.viewportHeight===this.height)return;
     this.gl.uniform2f(program.u.viewport,this.width,this.height);program.viewportWidth=this.width;program.viewportHeight=this.height;
   }
+  cancelTexture(name){
+    const record=this.textures.get(name);record?.controller?.abort();
+    this.loadQueue=this.loadQueue.filter(task=>{if(task.name!==name)return true;if(task.generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);return false;});
+    if(record)record.pending=false;
+  }
   queueTexture(task){this.loadQueue.push(task);this.pendingCount++;this.pumpTextureQueue();}
   pumpTextureQueue(){
-    if(this.disposed||this.contextLost)return;
+    if(this.disposed||this.paused||this.contextLost)return;
     while(this.activeLoads<2&&this.loadQueue.length){
       const task=this.loadQueue.shift(),record=this.textures.get(task.name);
       if(task.generation!==this.generation||!record||record.token!==task.token||record.source.key!==task.source.key){if(task.generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);continue;}
-      this.activeLoads++;this.loadTexture(task.name,task.source,task.target,task.token,task.generation).finally(()=>{this.activeLoads=Math.max(0,this.activeLoads-1);this.pumpTextureQueue();});
+      const controller=new AbortController();record.controller=controller;
+      this.activeLoads++;this.loadTexture(task.name,task.source,task.target,task.token,task.generation,controller.signal).finally(()=>{this.activeLoads=Math.max(0,this.activeLoads-1);if(record.controller===controller)record.controller=null;this.pumpTextureQueue();});
     }
   }
-  async loadTexture(name,source,target,token,generation){
+  async loadTexture(name,source,target,token,generation,signal){
     let bitmap,canvas,texture;
     try{
       const requested=this.textures.get(name);if(!requested||requested.token!==token||requested.source.key!==source.key||generation!==this.generation)return;
-      bitmap=await materialSource.bitmapFor(source);if(this.disposed||generation!==this.generation)return;
+      bitmap=await materialSource.bitmapFor(source,null,null,{signal});
+      if(this.disposed||signal?.aborted||generation!==this.generation||this.textures.get(name)?.token!==token)return;
       const natural=2**Math.floor(Math.log2(Math.max(2,bitmap.width))),width=Math.max(2,Math.min(target,natural)),height=width/2;
       let upload=bitmap;
       if(!source.seamBaked||bitmap.width!==width||bitmap.height!==height){
@@ -537,18 +565,26 @@ class DirectRenderer{
       g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
       const record=this.textures.get(name);if(!record||record.token!==token||record.source.key!==source.key){g.deleteTexture(texture);texture=null;this.stats.discarded++;return;}
       if(record.texture){g.deleteTexture(record.texture);this.stats.texturePixels-=record.width*record.height;}
-      Object.assign(record,{texture,width,height,pending:false,error:null,retryAt:0});texture=null;this.stats.accepted++;this.stats.texturesLoaded++;this.stats.texturePixels+=width*height;
-    }catch(error){const record=this.textures.get(name);if(record&&record.token===token){record.pending=false;record.error=error.message;record.retryAt=Date.now()+30000;this.stats.error=error.message;}}
-    finally{bitmap?.close?.();if(generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);}
+      Object.assign(record,{texture,width,height,pending:false,error:null,retryAt:width<target?Date.now()+30000:0});texture=null;this.stats.accepted++;this.stats.texturesLoaded++;this.stats.texturePixels+=width*height;
+    }catch(error){const record=this.textures.get(name);if(!signal?.aborted&&generation===this.generation&&record&&record.token===token){record.pending=false;record.error=error.message;record.retryAt=Date.now()+30000;this.stats.error=error.message;}}
+    finally{bitmap?.close?.();if(texture&&!this.contextLost)this.gl.deleteTexture(texture);if(generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);}
   }
   texture(name,target){const result=this.textureFor(name,target);root.SolarPerformance?.touchTexture(this,name);return result;}
   textureFor(name,target){
     const asset=root.SolarAssets?.materials?.[name];if(!asset)return null;
-    target=directPower(Math.min(target,this.maxTextureSize));const source=this.textureSource(name,asset,target);if(!source)return null;let record=this.textures.get(name);
-    const sourceChanged=!record||record.source.key!==source.key,upgrade=!record?.texture||record.width<target,downgrade=record?.texture&&record.width>target*2,retryReady=sourceChanged||!record?.retryAt||Date.now()>=record.retryAt;
-    if(retryReady&&(sourceChanged||upgrade||downgrade)&&(!record?.pending||record.pendingTarget!==target||record.source.key!==source.key)){
+    target=directPower(Math.min(target,this.maxTextureSize,this.texturePlan?.targets.get(name)??Infinity));
+    let record=this.textures.get(name);const assetChanged=!record||record.asset!==asset,now=performance.now();
+    const current=record?.pending?Math.max(record.width,record.pendingTarget):record?.width||0;
+    if(!assetChanged&&current>target&&!this.texturePlan?.constrained){
+      if(record.lowerTarget!==target){record.lowerTarget=target;record.lowerSince=now;}
+      if(now-record.lowerSince<650)return record.texture?record:null;
+    }else if(record){record.lowerTarget=0;record.lowerSince=0;}
+    const source=this.textureSource(name,asset,target);if(!source)return null;
+    const changed=assetChanged||record.source.key!==source.key,resize=!record?.texture||record.width!==target,retryReady=changed||!record?.retryAt||Date.now()>=record.retryAt;
+    if(retryReady&&(changed||resize)&&(!record?.pending||record.pendingTarget!==target||changed)){
+      this.cancelTexture(name);
       const old=record?.texture||null,token=++this.textureToken,generation=this.generation;
-      record={source,texture:old,width:record?.width||0,height:record?.height||0,pending:true,pendingTarget:target,token};
+      record={asset,source,texture:old,width:record?.width||0,height:record?.height||0,pending:true,pendingTarget:target,token};
       this.textures.set(name,record);this.queueTexture({name,source,target,token,generation});
     }
     return record?.texture?record:null;
@@ -608,15 +644,19 @@ class DirectRenderer{
     let frameRecord=this.frames.get(job.id);if(!frameRecord){frameRecord={job:null,image:{width:0,height:0,gpu:true}};this.frames.set(job.id,frameRecord);}
     frameRecord.job=job;frameRecord.image.width=Math.round(radius*2*this.dpr);frameRecord.image.height=Math.round(radius*2*this.dpr);return true;
   }
-  end(){for(const id of this.frames.keys())if(!this.desired.has(id))this.frames.delete(id);root.SolarPerformance?.enforceTextureBudget(this);}
+  end(){
+    for(const id of this.frames.keys())if(!this.desired.has(id))this.frames.delete(id);
+    for(const [name,record] of this.textures)if(record.pending&&!root.SolarPerformance?.protectTexture(this,name))this.cancelTexture(name);
+    root.SolarPerformance?.enforceTextureBudget(this);
+  }
   flush(){if(!this.disposed&&!this.contextLost)this.gl.flush();}
   get(id){return this.frames.get(id)?.image;}
-  invalidate(){this.generation++;this.loadQueue=[];this.pendingCount=0;for(const record of this.textures.values())record.pending=false;}
-  pause(){this.paused=true;}
+  invalidate(){for(const record of this.textures.values()){record.controller?.abort();record.pending=false;}this.generation++;this.loadQueue=[];this.pendingCount=0;}
+  pause(){this.paused=true;this.invalidate();}
   resume(){this.paused=false;this.pumpTextureQueue();}
   suspend(){this.pause();}
   dispose(){
-    if(this.disposed)return;this.disposed=true;this.generation++;this.loadQueue=[];this.pendingCount=0;const g=this.gl;
+    if(this.disposed)return;this.disposed=true;this.invalidate();const g=this.gl;
     for(const record of this.textures.values())if(record.texture)g.deleteTexture(record.texture);
     for(const record of this.orbitBuffers.values())g.deleteBuffer(record.buffer);
     for(const p of [this.planetProgram,this.coronaProgram,this.line,this.ring])g.deleteProgram(p.program);

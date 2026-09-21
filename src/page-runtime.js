@@ -146,7 +146,7 @@
       const actions=document.createElement('div');actions.className='card-actions';
       const reload=document.createElement('button');reload.type='button';reload.className='text-button';reload.dataset.i18n='reloadPage';reload.textContent=t('reloadPage','Reload');
       reload.addEventListener('click',()=>{const url=new URL(root.location.href);url.searchParams.set('refresh',Date.now().toString(36));root.location.replace(url.href);});
-      const requestClose=()=>UI.hide(dialog,()=>{dialog.close();document.querySelector('.solar-build-info')?.focus({preventScroll:true});});
+      const requestClose=({restoreFocus=true}={})=>UI.hide(dialog,()=>{dialog.close();if(restoreFocus)document.querySelector('.solar-build-info')?.focus({preventScroll:true});});
       close.addEventListener('click',requestClose);UI.bindDialog(dialog,requestClose);
       const cue=direction=>{const e=document.createElement('span');e.className='scroll-cue scroll-cue-'+direction;e.setAttribute('aria-hidden','true');e.textContent=direction==='up'?'⌃':'⌄';return e;};
       actions.append(reload);body.append(title,pre,actions);dialog.append(close,cue('up'),body,cue('down'));document.body.append(dialog);diagnosticCues=UI.bindScrollCues(dialog,body);

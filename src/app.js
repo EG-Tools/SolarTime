@@ -1,14 +1,16 @@
-/* Solar Time v0.48 — app implementation owner. */
+/* Solar Time v0.50 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
   const Localization=Modules.Localization,LanguageData=Modules.LanguageData,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
-  const LANG_ORDER=['kor','en','chn','ao','ar','au','at','be','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nl','nz','pa','pe','pt','sg','es','eu','uy','ve'];
+  const LANG_ORDER=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve'];
   const LANG_META={
     kor:{code:'KOR',name:'한국',locale:'ko-KR',html:'ko',copy:'kor'},
     en:{code:'EN',name:'USA',locale:'en-US',html:'en',copy:'en'},
     chn:{code:'CHN',name:'中国',locale:'zh-CN',html:'zh-Hans',copy:'chn'},
+    tw:{code:'TW',name:'台灣',locale:'zh-TW',html:'zh-Hant-TW',copy:'zht'},
+    hk:{code:'HK',name:'香港',locale:'zh-HK',html:'zh-Hant-HK',copy:'zht'},
     jpn:{code:'JPN',name:'日本',locale:'ja-JP',html:'ja',copy:'jpn'},
     eu:{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'},
     hi:{code:'HI',name:'भारत',locale:'hi-IN',html:'hi',copy:'hi'},
@@ -45,6 +47,8 @@
     kor:{label:'KOREA',timeZone:'Asia/Seoul',latitude:37.5665,longitude:126.978,region:'한국',city:'서울'},
     en:{label:'USA',timeZone:'America/New_York',latitude:39.8283,longitude:-98.5795,region:'United States',city:'mainland center'},
     chn:{label:'CHINA',timeZone:'Asia/Shanghai',latitude:35.8617,longitude:104.1954,region:'中国',city:'国土中心'},
+    tw:{label:'TAIWAN',timeZone:'Asia/Taipei',latitude:23.6978,longitude:120.9605,region:'台灣',city:'地理中心'},
+    hk:{label:'HONG KONG',timeZone:'Asia/Hong_Kong',latitude:22.3193,longitude:114.1694,region:'香港',city:'地理中心'},
     jpn:{label:'JAPAN',timeZone:'Asia/Tokyo',latitude:35.6762,longitude:139.6503,region:'日本',city:'東京'},
     eu:{label:'UNITED KINGDOM',timeZone:'Europe/London',latitude:55.3781,longitude:-3.436,region:'United Kingdom',city:'geographic center'},
     hi:{label:'INDIA',timeZone:'Asia/Kolkata',latitude:22.5937,longitude:78.9629,region:'भारत',city:'देश का केंद्र'},
@@ -82,6 +86,7 @@
     kor:Object.freeze({label:'별 밀도',aria:'파티클 별 밀도. 0이면 파티클 별을 숨깁니다.'}),
     en:Object.freeze({label:'Star density',aria:'Particle star density. Zero hides particle stars.'}),
     chn:Object.freeze({label:'星星密度',aria:'粒子星星密度。设为 0 时隐藏粒子星星。'}),
+    zht:Object.freeze({label:'星星密度',aria:'粒子星星密度。設為 0 時隱藏粒子星星。'}),
     jpn:Object.freeze({label:'星の密度',aria:'パーティクル星の密度。0 にするとパーティクル星を非表示にします。'}),
     eu:Object.freeze({label:'Star density',aria:'Particle star density. Zero hides particle stars.'}),
     hi:Object.freeze({label:'तारों का घनत्व',aria:'पार्टिकल तारों का घनत्व। 0 पर पार्टिकल तारे छिप जाते हैं।'}),
@@ -147,7 +152,7 @@
       const renderer=new window.SolarRenderer($('starfield'),$('universe'));
       Object.assign(renderer.options,FACTORY_OPTIONS);renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
       const clock=new A.SimulationClock(Date.now(),performance.now());
-      let timezone='local',showSeconds=false,hourCycle='12',language=detectedLanguage(),zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
+      let timezone='local',showSeconds=false,hourCycle='12',language=detectedLanguage(),languageMode='auto',zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
       let speedMode='day',speedValues={hour:1,day:1,year:1};
       const activeRegion=()=>REGIONS[language]||REGIONS.kor;
       const activeTimeZone=()=>timezone==='utc'?'UTC':activeRegion().timeZone;
@@ -165,11 +170,13 @@
       function translateStatic(){
         document.documentElement.lang=LANG_META[language].html;
         Localization.apply(document,t);
+        const automaticLabel=Localization.automaticLanguageLabel();$('auto-language-mode').textContent=automaticLabel[0];$('auto-language-name').textContent=automaticLabel[1];
         const lang=$('language-toggle');lang.textContent=LANG_META[language].code;lang.setAttribute('aria-label',`${t('languageChange')}. ${LANG_META[language].name}`);lang.title=`${t('languageChange')} · ${LANG_META[language].code}`;
         const menu=$('language-menu');menu.setAttribute('aria-label',t('languageChange'));
         const starCopy=STAR_DENSITY_COPY[copyLanguage()]||STAR_DENSITY_COPY.kor;
         $('star-density-label').textContent=starCopy.label;$('star-density').setAttribute('aria-label',starCopy.aria);
-        for(const option of menu.querySelectorAll('[data-language]'))option.setAttribute('aria-checked',String(option.dataset.language===language));
+        menu.querySelector('[data-language-auto]')?.setAttribute('aria-checked',String(languageMode==='auto'));
+        for(const option of menu.querySelectorAll('[data-language]'))option.setAttribute('aria-checked',String(languageMode==='manual'&&option.dataset.language===language));
         $('fit-view').setAttribute('aria-label',t('homeView'));$('fit-view').title=t('homeView')+' · 0';
         $('fullscreen-button').setAttribute('aria-label',t(document.fullscreenElement?'fullscreenExit':'fullscreen'));$('fullscreen-button').title=t(document.fullscreenElement?'fullscreenExit':'fullscreen')+' · F';
         $('zen-toggle').setAttribute('aria-label',t(zen?'zenOff':'zenOn'));$('zen-toggle').title=t(zen?'normalMode':'zenMode')+' · H';
@@ -206,7 +213,8 @@
            if(typeof saved.dollyZoom==='boolean')renderer.options.dollyZoom=saved.dollyZoom;
            if([-1,0,1].includes(saved.autoRotateDirection))savedAutoRotateDirection=saved.autoRotateDirection;
           if(Number.isFinite(saved.overviewOrbitGap))renderer.options.overviewOrbitGap=A.clamp(Math.round(saved.overviewOrbitGap),A.OVERVIEW_ORBIT.minGap,A.OVERVIEW_ORBIT.maxGap);
-          if(LANG_ORDER.includes(saved.language))language=saved.language;
+          if(saved.languageMode==='auto'){languageMode='auto';language=detectedLanguage();}
+          else if(LANG_ORDER.includes(saved.language)){language=saved.language;languageMode='manual';}
           if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
           if(saved.hourCycle==='12'||saved.hourCycle==='24')hourCycle=saved.hourCycle;
           if(typeof saved.clockFont==='string'&&CLOCK_FONTS[saved.clockFont])clockFont=saved.clockFont;
@@ -261,7 +269,7 @@
         control.textContent=twentyFour?'24H':(control.dataset.period||'AM');
         control.setAttribute('aria-pressed',String(twentyFour));
       }
-      function persist() {const camera=renderer.cameraSnapshot();if(camera.focus===null)overviewCamera={...camera,focus:null};Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockFont,speedMode,speedValues,language,camera:overviewCamera,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});}
+      function persist() {const camera=renderer.cameraSnapshot();if(camera.focus===null)overviewCamera={...camera,focus:null};Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockFont,speedMode,speedValues,language,languageMode,camera:overviewCamera,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});}
       let cameraUiSignature='';
       function cameraUi(force=false) {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
@@ -359,7 +367,7 @@
         }
         closePresetDialog();
       });
-      UI.bindDialog(presetDialog,()=>closePresetDialog());
+      UI.bindDialog(presetDialog,options=>closePresetDialog(options?.restoreFocus!==false));
       window.addEventListener('resize',()=>{closePresetDialog(false);if(!$('body-panel').hidden)anchorBodyPanel();},{passive:true});
       presetUi();
       const realFormat=()=>new Intl.DateTimeFormat(LANG_META[language].locale,{year:'numeric',month:'long',day:'numeric',weekday:'long',timeZone:activeTimeZone()});
@@ -428,6 +436,25 @@
         const sizeReset=renderer.resetBodyScale(body.id),orbitReset=renderer.resetSatelliteOrbitScale(body.id);
         if(sizeReset||orbitReset){syncBodySizeControl(body);persist();}
       });
+      const eclipseTargets=new Map();
+      function syncEclipseControl(bodyId=renderer.selected) {
+        const available=bodyId==='moon'||bodyId==='europa',target=eclipseTargets.get(bodyId);
+        $('eclipse-control').hidden=!available;
+        $('eclipse-date').textContent=available&&Number.isFinite(target)?compactDate(target):'—';
+      }
+      function travelToEclipse(direction) {
+        const id=renderer.selected;if(id!=='moon'&&id!=='europa')return;
+        const mono=performance.now(),base=clock.travel?.targetMs??clock.value(mono),event=A.eclipseEvent(id,base,direction);
+        if(!event){toast(t('eclipseUnavailable'));return;}
+        eclipseTargets.set(id,event.ms);syncEclipseControl(id);
+        // Eclipse navigation changes simulation time only. Preserve the exact
+        // current camera, whether it is a home/preset/free view or is already
+        // tracking Moon/Europa.
+        renderer.invalidateSurfaces();clock.travelTo(event.ms,mono,id==='moon'?2200:1500);
+        const ms=clock.value(mono);updateControls(ms);updateBody(ms);
+      }
+      $('eclipse-previous').addEventListener('click',()=>travelToEclipse(-1));
+      $('eclipse-next').addEventListener('click',()=>travelToEclipse(1));
       const statNodes=new Map();let bodyInfoSignature='';
       function setStat(id,value,unit) {
         let record=statNodes.get(id);
@@ -473,6 +500,7 @@
         for(const [key,button] of navButtons){button.classList.toggle('active',key===id);button.setAttribute('aria-pressed',String(key===id));}
         $('feature-view').hidden=!['earth','jupiter'].includes(id);$('feature-view').textContent=id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');
         syncBodySizeControl(b);
+        syncEclipseControl(id);
         updateBody(clock.value(performance.now()));
         anchorBodyPanel();requestAnimationFrame(()=>updateBodyScrollCues());
       }
@@ -512,7 +540,10 @@
         syncSpeedUi();
       }
       function uiNow() {const mono=performance.now(),wall=Date.now(),ms=clock.value(mono,wall);updateWall(wall);updateControls(ms);updateBody(ms);}
-      function now() {A.calibrateAt(Date.now());renderer.invalidateSurfaces();clock.now(performance.now());uiNow();toast(t('returnedNow'));}
+      function now() {
+        const mono=performance.now();A.calibrateAt(Date.now());renderer.invalidateSurfaces();clock.now(mono);eclipseTargets.clear();syncEclipseControl();
+        uiNow();toast(t('returnedNow'));
+      }
       $('live-button').addEventListener('click',now);
       $('speed-mode-button').addEventListener('click',()=>{
         // In live mode the first press activates the unit already shown instead of
@@ -531,6 +562,9 @@
       const updateBodyScrollCues=bindScrollCues($('body-panel'),$('body-scroll'));
       bindScrollCues($('kakao-pay-dialog'),$('kakao-pay-scroll'));
       function settings(open) {const next=open===undefined?!uiElementVisible(settingsPanel):open;if(next){showFading(settingsPanel);updateSettingsScrollCues();requestAnimationFrame(updateSettingsScrollCues);}else hideFading(settingsPanel);$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
+      UI.bindPopup(settingsPanel,()=>settings(false));
+      UI.bindPopup($('body-panel'),closeBody);
+      UI.bindPopup($('toast'),()=>{clearTimeout(toastTimer);hideFading($('toast'));});
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
       for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if(key==='actualScale'){syncOrbitSpacingControl();if(renderer.selected)syncBodySizeControl();}if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
       $('overview-orbit-gap').addEventListener('input',()=>{renderer.setOption('overviewOrbitGap',$('overview-orbit-gap').value);syncOrbitSpacingControl();});
@@ -551,13 +585,15 @@
       const resetDefaultsDialog=$('reset-defaults-dialog');
       function closeResetDefaults(restoreFocus=true){if(resetDefaultsDialog.open)hideFading(resetDefaultsDialog,()=>resetDefaultsDialog.close());if(restoreFocus)$('reset-defaults').focus({preventScroll:true});}
       async function applyFactoryDefaults(){
+        const nextLanguage=detectedLanguage(),request=++languageRequest;
+        try{await hydrateLanguage(nextLanguage);}catch(error){if(request===languageRequest&&!disposed)toast(error.message);return;}
+        if(request!==languageRequest||disposed)return;
         const mono=performance.now();closeResetDefaults(false);renderer.cancelCameraMotion(mono);renderer.stopAutoRotate(mono);
         for(const [key,value] of Object.entries(FACTORY_OPTIONS))renderer.setOption(key,value,false);
         window.SolarVisualEffects?.regenerateStars?.(renderer.sky);
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
         renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();
-        timezone='local';showSeconds=false;hourCycle='12';clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=detectedLanguage();
-        await hydrateLanguage(language);
+        timezone='local';showSeconds=false;hourCycle='12';clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';
         renderer.setSite(activeRegion());for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
         $('show-seconds').checked=showSeconds;$('seconds-group').hidden=true;$('ampm').hidden=false;syncHourCycleUi();
         $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
@@ -565,7 +601,7 @@
       }
       $('reset-defaults').addEventListener('click',()=>{showFading(resetDefaultsDialog,()=>resetDefaultsDialog.showModal());$('reset-defaults-no').focus({preventScroll:true});});
       $('reset-defaults-no').addEventListener('click',()=>closeResetDefaults());$('reset-defaults-yes').addEventListener('click',()=>applyFactoryDefaults().catch(fatal));
-      UI.bindDialog(resetDefaultsDialog,()=>closeResetDefaults());
+      UI.bindDialog(resetDefaultsDialog,options=>closeResetDefaults(options?.restoreFocus!==false));
       function reset() {cancelGesture();renderer.animateHome(performance.now(),1100);cameraUi();}
       $('fit-view').addEventListener('click',reset);
       $('camera-mode-toggle').addEventListener('click',()=>{renderer.setDollyMode(!renderer.options.dollyZoom,true);cameraUi();persist();});
@@ -617,9 +653,9 @@
       function handleEscape() {
         // Fullscreen always exits on the first short press; remaining UI closes step by step.
         if(document.fullscreenElement){exitFullscreen();return;}
-        if(zen){setZen(false);return;}
         if(!$('language-menu').hidden){closeLanguageMenu();return;}
         if(UI.dismissTopDialog())return;
+        if(zen){setZen(false);return;}
         settings(false);closeBody();
       }
       // A single idle owner controls the cursor, complete toolbar and hit/tab targets.
@@ -646,13 +682,14 @@
         awakeTimer=setTimeout(()=>{awakeTimer=undefined;showAwake(false);},idleDelay);
       }
       function setZen(value) {
-        closePresetDialog(false);zen=value;clearAwake();document.body.classList.toggle('zen',zen);
+        if(value)UI.dismissAll();else closePresetDialog(false);
+        zen=!!value;clearAwake();document.body.classList.toggle('zen',zen);
         $('zen-toggle').setAttribute('aria-pressed',String(zen));$('zen-toggle').setAttribute('aria-label',t(zen?'zenOff':'zenOn'));$('zen-toggle').title=t(zen?'normalMode':'zenMode')+' · H';
         // Keep the complete clock/date/timezone block pixel-identical in zen mode.
         // One timezone element is shared by both modes, so SEOUL/UTC never swaps or disappears.
         for(const el of document.querySelectorAll('.ui,#timezone-button'))el.inert=zen;
         renderer.hover=null;
-        if(zen){closeBody();settings(false);clearTimeout(toastTimer);hideFading($('toast'));$('universe').focus({preventScroll:true});wakePointer();}
+        if(zen){$('universe').focus({preventScroll:true});wakePointer();}
         else {$('zen-toggle').focus({preventScroll:true});viewControls.inert=false;viewControls.setAttribute('aria-hidden','false');}
       }
       $('zen-toggle').addEventListener('click',()=>setZen(!zen));
@@ -663,12 +700,12 @@
       function closeKakaoPay(restoreFocus=true){if(kakaoPayDialog.open)hideFading(kakaoPayDialog,()=>kakaoPayDialog.close());if(restoreFocus)$('kakao-pay-link').focus({preventScroll:true});}
       $('kakao-pay-link').addEventListener('click',event=>{event.preventDefault();if(!kakaoPayDialog.open)showFading(kakaoPayDialog,()=>kakaoPayDialog.showModal());});
       kakaoPayDialog.querySelector('form').addEventListener('submit',event=>{event.preventDefault();closeKakaoPay();});
-      UI.bindDialog(kakaoPayDialog,()=>closeKakaoPay());
+      UI.bindDialog(kakaoPayDialog,options=>closeKakaoPay(options?.restoreFocus!==false));
       const updateHelpScrollCues=bindScrollCues(helpDialog,helpScroll);
       let releaseNotesApi=null,releaseNotesNavigator=null;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=0.48-r3','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=0.50-r1','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -708,27 +745,34 @@
       window.addEventListener('resize',()=>{for(const update of scrollCueUpdates)update();},{passive:true});
       helpDialog.addEventListener('close',()=>$('help-button').setAttribute('aria-expanded','false'));
       UI.bindDialog(helpDialog,()=>help(false),{backdrop:false});
+      let languageRequest=0;
       async function setLanguage(next){
-        if(!LANG_ORDER.includes(next)||next===language)return;
-        await hydrateLanguage(next);
-        language=next;renderer.setSite(activeRegion());translateStatic();renderReleaseNotes();refreshTimeFormats();lastWallKey='';
+        const automatic=next==='auto',target=automatic?detectedLanguage():next,mode=automatic?'auto':'manual';
+        if(!LANG_ORDER.includes(target))return;
+        const request=++languageRequest;
+        if(target===language){languageMode=mode;translateStatic();persist();return;}
+        try{await hydrateLanguage(target);}catch(error){if(request===languageRequest&&!disposed)toast(error.message);return;}
+        if(request!==languageRequest||disposed)return;
+        language=target;languageMode=mode;renderer.setSite(activeRegion());translateStatic();renderReleaseNotes();refreshTimeFormats();lastWallKey='';
         refreshNavLabels();presetUi();cameraUi();syncSpeedUi();
         if(presetAction){const value=cameraPresets[presetAction.index];$('preset-title').textContent=t('presetTitle',{n:presetAction.index+1});$('preset-note').textContent=t(value?'presetSavedNote':'presetEmptyNote');}
         const selected=bodies.find(body=>body.id===renderer.selected);
-        if(selected){const copy=bodyCopy(selected);$('body-name').textContent=copy.name;$('body-description').textContent=copy.description;$('feature-view').textContent=selected.id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');syncBodySizeControl(selected);updateBody(clock.value(performance.now()));}
+        if(selected){const copy=bodyCopy(selected);$('body-name').textContent=copy.name;$('body-description').textContent=copy.description;$('feature-view').textContent=selected.id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');syncBodySizeControl(selected);syncEclipseControl(selected.id);updateBody(clock.value(performance.now()));}
         uiNow();persist();if(helpDialog.open)requestAnimationFrame(updateHelpScrollCues);
       }
       const languageControl=$('language-control'),languageMenu=$('language-menu'),languageScroll=$('language-scroll'),languageToggle=$('language-toggle');
       const updateLanguageScrollCues=bindScrollCues(languageMenu,languageScroll);
       function openLanguageMenu(){
         showFading(languageMenu);languageToggle.setAttribute('aria-expanded','true');updateLanguageScrollCues();requestAnimationFrame(updateLanguageScrollCues);
-        const current=languageMenu.querySelector(`[data-language="${language}"]`);requestAnimationFrame(()=>{current?.scrollIntoView({block:'nearest'});current?.focus({preventScroll:true});updateLanguageScrollCues();});
+        const current=languageMode==='auto'?languageMenu.querySelector('[data-language-auto]'):languageMenu.querySelector(`[data-language="${language}"]`);requestAnimationFrame(()=>{current?.scrollIntoView({block:'nearest'});current?.focus({preventScroll:true});updateLanguageScrollCues();});
       }
       function closeLanguageMenu(returnFocus=false){hideFading(languageMenu);languageToggle.setAttribute('aria-expanded','false');if(returnFocus)languageToggle.focus({preventScroll:true});}
+      UI.bindPopup(languageMenu,()=>closeLanguageMenu());
       languageToggle.addEventListener('click',()=>uiElementVisible(languageMenu)?closeLanguageMenu():openLanguageMenu());
-      for(const option of languageMenu.querySelectorAll('[data-language]'))option.addEventListener('click',()=>{const next=option.dataset.language;closeLanguageMenu(true);setLanguage(next).catch(fatal);});
+      languageMenu.querySelector('[data-language-auto]').addEventListener('click',()=>{closeLanguageMenu(true);setLanguage('auto');});
+      for(const option of languageMenu.querySelectorAll('[data-language]'))option.addEventListener('click',()=>{const next=option.dataset.language;closeLanguageMenu(true);setLanguage(next);});
       languageMenu.addEventListener('keydown',event=>{
-        const options=[...languageMenu.querySelectorAll('[data-language]')],index=options.indexOf(document.activeElement);let next=-1;
+        const options=[...languageMenu.querySelectorAll('[role="menuitemradio"]')],index=options.indexOf(document.activeElement);let next=-1;
         if(event.key==='ArrowDown')next=(index+1)%options.length;else if(event.key==='ArrowUp')next=(index-1+options.length)%options.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=options.length-1;else return;
         event.preventDefault();options[next].focus({preventScroll:true});options[next].scrollIntoView({block:'nearest'});updateLanguageScrollCues();
       });
@@ -812,10 +856,7 @@
         if(event.repeat||editing)return;
         if(key==='f'||key==='h'||key==='0'){
           event.preventDefault();event.stopPropagation();
-          if(key==='f')fullscreen();else if(key==='h'){
-            if($('help-dialog').open)help(false);
-            setZen(!zen);
-          }else reset();return;
+          if(key==='f')fullscreen();else if(key==='h')setZen(!zen);else reset();return;
         }
         if(presetDialog.open||$('help-dialog').open||event.target.closest?.('button,a'))return;
         if(key===' '){event.preventDefault();pause();}
@@ -909,7 +950,7 @@
       window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
       window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.48',revision:'r3',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,randomRotate:renderer.randomRotateEnabled,language,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.50',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,randomRotate:renderer.randomRotateEnabled,language,languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

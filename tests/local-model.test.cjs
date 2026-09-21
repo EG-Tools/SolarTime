@@ -69,7 +69,7 @@ test('Astronomy stays local while network access is limited to versioned visual 
  const root=path.resolve(__dirname,'..');
  for(const name of ['astro','app','renderer']){const s=fs.readFileSync(path.join(root,'src',name+'.js'),'utf8');assert.doesNotMatch(s,/\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|navigator\.onLine/);}
  const materials=fs.readFileSync(path.join(root,'src/materials.js'),'utf8');assert.doesNotMatch(materials,/\bfetch\s*\(|indexedDB|solarsystemscope|jsdelivr/);
- const surface=fs.readFileSync(path.join(root,'src/surface.js'),'utf8');assert.match(surface,/fetch\(url,\{mode:'cors',credentials:'omit',cache:'force-cache'\}\)/);
+ const surface=fs.readFileSync(path.join(root,'src/surface.js'),'utf8');assert.match(surface,/fetch\(url,\{mode:'cors',credentials:'omit',cache:'force-cache',signal:controller\.signal\}\)/);
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),deployment=JSON.parse(fs.readFileSync(path.join(root,'assets/deployment.json'),'utf8'));
  assertStaticAssetLinks(html,deployment);
 });

@@ -1,5 +1,14 @@
 # Maintenance changelog
 
+## v0.50 r1 · 2026-09-21
+
+- Added a browser-language/device-time-zone Auto Language default while preserving explicit country choices, and added Taiwan and Hong Kong with Traditional Chinese locale data.
+- Added previous/next eclipse time travel for Moon and Europa. The current camera framing and tracking state are preserved throughout the transition.
+- Decoupled Moon/Europa display scale from satellite-orbit spacing, corrected Europa transit geometry and made repeated focus commands idempotent.
+- Unified popup dismissal and presentation-mode behavior across shared cards and overlays.
+- Improved GPU texture planning, cancellation and disposal, plus Cloudflare HEAD/Range media caching behavior.
+- Simplified support links into one compact row and bumped all changed runtime resources to the v0.50 r1 cache key.
+
 ## v0.48 r3 · 2026-09-19
 
 - Clarified random rotation: choose one yaw/pitch direction on each OFF-to-ON activation and keep that direction until OFF. Re-enabling selects a new direction.

@@ -19,6 +19,15 @@ test('top dialog alone closes; a fading card consumes repeated Escape',()=>{cons
 test('dialog padding stays open; genuine backdrop clicks close',()=>{const h=harness(),d=new Element('dialog');h.ui.bindDialog(d,()=>h.ui.hide(d,()=>d.close()));h.ui.show(d,()=>d.showModal());pointer(d,'pointerdown',25,25);pointer(d,'click',25,25);assert.ok(d.open);pointer(d,'pointerdown',0,0);pointer(d,'click',0,0);assert.equal(d.open,false);});
 test('dragging out of a card is not an outside click',()=>{const h=harness(),d=new Element('dialog');h.ui.bindDialog(d,()=>d.close());h.ui.show(d,()=>d.showModal());pointer(d,'pointerdown',100,100);pointer(d,'click',0,0);assert.ok(d.open);});
 test('native cancel follows the registered lifecycle',()=>{const h=harness(),a=new Element('dialog'),b=new Element('dialog');for(const d of [a,b]){h.ui.bindDialog(d,()=>h.ui.hide(d,()=>d.close()));h.ui.show(d,()=>d.showModal());}const e=new Event('cancel',{cancelable:true});b.dispatchEvent(e);assert.ok(e.defaultPrevented);assert.ok(a.open);assert.equal(b.open,false);});
+test('one dismissal closes dialogs and panels without restoring hidden focus',()=>{
+ const h=harness(false),dialog=new Element('dialog'),panel=new Element(),calls=[];
+ h.ui.bindDialog(dialog,options=>{calls.push(options.restoreFocus);h.ui.hide(dialog,()=>dialog.close());});
+ h.ui.bindPopup(panel,options=>{calls.push(options.restoreFocus);h.ui.hide(panel);});
+ h.ui.show(dialog,()=>dialog.showModal());h.ui.show(panel);h.ui.dismissAll();h.ui.dismissAll();
+ assert.deepEqual(calls,[false,false]);assert.equal(h.ui.visible(dialog),false);assert.equal(h.ui.visible(panel),false);
+ h.runTimers();assert.equal(dialog.open,false);assert.equal(panel.hidden,true);assert.equal(h.ui.topDialog(),null);
+ h.ui.show(dialog,()=>dialog.showModal());assert.ok(h.ui.visible(dialog));
+});
 test('failed lazy load removes its node and retries with a new request',async()=>{const h=harness(),first=h.ui.loadScript('notes.js?v=1','Notes'),rejected=assert.rejects(first,/Could not load/);assert.equal(h.ui.loadScript('notes.js?v=1','Notes'),first);h.nodes[0].dispatchEvent(new Event('error'));await rejected;assert.ok(h.nodes[0].removed);const second=h.ui.loadScript('notes.js?v=1','Notes');assert.equal(h.nodes.length,2);h.root.Notes={ready:true};h.nodes[1].dispatchEvent(new Event('load'));assert.equal(await second,h.root.Notes);assert.equal(h.timers.size,0);});
 test('missing script exports reject instead of waiting indefinitely',async()=>{const h=harness(),task=h.ui.loadScript('notes','Notes'),rejected=assert.rejects(task,/did not initialize/);h.nodes[0].dispatchEvent(new Event('load'));await rejected;assert.ok(h.nodes[0].removed);});
 test('hung scripts time out; final disposal cancels pending work',async()=>{const h=harness(),task=h.ui.loadScript('notes','Notes'),rejected=assert.rejects(task,/Timed out/);h.runTimers();await rejected;const again=h.ui.loadScript('notes','Notes'),cancelled=assert.rejects(again,/disposed/);h.ui.dispose();await cancelled;assert.equal(h.timers.size,0);});

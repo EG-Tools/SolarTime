@@ -37,20 +37,29 @@
     if(!dialog.classList.contains('ui-fade-closing'))bindings.get(dialog)();
     return true;
   }
+  function dismissAll(){
+    for(const [element,requestClose] of [...bindings].reverse()){
+      if(visible(element))requestClose({restoreFocus:false});
+    }
+  }
+  function bindPopup(element,requestClose){
+    if(bindings.has(element))throw Error('Popup already registered: '+element.id);
+    bindings.set(element,requestClose);
+    return own(()=>{bindings.delete(element);forget(element);});
+  }
   function outside(dialog,event){
     const b=dialog.getBoundingClientRect();
     return event.target===dialog&&(event.clientX<b.left||event.clientX>b.right||event.clientY<b.top||event.clientY>b.bottom);
   }
   function bindDialog(dialog,requestClose,{backdrop=true}={}){
-    if(bindings.has(dialog))throw Error('Dialog already registered: '+dialog.id);
-    bindings.set(dialog,requestClose);if(shown(dialog))track(dialog);
+    const unbind=bindPopup(dialog,requestClose);if(shown(dialog))track(dialog);
     let pressedOutside=null;
     const down=event=>{pressedOutside=outside(dialog,event);};
     const click=event=>{if(backdrop&&outside(dialog,event)&&pressedOutside!==false)requestClose();pressedOutside=null;};
     const cancel=event=>{event.preventDefault();event.stopPropagation();if(topDialog()===dialog)dismissTopDialog();};
     const closed=()=>forget(dialog);
     dialog.addEventListener('pointerdown',down);dialog.addEventListener('click',click);dialog.addEventListener('cancel',cancel);dialog.addEventListener('close',closed);
-    return own(()=>{bindings.delete(dialog);forget(dialog);dialog.removeEventListener('pointerdown',down);dialog.removeEventListener('click',click);dialog.removeEventListener('cancel',cancel);dialog.removeEventListener('close',closed);});
+    return own(()=>{unbind();dialog.removeEventListener('pointerdown',down);dialog.removeEventListener('click',click);dialog.removeEventListener('cancel',cancel);dialog.removeEventListener('close',closed);});
   }
   function bindScrollCues(container,scroller){
     let frame=0,stopped=false;
@@ -88,5 +97,5 @@
     own(()=>{document.removeEventListener('contextmenu',guard);document.removeEventListener('selectstart',guard);delete document.documentElement.dataset.solarInputGuards;});
   }
   function dispose(){if(disposed)return;disposed=true;for(const d of [...dialogOrder])if(shown(d))d.close();for(const frame of animationFrames)root.cancelAnimationFrame(frame);animationFrames.clear();for(const stop of [...cleanups]){cleanups.delete(stop);stop();}for(const timer of timers.values())root.clearTimeout(timer);timers.clear();dialogOrder.length=0;}
-  modules.UI=Object.freeze({fadeMs,shown,visible,show,hide,bindScrollCues,bindDialog,topDialog,dismissTopDialog,outside,loadScript,installDocumentGuards,own,dispose});
+  modules.UI=Object.freeze({fadeMs,shown,visible,show,hide,bindScrollCues,bindPopup,bindDialog,topDialog,dismissTopDialog,dismissAll,outside,loadScript,installDocumentGuards,own,dispose});
 })(window);

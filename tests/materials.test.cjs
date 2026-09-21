@@ -29,7 +29,7 @@ test('Viewing mode exposes the single complete toolbar only while awake',()=>{
  const css=fs.readFileSync(require.resolve('../styles.css'),'utf8');
  assert.ok(css.includes('body.zen button'));
  assert.ok(css.includes('body.zen.pointer-awake #view-controls button'));
- assert.ok(css.includes('body.zen #preset-dialog[open] button'));
+ assert.ok(css.includes('body.zen dialog[open] :is(button,input,select,a)'));
  assert.ok(!css.includes('#view-controls>:not(#fit-view):not(#show-ui)'));
  const html=fs.readFileSync(require.resolve('../index.html'),'utf8'),app=fs.readFileSync(require.resolve('../src/app.js'),'utf8');
  assert.ok(!html.includes('id="focus-reset"'));assert.ok(!app.includes("$('focus-reset')"));

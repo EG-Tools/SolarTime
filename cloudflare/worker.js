@@ -20,24 +20,42 @@ function mediaHeaders(object,status,key){
  headers.set('etag',object.httpEtag);headers.set('accept-ranges','bytes');
  headers.set('access-control-allow-origin','*');headers.set('cross-origin-resource-policy','cross-origin');
  headers.set('cache-control',mediaCacheControl(key));
- if(status===206&&object.range&&'offset' in object.range){
-  const start=object.range.offset,end=start+('length' in object.range?object.range.length:object.size)-1;
+ if(status===206&&object.range){
+  const range=object.range,start=Number.isFinite(range.suffix)?Math.max(0,object.size-range.suffix):(range.offset||0);
+  const length=Math.min(range.length??range.suffix??(object.size-start),object.size-start),end=start+length-1;
   headers.set('content-range',`bytes ${start}-${end}/${object.size}`);
- }
+  headers.set('content-length',String(length));
+ }else if(status===200)headers.set('content-length',String(object.size));
  return headers;
 }
 
 async function mediaResponse(request,env,ctx,key){
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET, HEAD, OPTIONS','access-control-allow-headers':'Range','access-control-max-age':'86400'}});
   if(request.method!=='GET'&&request.method!=='HEAD')return new Response('Method Not Allowed',{status:405,headers:{allow:'GET, HEAD, OPTIONS'}});
-  const range=request.headers.get('range'),cache=range||mutableUI(key)?null:caches.default;
-  if(cache){const cached=await cache.match(request);if(cached)return cached;}
-  const object=await env.SOLAR_TIME_MEDIA.get(key,{range:request.headers});
+  const head=request.method==='HEAD',range=head?null:request.headers.get('range'),cache=mutableUI(key)?null:caches.default;
+  const lookup=new Request(request.url,{headers:request.headers});if(head)lookup.headers.delete('range');
+  if(cache){const cached=await cache.match(lookup);if(cached){if(!head)return cached;if(cached.body)ctx.waitUntil(cached.body.cancel());return new Response(null,{status:cached.status,headers:cached.headers});}}
+  const object=head?await env.SOLAR_TIME_MEDIA.head(key):await env.SOLAR_TIME_MEDIA.get(key,{range:request.headers});
   if(!object)return new Response('Not Found',{status:404});
-  if(request.headers.get('if-none-match')===object.httpEtag)return new Response(null,{status:304,headers:mediaHeaders(object,304,key)});
-  const partial=!!request.headers.get('range')&&!!object.range,status=partial?206:200,headers=mediaHeaders(object,status,key);
-  if(request.method==='HEAD')return new Response(null,{status,headers});
-  const response=new Response(object.body,{status,headers});if(cache)ctx.waitUntil(cache.put(request,response.clone()));return response;
+  if(request.headers.get('if-none-match')===object.httpEtag){if(object.body)ctx.waitUntil(object.body.cancel());return new Response(null,{status:304,headers:mediaHeaders(object,304,key)});}
+  const partial=!!range&&!!object.range,status=partial?206:200,headers=mediaHeaders(object,status,key);
+  if(head)return new Response(null,{status,headers});
+  const response=new Response(object.body,{status,headers});
+  if(cache){
+    const cacheKey=new Request(request.url),whole=!partial||Number(headers.get('content-length'))===object.size;
+    // Store only complete 200 responses. Cache.match can then answer Range/ETag
+    // requests itself. Never buffer media in JS or prefetch unbounded archives.
+    if(whole){
+      const copy=response.clone();ctx.waitUntil(cache.put(cacheKey,new Response(copy.body,{headers:mediaHeaders(object,200,key)})).catch(error=>console.warn('Media cache write failed',String(error))));
+    }else if(/\.mp3$/i.test(key)&&object.size<=16*1024*1024){
+      ctx.waitUntil((async()=>{
+        const cached=await cache.match(cacheKey);if(cached){await cached.body?.cancel();return;}
+        const full=await env.SOLAR_TIME_MEDIA.get(key);
+        if(full)await cache.put(cacheKey,new Response(full.body,{headers:mediaHeaders(full,200,key)}));
+      })().catch(error=>console.warn('Music cache fill failed',String(error))));
+    }
+  }
+  return response;
 }
 
 export default {

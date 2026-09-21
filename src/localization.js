@@ -4,7 +4,9 @@
   const modules=root.SolarModules||(root.SolarModules={});
   function detect(){
     const zone=Intl.DateTimeFormat().resolvedOptions().timeZone||'',languages=(navigator.languages?.length?navigator.languages:[navigator.language||'']).map(value=>String(value).toLowerCase());
-    if(/(?:shanghai|chongqing|urumqi|hong_kong|macau)/i.test(zone))return 'chn';
+    if(/taipei/i.test(zone))return 'tw';
+    if(/hong_kong/i.test(zone))return 'hk';
+    if(/(?:shanghai|chongqing|urumqi|macau)/i.test(zone))return 'chn';
     if(/seoul/i.test(zone))return 'kor';
     if(/^Europe\/(?:Amsterdam|Brussels)$/i.test(zone)){
       // These zone IDs can be aliases in tzdb/ICU. An explicit NL/BE locale
@@ -45,7 +47,7 @@
     if(/mexico_city|cancun|merida|monterrey|matamoros|chihuahua|mazatlan|hermosillo|tijuana|bahia_banderas|ojinaga/i.test(zone))return 'mx';
     if(/^America\//i.test(zone))return 'en';
     const localeMap=[
-      ['zh','chn'],['ja','jpn'],['ko','kor'],['en-sg','sg'],['en-ca','ca'],['en-au','au'],['en-nz','nz'],['en-ie','ie'],['en-gb','eu'],
+      ['zh-tw','tw'],['zh-hk','hk'],['zh-hant-tw','tw'],['zh-hant-hk','hk'],['zh','chn'],['ja','jpn'],['ko','kor'],['en-sg','sg'],['en-ca','ca'],['en-au','au'],['en-nz','nz'],['en-ie','ie'],['en-gb','eu'],
       // Country selection and display language remain linked, as for Canada and Singapore.
       // Belgium is multilingual; this entry currently uses the Dutch interface.
       ['nl-be','be'],['fr-be','be'],['de-be','be'],['nl','nl'],
@@ -57,11 +59,23 @@
     return 'en';
   }
   const interpolate=(text,values={})=>String(text).replace(/\{(\w+)\}/g,(_,key)=>values[key]??'');
+  const AUTO_LANGUAGE_LABELS=Object.freeze({
+    kor:Object.freeze(['자동','언어']),en:Object.freeze(['AUTO','Language']),chn:Object.freeze(['自动','语言']),zht:Object.freeze(['自動','語言']),jpn:Object.freeze(['自動','言語']),
+    hi:Object.freeze(['ऑटो','भाषा']),es:Object.freeze(['AUTO','Idioma']),de:Object.freeze(['AUTO','Sprache']),fr:Object.freeze(['AUTO','Langue']),pt:Object.freeze(['AUTO','Idioma']),
+    it:Object.freeze(['AUTO','Lingua']),id:Object.freeze(['AUTO','Bahasa']),nl:Object.freeze(['AUTO','Taal'])
+  });
+  function detectCopy(){
+    const languages=(navigator.languages?.length?navigator.languages:[navigator.language||'']).map(value=>String(value).toLowerCase());
+    const patterns=[[/^zh-(?:tw|hk|hant)(?:-|$)/,'zht'],[/^zh(?:-|$)/,'chn'],[/^ko(?:-|$)/,'kor'],[/^ja(?:-|$)/,'jpn'],[/^hi(?:-|$)/,'hi'],[/^es(?:-|$)/,'es'],[/^de(?:-|$)/,'de'],[/^fr(?:-|$)/,'fr'],[/^pt(?:-|$)/,'pt'],[/^it(?:-|$)/,'it'],[/^id(?:-|$)/,'id'],[/^nl(?:-|$)/,'nl'],[/^en(?:-|$)/,'en']];
+    for(const language of languages)for(const [pattern,code] of patterns)if(pattern.test(language))return code;
+    return 'en';
+  }
+  function automaticLanguageLabel(){return AUTO_LANGUAGE_LABELS[detectCopy()]||AUTO_LANGUAGE_LABELS.en;}
   function apply(document,translate){
     for(const element of document.querySelectorAll('[data-i18n]'))element.textContent=translate(element.dataset.i18n);
     for(const element of document.querySelectorAll('[data-i18n-aria]'))element.setAttribute('aria-label',translate(element.dataset.i18nAria));
     for(const element of document.querySelectorAll('[data-i18n-title]'))element.title=translate(element.dataset.i18nTitle);
     for(const element of document.querySelectorAll('[data-i18n-content]'))element.setAttribute('content',translate(element.dataset.i18nContent));
   }
-  modules.Localization=Object.freeze({detect,interpolate,apply});
+  modules.Localization=Object.freeze({detect,detectCopy,automaticLanguageLabel,interpolate,apply});
 })(window);

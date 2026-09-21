@@ -65,6 +65,19 @@ test('Satellite angular motion is faster near periapsis than apoapsis',()=>{
     const step=3600000,peri=at(0),apo=at(Math.PI);assert.ok(angle(A.satelliteAt(body,peri),A.satelliteAt(body,peri+step))>angle(A.satelliteAt(body,apo),A.satelliteAt(body,apo+step)),body.id);}
 });
 test('Lunar illuminated fraction always lies in [0,1]',()=>{for(let d=0;d<365;d++){const p=A.moonPhase(A.J2000+d*A.DAY);assert.ok(p.fraction>=0&&p.fraction<=1);assert.ok(p.phase>=0&&p.phase<1);assert.ok(p.name.length>0);}});
+test('Eclipse navigation finds ordered visual alignments for Moon and Europa',()=>{
+  const start=Date.UTC(2026,8,21);
+  for(const id of ['moon','europa']){
+    const previous=A.eclipseEvent(id,start,-1),next=A.eclipseEvent(id,start,1),following=A.eclipseEvent(id,next.ms,1);
+    assert.ok(previous.ms<start,`${id} previous eclipse must be earlier`);
+    assert.ok(next.ms>start,`${id} next eclipse must be later`);
+    assert.ok(following.ms>next.ms,`${id} repeated next must advance`);
+    assert.ok(A.eclipseAlignment(id,previous.ms)>=Math.cos((id==='moon'?1.25:6.5)*A.DEG),id+' previous alignment');
+    assert.ok(A.eclipseAlignment(id,next.ms)>=Math.cos((id==='moon'?1.25:6.5)*A.DEG),id+' next alignment');
+    const body=A.SATELLITES.find(value=>value.id===id),parent=A.BODIES.find(value=>value.id===body.parent),local=A.satelliteAt(body,next.ms,1),solar=A.positionAt(parent,next.ms);
+    assert.ok(local.x*solar.x+local.y*solar.y+local.z*solar.z<0,`${id} must lie between its parent and the Sun`);
+  }
+});
 test('Invalid timestamps do not silently produce NaN orbits',()=>assert.throws(()=>A.elementsAt(A.BODIES[0],NaN),TypeError));
 test('Live clock is tied to wall time and ignores elapsed frame count',()=>{const c=new A.SimulationClock(A.J2000,0);close(c.value(100,A.J2000+5321),A.J2000+5321);close(c.value(900000,A.J2000+5321),A.J2000+5321);});
 test('Timelapse progresses correctly even when no frames are rendered',()=>{const c=new A.SimulationClock(A.J2000,0);c.setRate(86400,0,A.J2000);close(c.value(1000,A.J2000),A.J2000+A.DAY);close(c.value(60000,A.J2000),A.J2000+60*A.DAY);});
@@ -73,6 +86,12 @@ test('Pausing and resuming accelerated time excludes paused duration',()=>{const
 test('Resuming a paused LIVE clock resynchronizes to actual wall time',()=>{const c=new A.SimulationClock(A.J2000,0);c.toggle(2000,A.J2000+2000);close(c.value(9000,A.J2000+9000),A.J2000+2000);c.toggle(9000,A.J2000+9000);close(c.value(10000,A.J2000+10000),A.J2000+10000);});
 test('Selecting a date pauses and detaches the simulation from real time',()=>{const c=new A.SimulationClock(A.J2000,0);c.setDate(Date.UTC(2040,0,1),40);assert.equal(c.live,false);assert.equal(c.paused,true);close(c.value(9000),Date.UTC(2040,0,1));});
 test('NOW restores actual time, normal speed and playing state',()=>{const c=new A.SimulationClock(A.J2000,0);c.setRate(31557600,0,A.J2000);c.toggle(1000,A.J2000);c.now(5000,A.J2000+5000);assert.equal(c.live,true);assert.equal(c.paused,false);assert.equal(c.rate,1);close(c.value(6000,A.J2000+6000),A.J2000+6000);});
+test('Eclipse travel eases to its target and NOW cancels it',()=>{
+  const c=new A.SimulationClock(A.J2000,100),target=A.J2000+10*A.DAY;
+  c.travelTo(target,100,2000,A.J2000);close(c.value(100,A.J2000),A.J2000);close(c.value(1100,A.J2000),A.J2000+5*A.DAY);
+  close(c.value(2100,A.J2000),target);assert.equal(c.travel,null);assert.equal(c.live,false);assert.equal(c.paused,true);
+  c.travelTo(target+A.DAY,2200,2000,A.J2000);c.now(2300,A.J2000+12345);assert.equal(c.travel,null);assert.equal(c.live,true);assert.equal(c.paused,false);close(c.value(2400,A.J2000+12445),A.J2000+12445);
+});
 test('Simulation time is bounded and invalid commands are rejected',()=>{
   const c=new A.SimulationClock(A.MAX_TIME-5000,0);c.setRate(86400,0,A.MAX_TIME-5000);close(c.value(10000),A.MAX_TIME);
   for(const v of [0,-1,NaN,Infinity])assert.throws(()=>c.setRate(v,0),RangeError);

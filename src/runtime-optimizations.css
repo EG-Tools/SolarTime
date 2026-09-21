@@ -71,7 +71,7 @@ body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
 
 /* v0.46 r4: one phone-layout flag is shared by CSS and the sky renderer.
    Keep the approved top boundaries and the home-indicator safety inset. */
-:root{--solar-layout-revision:r3}
+:root{--solar-layout-revision:r1}
 html.solar-phone-layout .edge-shade{display:none}
 html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}
 html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 32px)}
@@ -79,7 +79,6 @@ html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) 
 .solar-layout-diagnostics{
   width:min(430px,calc(100vw - 24px))}
 .solar-layout-diagnostics pre{font:11px/1.45 monospace;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}
-body.zen .solar-layout-diagnostics button{visibility:visible!important;pointer-events:auto!important}
 
 
 /* v0.46 r5: one visible viewport for standalone loading, canvases and main UI.

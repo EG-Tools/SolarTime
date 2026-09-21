@@ -37,6 +37,32 @@ test('all supported country coordinates use the same 250x camera command',()=>{
 test('ordinary planet focus and Jupiter feature view do not inherit the country zoom',()=>{
  const {r}=renderer();r.animateFeature('jupiter',-22,70,ms,0,1000);assert.ok(r.cameraTween.to.zoom<=64);r.advanceCamera(1000);r.animateFocus('mars',1100,1000);assert.ok(r.cameraTween.to.zoom<=64);
 });
+test('repeated satellite focus always keeps the same close-up framing',()=>{
+ for(const dollyZoom of [false,true]){
+  const {r}=renderer();r.options.dollyZoom=dollyZoom;
+  assert.ok(r.animateFocus('moon',0,350));const first=plain(r.cameraTween.to);
+  r.advanceCamera(175);assert.ok(r.animateFocus('moon',175,350));const during=plain(r.cameraTween.to);
+  r.advanceCamera(525);assert.ok(r.animateFocus('moon',600,350));const after=plain(r.cameraTween.to);
+  for(const target of [during,after]){
+   assert.equal(target.focus,'moon');assert.equal(target.mode,first.mode);
+   close(target.zoom,first.zoom);close(target.dolly,first.dolly);
+   assert.equal(target.panX,0);assert.equal(target.panY,0);
+  }
+ }
+});
+test('Moon and Europa display size never changes their orbital spacing',()=>{
+ for(const satellite of A.SATELLITES){
+  const {r}=renderer(),parent=A.BODIES.find(body=>body.id===satellite.parent);
+  r.bodyScales={};r.bodyScale=1;r.scale=10;Object.assign(r.camera,{focus:satellite.id,zoom:64,dolly:1});
+  const spacing=[];
+  for(const scale of [1,2,8]){
+   r.bodyScales[satellite.id]=scale;
+   const parentRadius=r.bodyRadiusAtZoom(parent),satelliteRadius=r.bodyRadiusAtZoom(satellite);
+   spacing.push(r.satelliteOrbitRadius(parentRadius,satelliteRadius,satellite,parent));
+  }
+  close(spacing[1],spacing[0]);close(spacing[2],spacing[0]);
+ }
+});
 test('random mode is opt-in, exclusive with left/right and does not change framing',()=>{
  const {r}=renderer(),before=plain(r.camera);assert.equal(r.randomRotateEnabled,false);
  r.setAutoRotate(1,0);r.setRandomRotate(true,0);assert.equal(r.autoRotateDirection,0);assert.equal(r.randomRotateEnabled,true);assert.deepEqual(plain(r.camera),before);

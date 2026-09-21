@@ -25,7 +25,7 @@ test('Dutch locale covers every interface key, body and phase and preserves inte
 });
 test('Dutch language data is supported, versioned and cached without duplicate country requests',async()=>{
  const requests=[],window={},location={protocol:'https:',href:'https://solar.test/'},data=JSON.parse(read('src/locales/nl.json'));
- vm.runInNewContext(read('src/language-data.js'),{window,location,document:{currentScript:{src:'https://solar.test/src/language-data.js?v=0.47-r3'}},URL,fetch:async url=>{requests.push(String(url));return {ok:true,json:async()=>data};}});
+ vm.runInNewContext(read('src/language-data.js'),{window,location,document:{currentScript:{src:'https://solar.test/src/language-data.js?v=0.47-r3'}},URL,AbortSignal,fetch:async url=>{requests.push(String(url));return {ok:true,json:async()=>data};}});
  const loader=window.SolarModules.LanguageData;assert.ok(loader.supported.includes('nl'));
  const [a,b]=await Promise.all([loader.load('nl'),loader.load('nl')]);assert.equal(a,b);assert.equal(await loader.load('nl'),a);
  assert.deepEqual(requests,['https://solar.test/src/locales/nl.json?v=0.47-r3']);assert.ok(loader.loaded('nl'));
@@ -34,7 +34,7 @@ test('new countries use the existing menu and retain every existing country in o
  const {order}=metadata(),html=read('index.html'),a=html.indexOf('id="language-scroll"'),b=html.indexOf('scroll-cue-down',a),block=html.slice(a,b);
  const buttons=[...block.matchAll(/data-language="([^"]+)"/g)].map(m=>m[1]);assert.deepEqual(buttons,Array.from(order));
  assert.match(block,/data-language="nl"><strong>NL<\/strong><span>Nederland<\/span>/);assert.match(block,/data-language="be"><strong>BE<\/strong><span>België<\/span>/);
- assert.deepEqual(Array.from(order).filter(c=>!['nl','be'].includes(c)),['kor','en','chn','ao','ar','au','at','br','ca','cl','co','cr','ec','fr','de','hi','id','ie','it','jpn','mx','mz','nz','pa','pe','pt','sg','es','eu','uy','ve']);
+ assert.deepEqual(Array.from(order).filter(c=>!['nl','be'].includes(c)),['ao','ar','au','at','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve']);
 });
 test('country detection distinguishes Dutch territories and equivalent timezone IDs without changing other regions',()=>{
  for(const [zone,langs,wanted] of [
