@@ -114,10 +114,22 @@
     {title:'Near-Silence',file:'06 - Near-Silence.mp3'},
     {title:'Weightless Emptiness',file:'07 - Weightless Emptiness.mp3'}
   ]);
-  const detectedLanguage=Localization.detect;
+  const detectedLanguage=Localization.detect,detectedCopyLanguage=Localization.detectCopy;
+  // Country owns the clock/site while copy owns the interface language. In
+  // automatic mode they may deliberately differ (for example an English
+  // browser in Seoul still tracks Korea, but reads an English interface).
+  const COPY_META=Object.freeze({
+    kor:Object.freeze({locale:'ko-KR',html:'ko'}),en:Object.freeze({locale:'en-US',html:'en'}),
+    chn:Object.freeze({locale:'zh-CN',html:'zh-Hans'}),zht:Object.freeze({locale:'zh-TW',html:'zh-Hant'}),
+    jpn:Object.freeze({locale:'ja-JP',html:'ja'}),hi:Object.freeze({locale:'hi-IN',html:'hi'}),
+    es:Object.freeze({locale:'es-ES',html:'es'}),de:Object.freeze({locale:'de-DE',html:'de'}),
+    fr:Object.freeze({locale:'fr-FR',html:'fr'}),pt:Object.freeze({locale:'pt-PT',html:'pt'}),
+    it:Object.freeze({locale:'it-IT',html:'it'}),id:Object.freeze({locale:'id-ID',html:'id'}),
+    nl:Object.freeze({locale:'nl-NL',html:'nl'})
+  });
   const COPY=Object.create(null),BODY_COPY=Object.create(null),PHASE_COPY=Object.create(null);
-  async function hydrateLanguage(region){
-    const code=LANG_META[region]?.copy||'kor',bundle=await LanguageData.load(code);
+  async function hydrateLanguage(region,copyCode=LANG_META[region]?.copy||'kor'){
+    const code=copyCode,bundle=await LanguageData.load(code);
     COPY[code]=bundle.copy;BODY_COPY[code]=bundle.bodies;PHASE_COPY[code]=bundle.phases;
   }
   // NASA/NSSDCA representative values. Gas- and ice-giant temperatures refer
@@ -156,7 +168,8 @@
       let speedMode='day',speedValues={hour:1,day:1,year:1};
       const activeRegion=()=>REGIONS[language]||REGIONS.kor;
       const activeTimeZone=()=>timezone==='utc'?'UTC':activeRegion().timeZone;
-      const copyLanguage=()=>LANG_META[language]?.copy||'kor';
+      const copyLanguage=()=>languageMode==='auto'?detectedCopyLanguage():(LANG_META[language]?.copy||'kor');
+      const copyMeta=()=>COPY_META[copyLanguage()]||COPY_META.en;
       const t=(key,values)=>interpolate(COPY[copyLanguage()]?.[key]??COPY.kor?.[key]??key,values);
       const bodyCopy=body=>copyLanguage()==='kor'?{name:body.ko,description:body.description}:{name:BODY_COPY[copyLanguage()]?.[body.id]?.[0]||body.en,description:BODY_COPY[copyLanguage()]?.[body.id]?.[1]||body.description};
       const phaseCopy=name=>copyLanguage()==='kor'?name:(PHASE_COPY[copyLanguage()]?.[name]||name);
@@ -168,7 +181,7 @@
       });
       const musicUi=()=>music.refresh(),setMusicEnabled=value=>music.setEnabled(value);
       function translateStatic(){
-        document.documentElement.lang=LANG_META[language].html;
+        document.documentElement.lang=languageMode==='auto'?copyMeta().html:LANG_META[language].html;
         Localization.apply(document,t);
         const automaticLabel=Localization.automaticLanguageLabel();$('auto-language-mode').textContent=automaticLabel[0];$('auto-language-name').textContent=automaticLabel[1];
         const lang=$('language-toggle');lang.textContent=LANG_META[language].code;lang.setAttribute('aria-label',`${t('languageChange')}. ${LANG_META[language].name}`);lang.title=`${t('languageChange')} · ${LANG_META[language].code}`;
@@ -234,7 +247,7 @@
           }
         }
       } catch (_) { /* Private browsing, corrupt JSON and blocked storage must not break the clock. */ }
-      await hydrateLanguage(language);
+      await hydrateLanguage(language,copyLanguage());
       overviewCamera={...renderer.cameraSnapshot(),focus:null};
       renderer.setOption('actualScale',renderer.options.actualScale,false);
       renderer.setOption('dollyZoom',renderer.options.dollyZoom,false);
@@ -370,7 +383,7 @@
       UI.bindDialog(presetDialog,options=>closePresetDialog(options?.restoreFocus!==false));
       window.addEventListener('resize',()=>{closePresetDialog(false);if(!$('body-panel').hidden)anchorBodyPanel();},{passive:true});
       presetUi();
-      const realFormat=()=>new Intl.DateTimeFormat(LANG_META[language].locale,{year:'numeric',month:'long',day:'numeric',weekday:'long',timeZone:activeTimeZone()});
+      const realFormat=()=>new Intl.DateTimeFormat(languageMode==='auto'?copyMeta().locale:LANG_META[language].locale,{year:'numeric',month:'long',day:'numeric',weekday:'long',timeZone:activeTimeZone()});
       const partFormat=()=>new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23',timeZone:activeTimeZone()});
       let dateFormatter=realFormat(),wallPartsFormatter=partFormat();
       const two=v=>String(v).padStart(2,'0');
@@ -561,7 +574,9 @@
         $('status-dot').classList.toggle('simulated',!clock.live);$('status-dot').classList.toggle('paused',clock.paused);
         $('mode-label').textContent=clock.paused?'PAUSED':clock.live?'LIVE ORBITS':'TIME TRAVEL';
         $('simulation-date').textContent=compactDate(ms);$('simulation-date').dateTime=new Date(ms).toISOString();
-        $('speed-value').textContent=clock.paused?'PAUSED':clock.live?'1 ×':speedText();
+        // Travel completion pauses at real-time rate. Derive the readout from
+        // the clock, not the last slider choice, so play and display agree.
+        $('speed-value').textContent=clock.paused?'PAUSED':clock.live||Math.abs(clock.rate-1)<1e-9?'1 ×':speedText();
         syncSpeedUi();
       }
       function uiNow() {const mono=performance.now(),wall=Date.now(),ms=clock.value(mono,wall);updateWall(wall);updateControls(ms);updateBody(ms);}
@@ -611,7 +626,7 @@
       function closeResetDefaults(restoreFocus=true){if(resetDefaultsDialog.open)hideFading(resetDefaultsDialog,()=>resetDefaultsDialog.close());if(restoreFocus)$('reset-defaults').focus({preventScroll:true});}
       async function applyFactoryDefaults(){
         const nextLanguage=detectedLanguage(),request=++languageRequest;
-        try{await hydrateLanguage(nextLanguage);}catch(error){if(request===languageRequest&&!disposed)toast(error.message);return;}
+        try{await hydrateLanguage(nextLanguage,detectedCopyLanguage());}catch(error){if(request===languageRequest&&!disposed)toast(error.message);return;}
         if(request!==languageRequest||disposed)return;
         const mono=performance.now();closeResetDefaults(false);renderer.cancelCameraMotion(mono);renderer.stopAutoRotate(mono);
         for(const [key,value] of Object.entries(FACTORY_OPTIONS))renderer.setOption(key,value,false);
@@ -730,7 +745,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=0.51-r1','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=0.51-r2','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -773,10 +788,11 @@
       let languageRequest=0;
       async function setLanguage(next){
         const automatic=next==='auto',target=automatic?detectedLanguage():next,mode=automatic?'auto':'manual';
+        const targetCopy=automatic?detectedCopyLanguage():(LANG_META[target]?.copy||'kor');
         if(!LANG_ORDER.includes(target))return;
         const request=++languageRequest;
-        if(target===language){languageMode=mode;translateStatic();persist();return;}
-        try{await hydrateLanguage(target);}catch(error){if(request===languageRequest&&!disposed)toast(error.message);return;}
+        if(target===language&&mode===languageMode){translateStatic();persist();return;}
+        try{await hydrateLanguage(target,targetCopy);}catch(error){if(request===languageRequest&&!disposed)toast(error.message);return;}
         if(request!==languageRequest||disposed)return;
         language=target;languageMode=mode;renderer.setSite(activeRegion());translateStatic();renderReleaseNotes();refreshTimeFormats();lastWallKey='';
         refreshNavLabels();presetUi();cameraUi();syncSpeedUi();
@@ -970,12 +986,16 @@
       }
       document.addEventListener('visibilitychange',()=>{
         if(document.hidden){closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
-        else if(!raf&&!disposed){renderer.resume();lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
+        else if(!disposed){
+          renderer.resume();
+          if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();
+          if(!raf){lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
+        }
       });
-      window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);});
-      window.addEventListener('pageshow',()=>{if(!raf&&!disposed&&!document.hidden){renderer.resume();lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}});
+      window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);resizeFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);materialRefreshTimer=0;});
+      window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.51',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,randomRotate:renderer.randomRotateEnabled,language,languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.51',revision:'r2',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

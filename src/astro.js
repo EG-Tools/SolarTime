@@ -226,14 +226,35 @@
     }
     return E;
   }
-  function referenceElementsAt(body, ms) {
+  function rawReferenceElementsAt(body,ms,useCurrent) {
     if (!Number.isFinite(ms)) throw new TypeError('A finite timestamp is required.');
     const T = (ms-J2000)/DAY/36525;
-    const current=ms>=CURRENT_START&&ms<CURRENT_END&&body.current,base=current?current.base:body.base,rates=current?current.rates:body.rates;
+    const current=useCurrent&&body.current,base=current?current.base:body.base,rates=current?current.rates:body.rates;
     const [a,e,inc,L,peri,node] = base.map((v,i)=>v+rates[i]*T);
     const c = current?null:body.correction;
     const extra = c ? c[0]*T*T+c[1]*Math.cos(c[3]*T*DEG)+c[2]*Math.sin(c[3]*T*DEG) : 0;
     return {a,e,inc:inc*DEG,node:node*DEG,omega:(peri-node)*DEG,M:wrap((L-peri+extra)*DEG)};
+  }
+  const boundaryElementOffsets=new Map();
+  const signedAngleDifference=(to,from)=>wrap(to-from+Math.PI)-Math.PI;
+  function referenceElementsAt(body, ms) {
+    if (!Number.isFinite(ms)) throw new TypeError('A finite timestamp is required.');
+    const current=ms>=CURRENT_START&&ms<CURRENT_END&&body.current;
+    const result=rawReferenceElementsAt(body,ms,current);
+    if(current||ms<CURRENT_END||!body.current)return result;
+    let offset=boundaryElementOffsets.get(body.id);
+    if(!offset){
+      // The two published JPL fits do not meet at exactly the same state. Treat
+      // the accurate 1800–2050 solution as the phase anchor for the long-term
+      // coefficients. Rates remain those of the long-term model; only its
+      // constant element origins are calibrated once at the boundary.
+      const anchor=rawReferenceElementsAt(body,CURRENT_END,true),long=rawReferenceElementsAt(body,CURRENT_END,false);
+      offset=Object.freeze({a:anchor.a-long.a,e:anchor.e-long.e,inc:anchor.inc-long.inc,
+        node:signedAngleDifference(anchor.node,long.node),omega:signedAngleDifference(anchor.omega,long.omega),M:signedAngleDifference(anchor.M,long.M)});
+      boundaryElementOffsets.set(body.id,offset);
+    }
+    return {a:result.a+offset.a,e:result.e+offset.e,inc:result.inc+offset.inc,
+      node:result.node+offset.node,omega:result.omega+offset.omega,M:wrap(result.M+offset.M)};
   }
   function elementsAt(body,ms) {
     if(!BODIES.includes(body))throw new RangeError('Unknown orbital body.');
@@ -425,25 +446,23 @@
   // five major planets lie within two degrees of one axis through the Sun.
   // Broad "same side" groupings are not presented as straight space alignments.
   const PLANETARY_ALIGNMENT_EVENTS=Object.freeze([
-    ['2048-05-28',['earth','jupiter','venus','mercury','mars'],'space',1.995],
-    ['2079-07-25',['saturn','neptune','uranus','earth','venus'],'space',1.824],
-    ['2441-05-07',['mars','uranus','saturn','earth','mercury'],'space',1.937],
-    ['2480-11-05',['uranus','mercury','earth','mars','venus'],'space',1.826],
-    ['1962-02-05',['mercury','venus','mars','jupiter','saturn'],'sky'],
-    ['2000-05-05',['mercury','venus','mars','jupiter','saturn'],'sky'],
-    ['2002-05-13',['mercury','venus','mars','jupiter','saturn'],'sky'],
-    ['2022-06-24',['mercury','venus','mars','jupiter','saturn','uranus','neptune'],'sky'],
-    ['2027-07-02',['mercury','venus','saturn','uranus','neptune'],'sky'],
-    ['2027-12-25',['mercury','venus','mars','saturn','uranus','neptune'],'sky'],
-    ['2028-01-08',['mercury','venus','mars','saturn','neptune'],'sky'],
-    ['2040-09-08',['mercury','venus','mars','jupiter','saturn'],'sky'],
-    ['2080-03-15',['mercury','venus','mars','jupiter','saturn','uranus'],'sky'],
-    ['2675-03-20',['mercury','venus','mars','jupiter','saturn'],'sky']
-  ].map(([date,planets,kind,maxError])=>{
-    const [year,month,day]=date.split('-').map(Number);
-    // 06:00 UTC keeps the reference calendar day unchanged across every
-    // region currently offered by Solar Time (UTC-5 through UTC+13).
-    return Object.freeze({date,ms:Date.UTC(year,month-1,day,6),planets:Object.freeze(planets),kind,...(Number.isFinite(maxError)?{maxError}:null)});
+    ['2048-05-28T00:00:00.000Z',['earth','jupiter','venus','mercury','mars'],'space',1.995],
+    ['2079-07-25T00:00:00.000Z',['saturn','neptune','uranus','earth','venus'],'space',1.815],
+    ['2441-05-07T00:00:00.000Z',['mars','uranus','saturn','earth','mercury'],'space',1.941],
+    ['2480-11-05T00:00:00.000Z',['uranus','mercury','earth','mars','venus'],'space',1.846],
+    ['1962-02-05T06:00:00.000Z',['mercury','venus','mars','jupiter','saturn'],'sky'],
+    ['2000-05-05T06:00:00.000Z',['mercury','venus','mars','jupiter','saturn'],'sky'],
+    ['2002-05-13T06:00:00.000Z',['mercury','venus','mars','jupiter','saturn'],'sky'],
+    ['2022-06-24T06:00:00.000Z',['mercury','venus','mars','jupiter','saturn','uranus','neptune'],'sky'],
+    ['2027-07-02T06:00:00.000Z',['mercury','venus','saturn','uranus','neptune'],'sky'],
+    ['2027-12-25T06:00:00.000Z',['mercury','venus','mars','saturn','uranus','neptune'],'sky'],
+    ['2028-01-08T06:00:00.000Z',['mercury','venus','mars','saturn','neptune'],'sky'],
+    ['2040-09-08T06:00:00.000Z',['mercury','venus','mars','jupiter','saturn'],'sky'],
+    ['2080-03-15T06:00:00.000Z',['mercury','venus','mars','jupiter','saturn','uranus'],'sky'],
+    ['2675-03-20T06:00:00.000Z',['mercury','venus','mars','jupiter','saturn'],'sky']
+  ].map(([epoch,planets,kind,maxError])=>{
+    const ms=Date.parse(epoch),date=epoch.slice(0,10);
+    return Object.freeze({date,epoch,ms,planets:Object.freeze(planets),kind,...(Number.isFinite(maxError)?{maxError}:null)});
   }).sort((a,b)=>a.ms-b.ms));
   function planetaryAlignmentEvent(startMs,direction=1){
     if(!Number.isFinite(startMs))throw new RangeError('Alignment navigation requires a finite timestamp.');

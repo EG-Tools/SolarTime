@@ -65,11 +65,11 @@ test('visible texture plans fit the mobile budget while preserving tracked detai
  const plan=api.planTextures(jobs,assets);assert.ok(plan.constrained);assert.ok(plan.bytes<=api.textureBudget()*.8);assert.equal(plan.targets.get('earth'),4096);
  const small=api.planTextures([{id:'earth',textureWidth:512,priority:0}],assets);assert.equal(small.constrained,false);assert.equal(small.targets.get('earth'),512);
 });
-function languageHarness(detected='kor'){
- const requests={},messages=[],noop=()=>{};
- const context={LANG_ORDER:['kor','en','jpn'],language:'kor',languageMode:'manual',detectedLanguage:()=>detected,disposed:false,hydrateLanguage:code=>new Promise((resolve,reject)=>requests[code]={resolve,reject}),toast:value=>messages.push(value),renderer:{setSite:noop},activeRegion:noop,translateStatic:noop,renderReleaseNotes:noop,refreshTimeFormats:noop,refreshNavLabels:noop,presetUi:noop,cameraUi:noop,syncSpeedUi:noop,presetAction:null,bodies:[],uiNow:noop,persist:noop,helpDialog:{open:false}};
+function languageHarness(detected='kor',detectedCopy=detected){
+ const requests={},messages=[],noop=()=>{},loads=[];
+ const context={LANG_ORDER:['kor','en','jpn'],LANG_META:{kor:{copy:'kor'},en:{copy:'en'},jpn:{copy:'jpn'}},language:'kor',languageMode:'manual',detectedLanguage:()=>detected,detectedCopyLanguage:()=>detectedCopy,disposed:false,hydrateLanguage:(region,copy)=>new Promise((resolve,reject)=>{loads.push({region,copy});requests[region]={resolve,reject};}),toast:value=>messages.push(value),renderer:{setSite:noop},activeRegion:noop,translateStatic:noop,renderReleaseNotes:noop,refreshTimeFormats:noop,refreshNavLabels:noop,presetUi:noop,cameraUi:noop,syncSpeedUi:noop,presetAction:null,bodies:[],uiNow:noop,persist:noop,helpDialog:{open:false}};
  const code=read('src/app.js'),a=code.indexOf('      let languageRequest='),b=code.indexOf('      const languageControl=',a);
- vm.createContext(context);vm.runInContext(code.slice(a,b),context);return {context,requests,messages};
+ vm.createContext(context);vm.runInContext(code.slice(a,b),context);return {context,requests,messages,loads};
 }
 test('last country selection wins even when earlier downloads finish later',async()=>{
  const {context:c,requests:r}=languageHarness(),first=c.setLanguage('en'),last=c.setLanguage('jpn');r.jpn.resolve();await last;r.en.resolve();await first;assert.equal(c.language,'jpn');
@@ -83,4 +83,8 @@ test('automatic language follows browser detection and manual choices opt out',a
  const {context:c,requests:r}=languageHarness('jpn'),automatic=c.setLanguage('auto');r.jpn.resolve();await automatic;
  assert.equal(c.language,'jpn');assert.equal(c.languageMode,'auto');
  const manual=c.setLanguage('en');r.en.resolve();await manual;assert.equal(c.language,'en');assert.equal(c.languageMode,'manual');
+});
+test('automatic mode loads browser copy independently from the detected country',async()=>{
+ const {context:c,requests:r,loads}=languageHarness('kor','en'),automatic=c.setLanguage('auto');r.kor.resolve();await automatic;
+ assert.equal(c.language,'kor');assert.equal(c.languageMode,'auto');assert.deepEqual(loads,[{region:'kor',copy:'en'}]);
 });

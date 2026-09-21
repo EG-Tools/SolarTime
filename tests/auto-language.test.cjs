@@ -14,10 +14,19 @@ test('automatic label follows browser language and stays independent from app ch
  assert.deepEqual(label(['zh-TW']),['自動','語言']);assert.deepEqual(label(['ja-JP']),['自動','言語']);assert.deepEqual(label(['es-ES']),['AUTO','Idioma']);
 });
 
+test('automatic country follows timezone while automatic copy follows browser preference',()=>{
+ const source=read('src/localization.js'),window={};
+ const DateTimeFormat=()=>({resolvedOptions:()=>({timeZone:'Asia/Seoul'})});
+ vm.runInNewContext(source,{window,navigator:{languages:['en-US','ko-KR'],language:'en-US'},Intl:{DateTimeFormat}});
+ assert.equal(window.SolarModules.Localization.detect(),'kor');
+ assert.equal(window.SolarModules.Localization.detectCopy(),'en');
+});
+
 test('new users and factory reset use automatic mode while old saved countries remain manual',()=>{
  const app=read('src/app.js');
  assert.match(app,/language=detectedLanguage\(\),languageMode='auto'/);assert.match(app,/language,languageMode,camera:/);
  assert.match(app,/language=nextLanguage;languageMode='auto'/);
  assert.match(app,/saved\.languageMode==='auto'/);assert.match(app,/languageMode='manual'/);
+ assert.match(app,/languageMode==='auto'\?detectedCopyLanguage\(\)/);
  assert.match(app,/languageMode==='auto'\?languageMenu\.querySelector\('\[data-language-auto\]'\)/);
 });

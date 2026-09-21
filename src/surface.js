@@ -385,9 +385,9 @@ const DIRECT_CORONA_FRAGMENT=`precision highp float;
 // point again on the CPU.
 const DIRECT_LINE_VERTEX=`attribute vec3 a;
   uniform vec2 center,viewport;uniform vec3 worldOffset,anchor;
-  uniform vec4 camera;uniform float lens,travel,scale;
+  uniform vec4 camera;uniform float lens,travel,scale,localScale;
   void main(){
-    vec3 p=a+worldOffset-anchor;
+    vec3 p=a*localScale+worldOffset-anchor;
     float x=p.x*camera.x-p.y*camera.y;
     float y=p.x*camera.y+p.y*camera.x;
     vec3 v=vec3(x*lens,-(y*camera.w+p.z*camera.z),-y*camera.z+p.z*camera.w);
@@ -484,7 +484,7 @@ class DirectRenderer{
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
     this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','effectTime','sunActivity']);
     this.coronaProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
-    this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','worldOffset','anchor','camera','lens','travel','scale','color']);
+    this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','worldOffset','anchor','camera','lens','travel','scale','localScale','color']);
     this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor']);
     this.quad=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.quad);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
     this.black=g.createTexture();g.bindTexture(g.TEXTURE_2D,this.black);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,1,1,0,g.RGBA,g.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
@@ -589,7 +589,7 @@ class DirectRenderer{
     }
     return record?.texture?record:null;
   }
-  orbit(key,xyz,worldOffset,camera,scale,centerX,centerY,color,alpha){
+  orbit(key,xyz,worldOffset,camera,scale,centerX,centerY,color,alpha,localScale=1){
     if(!key||!xyz?.length||!(alpha>0))return;
     const g=this.gl,p=this.line,data=xyz instanceof Float32Array?xyz:new Float32Array(xyz);
     let record=this.orbitBuffers.get(key);
@@ -605,7 +605,7 @@ class DirectRenderer{
       g.uniform4f(p.u.camera,camera.ca,camera.sa,camera.ce,camera.se);g.uniform1f(p.u.lens,camera.lens);g.uniform1f(p.u.travel,camera.travel);g.uniform1f(p.u.scale,scale);
       Object.assign(s,{valid:true,centerX,centerY,anchorX:anchor.x,anchorY:anchor.y,anchorZ:anchor.z,ca:camera.ca,sa:camera.sa,ce:camera.ce,se:camera.se,lens:camera.lens,travel:camera.travel,scale});
     }
-    g.uniform3f(p.u.worldOffset,offset.x,offset.y,offset.z);g.uniform4f(p.u.color,color[0],color[1],color[2],alpha);
+    g.uniform3f(p.u.worldOffset,offset.x,offset.y,offset.z);g.uniform1f(p.u.localScale,localScale);g.uniform4f(p.u.color,color[0],color[1],color[2],alpha);
     g.drawArrays(g.LINE_STRIP,0,record.count);this.stats.drawCalls++;
   }
   corona(source,screen,radius,time){

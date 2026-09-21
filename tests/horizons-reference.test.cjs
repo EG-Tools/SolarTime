@@ -37,6 +37,14 @@ test('the requested date ranges select the intended ephemeris tier',()=>{
   assert.equal(A.ephemerisTier(Date.UTC(2999,11,31)),'jpl-long-term');
 });
 
+test('the 2051 coefficient boundary is position-continuous',()=>{
+  for(const body of A.BODIES){
+    const before=A.positionAt(body,A.CURRENT_END-1),after=A.positionAt(body,A.CURRENT_END);
+    assert.ok(angularError(before,after)<1e-5,`${body.id} direction`);
+    assert.ok(Math.abs(norm(before)-norm(after))<1e-8,`${body.id} radius`);
+  }
+});
+
 test('1800–2050 planetary positions stay within the documented approximate-ephemeris envelope',()=>{
   for(const [id,tolerance] of Object.entries(currentTolerance))for(const vector of fixture.targets[id].vectors){
     const ms=Date.parse(vector.iso);if(A.ephemerisTier(ms)!=='jpl-1800-2050')continue;

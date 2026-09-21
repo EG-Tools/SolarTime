@@ -746,17 +746,17 @@
       for(let i=0;i<path.points.length;i++){const p=this.displaySolarPoint(path.points[i]);xyz[i*3]=p.x;xyz[i*3+1]=p.y;xyz[i*3+2]=p.z;}
       this.orbitModelCache.set(path,{source:path.points,key,xyz});this.stats.orbitBufferBuilds+=path.points.length;return xyz;
     }
-    satelliteOrbitPoints(body,ms,radius) {
-      // Precision orbit geometry changes slowly. Share one daily path between
-      // the WebGL and canvas renderers instead of evaluating 91 ephemeris
-      // samples on every frame.
-      const key=Number(radius).toFixed(6)+':'+Math.floor(ms/A.DAY),cached=this.satelliteOrbitCache.get(body.id);
+    satelliteOrbitPoints(body,ms) {
+      // Cache one normalized precision orbit per body/date/model. Display size
+      // is applied later, so camera zoom no longer causes 91 ephemeris samples
+      // and a fresh GPU upload on every frame.
+      const key=A.ephemerisTier(ms)+':'+Math.floor(ms/A.DAY),cached=this.satelliteOrbitCache.get(body.id);
       if(cached&&cached.key===key)return cached;
-      const points=A.satelliteOrbit(body,ms,radius,90),entry={key,points,xyz:null};
+      const points=A.satelliteOrbit(body,ms,1,90),entry={key,points,xyz:null};
       this.satelliteOrbitCache.set(body.id,entry);return entry;
     }
-    satelliteOrbitModel(body,ms,radius) {
-      const entry=this.satelliteOrbitPoints(body,ms,radius);if(entry.xyz)return entry.xyz;
+    satelliteOrbitModel(body,ms) {
+      const entry=this.satelliteOrbitPoints(body,ms);if(entry.xyz)return entry.xyz;
       const {points}=entry,xyz=new Float32Array(points.length*3);
       for(let i=0;i<points.length;i++){xyz[i*3]=points[i].x;xyz[i*3+1]=points[i].y;xyz[i*3+2]=points[i].z;}
       entry.xyz=xyz;this.stats.orbitBufferBuilds+=points.length;return xyz;
@@ -1048,9 +1048,9 @@
             this.gpu.orbit('solar:'+path.body.id,this.orbitModel(path),origin,camera,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],clamp((selected?.64:.22)*reveal*orbitStrength,0,1));}
         }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id,reveal,orbitStrength);
         for(const satellite of satelliteLayouts) {
-          const points=direct?null:this.satelliteOrbitPoints(satellite.body,ms,satellite.orbitRadius).points,parent=satellite.parent.world;
-          if(direct){this.gpu.orbit('satellite:'+satellite.body.id,this.satelliteOrbitModel(satellite.body,ms,satellite.orbitRadius),parent,camera,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],clamp(.26*reveal*orbitStrength,0,1));}
-          else if(!this.gpu){c.save();c.globalAlpha*=reveal;const alpha=clamp(.26*orbitStrength,0,1);c.strokeStyle=satellite.body.id==='moon'?`rgba(115,155,189,${alpha})`:`rgba(171,158,117,${alpha})`;c.lineWidth=.65;c.beginPath();for(let i=0;i<points.length;i++){const p=points[i],s=this.project({x:parent.x+p.x,y:parent.y+p.y,z:parent.z+p.z});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();c.restore();}
+          const points=direct?null:this.satelliteOrbitPoints(satellite.body,ms).points,parent=satellite.parent.world;
+          if(direct){this.gpu.orbit('satellite:'+satellite.body.id,this.satelliteOrbitModel(satellite.body,ms),parent,camera,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],clamp(.26*reveal*orbitStrength,0,1),satellite.orbitRadius);}
+          else if(!this.gpu){c.save();c.globalAlpha*=reveal;const alpha=clamp(.26*orbitStrength,0,1);c.strokeStyle=satellite.body.id==='moon'?`rgba(115,155,189,${alpha})`:`rgba(171,158,117,${alpha})`;c.lineWidth=.65;c.beginPath();for(let i=0;i<points.length;i++){const p=points[i],s=this.project({x:parent.x+p.x*satellite.orbitRadius,y:parent.y+p.y*satellite.orbitRadius,z:parent.z+p.z*satellite.orbitRadius});i?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}c.stroke();c.restore();}
         }
       }
       bodies.sort((a,b)=>a.screen.z-b.screen.z);

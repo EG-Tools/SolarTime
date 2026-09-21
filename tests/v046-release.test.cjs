@@ -12,9 +12,9 @@ test('v0.46 page build stays consistent while unchanged coordinator keeps its bu
   assert.match(version.revision,/^r[1-9]\d*$/);
   assert.equal(version.version,'0.51');
   assert.equal(pkg.version,'0.0.51');
-  assert.ok(app.includes("version:'0.51',revision:'r1'"));
-  assert.ok(html.includes('src/app.js?v=0.51-r1'));
-  assert.ok(html.includes('src/localization.js?v=0.51-r1'));
+  assert.ok(app.includes("version:'0.51',revision:'r2'"));
+  assert.ok(html.includes('src/app.js?v=0.51-r2'));
+  assert.ok(html.includes('src/localization.js?v=0.51-r2'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
@@ -250,7 +250,7 @@ test('r14 moves the scale readout to the top and enlarges it by one pixel',()=>{
 
 test('r15 adds one extra pixel only between the scale readout and home',()=>{
   const html=read('index.html'),css=read('styles.css');
-  assert.ok(html.includes('href="styles.css?v=0.51-r1"'));
+  assert.ok(html.includes('href="styles.css?v=0.51-r2"'));
   assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1;margin-bottom:5px\}/);
   assert.match(css,/\.view-controls\{[^}]*--tool-gap:5px;gap:var\(--tool-gap\)/);
   assert.match(css,/\.camera-presets\{[^}]*gap:var\(--tool-gap\);margin:0/);
@@ -296,12 +296,12 @@ test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
   const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.51');assert.deepEqual(notes.RELEASES.slice(0,5).map(r=>r.version),['0.51','0.50','0.48','0.47','0.46']);
   for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(notes.itemsFor(notes.RELEASES[0],code).length>0,code);
-  assert.ok(app.includes('src/release-notes.js?v=0.51-r1'));assert.ok(html.includes('<h3 id="release-notes-version">v0.51</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
+  assert.ok(app.includes('src/release-notes.js?v=0.51-r2'));assert.ok(html.includes('<h3 id="release-notes-version">v0.51</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
 
   assert.ok(html.includes('src/assets.js?v=assetpack-20260918-r1'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260918-r1'));
-  for(const file of ['surface','performance'])assert.ok(html.includes('src/'+file+'.js?v=0.51-r1'),file);
-  assert.ok(html.includes('src/renderer.js?v=0.51-r1'),'renderer');
+  for(const file of ['surface','performance'])assert.ok(html.includes('src/'+file+'.js?v=0.51-r2'),file);
+  assert.ok(html.includes('src/renderer.js?v=0.51-r2'),'renderer');
   assert.match(html,/src\/app\.js\?v=0\.51-r\d+(?:-[^\"']+)?/);
   assert.deepEqual(assetRevision,{version:'assetpack-20260918-r1'});
   assert.equal(manifest.revision,'assetpack-20260918-r1');

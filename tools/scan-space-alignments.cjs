@@ -40,4 +40,4 @@ for(let ms=A.MIN_TIME;ms<=A.MAX_TIME;ms+=A.DAY){
   else{cluster.last=ms;if(candidate.count>cluster.best.count||(candidate.count===cluster.best.count&&(candidate.max<cluster.best.max||candidate.max===cluster.best.max&&candidate.rms<cluster.best.rms)))cluster.best=candidate;}
 }
 finish();
-console.log(JSON.stringify({definition:`five or more major planets within ${threshold} degrees of one heliocentric 3D diameter`,threshold,count:events.length,events:events.map(event=>({date:new Date(event.ms).toISOString().slice(0,10),count:event.count,max:Number(event.max.toFixed(3)),rms:Number(event.rms.toFixed(3)),planets:event.planets}))},null,2));
+console.log(JSON.stringify({definition:`five or more major planets within ${threshold} degrees of one heliocentric 3D diameter`,threshold,count:events.length,events:events.map(event=>({epoch:new Date(event.ms).toISOString(),count:event.count,max:Number(event.max.toFixed(3)),rms:Number(event.rms.toFixed(3)),planets:event.planets}))},null,2));

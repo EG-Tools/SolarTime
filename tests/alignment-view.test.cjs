@@ -20,7 +20,8 @@ test('alignment catalog keeps Earth-sky dates and strict space-axis dates distin
     assert.ok(event.planets.length>=5,event.date);
     assert.ok(event.ms>previous,event.date);previous=event.ms;
     assert.ok(event.kind==='sky'||event.kind==='space',event.date);
-    if(event.kind==='space')assert.ok(event.maxError<=2,event.date);
+    assert.equal(event.ms,Date.parse(event.epoch),event.date);
+    if(event.kind==='space'){assert.ok(event.maxError<=2,event.date);assert.equal(new Date(event.ms).getUTCHours(),0,event.date);}
   }
   const dates=A.PLANETARY_ALIGNMENT_EVENTS.map(event=>event.date);
   for(const excluded of ['2026-11-14','2027-04-18','2034-02-03'])assert.ok(!dates.includes(excluded),excluded);
@@ -29,6 +30,13 @@ test('alignment catalog keeps Earth-sky dates and strict space-axis dates distin
   assert.ok(!A.PLANETARY_ALIGNMENT_EVENTS.some(event=>event.kind==='same-side'));
   assert.equal(A.planetaryAlignmentEvent(Date.UTC(2027,0,1),1).date,'2027-07-02');
   assert.equal(A.planetaryAlignmentEvent(Date.UTC(2028,0,1),-1).date,'2027-12-25');
+});
+
+test('alignment scanner emits the exact UTC epoch consumed by the catalog',()=>{
+  const scanner=read('tools/scan-space-alignments.cjs'),astro=read('src/astro.js');
+  assert.match(scanner,/epoch:new Date\(event\.ms\)\.toISOString\(\)/);
+  assert.match(astro,/ms=Date\.parse\(epoch\)/);
+  assert.doesNotMatch(astro,/Date\.UTC\(year,month-1,day,6\)/);
 });
 
 test('alignment travel preserves the current camera and is available only from the Sun card',()=>{
