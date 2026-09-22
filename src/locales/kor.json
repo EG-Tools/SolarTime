@@ -18,6 +18,7 @@
     "orbitBrightness": "궤도 밝기",
     "orbitBrightnessAria": "궤도선 밝기. 0이면 궤도선이 숨겨집니다.",
     "displaySize": "화면 표시 크기",
+    "earthNightLights": "야간 불빛",
     "displaySizeAria": "선택한 천체의 화면 표시 크기",
     "satelliteOrbitSpacing": "위성 궤도 간격",
     "satelliteOrbitSpacingAria": "선택한 행성의 위성 궤도 간격",

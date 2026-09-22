@@ -1,4 +1,4 @@
-/* Solar Time v0.51 — surface implementation owner. */
+/* Solar Time v0.52 — surface implementation owner. */
 (function(root){
 'use strict';
 const STYLE=root.SolarSurfaceStyle;
@@ -51,8 +51,8 @@ function surfaceKernel(style){
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const error=gl.getShaderInfoLog(s);gl.deleteShader(s);throw Error(error);}return s;}
   const vertex=`attribute vec2 a; varying vec2 p; void main(){p=a;gl_Position=vec4(a,0.,1.);}`;
   const fragment=`precision highp float;
-    varying vec2 p; uniform sampler2D colorMap; uniform sampler2D bumpMap; uniform sampler2D cloudsMap;
-    uniform vec3 axisU,axisV,pole,light; uniform float phase,kind,hasBump,diameter,texel,effectTime,sunActivity;
+    varying vec2 p; uniform sampler2D colorMap; uniform sampler2D bumpMap; uniform sampler2D cloudsMap; uniform sampler2D nightMap;
+    uniform vec3 axisU,axisV,pole,light; uniform float phase,kind,hasBump,diameter,texel,effectTime,sunActivity,nightLights;
     const float PI=3.141592653589793;
     vec3 world(vec3 q){return axisU*q.x+axisV*q.y+pole*q.z;}
     void main(){
@@ -82,6 +82,10 @@ function surfaceKernel(style){
       if(kind==1.){
         float cloud=texture2D(cloudsMap,uv).r*.50;
         col=mix(col,vec3(.94,.965,1.)*(.14+day*.93),cloud);
+        // A broad twilight band fades city lights in through early evening
+        // and out again at dawn instead of switching at the terminator.
+        float nightSide=(1.-smoothstep(-.34,.30,mu))*nightLights;
+        col+=texture2D(nightMap,uv).rgb*nightSide*(1.-cloud*.68)*1.05;
         float ocean=smoothstep(.035,.14,base.b-base.r)*step(base.r,base.b)*step(base.g,base.b);
         vec3 halfdir=normalize(light+vec3(0.,0.,1.));
         col+=vec3(.63,.76,.85)*pow(max(0.,dot(n,halfdir)),70.)*day*ocean*.38;
@@ -107,7 +111,7 @@ function surfaceKernel(style){
         if(!g.getProgramParameter(program,g.LINK_STATUS))throw Error(g.getProgramInfoLog(program));this.program=program;
         this.buffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
         this.attribute=g.getAttribLocation(program,'a');
-        this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','effectTime','sunActivity'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
+        this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','nightMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','effectTime','sunActivity','nightLights'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
       }catch(error){if(this.gl){this.gl.getExtension('WEBGL_lose_context')?.loseContext();this.gl=null;}this.canvas=makeCanvas(32);this.ctx=this.canvas.getContext('2d');this.stats.fallback=error.message;}
     }
     async texture(id,width){
@@ -150,19 +154,20 @@ function surfaceKernel(style){
     async render(job){
       if(this.disposed)throw Error('Surface disposed');
       if(this.gl?.isContextLost())throw Error('WebGL context lost');
-      const {id,frame,phase,light,seconds=0,activity=false}=job;const n=this.gl?Math.min(1024,job.diam):Math.min(768,job.diam);
+      const {id,frame,phase,light,seconds=0,activity=false,nightLights=false,nightTextureWidth=0}=job;const n=this.gl?Math.min(1024,job.diam):Math.min(768,job.diam);
       const width=this.gl?job.textureWidth:Math.min(4096,job.textureWidth);
       const color=await this.texture(id,width),bump=assets[id+'-relief']?await this.texture(id+'-relief',width):color;
       const clouds=id==='earth'?await this.texture('clouds',Math.min(2048,width)):color;
+      const night=id==='earth'&&nightLights?await this.texture('earth-night',Math.min(2048,nightTextureWidth||width)):color;
       if(this.canvas.width!==n){this.canvas.width=this.canvas.height=n;}
       if(this.gl?.isContextLost())throw Error('WebGL context lost');
       if(this.gl){
         const g=this.gl,u=this.uniforms;g.viewport(0,0,n,n);g.clearColor(0,0,0,0);g.clear(g.COLOR_BUFFER_BIT);g.useProgram(this.program);g.bindBuffer(g.ARRAY_BUFFER,this.buffer);
         const a=this.attribute;g.enableVertexAttribArray(a);g.vertexAttribPointer(a,2,g.FLOAT,false,0,0);
-        for(const [i,t,name] of [[0,color,'colorMap'],[1,bump,'bumpMap'],[2,clouds,'cloudsMap']]){g.activeTexture(g.TEXTURE0+i);g.bindTexture(g.TEXTURE_2D,t.handle);g.uniform1i(u[name],i);}
+        for(const [i,t,name] of [[0,color,'colorMap'],[1,bump,'bumpMap'],[2,clouds,'cloudsMap'],[3,night,'nightMap']]){g.activeTexture(g.TEXTURE0+i);g.bindTexture(g.TEXTURE_2D,t.handle);g.uniform1i(u[name],i);}
         g.uniform3fv(u.axisU,frame.u);g.uniform3fv(u.axisV,frame.v);g.uniform3fv(u.pole,frame.pole);g.uniform3fv(u.light,light);
         g.uniform1f(u.phase,phase);g.uniform1f(u.kind,id==='earth'?1:id==='sun'?2:id==='uranus'?4:['jupiter','saturn','venus','neptune'].includes(id)?3:0);
-        g.uniform1f(u.hasBump,bump!==color?1:0);g.uniform1f(u.diameter,n);g.uniform1f(u.texel,1/width);g.uniform1f(u.effectTime,seconds);g.uniform1f(u.sunActivity,activity?1:0);g.drawArrays(g.TRIANGLES,0,6);
+        g.uniform1f(u.hasBump,bump!==color?1:0);g.uniform1f(u.diameter,n);g.uniform1f(u.texel,1/width);g.uniform1f(u.effectTime,seconds);g.uniform1f(u.sunActivity,activity?1:0);g.uniform1f(u.nightLights,night!==color?1:0);g.drawArrays(g.TRIANGLES,0,6);
         if(g.isContextLost())throw Error('WebGL context lost');
       }else{
         // Identical UV geometry, cooperatively rasterized when GPU is disabled.
@@ -176,7 +181,7 @@ function surfaceKernel(style){
           const tx=u*w-.5,ty=clamp(v*h-.5,0,h-1),ix=Math.floor(tx),y0=Math.floor(ty),fx=tx-ix,fy=ty-y0,x0=(ix+w)%w,x1=(x0+1)%w,y1=Math.min(h-1,y0+1);
           const a=(y0*w+x0)*4,b=(y0*w+x1)*4,c=(y1*w+x0)*4,d=(y1*w+x1)*4;
           const wa=(1-fx)*(1-fy),wb=fx*(1-fy),wc=(1-fx)*fy,wd=fx*fy;
-          const day=Math.max(0,nx*light[0]+ny*light[1]+nz*light[2]);
+          const mu=nx*light[0]+ny*light[1]+nz*light[2],day=Math.max(0,mu);
           const lit=id==='sun'?1.05+.45*Math.sqrt(nz):.115+.98*day;
           for(let k=0;k<3;k++)data[i+k]=(tex[a+k]*wa+tex[b+k]*wb+tex[c+k]*wc+tex[d+k]*wd)*lit;
           if(id==='uranus'){
@@ -199,6 +204,7 @@ function surfaceKernel(style){
             data[i]=data[i]*(1-cover)+240*(.14+.93*day)*cover+19*rim;
             data[i+1]=data[i+1]*(1-cover)+246*(.14+.93*day)*cover+92*rim;
             data[i+2]=data[i+2]*(1-cover)+255*(.14+.93*day)*cover+184*rim;
+            if(night!==color){const ni=(Math.min(night.height-1,Math.floor(v*night.height))*night.width+Math.floor(u*night.width))*4,nightSide=(1-smooth(-.34,.30,mu))*(1-cover*.68)*1.05;data[i]+=night.data[ni]*nightSide;data[i+1]+=night.data[ni+1]*nightSide;data[i+2]+=night.data[ni+2]*nightSide;}
           }
           data[i+3]=map[m+6];
           if((m/7)%8192===0&&performance.now()-sliceStart>6){await new Promise(resolve=>setTimeout(resolve,0));if(this.disposed)throw Error('Surface disposed');sliceStart=performance.now();}
@@ -309,8 +315,8 @@ const DIRECT_QUAD_VERTEX=`attribute vec2 a;
   uniform vec2 center,viewport;uniform float radius;varying vec2 p;
   void main(){p=a;vec2 q=center+a*radius;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);}`;
 const DIRECT_PLANET_FRAGMENT=`precision highp float;
-  varying vec2 p;uniform sampler2D colorMap,bumpMap,cloudsMap;
-  uniform vec3 axisU,axisV,pole,light;uniform float phase,kind,hasBump,diameter,texel,effectTime,sunActivity;
+  varying vec2 p;uniform sampler2D colorMap,bumpMap,cloudsMap,nightMap;
+  uniform vec3 axisU,axisV,pole,light;uniform float phase,kind,hasBump,diameter,texel,effectTime,sunActivity,nightLights;
   const float PI=3.141592653589793;
   vec3 world(vec3 q){return axisU*q.x+axisV*q.y+pole*q.z;}
   void main(){
@@ -341,6 +347,8 @@ const DIRECT_PLANET_FRAGMENT=`precision highp float;
     if(kind==1.){
       float cloud=texture2D(cloudsMap,uv).r*.50;
       col=mix(col,vec3(.94,.965,1.)*(.14+day*.93),cloud);
+      float nightSide=(1.-smoothstep(-.34,.30,mu))*nightLights;
+      col+=texture2D(nightMap,uv).rgb*nightSide*(1.-cloud*.68)*1.05;
       float ocean=smoothstep(.035,.14,base.b-base.r)*step(base.r,base.b)*step(base.g,base.b);
       vec3 halfdir=normalize(light+vec3(0.,0.,1.));
       col+=vec3(.63,.76,.85)*pow(max(0.,dot(n,halfdir)),70.)*day*ocean*.38;
@@ -482,7 +490,7 @@ class DirectRenderer{
     const g=this.gl;
     this.maxTextureSize=Math.min(4096,2**Math.floor(Math.log2(g.getParameter(g.MAX_TEXTURE_SIZE))));
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
-    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','effectTime','sunActivity']);
+    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','nightMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','effectTime','sunActivity','nightLights']);
     this.coronaProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
     this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','worldOffset','anchor','camera','lens','travel','scale','localScale','color']);
     this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor']);
@@ -490,6 +498,7 @@ class DirectRenderer{
     this.black=g.createTexture();g.bindTexture(g.TEXTURE_2D,this.black);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,1,1,0,g.RGBA,g.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
     g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
     g.useProgram(this.planetProgram.program);g.uniform1i(this.planetProgram.u.colorMap,0);g.uniform1i(this.planetProgram.u.bumpMap,1);g.uniform1i(this.planetProgram.u.cloudsMap,2);
+    g.uniform1i(this.planetProgram.u.nightMap,3);
     g.useProgram(this.coronaProgram.program);g.uniform1i(this.coronaProgram.u.coronaMap,3);
     for(const p of [this.planetProgram,this.coronaProgram,this.line,this.ring]){p.viewportWidth=NaN;p.viewportHeight=NaN;}
     g.enable(g.BLEND);g.blendFuncSeparate(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA,g.ONE,g.ONE_MINUS_SRC_ALPHA);g.disable(g.DEPTH_TEST);g.clearColor(0,0,0,0);this.resetBindings();
@@ -509,14 +518,14 @@ class DirectRenderer{
   }
   prepare(jobs){
     for(const job of jobs)this.desired.set(job.id,job);
-    const assets=root.SolarAssets?.materials,key=jobs.map(job=>job.id+':'+job.textureWidth+':'+job.priority).join('|');
+    const assets=root.SolarAssets?.materials,key=jobs.map(job=>job.id+':'+job.textureWidth+':'+(job.nightTextureWidth||0)+':'+job.priority+':'+Number(job.nightLights)).join('|');
     if(key!==this.planKey||assets!==this.planAssets){
       this.planKey=key;this.planAssets=assets;this.texturePlan=root.SolarPerformance?.planTextures(jobs,assets,this.maxTextureSize);
       this.stats.plannedTextureBytes=this.texturePlan?.bytes||0;
     }
     // Jobs arrive focus-first, before depth sorting for painting. Start the
     // important color maps first rather than letting a distant body take a slot.
-    for(const job of jobs)this.texture(job.id,job.textureWidth);
+    for(const job of jobs){this.texture(job.id,job.textureWidth);if(job.id==='earth'&&job.nightLights)this.texture('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth));}
   }
   bind(program,buffer=this.quad,size=2){
     const g=this.gl;
@@ -632,13 +641,14 @@ class DirectRenderer{
     this.desired.set(job.id,job);const color=this.texture(job.id,job.textureWidth);if(!color)return false;
     const bump=root.SolarAssets?.materials?.[job.id+'-relief']?this.texture(job.id+'-relief',job.textureWidth):null;
     const clouds=job.id==='earth'?this.texture('clouds',Math.min(2048,job.textureWidth)):null;
+    const night=job.id==='earth'&&job.nightLights?this.texture('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth)):null;
     // Rings are children of this body: the surface and both ring halves share
     // exactly one parent transform and cannot drift into separate orientations.
     const frame=job.frame;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,false);
     const g=this.gl,p=this.planetProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius);g.uniform3fv(p.u.axisU,frame.u);g.uniform3fv(p.u.axisV,frame.v);g.uniform3fv(p.u.pole,frame.pole);g.uniform3fv(p.u.light,job.light);
-    g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='uranus'?4:['jupiter','saturn','venus','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);
-    this.bindTextureUnit(0,color.texture);this.bindTextureUnit(1,bump?.texture||color.texture);this.bindTextureUnit(2,clouds?.texture||this.black);
+    g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='uranus'?4:['jupiter','saturn','venus','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);
+    this.bindTextureUnit(0,color.texture);this.bindTextureUnit(1,bump?.texture||color.texture);this.bindTextureUnit(2,clouds?.texture||this.black);this.bindTextureUnit(3,night?.texture||this.black);
     g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,true);
     let frameRecord=this.frames.get(job.id);if(!frameRecord){frameRecord={job:null,image:{width:0,height:0,gpu:true}};this.frames.set(job.id,frameRecord);}

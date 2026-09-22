@@ -18,6 +18,7 @@
     "orbitBrightness": "Brillo de las órbitas",
     "orbitBrightnessAria": "Brillo de las líneas orbitales. Cero las oculta.",
     "displaySize": "Tamaño mostrado",
+    "earthNightLights": "Luces nocturnas",
     "displaySizeAria": "Tamaño mostrado del cuerpo seleccionado",
     "satelliteOrbitSpacing": "Separación de satélites",
     "satelliteOrbitSpacingAria": "Separación orbital del satélite del planeta seleccionado",

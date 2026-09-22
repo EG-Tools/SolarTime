@@ -6,9 +6,9 @@ const path=require('node:path');
 const A=require('../src/astro.js');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('Sun card ends with shared planetary-alignment navigation',()=>{
-  const html=read('index.html'),feature=html.indexOf('id="feature-view"'),alignment=html.indexOf('id="alignment-control"'),cardEnd=html.indexOf('</aside>',alignment);
-  assert.ok(feature>=0&&feature<alignment&&alignment<cardEnd);
+test('Sun card keeps alignment navigation before the final body-option section',()=>{
+  const html=read('index.html'),feature=html.indexOf('id="feature-view"'),alignment=html.indexOf('id="alignment-control"'),options=html.indexOf('id="body-card-options"'),cardEnd=html.indexOf('</aside>',alignment);
+  assert.ok(feature>=0&&feature<alignment&&alignment<options&&options<cardEnd);
   assert.match(html,/id="alignment-previous" class="step-previous"/);
   assert.match(html,/id="alignment-next" class="step-next"/);
   assert.match(html,/class="step-navigation eclipse-navigation"/);

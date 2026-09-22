@@ -1,12 +1,16 @@
-# Solar Time v0.51 — sources and licenses
+# Solar Time v0.52 — sources and licenses
 
-The exact built-in ImageGen prompts used for the current Sun, Pluto, Uranus and Europa reconstructions are recorded in `assets/IMAGEGEN_PROMPTS.md`.
+The exact built-in ImageGen prompts used for the current Sun, Pluto, Uranus and Europa reconstructions, plus the Earth night-light palette study, are recorded in `assets/IMAGEGEN_PROMPTS.md`.
 
 ## Already embedded in this package
 
-**Earth:** NASA Blue Marble Next Generation. Visualization by Reto Stöckli and Robert Simmon / NASA Earth Observatory. Converted from the Basemap-distributed `bmng.jpg` and resampled to 4096×2048 WebP in v0.06. Earth bytes are unchanged in v0.07. This is not live weather.
+**Earth:** NASA Blue Marble Next Generation. Visualization by Reto Stöckli and Robert Simmon / NASA Earth Observatory. Converted from the Basemap-distributed `bmng.jpg` and resampled to 4096×2048 WebP in v0.06. This is not live weather.
 
 https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation-5935/
+
+**Earth night lights:** NASA Earth Observatory's official 13,500×6,750 grayscale 2016 Black Marble 3 km map supplies the complete measured VIIRS night-radiance image. Solar Time resizes that light-only source directly to 4096×2048 and applies a warm colour tone without extracting, reshaping, blurring, or inventing lights. The map is revealed only on the solar night side and the cloud layer partially obscures it. This is a yearly composite, not a live view of electric-light activity.
+
+https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/
 
 **Sun:** NASA/GSFC/Solar Dynamics Observatory, SDO/AIA 171 Å full-disk image captured 2025-09-10 was used as the visual reference. Solar Time's 4096×2048 WebP is an OpenAI ImageGen artistic re-creation of the reference's golden plasma filaments and active-region vocabulary, generated as a complete seamless spherical texture rather than stretching the photographed disk. The antimeridian and pole texels were then converged for spherical display. The off-limb corona and image caption are excluded because Solar Time renders its own separate corona effect. This generated surface is not a current or instantaneous full-Sun scientific map.
 
@@ -49,7 +53,7 @@ Archived source files and individual license pages:
 
 License: Creative Commons Attribution 4.0 International — https://creativecommons.org/licenses/by/4.0/
 
-Uranus, Pluto, the Sun and Europa continue to use their separately credited maps above. Earth remains unchanged.
+Uranus, Pluto, the Sun and Europa continue to use their separately credited maps above. Earth's daylight map remains unchanged; its separate night-light layer is credited above.
 
 ## Astronomy and ephemeris reference
 

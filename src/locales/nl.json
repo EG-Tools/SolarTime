@@ -18,6 +18,7 @@
     "orbitBrightness": "Helderheid van de banen",
     "orbitBrightnessAria": "Helderheid van de baanlijnen. Bij nul zijn de baanlijnen verborgen.",
     "displaySize": "Weergavegrootte",
+    "earthNightLights": "Nachtverlichting",
     "displaySizeAria": "Weergavegrootte van het geselecteerde hemellichaam",
     "satelliteOrbitSpacing": "Baanafstand van de maan",
     "satelliteOrbitSpacingAria": "Baanafstand van de maan van de geselecteerde planeet",

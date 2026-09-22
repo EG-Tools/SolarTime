@@ -18,6 +18,7 @@
     "orbitBrightness": "Orbit brightness",
     "orbitBrightnessAria": "Orbit-line brightness. Zero hides orbit lines.",
     "displaySize": "Display size",
+    "earthNightLights": "Night lights",
     "displaySizeAria": "Display size of the selected body",
     "satelliteOrbitSpacing": "Moon orbit spacing",
     "satelliteOrbitSpacingAria": "Orbit spacing for the selected planet’s moon",

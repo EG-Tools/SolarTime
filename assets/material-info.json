@@ -1,4 +1,20 @@
 {
+  "earth": {
+    "revision": "embedded-nasa-blue-marble-v006",
+    "url": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation-5935/",
+    "width": 4096,
+    "height": 2048,
+    "credit": "NASA Earth Observatory · Blue Marble Next Generation",
+    "feature": null
+  },
+  "earth-night": {
+    "revision": "nasa-black-marble-2016-3km-gray-v051r4",
+    "url": "https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/",
+    "width": 4096,
+    "height": 2048,
+    "credit": "NASA Earth Observatory · Black Marble 2016",
+    "feature": null
+  },
   "sun": {
     "revision": "embedded-ai-assisted-sdo-v025b",
     "url": "https://science.nasa.gov/photojournal/image-of-sun-from-nasas-solar-dynamics-observatory/",

@@ -52,6 +52,7 @@ test('Pluto display orbit reuses bounded five-year paths while its body position
 
 test('inactive speed slider exposes its configured value as pending',()=>{
   const app=read('src/app.js');
-  assert.match(app,/active=!clock\.live&&Math\.abs\(clock\.rate-cfg\.rate\(speedValues\[speedMode\]\)\)<1e-9/);
+  assert.match(app,/function selectedSpeedActive\(\)\{const cfg=SPEED_MODES\[speedMode\];return !clock\.live&&Math\.abs\(clock\.rate-cfg\.rate\(speedValues\[speedMode\]\)\)<1e-9;\}/);
   assert.match(app,/aria-valuetext',active\?selectedText:t\('speedUnitReady',\{unit:selectedText\}\)/);
+  assert.match(app,/if\(!selectedSpeedActive\(\)\)\{applySpeed\(\);return;\}/);
 });

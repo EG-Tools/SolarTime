@@ -2,6 +2,24 @@
 
 The final `assets/pluto.webp`, `assets/sun.webp`, `assets/uranus.webp`, and `assets/europa.webp` maps were created with the built-in OpenAI ImageGen tool. The project finishing tools close the left/right seam, stabilize pole rows, and normalize them to the documented 2:1 WebP sizes.
 
+## Earth night-light palette reference
+
+These studies are archived visual references only and are not used by the production texture. The shipped map comes directly from NASA's official 13,500×6,750 grayscale Black Marble 2016 radiance image; `tools/prepare-earth-night.cjs` only resizes it and applies a monotonic warm colour tone.
+
+### High-detail refinement reference
+
+The second study tightened the treatment after close-up testing exposed merged clusters in the first version. It remains documentation only: the production texture adds no generated glow or spatial reconstruction to the official NASA source.
+
+```text
+Use case: scientific-educational. Asset type: lighting-treatment reference for a production WebGL Earth night-side emissive texture. Input image: official NASA Black Marble global composite; use it as the geographic authority and preserve its real distribution of settlements and transport corridors. Primary request: demonstrate a substantially sharper, higher-quality city-light treatment made of fine discrete light points and narrow connected urban networks, with dense cities retaining internal detail instead of merging into white blobs. Style/medium: realistic orbital satellite composite, not illustration. Composition/framing: exact flat 2:1 equirectangular world map. Lighting/mood: restrained emissive lighting on pure black, crisp cores with only a sub-pixel soft halo. Color palette: natural warm ivory, muted sodium amber and occasional neutral white; avoid uniform orange. Constraints: dark oceans and unlit terrain remain completely black; preserve fine local variation; no invented settlements; no daylight terrain, borders, labels, grids, clouds, aurora, fires, stars, atmosphere, planet sphere, vignette, text or watermark. Avoid: broad bloom, chunky dots, smeared clusters, horizontal streaks, painterly patterns, repeated noise, overexposure and neon color.
+```
+
+### Initial palette reference
+
+```text
+Use case: scientific-educational. Asset type: visual style reference for a production WebGL Earth night-side emissive map. Use the attached official NASA Black Marble global composite as the geographic authority. Preserve an exact flat 2:1 equirectangular composition and the real continental distribution of artificial lights. Isolate urban and transport-network radiance against pure black, using restrained warm ivory, pale amber and soft gold with a very small natural bloom around the brightest metropolitan clusters. Keep dark oceans and unlit land completely black. No daylight terrain, borders, labels, grids, clouds, aurora, fires, stars, atmosphere, planet sphere, vignette, text or invented settlements. Avoid neon orange, broad glowing continents, exaggerated bloom, uniform dots, repeated patterns and painterly styling.
+```
+
 ## Pluto
 
 ```text

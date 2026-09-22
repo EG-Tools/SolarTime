@@ -18,6 +18,7 @@
     "orbitBrightness": "कक्षा की चमक",
     "orbitBrightnessAria": "कक्षा रेखाओं की चमक। शून्य पर रेखाएँ छिप जाती हैं।",
     "displaySize": "दिखाई देने वाला आकार",
+    "earthNightLights": "रात्रि प्रकाश",
     "displaySizeAria": "चुने गए खगोलीय पिंड का आकार",
     "satelliteOrbitSpacing": "उपग्रह कक्षा अंतर",
     "satelliteOrbitSpacingAria": "चुने गए ग्रह के उपग्रह की कक्षा का अंतर",

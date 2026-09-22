@@ -18,6 +18,7 @@
     "orbitBrightness": "軌道の明るさ",
     "orbitBrightnessAria": "軌道線の明るさ。0にすると軌道線を非表示にします。",
     "displaySize": "表示サイズ",
+    "earthNightLights": "夜間の灯り",
     "displaySizeAria": "選択した天体の表示サイズ",
     "satelliteOrbitSpacing": "衛星の軌道間隔",
     "satelliteOrbitSpacingAria": "選択した惑星の衛星軌道間隔",

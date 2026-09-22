@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "revision": "assetpack-20260918-r1",
-  "generatedAt": "2026-09-18T07:47:35.421Z",
+  "revision": "assetpack-20260922-r3",
+  "generatedAt": "2026-09-22T09:11:35.729Z",
   "materials": {
     "clouds": {
       "source": "clouds.webp",
@@ -43,6 +43,49 @@
           "path": "releases/content/textures/clouds-4096.86fc88ee6263ad09.webp",
           "bytes": 265854,
           "sha256": "86fc88ee6263ad096986a14263b9bc488fd22c09c7b4a607ce5b1e84f14ba6ae"
+        }
+      ]
+    },
+    "earth-night": {
+      "source": "earth-night.webp",
+      "width": 4096,
+      "height": 2048,
+      "seamBaked": true,
+      "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/earth-night-256.562877695e14da22.webp",
+          "bytes": 4558,
+          "sha256": "562877695e14da22b82c6fe46e433bbc57f5787b97f855e323368ced96fbeb80"
+        },
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/earth-night-512.28b249d9f9419ddb.webp",
+          "bytes": 15052,
+          "sha256": "28b249d9f9419ddb3f73d91e0e6fb9d4b6d0e4b25a2a74561cff495f07ef8e10"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/earth-night-1024.d252a17f658f2624.webp",
+          "bytes": 48548,
+          "sha256": "d252a17f658f2624ddc7d1d1abd6850b02b3060811901856c7896b091db515fe"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/earth-night-2048.fe0145f3a8853e32.webp",
+          "bytes": 163504,
+          "sha256": "fe0145f3a8853e327c1987b04356e6bfbb7b7ea96bbd60fcf6714747adf8c491"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/earth-night-4096.0bb912cdd88f094f.webp",
+          "bytes": 408806,
+          "sha256": "0bb912cdd88f094f8fc6ed00f13e07ca131d6cd1cf1b8d2841d475a16f900936"
         }
       ]
     },

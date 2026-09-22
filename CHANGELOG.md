@@ -1,5 +1,13 @@
 # Maintenance changelog
 
+## v0.52 r1 · 2026-09-22
+
+- Added optional Earth night lights based directly on NASA Black Marble 2016 grayscale radiance data.
+- Preserved the source light distribution while reducing it from 13,500×6,750 to 4K and applying only a warm colour tone.
+- Added a wider twilight fade and distance-specific night-light texture levels to reduce distant flicker and GPU cost.
+- Moved Earth Night Lights and Sun Shine into the shared bottom section of their respective body cards.
+- Removed obsolete R2 night-light texture generations after the verified v0.52 deployment.
+
 ## v0.51 r1 · 2026-09-21
 
 - Added layered JPL orbital elements for 1800–2050 and long-range approximation through 2999, with precision Moon, Europa and Pluto models.

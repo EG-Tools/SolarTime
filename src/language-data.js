@@ -26,6 +26,7 @@
     id:Object.freeze({eclipseView:'Gerhana',eclipsePrevious:'Ke gerhana sebelumnya',eclipseNext:'Ke gerhana berikutnya',eclipseUnavailable:'Tidak ada gerhana dalam rentang yang didukung.',alignmentView:'Keselarasan planet',alignmentPrevious:'Ke keselarasan planet sebelumnya',alignmentNext:'Ke keselarasan planet berikutnya',alignmentUnavailable:'Tidak ada lagi keselarasan planet dalam katalog.'}),
     nl:Object.freeze({eclipseView:'Eclips',eclipsePrevious:'Naar de vorige eclips',eclipseNext:'Naar de volgende eclips',eclipseUnavailable:'Geen eclips gevonden binnen het ondersteunde bereik.',alignmentView:'Planeetuitlijning',alignmentPrevious:'Naar de vorige planeetuitlijning',alignmentNext:'Naar de volgende planeetuitlijning',alignmentUnavailable:'Geen verdere planeetuitlijning in de catalogus gevonden.'})
   });
+  const localNightLights=Object.freeze({kor:'야간 불빛',en:'Night lights',chn:'夜间灯光',zht:'夜間燈光',jpn:'夜間の灯り',hi:'रात्रि प्रकाश',es:'Luces nocturnas',de:'Nachtlichter',fr:'Lumières nocturnes',pt:'Luzes noturnas',it:'Luci notturne',id:'Cahaya malam',nl:'Nachtverlichting'});
   const cache=new Map(),pending=new Map();
   const scriptUrl=new URL(document.currentScript?.src||location.href,location.href);
   const valid=value=>value&&typeof value.copy==='object'&&typeof value.bodies==='object'&&typeof value.phases==='object';
@@ -47,7 +48,7 @@
     const task=(async()=>{
       const base=location.protocol==='file:'?new URL('https://solartime.app/src/locales/'):new URL('locales/',scriptUrl);
       const data=await request(code,base);
-      if(location.protocol==='file:')Object.assign(data.copy,localCopy[code]||localCopy.en);
+      if(location.protocol==='file:')Object.assign(data.copy,localCopy[code]||localCopy.en,{earthNightLights:localNightLights[code]||localNightLights.en});
       cache.set(code,data);return data;
     })();
     pending.set(code,task);

@@ -4,7 +4,7 @@ const {catalog,revision,valid}=require('../src/materials.js');
 const root=path.resolve(__dirname,'..'),manifest=JSON.parse(fs.readFileSync(path.join(root,'assets/manifest.json'),'utf8'));
 const asset=()=>({base:'https://assets.example/',fallback:'https://assets.example/release/earth.webp',tiers:[{width:512,path:'release/earth.webp'}]});
 test('Packaged catalog covers every visual body without third-party runtime downloads',()=>{
- assert.deepEqual(catalog.map(e=>e.id),['sun','mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','pluto','moon','europa','clouds']);
+ assert.deepEqual(catalog.map(e=>e.id),['sun','mercury','venus','earth','earth-night','mars','jupiter','saturn','uranus','neptune','pluto','moon','europa','clouds']);
  assert.equal(revision,'unavailable');
  const source=fs.readFileSync(path.join(root,'src/materials.js'),'utf8');assert.doesNotMatch(source,/fetch\(|indexedDB|8k_/);
 });

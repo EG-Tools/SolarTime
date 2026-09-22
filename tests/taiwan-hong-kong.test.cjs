@@ -57,6 +57,6 @@ test('Traditional Chinese release history keeps every translated item',()=>{
   const source=notes.itemsFor(release,'chn'),translated=notes.itemsFor(release,'zht');
   assert.equal(translated.length,source.length,release.version);assert.ok(translated.every(item=>typeof item==='string'&&item.trim()),release.version);
  }
- const current=notes.itemsFor(notes.RELEASES[0],'zht').join(' ');
- assert.match(current,/分層天文模型/);assert.match(current,/金色導引線/);assert.doesNotMatch(current,/国家|之后|信息|重复/);
+ const history=notes.RELEASES.map(release=>notes.itemsFor(release,'zht')).flat().join(' ');
+ assert.match(history,/分層天文模型/);assert.match(history,/金色導引線/);assert.doesNotMatch(history,/国家|之后|信息|重复/);
 });

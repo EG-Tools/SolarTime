@@ -1,4 +1,4 @@
-/* Solar Time v0.51 — performance implementation owner. */
+/* Solar Time v0.52 — performance implementation owner. */
 (function(root){
   'use strict';
   const coarse=(()=>{
@@ -48,6 +48,7 @@
     const desired=renderer.desired;
     if(desired?.has(name))return true;
     if(name==='clouds'&&desired?.has('earth'))return true;
+    if(name==='earth-night'&&desired?.get('earth')?.nightLights)return true;
     if(name.endsWith('-relief')&&desired?.has(name.slice(0,-7)))return true;
     return false;
   }
@@ -59,6 +60,7 @@
     for(const job of jobs){
       add(job.id,job.textureWidth,job.priority||0);
       if(job.id==='earth')add('clouds',Math.min(2048,job.textureWidth),job.priority||0);
+      if(job.id==='earth'&&job.nightLights)add('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth),job.priority||0);
       add(job.id+'-relief',job.textureWidth,job.priority||0);
     }
     const budget=textureBudget()*.8;let bytes=entries.reduce((sum,e)=>sum+e.width*e.width*2,0),constrained=bytes>budget;

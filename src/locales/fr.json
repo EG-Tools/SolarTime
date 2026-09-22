@@ -18,6 +18,7 @@
     "orbitBrightness": "Luminosité des orbites",
     "orbitBrightnessAria": "Luminosité des lignes orbitales. Zéro les masque.",
     "displaySize": "Taille affichée",
+    "earthNightLights": "Lumières nocturnes",
     "displaySizeAria": "Taille affichée de l’astre sélectionné",
     "satelliteOrbitSpacing": "Espacement des satellites",
     "satelliteOrbitSpacingAria": "Espacement orbital du satellite de la planète sélectionnée",

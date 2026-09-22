@@ -18,6 +18,7 @@
     "orbitBrightness": "轨道亮度",
     "orbitBrightnessAria": "轨道线亮度。设为 0 时隐藏轨道线。",
     "displaySize": "显示大小",
+    "earthNightLights": "夜间灯光",
     "displaySizeAria": "所选天体的显示大小",
     "satelliteOrbitSpacing": "卫星轨道间距",
     "satelliteOrbitSpacingAria": "所选行星的卫星轨道间距",
