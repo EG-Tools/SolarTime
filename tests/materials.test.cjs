@@ -20,6 +20,14 @@ test('Background comet is a bounded curved cubic, with exact endpoint directions
  for(const t of [-1,0,.2,.5,.9,1,2])assert.ok(Math.abs(Math.hypot(...Object.values(at(path,t)))-1)<1e-12);
  assert.ok(at(path,.5).y>.4);assert.equal(at(path,0).y,0);assert.equal(at(path,1).y,0);
 });
+test('Sky and planet maps stage a complete baseline before detail LODs',()=>{
+ const sky=fs.readFileSync(require.resolve('../src/sky.js'),'utf8'),surface=fs.readFileSync(require.resolve('../src/surface.js'),'utf8'),app=fs.readFileSync(require.resolve('../src/app.js'),'utf8');
+ assert.match(sky,/loadSkyImage\(root\.SolarAssets\?\.sky,512\)/);
+ assert.match(sky,/for\(const width of \[1024,2048\]\)/);
+ assert.match(surface,/BASELINE_TEXTURE_WIDTH=256/);
+ assert.match(surface,/visibleTexturesReady\(\)/);
+ assert.match(app,/renderer\.sky\?\.startDetailUpgrade\?\.\(\)/);
+});
 test('Surface raster is limited to 1024 independently of detailed input maps',()=>{
  const renderer=fs.readFileSync(require.resolve('../src/renderer.js'),'utf8'),surface=fs.readFileSync(require.resolve('../src/surface.js'),'utf8');
  assert.ok(renderer.includes('detailWidth:4096,maxRaster:1024'));assert.ok(surface.includes('Math.min(1024,job.diam)'));

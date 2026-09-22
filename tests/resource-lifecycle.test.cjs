@@ -17,21 +17,26 @@ function renderer(h){
 }
 function finish(r,name,width){Object.assign(r.textures.get(name),{texture:{},width,height:width/2,pending:false});}
 test('texture boundaries retain the larger map until the smaller demand settles',()=>{
- const h=harness(),r=renderer(h);r.textureFor('earth',1024);finish(r,'earth',1024);
+ const h=harness(),r=renderer(h);r.textureFor('earth',1024);finish(r,'earth',256);
+ r.textureFor('earth',1024);finish(r,'earth',1024);
  r.textureFor('earth',2048);finish(r,'earth',2048);
  for(let i=1;i<=8;i++){h.time(i*100);r.textureFor('earth',i%2?1024:2048);}
- assert.deepEqual(r.queued.map(q=>q.target),[1024,2048]);
+ assert.deepEqual(r.queued.map(q=>q.target),[256,1024,2048]);
  h.time(900);r.textureFor('earth',1024);h.time(1600);r.textureFor('earth',1024);
- assert.deepEqual(r.queued.map(q=>q.target),[1024,2048,1024]);
+ assert.deepEqual(r.queued.map(q=>q.target),[256,1024,2048,1024]);
 });
 test('an asset revision bypasses the LOD delay',()=>{
- const h=harness(),r=renderer(h);r.textureFor('earth',2048);finish(r,'earth',2048);
+ const h=harness(),r=renderer(h);r.textureFor('earth',2048);finish(r,'earth',256);r.textureFor('earth',2048);finish(r,'earth',2048);
  h.window.SolarAssets.materials.earth={...h.window.SolarAssets.materials.earth,base:'https://new.test/'};
- r.textureFor('earth',1024);assert.equal(r.queued.length,2);assert.match(r.queued[1].source.url,/new.test/);
+ r.textureFor('earth',1024);assert.equal(r.queued.length,3);assert.match(r.queued[2].source.url,/new.test/);
 });
 test('cancelled downloads free the two slots; superseded jobs never upload',async()=>{
  const signals=[];const h=harness({fetch:(url,{signal})=>new Promise((resolve,reject)=>{signals.push(signal);signal.addEventListener('abort',()=>reject(signal.reason),{once:true});})});
  const r=renderer(h);delete r.queueTexture;
+ for(const name of ['earth','jupiter']){
+  const asset=h.window.SolarAssets.materials[name],source=r.textureSource(name,asset,256);
+  r.textures.set(name,{asset,source,texture:{},width:256,height:128,pending:false,token:0});
+ }
  r.textureFor('earth',1024);r.textureFor('jupiter',1024);assert.equal(r.activeLoads,2);
  r.textureFor('earth',2048);assert.ok(signals[0].aborted);await turn();
  assert.equal(r.activeLoads,2);assert.equal(r.pendingCount,2);assert.equal(signals.length,3);
@@ -55,8 +60,19 @@ test('a usable low-resolution fallback does not trigger a request every frame',a
  for(const method of ['activeTexture','bindTexture','pixelStorei','texImage2D','texParameteri'])r.gl[method]=()=>{};
  r.gl.createTexture=()=>({});r.textureFor('earth',2048);await turn();
  assert.equal(r.textures.get('earth').width,256);assert.equal(r.stats.accepted,1);
+ r.textureFor('earth',2048);await turn();
  for(let i=0;i<100;i++)r.textureFor('earth',2048);
- assert.equal(requests,1);assert.ok(r.textures.get('earth').retryAt>Date.now());
+ assert.equal(requests,2);assert.ok(r.textures.get('earth').retryAt>Date.now());
+});
+test('visible bodies finish baseline textures before detailed upgrades',()=>{
+ const h=harness(),r=renderer(h);r.desired.set('earth',{});r.desired.set('jupiter',{});
+ r.textureFor('earth',2048);r.textureFor('jupiter',1024);
+ assert.deepEqual(r.queued.map(q=>[q.name,q.target]),[['earth',256],['jupiter',256]]);
+ assert.equal(r.visibleTexturesReady(),false);
+ finish(r,'earth',256);assert.equal(r.visibleTexturesReady(),false);
+ finish(r,'jupiter',256);assert.equal(r.visibleTexturesReady(),true);
+ r.textureFor('earth',2048);r.textureFor('jupiter',1024);
+ assert.deepEqual(r.queued.map(q=>[q.name,q.target]),[['earth',256],['jupiter',256],['earth',2048],['jupiter',1024]]);
 });
 test('visible texture plans fit the mobile budget while preserving tracked detail',()=>{
  const window={},context={window,navigator:{userAgent:'iPhone',maxTouchPoints:1},matchMedia:()=>({matches:true}),screen:{width:390,height:844},performance};

@@ -74,15 +74,15 @@ function rotate(p,angle,axis){const c=Math.cos(angle),s=Math.sin(angle);return a
   const tiers=asset?.tiers||[],tier=tiers.find(row=>row.width>=width)||tiers[tiers.length-1],remote=tier&&asset.base?new URL(tier.path,asset.base).href:'';
   return [remote,asset?.fallback].filter((url,index,list)=>url&&list.indexOf(url)===index);
  }
- async function loadSkyImage(asset){
+ async function loadSkyImage(asset,width=2048){
   let lastError;
-  for(const url of skySources(asset))try{const image=new Image();image.decoding='async';if(!url.startsWith('file:')&&!url.startsWith('data:'))image.crossOrigin='anonymous';image.src=url;await image.decode();return image;}catch(error){lastError=error;}
+  for(const url of skySources(asset,width))try{const image=new Image();image.decoding='async';if(!url.startsWith('file:')&&!url.startsWith('data:'))image.crossOrigin='anonymous';image.src=url;await image.decode();return image;}catch(error){lastError=error;}
   throw lastError||Error('Sky asset could not be decoded.');
  }
 class Sky{
  constructor(canvas){
    this.canvas=canvas;this.ready=false;this.disposed=false;this.paused=false;
-  this.abort=new AbortController();this.gl=null;this.initTicket=0;this.softwareEpoch=0;
+  this.abort=new AbortController();this.gl=null;this.initTicket=0;this.softwareEpoch=0;this.detailRequested=false;this.detailPromise=null;
   this.stats={backend:'loading',frames:0,skipped:0,starProjections:0};
   this.random=rand(610639);this.comet=null;this.nextComet=18+this.random()*22;this.lastTime=0;
    // Choose a fresh panorama longitude on every launch/reload, then retain it
@@ -91,17 +91,48 @@ class Sky{
   this.rayTables=new Map();this.visibleStars=[];this.cameraMotionAt=-Infinity;
   this.gamma=new Float32Array(4096);for(let i=0;i<4096;i++)this.gamma[i]=Math.pow(i/4095,.95)*255*.5896;
   canvas.addEventListener('webglcontextlost',e=>{
-   e.preventDefault();this.initTicket++;this.ready=false;this.stats.backend='context-lost';
+   e.preventDefault();this.initTicket++;this.ready=false;this.detailPromise=null;this.stats.backend='context-lost';
    this.texture=this.buffer=this.program=this.starBuffer=this.starProgram=null;this.starA=this.starU=null;this.cancelSoftware();this.invalidate();
   },{signal:this.abort.signal});
   canvas.addEventListener('webglcontextrestored',()=>{if(!this.disposed){this.invalidate();this.initialize();}},{signal:this.abort.signal});
   this.initialize();
  }
  invalidate(){this.lastPose=null;this.lastKey='';this.lastGPU=-Infinity;this.starPose=null;}
+ uploadSkyImage(image){
+  const g=this.gl;if(!g||g.isContextLost()||!image)return false;
+  const max=g.getParameter(g.MAX_TEXTURE_SIZE),width=2**Math.floor(Math.log2(Math.min(image.width,max))),height=width/2;
+  let upload=image;
+  if(image.width!==width||image.height!==height){upload=document.createElement('canvas');upload.width=width;upload.height=height;upload.getContext('2d').drawImage(image,0,0,width,height);}
+  const texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);
+  try{
+   g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,upload);
+   g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
+   g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
+  }catch(error){g.deleteTexture(texture);throw error;}
+  const previous=this.texture;this.texture=texture;this.image=image;if(previous)g.deleteTexture(previous);
+  this.stats.textureSize=[width,height];this.stats.textureStage=width;this.invalidate();return true;
+ }
+ startDetailUpgrade(){
+  this.detailRequested=true;
+  if(this.detailPromise||this.disposed||!this.ready||!this.gl)return this.detailPromise;
+  const ticket=this.initTicket,asset=root.SolarAssets?.sky;
+  this.detailPromise=(async()=>{
+   for(const width of [1024,2048]){
+    if(this.disposed||ticket!==this.initTicket)return;
+    const image=await loadSkyImage(asset,width);
+    if(this.disposed||ticket!==this.initTicket)return;
+    if(image.width>(this.image?.width||0))this.uploadSkyImage(image);
+   }
+  })().catch(error=>{if(!this.disposed&&ticket===this.initTicket)this.stats.detailError=String(error.message||error);})
+    .finally(()=>{if(ticket===this.initTicket)this.detailPromise=null;});
+  return this.detailPromise;
+ }
   async initialize(){
   const ticket=++this.initTicket;
   try{
-    if(!this.image){const image=await loadSkyImage(root.SolarAssets?.sky);if(this.disposed||ticket!==this.initTicket)return;this.image=image;}
+    // A tiny panorama unlocks the GPU star field and first complete frame. The
+    // larger panorama tiers are deliberately deferred until the scene is shown.
+    if(!this.image){const image=await loadSkyImage(root.SolarAssets?.sky,512);if(this.disposed||ticket!==this.initTicket)return;this.image=image;}
    if(this.disposed||ticket!==this.initTicket)return;
    // The visible canvas is retained on unchanged poses, so a preserved buffer
    // is intentional. Disabling it while skipping draws produces a black sky.
@@ -132,15 +163,7 @@ class Sky{
    // Cache all locations once. Never query driver state in the drawing loop.
    this.attribute=g.getAttribLocation(program,'a');g.enableVertexAttribArray(this.attribute);g.vertexAttribPointer(this.attribute,2,g.FLOAT,false,0,0);
    this.u=Object.fromEntries(['right','down','forward','size','drift','fov','sky','edgeShade'].map(k=>[k,g.getUniformLocation(program,k)]));
-   const max=g.getParameter(g.MAX_TEXTURE_SIZE),source=this.image;
-   const width=2**Math.floor(Math.log2(Math.min(source.width,max))),height=width/2;
-   let upload=source;
-   if(source.width!==width||source.height!==height){upload=document.createElement('canvas');upload.width=width;upload.height=height;upload.getContext('2d').drawImage(source,0,0,width,height);}
-   this.texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,this.texture);
-   g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,upload);
-   g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
-   // Base-level linear sampling avoids the atan/fract derivative seam.
-   g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
+   this.uploadSkyImage(this.image);
    this.edgeShadeStrength=null;g.useProgram(program);g.uniform1i(this.u.sky,0);g.uniform1f(this.u.fov,this.tanFov);
    const sources=root.SolarVisualEffects.starShaderSources(precision);
    const starVertex=shader(g,g.VERTEX_SHADER,sources.vertex),starFragment=shader(g,g.FRAGMENT_SHADER,sources.fragment);
@@ -151,7 +174,7 @@ class Sky{
    this.starBuffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.starBuffer);g.bufferData(g.ARRAY_BUFFER,starData,g.STATIC_DRAW);
    this.starA={position:g.getAttribLocation(this.starProgram,'position'),appearance:g.getAttribLocation(this.starProgram,'appearance')};
    this.starU=Object.fromEntries(['right','down','forward','size','fov','pointScale','seconds'].map(k=>[k,g.getUniformLocation(this.starProgram,k)]));
-   this.stats.backend='gpu';this.stats.textureSize=[width,height];this.stats.starCount=this.starCount;this.ready=true;this.invalidate();
+   this.stats.backend='gpu';this.stats.starCount=this.starCount;this.ready=true;this.invalidate();if(this.detailRequested)this.startDetailUpgrade();
   }catch(error){
    if(this.disposed||ticket!==this.initTicket)return;
    this.stats.error=String(error.message||error);this.toSoftware();

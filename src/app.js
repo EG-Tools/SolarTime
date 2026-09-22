@@ -926,12 +926,15 @@
           renderer.setOrbitView(azimuth,elevation);cameraUi();persist();
         }
       },{capture:true});
-      // Finish the first direct-GPU texture upload under the loading cover. The
-      // shader and embedded textures are then already warm when the user rotates.
-      async function warmInitialScene(maxMs=1200) {
+      // Fill every initially visible sphere with its small baseline map under
+      // the loading cover. Detail LODs are requested only after this returns, so
+      // a slow 2K/4K response cannot leave later planets blank in Edge/Chrome.
+      async function warmInitialScene(maxMs=8000) {
         const started=performance.now();
         while(performance.now()-started<maxMs){
-          const surface=renderer.surface;if(surface?.stats?.accepted>0&&!surface.inflight)return true;
+          const surface=renderer.surface;
+          const surfacesReady=surface?.visibleTexturesReady?.()||(surface?.stats?.accepted>0&&!surface.inflight);
+          if(renderer.sky?.ready&&surfacesReady)return true;
           await new Promise(resolve=>setTimeout(resolve,16));
         }
         return false;
@@ -1016,7 +1019,7 @@
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();
-      if(!disposed){const revealMono=performance.now();renderer.startOrbitReveal(revealMono);renderer.draw(clock.value(revealMono),0,revealMono);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);scheduleMaterialRefresh();}
+      if(!disposed){const revealMono=performance.now();renderer.startOrbitReveal(revealMono);renderer.draw(clock.value(revealMono),0,revealMono);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);renderer.sky?.startDetailUpgrade?.();scheduleMaterialRefresh();}
       if(!document.hidden&&!disposed)raf=requestAnimationFrame(frame);
     } catch(error){fatal(error);}
   }

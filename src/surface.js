@@ -218,6 +218,7 @@ function surfaceKernel(style){
   return {Engine,setAssets,sourceFor,materialCanvas,bitmapFor,shaderSources:{vertex,fragment}};
 }
 const materialSource=surfaceKernel(STYLE);
+const BASELINE_TEXTURE_WIDTH=256;
 class SurfaceService{
   constructor({worker=true}={}){
     this.frames=new Map();this.desired=new Map();this.pending=null;this.inflight=false;this.disposed=false;
@@ -511,6 +512,11 @@ class DirectRenderer{
     this.applyCanvasViewport();
   }
   get inflight(){return this.pendingCount>0;}
+  visibleTexturesReady(){
+    if(!this.desired.size)return false;
+    for(const id of this.desired.keys())if(!this.textures.get(id)?.texture)return false;
+    return true;
+  }
   begin(){
     if(this.disposed||this.paused||this.contextLost)return false;
     const g=this.gl;this.applyCanvasViewport();g.clear(g.COLOR_BUFFER_BIT);
@@ -582,7 +588,12 @@ class DirectRenderer{
   textureFor(name,target){
     const asset=root.SolarAssets?.materials?.[name];if(!asset)return null;
     target=directPower(Math.min(target,this.maxTextureSize,this.texturePlan?.targets.get(name)??Infinity));
-    let record=this.textures.get(name);const assetChanged=!record||record.asset!==asset,now=performance.now();
+    let record=this.textures.get(name);
+    // Put a small, complete surface on every visible body before any body uses
+    // a detail download slot. Once the baseline texture exists, the ordinary
+    // frame loop requests the planned LOD and swaps it in without a blank frame.
+    if(!record?.texture)target=Math.min(target,BASELINE_TEXTURE_WIDTH);
+    const assetChanged=!record||record.asset!==asset,now=performance.now();
     const current=record?.pending?Math.max(record.width,record.pendingTarget):record?.width||0;
     if(!assetChanged&&current>target&&!this.texturePlan?.constrained){
       if(record.lowerTarget!==target){record.lowerTarget=target;record.lowerSince=now;}
