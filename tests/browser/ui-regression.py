@@ -24,7 +24,7 @@ def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seo
   Date.now=()=>1789732800000;
   if(p.standalone)Object.defineProperty(navigator,'standalone',{get:()=>true});
   window.Worker=undefined;
-  for(const name of ['localStorage','sessionStorage']){const memory=new Map();Object.defineProperty(window,name,{value:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)},configurable:true});}
+  for(const name of ['localStorage','sessionStorage']){const memory=new Map(name==='localStorage'?[['solarTimeCookieConsentV1','denied']]:[]);Object.defineProperty(window,name,{value:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)},configurable:true});}
   const NativeImage=window.Image;window.Image=class extends NativeImage{set src(value){super.src=p.image;}get src(){return super.src;}};
   window.__fixtureRequests=[];
   window.fetch=async input=>{const url=String(input);__fixtureRequests.push(url);const match=/locales\/([^.]+)\.json/.exec(url);if(match)return new Response(JSON.stringify(p.locales[match[1]]),{headers:{'Content-Type':'application/json'}});const bytes=Uint8Array.from(atob(p.image.split(',')[1]),c=>c.charCodeAt(0));return new Response(bytes,{headers:{'Content-Type':'image/png'}});};

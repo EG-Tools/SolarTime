@@ -88,3 +88,8 @@ test('cookie consent copy is complete in every supported locale',()=>{
   for(const key of keys)assert.equal(typeof copy[key]==='string'&&copy[key].trim().length>0,true,`${code}.${key}`);
  }
 });
+
+test('browser UI regression starts with an explicit cookie choice so the consent card cannot intercept controls',()=>{
+ const code=read('tests/browser/ui-regression.py');
+ assert.ok(code.includes("name==='localStorage'?[['solarTimeCookieConsentV1','denied']]:[]"));
+});
