@@ -32,7 +32,7 @@ test('policy and original-content pages are public, linked and crawlable',()=>{
  assert.ok(robots.includes('https://solartime.app/sitemap.xml'));
 });
 
-test('desktop ad waits for a real slot and opens as a right-edge drawer without covering mobile',()=>{
+test('desktop ad previews an empty slot and opens as a right-edge drawer without covering mobile',()=>{
  const html=read('index.html'),code=read('src/adsense.js'),css=read('styles.css');
  assert.ok(html.includes('name="solar-time-ad-slot" content=""'));
  assert.ok(html.includes('id="desktop-ad-toggle"'));
@@ -41,7 +41,8 @@ test('desktop ad waits for a real slot and opens as a right-edge drawer without 
  assert.ok(code.includes('let requested=false,open=true'));
  assert.ok(code.includes("toggle?.addEventListener('click',()=>setOpen(!open))"));
  assert.ok(code.includes("setAttribute('aria-expanded',String(open))"));
- assert.ok(code.includes("location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'"));
+ assert.ok(code.includes('if(preview)preview.hidden=real'));
+ assert.ok(code.includes('(real||!!preview)&&!!media?.matches'));
  assert.ok(html.includes('id="desktop-ad-preview"'));
  assert.ok(html.includes('200 × 200'));
  assert.ok(css.includes('.desktop-ad-rail .adsbygoogle{display:block;width:200px;height:200px'));

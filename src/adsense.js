@@ -8,11 +8,11 @@
   let requested=false,open=true;
   function setOpen(next){
     open=!!next;rail?.classList.toggle('is-open',open);panel?.setAttribute('aria-hidden',String(!open));toggle?.setAttribute('aria-expanded',String(open));
-    const real=/^\d+$/.test(slot);if(unit)unit.hidden=!real;if(preview)preview.hidden=!localPreview||real;
+    const real=/^\d+$/.test(slot);if(unit)unit.hidden=!real;if(preview)preview.hidden=real;
     if(open&&real&&!requested){requested=true;requestAnimationFrame(()=>{try{(root.adsbygoogle=root.adsbygoogle||[]).push({});}catch(error){console.warn('AdSense unit could not start',error);}});}
   }
   function sync(){
-    const real=/^\d+$/.test(slot),eligible=!!rail&&!!unit&&(real||localPreview)&&!!media?.matches;
+    const real=/^\d+$/.test(slot),eligible=!!rail&&!!unit&&(real||!!preview)&&!!media?.matches;
     rail.hidden=!eligible;
     if(!eligible){setOpen(false);return;}
     if(real){unit.dataset.adClient=publisher;unit.dataset.adSlot=slot;}

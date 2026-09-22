@@ -11,15 +11,15 @@ image=png()
 def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seoul'):
  context=browser.new_context(viewport=dict(width=size[0],height=size[1]),locale=locale,timezone_id=timezone_id,reduced_motion='reduce',has_touch=standalone)
  page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
- html=(root/'index.html').read_text();scripts=[src for src in re.findall(r'<script[^>]+src="([^"]+)"[^>]*></script>',html) if not urlparse(src).scheme]
+ html=(root/'index.html').read_text(encoding='utf8');scripts=[src for src in re.findall(r'<script[^>]+src="([^"]+)"[^>]*></script>',html) if not urlparse(src).scheme]
  html=re.sub(r'<script[^>]+src="[^"]+"[^>]*></script>','',html)
- html=re.sub(r'<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"[^>]*>',lambda m:'<style>'+ (root/m[1].split('?')[0]).read_text()+'</style>',html)
+ html=re.sub(r'<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"[^>]*>',lambda m:'<style>'+ (root/m[1].split('?')[0]).read_text(encoding='utf8')+'</style>',html)
  html=re.sub(r'<link[^>]*>','',html);html=html.replace('<head>','<head><base href="https://solar.test/">')
  # Offline DOM injection: no navigation and no access to remote images or services.
  page.route('**/*',lambda route:route.abort())
  page.set_content(html,wait_until='domcontentloaded')
  import base64
- payload={'image':'data:image/png;base64,'+base64.b64encode(image).decode(),'standalone':standalone,'locales':{p.stem:json.loads(p.read_text()) for p in (root/'src/locales').glob('*.json')},'notes':(root/'src/release-notes.js').read_text()}
+ payload={'image':'data:image/png;base64,'+base64.b64encode(image).decode(),'standalone':standalone,'locales':{p.stem:json.loads(p.read_text(encoding='utf8')) for p in (root/'src/locales').glob('*.json')},'notes':(root/'src/release-notes.js').read_text(encoding='utf8')}
  page.evaluate(r"""p=>{
   Date.now=()=>1789732800000;
   if(p.standalone)Object.defineProperty(navigator,'standalone',{get:()=>true});
@@ -31,7 +31,7 @@ def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seo
   const append=document.head.append.bind(document.head);document.head.append=(...nodes)=>{for(const node of nodes){if(node.tagName==='SCRIPT'&&node.src.includes('src/release-notes.js')){node.type='text/plain';node.removeAttribute('src');append(node);queueMicrotask(()=>{try{(0,eval)(p.notes);node.dispatchEvent(new Event('load'));}catch(e){node.dispatchEvent(new Event('error'));throw e;}});}else append(node);}};
  }""",payload)
  for src in scripts:
-  code=(root/src.split('?')[0]).read_text()
+  code=(root/src.split('?')[0]).read_text(encoding='utf8')
   page.evaluate("""({code,src})=>{Object.defineProperty(document,'currentScript',{value:{src:'https://solar.test/'+src},configurable:true});try{(0,eval)(code);}finally{delete document.currentScript;}}""",{'code':code,'src':src})
  try:page.wait_for_function('!!window.SolarTime',timeout=15000);page.wait_for_function("document.getElementById('loading').hidden",timeout=10000)
  except Exception:
@@ -49,8 +49,9 @@ def suite(browser,root,size,installed):
  ctx,page,requests,errors=load(browser,root,size,installed)
  tag=str(size)+(' installed-simulation' if installed else ' browser')
  check(not errors,tag+' boot')
+ check(page.evaluate('navigator.standalone===true')==installed,tag+' standalone mode')
  if size==(1280,800):
-  popup_result=page.evaluate((root/'tests/browser/popup-regression.js').read_text())
+  popup_result=page.evaluate((root/'tests/browser/popup-regression.js').read_text(encoding='utf8'))
   check(popup_result['passed']>=100,tag+' common popup lifecycle for button and H')
   page.evaluate("""()=>{window.dispatchEvent(new Event('resize'));window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));}""")
   page.wait_for_function("!document.getElementById('planet-layer').classList.contains('viewport-resizing')&&!document.getElementById('universe').classList.contains('viewport-resizing')",timeout=4000)
@@ -69,6 +70,19 @@ def suite(browser,root,size,installed):
  check(abs(before['y']-box(page,'#body-close')['y'])<.1,tag+' fixed body close')
  check(surface(page,'#body-panel')==settings_surface,tag+' body surface')
  page.locator('#body-close').click()
+ # Camera, language, release-note and time-travel behavior is viewport
+ # independent. Run that expensive coverage once on desktop; compact cases
+ # retain the layout, touch/standalone and shared-card checks that can actually
+ # regress with viewport size. Each case still uses a fresh browser context.
+ if size!=(1280,800) or installed:
+  page.locator('#help-button').click();help_surface=surface(page,'#help-dialog')
+  check(help_surface==settings_surface,tag+' help surface')
+  help_box=box(page,'#help-dialog')
+  check(help_box['x']>=-1 and help_box['y']>=-1 and help_box['x']+help_box['width']<=size[0]+1 and help_box['y']+help_box['height']<=size[1]+1,tag+' help stays inside viewport')
+  check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),tag+' no horizontal page overflow')
+  page.locator('#help-dialog .close-button').first.click()
+  check(not errors,tag+' no runtime errors')
+  ctx.close();print('PASS',tag,flush=True);return
  if size==(1280,800):
   # Freeze the user's optional overview rotation while checking that eclipse and
   # alignment navigation do not initiate their own camera move. Otherwise the
@@ -257,13 +271,12 @@ def main():
  with sync_playwright() as p:
   options={'headless':True,'args':['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']}
   if os.environ.get('SOLAR_CHROMIUM_EXECUTABLE'):options['executable_path']=os.environ['SOLAR_CHROMIUM_EXECUTABLE']
-  for size,installed in [((1280,800),False),((390,844),False),((844,390),False),((390,844),True),((844,390),True)]:
-   # Isolate software-GPU resources and animated cameras between viewport cases.
-   browser=p.chromium.launch(**options)
-   try:suite(browser,root,size,installed)
-   finally:browser.close()
   browser=p.chromium.launch(**options)
   try:
+   # Browser contexts isolate storage, clocks and WebGL state. Reusing one
+   # Chromium process avoids paying its launch cost for every viewport.
+   for size,installed in [((1280,800),False),((390,844),False),((844,390),False),((390,844),True),((844,390),True)]:
+    suite(browser,root,size,installed)
    ctx,page,requests,errors=load(browser,root,(1280,800),False,locale='en-US')
    state=page.evaluate('SolarTime.getState()')
    check(state['language']=='kor' and state['copyLanguage']=='en' and state['region']=='KOREA','automatic country and browser copy are independent')

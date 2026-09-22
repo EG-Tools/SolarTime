@@ -55,9 +55,9 @@ def main():
   if os.environ.get('SOLAR_CHROMIUM_EXECUTABLE'):opt['executable_path']=os.environ['SOLAR_CHROMIUM_EXECUTABLE']
   browser=p.chromium.launch(**opt)
   try:
-   page=browser.new_page();page.add_script_tag(content=(ROOT/'src/visual-effects.js').read_text());result=page.evaluate(PROBE)
+   page=browser.new_page();page.add_script_tag(content=(ROOT/'src/visual-effects.js').read_text(encoding='utf8'));result=page.evaluate(PROBE)
   finally:browser.close()
- out=ROOT/'.cloudflare/tiny-star-regression.json';out.parent.mkdir(exist_ok=True);out.write_text(json.dumps(result,indent=2))
+ out=ROOT/'.cloudflare/tiny-star-regression.json';out.parent.mkdir(exist_ok=True);out.write_text(json.dumps(result,indent=2),encoding='utf8')
  assert result['error']==0,result
  assert result['legacy']['relativeRange']>.5,('Baseline did not reproduce radial shimmer',result['legacy'])
  for row in result['gpu']:
