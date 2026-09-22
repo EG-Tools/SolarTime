@@ -1,0 +1,17 @@
+:root{color-scheme:dark;--ink:#d6dce6;--muted:#8d99aa;--gold:#e8c783;--line:rgba(153,174,202,.2);--panel:rgba(8,14,23,.82)}
+*{box-sizing:border-box}
+html{background:#02050a;color:var(--ink);font-family:Inter,"Noto Sans KR","Segoe UI",sans-serif;line-height:1.75}
+body{min-height:100vh;margin:0;background:radial-gradient(circle at 75% 0,rgba(31,55,89,.25),transparent 38%),linear-gradient(160deg,#02050a,#07101b 55%,#02050a)}
+a{color:var(--gold)}
+.site-shell{width:min(920px,calc(100% - 34px));margin:0 auto;padding:38px 0 64px}
+.site-header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.site-brand{color:#f4f1e9;text-decoration:none;font-size:17px;font-weight:700;letter-spacing:.24em}
+.site-nav{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;letter-spacing:.1em}.site-nav a{color:var(--muted);text-decoration:none}.site-nav a[aria-current="page"],.site-nav a:hover{color:var(--gold)}
+main{padding:44px 0}.eyebrow{margin:0 0 8px;color:var(--gold);font-size:11px;letter-spacing:.25em}
+h1{margin:0 0 20px;color:#f6f3ed;font-family:Georgia,"Times New Roman",serif;font-size:clamp(38px,7vw,70px);font-weight:400;line-height:1.08}
+h2{margin:42px 0 10px;color:#f0e7d5;font-size:21px}h3{margin:26px 0 8px;color:#e5e9ef;font-size:16px}
+p,li{color:#aeb8c7;font-size:15px}.lead{max-width:760px;color:#d3dae4;font-size:18px}.korean{color:#c4ccd8}
+.info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:28px 0}.info-card{padding:20px;border:1px solid var(--line);border-radius:16px;background:var(--panel);backdrop-filter:blur(14px)}.info-card h2{margin:0 0 7px;font-size:16px}.info-card p{margin:0;font-size:13px}
+.notice{margin:28px 0;padding:17px 19px;border-left:2px solid var(--gold);background:rgba(232,199,131,.06)}
+.site-footer{padding-top:20px;border-top:1px solid var(--line);color:#758196;font-size:12px}.site-footer a{margin-left:12px}
+@media(max-width:640px){.site-shell{padding-top:24px}.site-header{align-items:flex-start;flex-direction:column}.info-grid{grid-template-columns:1fr}main{padding-top:32px}}

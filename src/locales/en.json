@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "A solar-system clock flowing with the stars—real time, planetary orbits, Earth and Moon in a small cosmos.",
+    "cookieTitle": "Cookies",
+    "cookieMessage": "Choose whether to allow cookies for visit analytics and advertising measurement.",
+    "cookiePrivacy": "Privacy",
+    "cookieReject": "Reject",
+    "cookieAccept": "Allow",
     "universeAria": "Solar system. Left-drag rotates freely, middle-drag pans, and the top-right Zoom/Move control changes the wheel camera mode.",
     "languageChange": "Change language",
     "languageCurrent": "English selected",

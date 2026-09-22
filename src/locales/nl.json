@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "Een klok van het zonnestelsel tussen de sterren — de actuele tijd, planeetbanen, de aarde en de maan in een kleine kosmos.",
+    "cookieTitle": "Cookiegebruik",
+    "cookieMessage": "Kies of cookies voor bezoekersanalyse en advertentiemeting zijn toegestaan.",
+    "cookiePrivacy": "Privacy",
+    "cookieReject": "Weigeren",
+    "cookieAccept": "Toestaan",
     "universeAria": "Zonnestelsel. Sleep met de linkermuisknop om vrij te draaien en met de middelste muisknop om te verschuiven. De knop Zoom/Verplaats rechtsboven verandert de cameramodus van het muiswiel.",
     "languageChange": "Taal wijzigen",
     "languageCurrent": "Nederlands geselecteerd",

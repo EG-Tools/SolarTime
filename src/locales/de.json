@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "Eine Sonnensystem-Uhr im Fluss der Sterne – Echtzeit, Planetenbahnen, Erde und Mond in einem kleinen Kosmos.",
+    "cookieTitle": "Cookie-Nutzung",
+    "cookieMessage": "Wähle, ob Cookies für Besuchsanalysen und Werbemessung erlaubt werden.",
+    "cookiePrivacy": "Datenschutz",
+    "cookieReject": "Ablehnen",
+    "cookieAccept": "Zulassen",
     "universeAria": "Sonnensystem. Links ziehen dreht die Ansicht, mit der mittleren Taste verschieben; Zoom/Bewegen ändert den Modus des Mausrads.",
     "languageChange": "Sprache ändern",
     "languageCurrent": "Deutsch ausgewählt",

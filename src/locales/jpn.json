@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "星明かりとともに流れる太陽系時計。リアルタイムの惑星軌道と、地球・月を小さな宇宙に描きます。",
+    "cookieTitle": "Cookieの使用",
+    "cookieMessage": "アクセス解析と広告測定のためのCookie使用を選択してください。",
+    "cookiePrivacy": "プライバシー",
+    "cookieReject": "拒否",
+    "cookieAccept": "許可",
     "universeAria": "太陽系。左ドラッグで自由回転、中ボタンドラッグで平行移動し、右上のズーム・移動ボタンでホイールのカメラ方式を切り替えます。",
     "languageChange": "言語を変更",
     "languageCurrent": "日本語を選択中",

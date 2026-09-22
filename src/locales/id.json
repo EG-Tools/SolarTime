@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "Jam Tata Surya yang mengalir bersama bintang—waktu nyata, orbit planet, Bumi, dan Bulan dalam sebuah kosmos kecil.",
+    "cookieTitle": "Penggunaan cookie",
+    "cookieMessage": "Pilih apakah akan mengizinkan cookie untuk analisis kunjungan dan pengukuran iklan.",
+    "cookiePrivacy": "Privasi",
+    "cookieReject": "Tolak",
+    "cookieAccept": "Izinkan",
     "universeAria": "Tata Surya. Seret kiri untuk memutar bebas, seret tombol tengah untuk menggeser, dan kontrol Zoom/Pindah di kanan atas mengubah mode roda mouse.",
     "languageChange": "Ubah bahasa",
     "languageCurrent": "Bahasa Indonesia dipilih",

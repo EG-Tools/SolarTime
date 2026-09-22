@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "伴随星光流动的太阳系时钟，在小宇宙中呈现实时时间、行星公转、地球与月球。",
+    "cookieTitle": "Cookie 使用",
+    "cookieMessage": "请选择是否允许使用 Cookie 进行访问分析和广告衡量。",
+    "cookiePrivacy": "隐私",
+    "cookieReject": "拒绝",
+    "cookieAccept": "允许",
     "universeAria": "太阳系。按住左键可自由旋转，按住中键可平移，右上角的缩放/移动按钮可切换滚轮相机模式。",
     "languageChange": "切换语言",
     "languageCurrent": "当前为中文",

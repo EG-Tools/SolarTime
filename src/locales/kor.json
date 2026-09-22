@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주.",
+    "cookieTitle": "쿠키 사용",
+    "cookieMessage": "방문 분석과 광고 측정을 위해 쿠키 사용 여부를 선택해 주세요.",
+    "cookiePrivacy": "개인정보",
+    "cookieReject": "거부",
+    "cookieAccept": "허용",
     "universeAria": "태양계. 좌클릭 드래그로 시점을 자유 회전하고, 가운데 버튼 드래그로 상하좌우 이동합니다. 우측 줌·이동 버튼으로 휠 작동 방식을 바꿀 수 있습니다.",
     "languageChange": "언어 변경",
     "languageCurrent": "현재 한국어",

@@ -3,8 +3,8 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const A=require('../src/astro.js'),all=[A.SUN,...A.BODIES,A.MOON],signed=n=>A.wrap(n+Math.PI)-Math.PI;
 const close=(a,b,tol=1e-8)=>assert.ok(Math.abs(a-b)<tol,`${a} != ${b}`);
 
-// Static application code stays local. The Cloudflare analytics beacon and the
-// install icon are the only remote markup exceptions.
+// Static application code stays local. Remote markup is limited to the exact
+// Cloudflare analytics, Google AdSense ownership code, canonical URL and icon.
 function assertStaticAssetLinks(html,deployment){
  const prefix=String(deployment.prefix||'releases').replace(/^\/+|\/+$/g,'');
  const expected=new URL(prefix+'/content/ui/apple-touch-icon.png',deployment.cdnBase);
@@ -15,12 +15,21 @@ function assertStaticAssetLinks(html,deployment){
   const address=String(attrs[kind==='link'?'href':'src']||'').trim();
   if(!/^(?:https?:|\/\/)/i.test(address))continue;
   if(kind==='script'){
+   if(address==='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5773171100052324'){
+    assert.match(match[0],/\sasync(?:\s|>)/i,'AdSense must load asynchronously');
+    assert.equal(String(attrs.crossorigin||'').toLowerCase(),'anonymous','AdSense must omit credentials');
+    continue;
+   }
    assert.equal(address,'https://static.cloudflareinsights.com/beacon.min.js','Only the Cloudflare analytics beacon may be remote');
    assert.equal(String(attrs.type||'').toLowerCase(),'module','The analytics beacon must use the dashboard snippet type');
    assert.equal(attrs['data-cf-beacon'],'{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}','Unexpected Cloudflare analytics site token');
    continue;
   }
   assert.equal(kind,'link','Static scripts and images must stay local: '+address);
+  if(String(attrs.rel||'').trim().toLowerCase()==='canonical'){
+   assert.equal(address,'https://solartime.app/','The canonical URL must be the production root');
+   continue;
+  }
   assert.equal(String(attrs.rel||'').trim().toLowerCase(),'apple-touch-icon','Only the install icon may use a remote link: '+address);
   assert.match(address,/^https:\/\//i,'The install icon must use explicit HTTPS');
   const url=new URL(address);

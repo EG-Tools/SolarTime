@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "Une horloge du système solaire au fil des étoiles : heure réelle, orbites planétaires, Terre et Lune dans un petit cosmos.",
+    "cookieTitle": "Utilisation des cookies",
+    "cookieMessage": "Choisissez si vous autorisez les cookies pour l’analyse des visites et la mesure publicitaire.",
+    "cookiePrivacy": "Confidentialité",
+    "cookieReject": "Refuser",
+    "cookieAccept": "Autoriser",
     "universeAria": "Système solaire. Glissez à gauche pour tourner, avec le bouton central pour déplacer, et utilisez Zoom/Déplacement pour changer le mode de la molette.",
     "languageChange": "Changer de langue",
     "languageCurrent": "Français sélectionné",

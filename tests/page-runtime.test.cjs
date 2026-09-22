@@ -161,7 +161,8 @@ test('foregrounding and persisted restoration resample standalone geometry',asyn
 test('standalone stage owns loading and scene coordinates without transforming native dialogs',()=>{
  const root=path.resolve(__dirname,'..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8'),css=fs.readFileSync(path.join(root,'src/runtime-optimizations.css'),'utf8');
  assert.ok(html.indexOf('id="solar-viewport"')<html.indexOf('id="starfield"'));
- assert.ok(html.indexOf('id="loading"')<html.indexOf('</div>\n  <script id="solar-assets"'));
+ assert.ok(html.indexOf('id="loading"')<html.indexOf('id="desktop-ad-rail"'));
+ assert.ok(html.indexOf('id="desktop-ad-rail"')<html.indexOf('<script id="solar-assets"'));
  assert.match(css,/#solar-viewport\{display:contents\}/);
  const stage=/html\.solar-standalone #solar-viewport\{([^}]+)\}/.exec(css)?.[1];assert.ok(stage);
  assert.match(stage,/position:fixed/);assert.match(stage,/height:var\(--solar-viewport-height,100%\)/);

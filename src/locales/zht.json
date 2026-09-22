@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "伴隨星光流動的太陽系時鐘，在小宇宙中呈現即時時間、行星公轉、地球與月球。",
+    "cookieTitle": "Cookie 使用",
+    "cookieMessage": "請選擇是否允許使用 Cookie 進行造訪分析與廣告衡量。",
+    "cookiePrivacy": "隱私",
+    "cookieReject": "拒絕",
+    "cookieAccept": "允許",
     "universeAria": "太陽系。按住左鍵可自由旋轉，按住中鍵可平移，右上角的縮放/移動按鈕可切換滾輪相機模式。",
     "languageChange": "切換語言",
     "languageCurrent": "目前為中文",

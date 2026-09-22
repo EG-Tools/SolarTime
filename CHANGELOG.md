@@ -1,5 +1,12 @@
 # Maintenance changelog
 
+## v0.53 r1 · 2026-09-22
+
+- Added a compact 200×200 desktop ad drawer that stays in preview mode until a real AdSense slot is configured.
+- Added Google Analytics with denied consent defaults and a shared-fade cookie choice card controlling analytics and advertising measurement consent.
+- Localized cookie consent text across all 13 supported interface languages, including local-file fallbacks.
+- Added ads.txt plus About, Privacy and Terms pages to both source control and Cloudflare static deployment output.
+
 ## v0.52 r1 · 2026-09-22
 
 - Added optional Earth night lights based directly on NASA Black Marble 2016 grayscale radiance data.

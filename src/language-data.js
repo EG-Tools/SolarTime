@@ -27,6 +27,21 @@
     nl:Object.freeze({eclipseView:'Eclips',eclipsePrevious:'Naar de vorige eclips',eclipseNext:'Naar de volgende eclips',eclipseUnavailable:'Geen eclips gevonden binnen het ondersteunde bereik.',alignmentView:'Planeetuitlijning',alignmentPrevious:'Naar de vorige planeetuitlijning',alignmentNext:'Naar de volgende planeetuitlijning',alignmentUnavailable:'Geen verdere planeetuitlijning in de catalogus gevonden.'})
   });
   const localNightLights=Object.freeze({kor:'야간 불빛',en:'Night lights',chn:'夜间灯光',zht:'夜間燈光',jpn:'夜間の灯り',hi:'रात्रि प्रकाश',es:'Luces nocturnas',de:'Nachtlichter',fr:'Lumières nocturnes',pt:'Luzes noturnas',it:'Luci notturne',id:'Cahaya malam',nl:'Nachtverlichting'});
+  const localCookieCopy=Object.freeze({
+    kor:Object.freeze({cookieTitle:'쿠키 사용',cookieMessage:'방문 분석과 광고 측정을 위해 쿠키 사용 여부를 선택해 주세요.',cookiePrivacy:'개인정보',cookieReject:'거부',cookieAccept:'허용'}),
+    en:Object.freeze({cookieTitle:'Cookies',cookieMessage:'Choose whether to allow cookies for visit analytics and advertising measurement.',cookiePrivacy:'Privacy',cookieReject:'Reject',cookieAccept:'Allow'}),
+    chn:Object.freeze({cookieTitle:'Cookie 使用',cookieMessage:'请选择是否允许使用 Cookie 进行访问分析和广告衡量。',cookiePrivacy:'隐私',cookieReject:'拒绝',cookieAccept:'允许'}),
+    zht:Object.freeze({cookieTitle:'Cookie 使用',cookieMessage:'請選擇是否允許使用 Cookie 進行造訪分析與廣告衡量。',cookiePrivacy:'隱私',cookieReject:'拒絕',cookieAccept:'允許'}),
+    jpn:Object.freeze({cookieTitle:'Cookieの使用',cookieMessage:'アクセス解析と広告測定のためのCookie使用を選択してください。',cookiePrivacy:'プライバシー',cookieReject:'拒否',cookieAccept:'許可'}),
+    hi:Object.freeze({cookieTitle:'कुकी का उपयोग',cookieMessage:'विज़िट विश्लेषण और विज्ञापन मापन के लिए कुकी की अनुमति चुनें।',cookiePrivacy:'गोपनीयता',cookieReject:'अस्वीकार करें',cookieAccept:'अनुमति दें'}),
+    es:Object.freeze({cookieTitle:'Uso de cookies',cookieMessage:'Elige si permites cookies para analizar visitas y medir la publicidad.',cookiePrivacy:'Privacidad',cookieReject:'Rechazar',cookieAccept:'Permitir'}),
+    de:Object.freeze({cookieTitle:'Cookie-Nutzung',cookieMessage:'Wähle, ob Cookies für Besuchsanalysen und Werbemessung erlaubt werden.',cookiePrivacy:'Datenschutz',cookieReject:'Ablehnen',cookieAccept:'Zulassen'}),
+    fr:Object.freeze({cookieTitle:'Utilisation des cookies',cookieMessage:'Choisissez si vous autorisez les cookies pour l’analyse des visites et la mesure publicitaire.',cookiePrivacy:'Confidentialité',cookieReject:'Refuser',cookieAccept:'Autoriser'}),
+    pt:Object.freeze({cookieTitle:'Uso de cookies',cookieMessage:'Escolha se permite cookies para análise de visitas e medição de anúncios.',cookiePrivacy:'Privacidade',cookieReject:'Rejeitar',cookieAccept:'Permitir'}),
+    it:Object.freeze({cookieTitle:'Uso dei cookie',cookieMessage:'Scegli se consentire i cookie per l’analisi delle visite e la misurazione pubblicitaria.',cookiePrivacy:'Privacy',cookieReject:'Rifiuta',cookieAccept:'Consenti'}),
+    id:Object.freeze({cookieTitle:'Penggunaan cookie',cookieMessage:'Pilih apakah akan mengizinkan cookie untuk analisis kunjungan dan pengukuran iklan.',cookiePrivacy:'Privasi',cookieReject:'Tolak',cookieAccept:'Izinkan'}),
+    nl:Object.freeze({cookieTitle:'Cookiegebruik',cookieMessage:'Kies of cookies voor bezoekersanalyse en advertentiemeting zijn toegestaan.',cookiePrivacy:'Privacy',cookieReject:'Weigeren',cookieAccept:'Toestaan'})
+  });
   const cache=new Map(),pending=new Map();
   const scriptUrl=new URL(document.currentScript?.src||location.href,location.href);
   const valid=value=>value&&typeof value.copy==='object'&&typeof value.bodies==='object'&&typeof value.phases==='object';
@@ -48,7 +63,7 @@
     const task=(async()=>{
       const base=location.protocol==='file:'?new URL('https://solartime.app/src/locales/'):new URL('locales/',scriptUrl);
       const data=await request(code,base);
-      if(location.protocol==='file:')Object.assign(data.copy,localCopy[code]||localCopy.en,{earthNightLights:localNightLights[code]||localNightLights.en});
+      if(location.protocol==='file:')Object.assign(data.copy,localCopy[code]||localCopy.en,localCookieCopy[code]||localCookieCopy.en,{earthNightLights:localNightLights[code]||localNightLights.en});
       cache.set(code,data);return data;
     })();
     pending.set(code,task);

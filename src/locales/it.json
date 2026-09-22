@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "Un orologio del Sistema Solare che scorre tra le stelle: ora reale, orbite planetarie, Terra e Luna in un piccolo cosmo.",
+    "cookieTitle": "Uso dei cookie",
+    "cookieMessage": "Scegli se consentire i cookie per l’analisi delle visite e la misurazione pubblicitaria.",
+    "cookiePrivacy": "Privacy",
+    "cookieReject": "Rifiuta",
+    "cookieAccept": "Consenti",
     "universeAria": "Sistema Solare. Trascina con il tasto sinistro per ruotare liberamente, con il tasto centrale per spostare la vista; il controllo Zoom/Sposta in alto a destra cambia la modalità della rotella.",
     "languageChange": "Cambia lingua",
     "languageCurrent": "Italiano selezionato",

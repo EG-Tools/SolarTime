@@ -1,6 +1,11 @@
 {
   "copy": {
     "metaDescription": "Um relógio do Sistema Solar que flui com as estrelas — hora real, órbitas planetárias, Terra e Lua em um pequeno cosmos.",
+    "cookieTitle": "Uso de cookies",
+    "cookieMessage": "Escolha se permite cookies para análise de visitas e medição de anúncios.",
+    "cookiePrivacy": "Privacidade",
+    "cookieReject": "Rejeitar",
+    "cookieAccept": "Permitir",
     "universeAria": "Sistema Solar. Arraste com o botão esquerdo para girar livremente, com o botão do meio para mover a vista e use o controle Zoom/Mover no canto superior direito para alterar o modo da roda.",
     "languageChange": "Alterar idioma",
     "languageCurrent": "Português selecionado",

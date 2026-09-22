@@ -1,4 +1,4 @@
-/* Solar Time v0.52 — renderer implementation owner. */
+/* Solar Time v0.53 — renderer implementation owner. */
 (function () {
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
