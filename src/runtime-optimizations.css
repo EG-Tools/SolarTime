@@ -11,7 +11,6 @@
 .masthead{top:max(31px,calc(var(--solar-safe-top) + 6px))}
 .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
 body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
-.scene-status{top:199px}
 .settings-panel{top:max(87px,calc(var(--solar-safe-top) + 10px))}
 .timezone-readout{pointer-events:auto;cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:6px;transition:color .18s ease,background .18s ease}
 .timezone-readout:hover{color:var(--accent);background:rgba(233,200,141,.07);outline:none}
@@ -21,7 +20,6 @@ body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
 @media(min-width:1800px){
   .clock-face{top:max(70px,calc(var(--solar-safe-top) + 8px))}
   body.zen .clock-face{top:max(70px,calc(var(--solar-safe-top) + 8px))}
-  .scene-status{top:219px}
 }
 @media(max-width:1050px){
   .masthead{top:max(25px,calc(var(--solar-safe-top) + 6px))}
@@ -34,7 +32,6 @@ body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
   }
   .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
   body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
-  .scene-status{top:186px}
   .settings-panel{top:max(61px,calc(var(--solar-safe-top) + 8px))}
   .footer{
     bottom:max(8px,var(--solar-safe-bottom));
@@ -55,7 +52,6 @@ body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
   }
   .clock-face{top:max(17px,calc(var(--solar-safe-top) + 4px))}
   body.zen .clock-face{top:max(17px,calc(var(--solar-safe-top) + 4px))}
-  .scene-status{top:max(104px,calc(var(--solar-safe-top) + 91px))}
   .settings-panel{top:max(60px,calc(var(--solar-safe-top) + 8px))}
   .footer{
     bottom:max(8px,var(--solar-safe-bottom));
@@ -66,16 +62,18 @@ body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
   .view-controls{right:max(15px,calc(var(--solar-safe-right) + 4px))}
 }
 
-/* v0.43: star density belongs visually to orbit brightness without a divider. */
-#star-density-control{border-top:0;margin-top:0;padding-top:5px}
+/* Orbit brightness, star density and clock size are one continuous display group. */
+#star-density-control,#clock-size-control{border-top:0;margin-top:0;padding-top:5px}
+
+/* Keep simulation status anchored under the date at every clock scale. */
+.clock-face .scene-status{position:static;left:auto;transform:none;justify-content:center;margin-top:12px}
 
 /* v0.46 r4: one phone-layout flag is shared by CSS and the sky renderer.
    Keep the approved top boundaries and the home-indicator safety inset. */
-:root{--solar-layout-revision:r2}
+:root{--solar-layout-revision:r1}
 html.solar-phone-layout .edge-shade{display:none}
 html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}
 html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 32px)}
-.solar-build-info{display:block;margin:8px auto 0;padding:5px 8px;background:transparent;color:var(--muted);font-size:10px;letter-spacing:.5px}
 .solar-layout-diagnostics{
   width:min(430px,calc(100vw - 24px))}
 .solar-layout-diagnostics pre{font:11px/1.45 monospace;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}

@@ -1,4 +1,4 @@
-/* Solar Time v0.53 — app implementation owner. */
+/* Solar Time v0.54 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -164,7 +164,7 @@
       const renderer=new window.SolarRenderer($('starfield'),$('universe'));
       Object.assign(renderer.options,FACTORY_OPTIONS);renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
       const clock=new A.SimulationClock(Date.now(),performance.now());
-      let timezone='local',showSeconds=false,hourCycle='12',language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
+      let timezone='local',showSeconds=false,hourCycle='12',clockSize=1,language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),zen=false,raf=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
       let speedMode='day',speedValues={hour:1,day:1,year:1};
       const activeRegion=()=>REGIONS[language]||REGIONS.kor;
       autoTimeZone=autoTimeZone||activeRegion().timeZone;
@@ -233,6 +233,7 @@
           else if(LANG_ORDER.includes(saved.language)){language=saved.language;languageMode='manual';}
           if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
           if(saved.hourCycle==='12'||saved.hourCycle==='24')hourCycle=saved.hourCycle;
+          if(Number.isFinite(saved.clockSize))clockSize=A.clamp(saved.clockSize,.5,2);
           if(typeof saved.clockFont==='string'&&CLOCK_FONTS[saved.clockFont])clockFont=saved.clockFont;
           if(['hour','day','year'].includes(saved.speedMode))speedMode=saved.speedMode;
           if(saved.speedValues&&typeof saved.speedValues==='object'){
@@ -280,15 +281,19 @@
         $('star-density').value=String(value);$('star-density-output').textContent=value+'%';
       }
       syncStarDensityControl();
+      function syncClockSizeControl(){
+        const value=Math.round(A.clamp(clockSize,.5,2)*100);
+        clockSize=value/100;$('clock-size').value=String(value);$('clock-size-output').textContent=value+'%';document.documentElement.style.setProperty('--clock-scale',String(clockSize));
+      }
+      syncClockSizeControl();
       const zoneLabel=()=>timezone==='utc'?'UTC':activeRegion().label;
       function syncHourCycleUi(period){
         const control=$('ampm'),twentyFour=hourCycle==='24';
         if(period==='AM'||period==='PM')control.dataset.period=period;
-        $('hour-cycle').checked=twentyFour;
         control.textContent=twentyFour?'24H':(control.dataset.period||'AM');
         control.setAttribute('aria-pressed',String(twentyFour));
       }
-      function persist() {const camera=renderer.cameraSnapshot(),rotationMode=renderer.randomRotateEnabled?'random':renderer.autoRotateDirection;if(camera.focus===null)overviewCamera={...camera,focus:null};Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),rotationMode,autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockFont,speedMode,speedValues,language,languageMode,camera:overviewCamera,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});}
+      function persist() {const camera=renderer.cameraSnapshot(),rotationMode=renderer.randomRotateEnabled?'random':renderer.autoRotateDirection;if(camera.focus===null)overviewCamera={...camera,focus:null};Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),rotationMode,autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockSize,clockFont,speedMode,speedValues,language,languageMode,camera:overviewCamera,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});}
       let cameraUiSignature='';
       function cameraUi(force=false) {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
@@ -624,10 +629,11 @@
       $('orbit-brightness').addEventListener('change',persist);
       $('star-density').addEventListener('input',()=>{renderer.setOption('starDensity',Number($('star-density').value)/100);syncStarDensityControl();});
       $('star-density').addEventListener('change',persist);
+      $('clock-size').addEventListener('input',()=>{clockSize=Number($('clock-size').value)/100;syncClockSizeControl();});
+      $('clock-size').addEventListener('change',persist);
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';uiNow();persist();});
       function setHourCycle(next){hourCycle=next==='24'?'24':'12';$('ampm').hidden=false;syncHourCycleUi();lastWallKey='';uiNow();persist();}
       const toggleHourCycle=()=>setHourCycle(hourCycle==='12'?'24':'12');
-      $('hour-cycle').addEventListener('change',()=>setHourCycle($('hour-cycle').checked?'24':'12'));
       $('ampm').addEventListener('click',event=>{event.stopPropagation();toggleHourCycle();});
       $('ampm').addEventListener('keydown',event=>{if(event.key!=='Enter'&&event.key!==' ')return;event.preventDefault();event.stopPropagation();toggleHourCycle();});
       function setClockFont(next){if(!CLOCK_FONTS[next])return;clockFont=next;$('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);persist();}
@@ -645,11 +651,11 @@
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
         renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();
         A.calibrateAt(Date.now());clock.now(mono);eclipseTargets.clear();alignmentTarget=null;renderer.setAlignmentGuide(null);renderer.invalidateSurfaces();
-        timezone='local';showSeconds=false;hourCycle='12';clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;
+        timezone='local';showSeconds=false;hourCycle='12';clockSize=1;clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;
         renderer.setSite(activeRegion());for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
         $('show-seconds').checked=showSeconds;$('seconds-group').hidden=true;$('ampm').hidden=false;syncHourCycleUi();
         $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
-        translateStatic();refreshTimeFormats();refreshNavLabels();syncOrbitSpacingControl();syncOrbitBrightnessControl();syncStarDensityControl();syncSpeedUi();cameraUi();navVisibility();closeBody();lastWallKey='';uiNow();persist();toast(t('resetComplete'));
+        translateStatic();refreshTimeFormats();refreshNavLabels();syncOrbitSpacingControl();syncOrbitBrightnessControl();syncStarDensityControl();syncClockSizeControl();syncSpeedUi();cameraUi();navVisibility();closeBody();lastWallKey='';uiNow();persist();toast(t('resetComplete'));
       }
       $('reset-defaults').addEventListener('click',()=>{showFading(resetDefaultsDialog,()=>resetDefaultsDialog.showModal());$('reset-defaults-no').focus({preventScroll:true});});
       $('reset-defaults-no').addEventListener('click',()=>closeResetDefaults());$('reset-defaults-yes').addEventListener('click',()=>applyFactoryDefaults().catch(fatal));
@@ -757,7 +763,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=0.53-r2','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=0.54-r1','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1015,7 +1021,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.53',revision:'r2',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.54',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

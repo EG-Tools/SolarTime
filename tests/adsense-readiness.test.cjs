@@ -32,7 +32,7 @@ test('policy and original-content pages are public, linked and crawlable',()=>{
  assert.ok(robots.includes('https://solartime.app/sitemap.xml'));
 });
 
-test('desktop ad previews an empty slot and opens as a right-edge drawer without covering mobile',()=>{
+test('desktop ad stays hidden until a real slot or an explicit local preview is requested',()=>{
  const html=read('index.html'),code=read('src/adsense.js'),css=read('styles.css');
  assert.ok(html.includes('name="solar-time-ad-slot" content=""'));
  assert.ok(html.includes('id="desktop-ad-toggle"'));
@@ -41,8 +41,10 @@ test('desktop ad previews an empty slot and opens as a right-edge drawer without
  assert.ok(code.includes('let requested=false,open=true'));
  assert.ok(code.includes("toggle?.addEventListener('click',()=>setOpen(!open))"));
  assert.ok(code.includes("setAttribute('aria-expanded',String(open))"));
- assert.ok(code.includes('if(preview)preview.hidden=real'));
- assert.ok(code.includes('(real||!!preview)&&!!media?.matches'));
+ assert.ok(code.includes("const previewRequested=localPreview&&new URLSearchParams(location.search).get('ad-preview')==='1'"));
+ assert.ok(code.includes('if(preview)preview.hidden=!previewRequested||real'));
+ assert.ok(code.includes('(real||previewRequested)&&!!media?.matches'));
+ assert.ok(code.includes("location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'"));
  assert.ok(html.includes('id="desktop-ad-preview"'));
  assert.ok(html.includes('200 × 200'));
  assert.ok(css.includes('.desktop-ad-rail .adsbygoogle{display:block;width:200px;height:200px'));
@@ -66,14 +68,14 @@ test('Google Analytics runs only on the production domain with denied consent de
  assert.ok(code.includes('document.querySelector(`script[src="${source}"]`)'));
  assert.ok(code.includes("root.gtag('config',measurementId)"));
  for(const key of ['ad_storage','ad_user_data','ad_personalization','analytics_storage'])assert.ok(code.includes(`${key}:'denied'`),key);
- for(const file of ['index.html','about.html','privacy.html','terms.html'])assert.ok(read(file).includes('src/google-analytics.js?v=0.53-r2'),file);
+for(const file of ['index.html','about.html','privacy.html','terms.html'])assert.ok(read(file).includes('src/google-analytics.js?v=0.54-r1'),file);
 });
 
 test('cookie choice uses the shared card fade lifecycle and controls Google consent',()=>{
  const html=read('index.html'),code=read('src/cookie-consent.js'),css=read('styles.css');
  for(const id of ['cookie-consent','cookie-reject','cookie-accept'])assert.ok(html.includes(`id="${id}"`),id);
  for(const key of ['cookieTitle','cookieMessage','cookiePrivacy','cookieReject','cookieAccept'])assert.ok(html.includes(`data-i18n="${key}"`),key);
- assert.ok(html.includes('src/cookie-consent.js?v=0.53-r2'));
+ assert.ok(html.includes('src/cookie-consent.js?v=0.54-r1'));
  assert.ok(code.includes('if(UI)UI.show(banner)'));
  assert.ok(code.includes('if(UI)UI.hide(banner)'));
  assert.ok(code.includes("updateConsent(value==='granted')"));

@@ -45,6 +45,7 @@
     "hour24": "24 ore",
     "hour12": "12 ore",
     "clockFont": "Carattere dei numeri dell’orologio",
+    "clockSize": "Dimensione dell’orologio",
     "sunShine": "Bagliore solare",
     "satellites": "Lune principali · Luna ed Europa",
     "pluto": "Plutone",

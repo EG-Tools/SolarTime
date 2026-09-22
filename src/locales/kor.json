@@ -45,6 +45,7 @@
     "hour24": "24시간",
     "hour12": "12시간",
     "clockFont": "시계 숫자 폰트",
+    "clockSize": "시계 크기",
     "sunShine": "태양 샤인",
     "satellites": "주요 위성 · 달과 유로파",
     "pluto": "명왕성",

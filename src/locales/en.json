@@ -45,6 +45,7 @@
     "hour24": "24 hour",
     "hour12": "12 hour",
     "clockFont": "Clock numeral font",
+    "clockSize": "Clock size",
     "sunShine": "Solar shine",
     "satellites": "Major moons · Moon and Europa",
     "pluto": "Pluto",

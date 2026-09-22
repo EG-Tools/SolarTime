@@ -27,6 +27,7 @@
     nl:Object.freeze({eclipseView:'Eclips',eclipsePrevious:'Naar de vorige eclips',eclipseNext:'Naar de volgende eclips',eclipseUnavailable:'Geen eclips gevonden binnen het ondersteunde bereik.',alignmentView:'Planeetuitlijning',alignmentPrevious:'Naar de vorige planeetuitlijning',alignmentNext:'Naar de volgende planeetuitlijning',alignmentUnavailable:'Geen verdere planeetuitlijning in de catalogus gevonden.'})
   });
   const localNightLights=Object.freeze({kor:'야간 불빛',en:'Night lights',chn:'夜间灯光',zht:'夜間燈光',jpn:'夜間の灯り',hi:'रात्रि प्रकाश',es:'Luces nocturnas',de:'Nachtlichter',fr:'Lumières nocturnes',pt:'Luzes noturnas',it:'Luci notturne',id:'Cahaya malam',nl:'Nachtverlichting'});
+  const localClockSize=Object.freeze({kor:'시계 크기',en:'Clock size',chn:'时钟大小',zht:'時鐘大小',jpn:'時計サイズ',hi:'घड़ी का आकार',es:'Tamaño del reloj',de:'Uhrgröße',fr:'Taille de l’horloge',pt:'Tamanho do relógio',it:'Dimensione dell’orologio',id:'Ukuran jam',nl:'Klokgrootte'});
   const localCookieCopy=Object.freeze({
     kor:Object.freeze({cookieTitle:'쿠키 사용',cookieMessage:'방문 분석과 광고 측정을 위해 쿠키 사용 여부를 선택해 주세요.',cookiePrivacy:'개인정보',cookieReject:'거부',cookieAccept:'허용'}),
     en:Object.freeze({cookieTitle:'Cookies',cookieMessage:'Choose whether to allow cookies for visit analytics and advertising measurement.',cookiePrivacy:'Privacy',cookieReject:'Reject',cookieAccept:'Allow'}),
@@ -63,7 +64,7 @@
     const task=(async()=>{
       const base=location.protocol==='file:'?new URL('https://solartime.app/src/locales/'):new URL('locales/',scriptUrl);
       const data=await request(code,base);
-      if(location.protocol==='file:')Object.assign(data.copy,localCopy[code]||localCopy.en,localCookieCopy[code]||localCookieCopy.en,{earthNightLights:localNightLights[code]||localNightLights.en});
+      if(location.protocol==='file:')Object.assign(data.copy,localCopy[code]||localCopy.en,localCookieCopy[code]||localCookieCopy.en,{earthNightLights:localNightLights[code]||localNightLights.en,clockSize:localClockSize[code]||localClockSize.en});
       cache.set(code,data);return data;
     })();
     pending.set(code,task);

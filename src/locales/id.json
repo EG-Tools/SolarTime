@@ -45,6 +45,7 @@
     "hour24": "24 jam",
     "hour12": "12 jam",
     "clockFont": "Font angka jam",
+    "clockSize": "Ukuran jam",
     "sunShine": "Cahaya Matahari",
     "satellites": "Bulan utama · Bulan dan Europa",
     "pluto": "Pluto",
