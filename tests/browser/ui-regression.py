@@ -204,7 +204,11 @@ def suite(browser,root,size,installed):
   };
  }""")
  before=page.evaluate('({...SolarTime.renderer.camera})')
- page.locator('#random-rotate').click();page.wait_for_timeout(1200)
+ page.locator('#random-rotate').click()
+ # A busy shared CI runner can deliver fewer animation frames than wall-clock
+ # time suggests. Wait for the behavior being measured instead of assuming
+ # 1.2 seconds always contains five rendered frames.
+ page.wait_for_function('__rotationSpeed.frames>=5 && __rotationSpeed.seconds>.5',timeout=5000)
  active=page.evaluate('({...SolarTime.renderer.camera})')
  check(page.locator('#random-rotate').get_attribute('aria-pressed')=='true',tag+' random on')
  check(all(active[k]==before[k] for k in ['zoom','dolly','panX','panY','focus']),tag+' random preserves distance and framing')
