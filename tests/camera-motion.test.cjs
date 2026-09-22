@@ -116,6 +116,13 @@ test('random button is below the displayed left-turn button and uses shared togg
  const icon=html.split('id="random-rotate"')[1].split('</button>')[0];assert.equal((icon.match(/<ellipse /g)||[]).length,2);assert.match(icon,/aria-pressed="false"/);
  for(const f of fs.readdirSync(path.join(__dirname,'../src/locales'))){const data=JSON.parse(read('src/locales/'+f));assert.ok(data.copy.randomRotate,f);}
 });
+test('random rotation mode is persisted and restored with legacy direction compatibility',()=>{
+ const app=read('src/app.js');
+ assert.match(app,/rotationMode=renderer\.randomRotateEnabled\?'random':renderer\.autoRotateDirection/);
+ assert.match(app,/rotationMode,autoRotateDirection:renderer\.autoRotateDirection/);
+ assert.match(app,/if\(savedRotationMode==='random'\)renderer\.setRandomRotate\(true,performance\.now\(\)\)/);
+ assert.match(app,/else if\(\[-1,0,1\]\.includes\(saved\.autoRotateDirection\)\)savedRotationMode=saved\.autoRotateDirection/);
+});
 test('frame deadline accumulation reaches requested 60/30 fps on 60..165 Hz displays',()=>{
  const window={};vm.runInNewContext(read('src/performance.js'),{window,performance});
  for(const hz of [60,75,90,120,144,165])for(const fps of [30,60]){

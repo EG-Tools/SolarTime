@@ -16,9 +16,11 @@
     root.gtag('consent','update',{ad_storage:state,ad_user_data:state,ad_personalization:state,analytics_storage:state});
   }
   if(production){
-    const script=document.createElement('script');
-    script.async=true;script.src=`https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
-    document.head.appendChild(script);
+    const source=`https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+    if(!document.querySelector(`script[src="${source}"]`)){
+      const script=document.createElement('script');
+      script.async=true;script.src=source;document.head.appendChild(script);
+    }
     root.gtag('js',new Date());
     root.gtag('config',measurementId);
   }

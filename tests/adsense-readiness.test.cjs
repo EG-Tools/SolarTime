@@ -58,22 +58,26 @@ test('Cloudflare site build publishes every AdSense review file',()=>{
 });
 
 test('Google Analytics runs only on the production domain with denied consent defaults',()=>{
- const code=read('src/google-analytics.js');
+ const html=read('index.html'),code=read('src/google-analytics.js');
  assert.ok(code.includes("measurementId='G-4MP85CMH64'"));
  assert.ok(code.includes("solartime\\.app"));
+ assert.ok(html.includes('<script async src="https://www.googletagmanager.com/gtag/js?id=G-4MP85CMH64"></script>'));
+ assert.ok(code.includes('document.querySelector(`script[src="${source}"]`)'));
+ assert.ok(code.includes("root.gtag('config',measurementId)"));
  for(const key of ['ad_storage','ad_user_data','ad_personalization','analytics_storage'])assert.ok(code.includes(`${key}:'denied'`),key);
- for(const file of ['index.html','about.html','privacy.html','terms.html'])assert.ok(read(file).includes('src/google-analytics.js?v=0.53-r1'),file);
+ for(const file of ['index.html','about.html','privacy.html','terms.html'])assert.ok(read(file).includes('src/google-analytics.js?v=0.53-r2'),file);
 });
 
 test('cookie choice uses the shared card fade lifecycle and controls Google consent',()=>{
  const html=read('index.html'),code=read('src/cookie-consent.js'),css=read('styles.css');
  for(const id of ['cookie-consent','cookie-reject','cookie-accept'])assert.ok(html.includes(`id="${id}"`),id);
  for(const key of ['cookieTitle','cookieMessage','cookiePrivacy','cookieReject','cookieAccept'])assert.ok(html.includes(`data-i18n="${key}"`),key);
- assert.ok(html.includes('src/cookie-consent.js?v=0.53-r1'));
+ assert.ok(html.includes('src/cookie-consent.js?v=0.53-r2'));
  assert.ok(code.includes('if(UI)UI.show(banner)'));
  assert.ok(code.includes('if(UI)UI.hide(banner)'));
  assert.ok(code.includes("updateConsent(value==='granted')"));
  assert.ok(css.includes('.cookie-consent{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom))'));
+ assert.ok(css.includes('width:max-content;max-width:calc(100vw - 48px)'));
 });
 
 test('cookie consent copy is complete in every supported locale',()=>{

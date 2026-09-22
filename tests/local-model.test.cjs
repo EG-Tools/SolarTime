@@ -15,12 +15,16 @@ function assertStaticAssetLinks(html,deployment){
   const address=String(attrs[kind==='link'?'href':'src']||'').trim();
   if(!/^(?:https?:|\/\/)/i.test(address))continue;
   if(kind==='script'){
-   if(address==='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5773171100052324'){
+    if(address==='https://www.googletagmanager.com/gtag/js?id=G-4MP85CMH64'){
+     assert.match(match[0],/\sasync(?:\s|>)/i,'Google Analytics must load asynchronously');
+     continue;
+    }
+    if(address==='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5773171100052324'){
     assert.match(match[0],/\sasync(?:\s|>)/i,'AdSense must load asynchronously');
     assert.equal(String(attrs.crossorigin||'').toLowerCase(),'anonymous','AdSense must omit credentials');
     continue;
    }
-   assert.equal(address,'https://static.cloudflareinsights.com/beacon.min.js','Only the Cloudflare analytics beacon may be remote');
+    assert.equal(address,'https://static.cloudflareinsights.com/beacon.min.js','Only approved analytics scripts may be remote');
    assert.equal(String(attrs.type||'').toLowerCase(),'module','The analytics beacon must use the dashboard snippet type');
    assert.equal(attrs['data-cf-beacon'],'{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}','Unexpected Cloudflare analytics site token');
    continue;

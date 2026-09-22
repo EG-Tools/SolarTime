@@ -1,11 +1,13 @@
 # Maintenance changelog
 
-## v0.53 r1 · 2026-09-22
+## v0.53 r2 · 2026-09-22
 
 - Added a compact 200×200 desktop ad drawer that stays in preview mode until a real AdSense slot is configured.
 - Added Google Analytics with denied consent defaults and a shared-fade cookie choice card controlling analytics and advertising measurement consent.
 - Localized cookie consent text across all 13 supported interface languages, including local-file fallbacks.
 - Added ads.txt plus About, Privacy and Terms pages to both source control and Cloudflare static deployment output.
+- Reduced the cookie consent card to its translated content width while retaining safe wrapping on narrow screens.
+- Persisted random rotation across refreshes with backward compatibility for existing left/right rotation preferences.
 
 ## v0.52 r1 · 2026-09-22
 
