@@ -9,11 +9,13 @@ const origin=worker?'https://solar-time.keg0320.workers.dev/':'https://solartime
 const files=releaseFiles(root),configured=projectConfig(root),assetManifest=JSON.parse(fs.readFileSync(path.join(root,'assets/manifest.json'),'utf8')),generated=runtimeScripts(root,assetManifest,configured.deployment,{cdnBase:'/media/'});
 const virtual=new Map([['src/assets.js',Buffer.from(generated.assets)],['src/sky-asset.js',Buffer.from(generated.sky)]]);
 const digest=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+const textFile=/\.(?:css|html|js|json|md|txt|webmanifest|xml)$/i;
+const comparable=(file,bytes)=>textFile.test(file)?Buffer.from(bytes.toString('utf8').replace(/\r\n?/g,'\n')):bytes;
 async function request(relative){const url=new URL(relative,origin);url.searchParams.set('verify',expected.version+'-'+expected.revision+'-'+Date.now());const response=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(20000)});if(!response.ok)throw Error(relative+' returned HTTP '+response.status);return {bytes:Buffer.from(await response.arrayBuffer()),response};}
 async function verify(){
  const manifest=JSON.parse((await request('version.json')).bytes.toString('utf8'));if(manifest.version!==expected.version||manifest.revision!==expected.revision)throw Error('Public build is '+manifest.version+' '+manifest.revision+', expected '+expected.version+' '+expected.revision);
  const verified={};
- for(let start=0;start<files.length;start+=6)await Promise.all(files.slice(start,start+6).map(async file=>{const remote=await request(file),local=virtual.get(file)||fs.readFileSync(path.join(root,file));if(!remote.bytes.equals(local))throw Error('Published bytes differ: '+file);verified[file]=digest(remote.bytes);}));
+ for(let start=0;start<files.length;start+=6)await Promise.all(files.slice(start,start+6).map(async file=>{const remote=await request(file),local=virtual.get(file)||fs.readFileSync(path.join(root,file));if(!comparable(file,remote.bytes).equals(comparable(file,local)))throw Error('Published bytes differ: '+file);verified[file]=digest(remote.bytes);}));
  const icon=await request('https://solar-time.keg0320.workers.dev/media/releases/content/ui/apple-touch-icon.png?v=0.46-r3');
  if(!(icon.response.headers.get('content-type')||'').startsWith('image/png')||!icon.bytes.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex'))||icon.bytes.length<24||icon.bytes.readUInt32BE(16)!==180||icon.bytes.readUInt32BE(20)!==180)throw Error('Official Apple icon delivery is not a 180x180 PNG.');
  return {origin,build:manifest,checkedAt:new Date().toISOString(),files:verified,officialAppleIcon:{status:icon.response.status,contentType:icon.response.headers.get('content-type'),width:180,height:180,sha256:digest(icon.bytes)},limitations:'HTTP source/MIME verification, not a physical-device render test.'};
