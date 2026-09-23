@@ -21,10 +21,19 @@ powershell.exe -NoProfile -WindowStyle Hidden -Command "$zone=Get-Content -Liter
 echo Solar Time Windows shutdown helper is active.
 echo 설치가 완료되었습니다.
 powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 1"
-if /I not "%~f0"=="%SOLARTIME_TARGET%" (
-  set "SOLARTIME_INSTALLER_DELETE=%~f0"
-  start "" powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; Remove-Item -LiteralPath $env:SOLARTIME_INSTALLER_DELETE -Force -ErrorAction SilentlyContinue"
-)
+if /I "%~f0"=="%SOLARTIME_TARGET%" goto install_done
+set "SOLARTIME_INSTALLER_DELETE=%~f0"
+set "SOLARTIME_INSTALLER_CLEANUP=%TEMP%\SolarTimeInstallerCleanup_%RANDOM%%RANDOM%.vbs"
+> "%SOLARTIME_INSTALLER_CLEANUP%" echo Option Explicit
+>> "%SOLARTIME_INSTALLER_CLEANUP%" echo Dim fso, target
+>> "%SOLARTIME_INSTALLER_CLEANUP%" echo Set fso = CreateObject("Scripting.FileSystemObject"^)
+>> "%SOLARTIME_INSTALLER_CLEANUP%" echo target = WScript.Arguments(0^)
+>> "%SOLARTIME_INSTALLER_CLEANUP%" echo WScript.Sleep 2000
+>> "%SOLARTIME_INSTALLER_CLEANUP%" echo On Error Resume Next
+>> "%SOLARTIME_INSTALLER_CLEANUP%" echo fso.DeleteFile target, True
+>> "%SOLARTIME_INSTALLER_CLEANUP%" echo fso.DeleteFile WScript.ScriptFullName, True
+start "" "%SystemRoot%\System32\wscript.exe" //B //Nologo "%SOLARTIME_INSTALLER_CLEANUP%" "%SOLARTIME_INSTALLER_DELETE%"
+:install_done
 exit /b 0
 
 :protocol
@@ -37,7 +46,18 @@ exit /b %errorlevel%
 :uninstall_silent
 "%SystemRoot%\System32\shutdown.exe" /a >nul 2>&1
 set "SOLARTIME_UNINSTALL_TARGET=%~f0"
-start "" powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 30; Remove-Item -Path 'HKCU:\Software\Classes\solartime-timer' -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -LiteralPath $env:SOLARTIME_UNINSTALL_TARGET -Force -ErrorAction SilentlyContinue"
+set "SOLARTIME_UNINSTALL_CLEANUP=%TEMP%\SolarTimeShutdownCleanup_%RANDOM%%RANDOM%.vbs"
+> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Option Explicit
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Dim shell, fso, target
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Set shell = CreateObject("WScript.Shell"^)
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Set fso = CreateObject("Scripting.FileSystemObject"^)
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo target = WScript.Arguments(0^)
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo WScript.Sleep 5000
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo shell.Run "reg.exe delete ""HKCU\Software\Classes\solartime-timer"" /f", 0, True
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo On Error Resume Next
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo fso.DeleteFile target, True
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo fso.DeleteFile WScript.ScriptFullName, True
+start "" "%SystemRoot%\System32\wscript.exe" //B //Nologo "%SOLARTIME_UNINSTALL_CLEANUP%" "%SOLARTIME_UNINSTALL_TARGET%"
 exit /b 0
 
 :uninstall

@@ -2,9 +2,9 @@
 (function(root){
   'use strict';
   const modules=root.SolarModules=root.SolarModules||{};
-  const HELPER_URL='https://solar-time.keg0320.workers.dev/media/releases/content/windows/SolarTimeShutdownHelper.b10554ef1e67022b.cmd';
-  const HELPER_SOURCE_URL='https://solar-time.keg0320.workers.dev/media/releases/content/windows/SolarTimeShutdownHelper.b10554ef1e67022b.source.txt';
-  const HELPER_SHA256='B10554EF1E67022B48AA6907AB6CAF1EB8E398EF6F1B475C9A2F320683A5C80C';
+  const HELPER_URL='https://solar-time.keg0320.workers.dev/media/releases/content/windows/SolarTimeShutdownHelper.b58a78f0100f32e4.cmd';
+  const HELPER_SOURCE_URL='https://solar-time.keg0320.workers.dev/media/releases/content/windows/SolarTimeShutdownHelper.b58a78f0100f32e4.source.txt';
+  const HELPER_SHA256='B58A78F0100F32E483B4F3795F3A77E029DDEF74EBFA579D5461AD979873B349';
   const HELPER_STATUS_URL='https://solar-time.keg0320.workers.dev/api/windows-helper/install-status';
   function platform(userAgent=root.navigator?.userAgent||'',reported=root.navigator?.platform||''){
     const ua=String(userAgent),native=String(reported),mobile=/Android|iPhone|iPad|iPod|Mobile/i.test(ua),windows=/Windows/i.test(ua)||/^Win/i.test(native);return {windows,mobile};
