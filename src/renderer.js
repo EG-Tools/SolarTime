@@ -1,4 +1,4 @@
-/* Solar Time v0.54 — renderer implementation owner. */
+/* Solar Time v0.55 — renderer implementation owner. */
 (function () {
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
@@ -49,8 +49,9 @@
       this.orbitCache=new WeakMap();this.orbitModelCache=new WeakMap();this.satelliteOrbitCache=new Map();this.precisionOrbitPathCache=new Map();this.frameCache=new Map();this.starSprites=new Map();
       this.frameBodies=[];this.surfaceBodies=[];this.directBodies=[];this.labelBodies=[];this.satelliteLayouts=[];this.compatSurfaceJobs=[];
       this.frameItems=new Map();this.frameSerial=0;
+      this.physicsMs=NaN;this.physicsBodies=new Map();this.physicsSatellites=new Map();
       this.stats={orbitProjections:0,orbitBufferBuilds:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
-      this.selected=null;this.hover=null;this.alignmentGuide=null;this.lastPathMs=NaN;this.dirty=true;this.frameCount=0;
+      this.selected=null;this.hover=null;this.alignmentGuide=null;this.lastPathMs=NaN;this.dirty=true;this.presentationDirty=true;this.presentationUntil=0;this.presentedResources='';this.frameCount=0;
       this.orbitRevealStart=performance.now();
       this.lastSurfaceSubmit=-Infinity;this.lastSurfaceSimMs=NaN;this.lastSurfaceMono=NaN;
       this.sky=new window.SolarSky(background);
@@ -70,11 +71,26 @@
     }
     startOrbitReveal(mono=performance.now()) {
       this.orbitRevealStart=Number.isFinite(mono)?mono:performance.now();
+      this.invalidatePresentation(ORBIT_REVEAL.duration);
     }
     orbitRevealAlpha(mono=performance.now()) {
       if(!Number.isFinite(this.orbitRevealStart)||(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches))return 1;
       const p=clamp((mono-this.orbitRevealStart)/ORBIT_REVEAL.duration,0,1);
       return p*p*(3-2*p);
+    }
+    resourceSignature(){
+      const surface=this.gpu||this.surface,sky=this.sky;
+      return [surface?.stats?.accepted||0,surface?.stats?.discarded||0,surface?.stats?.recoveries||0,
+        sky?.ready?1:0,sky?.stats?.textureStage||0,sky?.stats?.backend||''].join(':');
+    }
+    invalidatePresentation(duration=0,mono=performance.now()){
+      this.presentationDirty=true;
+      if(duration>0&&Number.isFinite(mono))this.presentationUntil=Math.max(this.presentationUntil,mono+duration);
+    }
+    needsDraw(mono=performance.now()){
+      return this.dirty||this.presentationDirty||this.resourceSignature()!==this.presentedResources||
+        !!this.cameraTween||!!this.autoRotation||!!this.actualScaleTween||this.orbitRevealAlpha(mono)<.9999||
+        mono<this.presentationUntil||mono-(this.cameraChangeAt??-Infinity)<400;
     }
     starGlow(c,x,y,r,alpha) {
       if(!(r>0)||!(alpha>0))return;
@@ -359,6 +375,20 @@
       return result;
     }
     getBodies() { return this.options.pluto?A.BODIES:(this.bodiesWithoutPluto||(this.bodiesWithoutPluto=A.BODIES.filter(b=>b.id!=='pluto'))); }
+    preparePhysics(ms){
+      if(this.physicsMs===ms)return;
+      this.physicsMs=ms;this.physicsBodies.clear();this.physicsSatellites.clear();
+    }
+    physicalAt(body,ms){
+      this.preparePhysics(ms);let point=this.physicsBodies.get(body.id);
+      if(!point){point=A.positionAt(body,ms);this.physicsBodies.set(body.id,point);}
+      return point;
+    }
+    satelliteUnitAt(body,ms){
+      this.preparePhysics(ms);let point=this.physicsSatellites.get(body.id);
+      if(!point){point=A.satelliteAt(body,ms,1);this.physicsSatellites.set(body.id,point);}
+      return point;
+    }
     frameItem(body) {
       let item=this.frameItems.get(body.id);
       if(!item){
@@ -853,7 +883,7 @@
       this.surface?.pause();this.sky?.pause?.();
     }
     resume() {if(!this.surface)this.surface=this.gpu||new window.SolarSurface.Service();this.surface.resume();this.sky?.resume?.();}
-    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets.length=0;this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.precisionOrbitPathCache.clear();this.labelWidths.clear();this.labelBodyMap.clear();this.labelOrdered.length=0;this.labelReserved.length=0;this.labelActive.clear();this.labelObstacleMap.clear();this.labelCandidateMap.clear();this.frameItems.clear();this.frameBodies.length=this.surfaceBodies.length=this.directBodies.length=this.labelBodies.length=this.satelliteLayouts.length=this.compatSurfaceJobs.length=0;this.orbitCache=new WeakMap();this.sky?.dispose();}
+    dispose() {this.suspend();this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets.length=0;this.coronaTexture=null;this.starSprites.clear();this.frameCache.clear();this.precisionOrbitPathCache.clear();this.physicsBodies.clear();this.physicsSatellites.clear();this.labelWidths.clear();this.labelBodyMap.clear();this.labelOrdered.length=0;this.labelReserved.length=0;this.labelActive.clear();this.labelObstacleMap.clear();this.labelCandidateMap.clear();this.frameItems.clear();this.frameBodies.length=this.surfaceBodies.length=this.directBodies.length=this.labelBodies.length=this.satelliteLayouts.length=this.compatSurfaceJobs.length=0;this.orbitCache=new WeakMap();this.sky?.dispose();}
     makeCoronaTexture(size=384) {
       // One shared public-site filament texture. Direct rendering uploads it once
       // to WebGL; the compatibility renderer draws it directly.
@@ -1016,7 +1046,7 @@
       this.frameSerial++;
       const bodies=this.frameBodies;bodies.length=0;
       for(const body of this.getBodies()){
-        const physical=A.positionAt(body,ms),item=this.frameItem(body);
+        const physical=this.physicalAt(body,ms),item=this.frameItem(body);
         item.physical.x=physical.x;item.physical.y=physical.y;item.physical.z=physical.z;
         this.displayPhysicalPoint(item.physical,item.world);item.r=this.bodyRadiusAtZoom(body);bodies.push(item);
       }
@@ -1026,10 +1056,10 @@
         for(const satellite of SATELLITES){
           const parent=this.currentFrameItem(satellite.parent);if(!parent)continue;
           const r=this.bodyRadiusAtZoom(satellite),orbitRadius=this.satelliteOrbitRadius(parent.r,r,satellite,parent.body);
-          const local=A.satelliteAt(satellite,ms,orbitRadius),physicalRadius=satellite.id==='moon'?.0025696:.004484,physicalLocal=A.satelliteAt(satellite,ms,physicalRadius),item=this.frameItem(satellite);
+          const unit=this.satelliteUnitAt(satellite,ms),physicalRadius=satellite.id==='moon'?.0025696:.004484,item=this.frameItem(satellite);
           item.parent=parent;item.orbitRadius=orbitRadius;item.r=r;
-          item.world.x=parent.world.x+local.x;item.world.y=parent.world.y+local.y;item.world.z=parent.world.z+local.z;
-          item.physical.x=parent.physical.x+physicalLocal.x;item.physical.y=parent.physical.y+physicalLocal.y;item.physical.z=parent.physical.z+physicalLocal.z;
+          item.world.x=parent.world.x+unit.x*orbitRadius;item.world.y=parent.world.y+unit.y*orbitRadius;item.world.z=parent.world.z+unit.z*orbitRadius;
+          item.physical.x=parent.physical.x+unit.x*physicalRadius;item.physical.y=parent.physical.y+unit.y*physicalRadius;item.physical.z=parent.physical.z+unit.z*physicalRadius;
           bodies.push(item);satelliteLayouts.push(item);
         }
       }
@@ -1123,9 +1153,9 @@
       }
       this.drawAlignmentGuide(c,ms);
       if(this.camera.focus==='earth'&&earth.r>65){
-        const site=this.site,normal=this.viewDirection(A.surfaceDirection(earth.body,site.latitude,site.longitude,ms));
+        const site=this.site,surfaceNormal=A.surfaceDirection(earth.body,site.latitude,site.longitude,ms),normal=this.viewDirection(surfaceNormal);
         if(normal.z>.03){
-          const x=earth.screen.x+normal.x*earth.r,y=earth.screen.y+normal.y*earth.r,day=A.siteSun(ms,site.latitude,site.longitude).altitude>=0;
+          const x=earth.screen.x+normal.x*earth.r,y=earth.screen.y+normal.y*earth.r,ep=earth.physical,day=-(ep.x*surfaceNormal.x+ep.y*surfaceNormal.y+ep.z*surfaceNormal.z)>=0;
           c.fillStyle=day?'#ffdb92':'#98c9ff';c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=1;
           c.beginPath();c.arc(x,y,3,0,TAU);c.fill();c.beginPath();c.arc(x,y,6,0,TAU);c.stroke();
           c.font='11px "Segoe UI",sans-serif';c.textAlign='left';c.shadowColor='#000';c.shadowBlur=5;c.fillText(site.label+' · '+(day?'DAY':'NIGHT'),x+11,y-9);c.shadowBlur=0;
@@ -1134,6 +1164,7 @@
       if(this.options.labels){const labelBodies=this.labelBodies;labelBodies.length=0;for(const p of bodies)if(this.visible(p.screen,p.r+20))labelBodies.push(p);this.labels(c,labelBodies,mono);}
       else this.clearLabels();
       this.projected=bodies;
+      this.presentationDirty=false;this.presentedResources=this.resourceSignature();
     }
     hit(x,y) {
       for(let i=this.hitTargets.length-1;i>=0;i--) {

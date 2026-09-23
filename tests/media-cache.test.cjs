@@ -14,6 +14,8 @@ test('media uses complete cached objects for ranges, HEAD and ETag without modif
   response=await mf.dispatchFetch(url,{headers:{Range:'bytes=-3'}});assert.equal(response.status,206);assert.equal(await response.text(),'789');
   response=await mf.dispatchFetch(url,{method:'HEAD'});assert.equal(response.status,200);assert.equal(response.headers.get('content-length'),'1000');assert.equal(await response.text(),'');
   response=await mf.dispatchFetch(url,{headers:{'If-None-Match':etag}});assert.equal(response.status,304);
+  response=await mf.dispatchFetch(url,{headers:{'If-None-Match':'"other", W/'+etag}});assert.equal(response.status,304);
+  response=await mf.dispatchFetch(url+'?revision=another');assert.equal(response.status,200);assert.equal(await response.text(),data);
   await bucket.put('partial.mp3',data);const partialUrl='https://solar.test/media/partial.mp3';
   response=await mf.dispatchFetch(partialUrl,{headers:{Range:'bytes=-4'}});assert.equal(response.status,206);assert.equal(response.headers.get('content-range'),'bytes 996-999/1000');assert.equal(await response.text(),'6789');
   full=await cached(partialUrl);assert.equal(await full.text(),data);
@@ -22,5 +24,6 @@ test('media uses complete cached objects for ranges, HEAD and ETag without modif
   assert.equal(await caches.default.match('https://solar.test/media/'+ui),undefined);
   assert.equal((await mf.dispatchFetch(url,{method:'POST'})).status,405);
   assert.equal((await mf.dispatchFetch(url,{method:'OPTIONS'})).status,204);
+  assert.equal((await mf.dispatchFetch('https://solar.test/media/%E0%A4%A')).status,400);
  }finally{await mf.dispose();}
 });

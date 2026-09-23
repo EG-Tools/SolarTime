@@ -31,10 +31,14 @@ test('night radiance is sampled only on Earth darkness and partially veiled by c
   const surface=read('src/surface.js'),performance=read('src/performance.js');
   assert.match(surface,/sampler2D colorMap,bumpMap,cloudsMap,nightMap/);
   assert.match(surface,/nightSide=\(1\.-smoothstep\(-\.34,\.30,mu\)\)\*nightLights/);
-  assert.match(surface,/texture2D\(nightMap,uv\)\.rgb\*nightSide\*\(1\.-cloud\*\.68\)/);
+  assert.match(surface,/vec3 stableNight\(vec2 uv,float facing\)/);
+  assert.match(surface,/footprint=min\(nightTexel\*16\.,max\(nightTexel,1\.\/\(PI\*max\(diameter,1\.\)\*max\(facing,\.06\)\)\)\)/);
+  assert.equal((surface.match(/stableNight\(uv,n\.z\)/g)||[]).length,2);
+  assert.equal((surface.match(/smoothstep\(\.035,\.18,n\.z\)/g)||[]).length,2);
   assert.match(surface,/job\.id==='earth'&&job\.nightLights\?this\.texture\('earth-night',Math\.min\(4096,job\.nightTextureWidth\|\|job\.textureWidth\)\):null/);
-  assert.match(surface,/nightMap,uv\)\.rgb\*nightSide\*\(1\.-cloud\*\.68\)\*1\.05/);
-  assert.match(surface,/nightSide=\(1-smooth\(-\.34,\.30,mu\)\)\*\(1-cover\*\.68\)\*1\.05/);
+  assert.match(surface,/stableNight\(uv,n\.z\)\*nightSide\*\(1\.-cloud\*\.68\)\*1\.05\*nightLimb/);
+  assert.match(surface,/uniform1f\(p\.u\.nightTexel,1\/\(night\?\.width\|\|color\.width\)\)/);
+  assert.match(surface,/nightSide=\(1-smooth\(-\.34,\.30,mu\)\)\*\(1-cover\*\.68\)\*1\.05\*nightLimb/);
   assert.match(performance,/name==='earth-night'&&desired\?\.get\('earth'\)\?\.nightLights/);
   assert.match(performance,/Math\.min\(4096,job\.nightTextureWidth\|\|job\.textureWidth\)/);
 });

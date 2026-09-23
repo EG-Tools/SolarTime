@@ -1,5 +1,13 @@
 # Maintenance changelog
 
+## v0.55 r1 · 2026-09-23
+
+- Added Microsoft Clarity behind the shared cookie consent owner, using Consent V2 updates for later approval or rejection.
+- Improved large-clock fitting when seconds are visible.
+- Stopped redundant rendering on stable paused scenes and reused same-time ephemeris work.
+- Strengthened staged texture and sky loading, timeout recovery, cache keys, Cloudflare media handling, and public release verification.
+- Reduced runtime manifest data and kept the deployment file set derived from actual public dependencies.
+
 ## v0.53 r2 · 2026-09-22
 
 - Added a compact 200×200 desktop ad drawer that stays in preview mode until a real AdSense slot is configured.

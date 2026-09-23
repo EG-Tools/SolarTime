@@ -74,9 +74,19 @@ function rotate(p,angle,axis){const c=Math.cos(angle),s=Math.sin(angle);return a
   const tiers=asset?.tiers||[],tier=tiers.find(row=>row.width>=width)||tiers[tiers.length-1],remote=tier&&asset.base?new URL(tier.path,asset.base).href:'';
   return [remote,asset?.fallback].filter((url,index,list)=>url&&list.indexOf(url)===index);
  }
- async function loadSkyImage(asset,width=2048){
+ function decodeSkyImage(image,signal,timeoutMs=15000){
+  return new Promise((resolve,reject)=>{
+   let settled=false;
+   const finish=(error)=>{if(settled)return;settled=true;clearTimeout(timer);signal?.removeEventListener?.('abort',abort);error?reject(error):resolve(image);};
+   const abort=()=>{image.src='';finish(Error('Sky image request was cancelled.'));};
+   const timer=setTimeout(()=>{image.src='';finish(Error('Sky image request timed out.'));},timeoutMs);
+   if(signal?.aborted){abort();return;}signal?.addEventListener?.('abort',abort,{once:true});
+   image.decode().then(()=>finish(),finish);
+  });
+ }
+ async function loadSkyImage(asset,width=2048,signal){
   let lastError;
-  for(const url of skySources(asset,width))try{const image=new Image();image.decoding='async';if(!url.startsWith('file:')&&!url.startsWith('data:'))image.crossOrigin='anonymous';image.src=url;await image.decode();return image;}catch(error){lastError=error;}
+  for(const url of skySources(asset,width))try{const image=new Image();image.decoding='async';if(!url.startsWith('file:')&&!url.startsWith('data:'))image.crossOrigin='anonymous';image.src=url;await decodeSkyImage(image,signal);return image;}catch(error){lastError=error;if(signal?.aborted)break;}
   throw lastError||Error('Sky asset could not be decoded.');
  }
 class Sky{
@@ -119,7 +129,7 @@ class Sky{
   this.detailPromise=(async()=>{
    for(const width of [1024,2048]){
     if(this.disposed||ticket!==this.initTicket)return;
-    const image=await loadSkyImage(asset,width);
+    const image=await loadSkyImage(asset,width,this.abort.signal);
     if(this.disposed||ticket!==this.initTicket)return;
     if(image.width>(this.image?.width||0))this.uploadSkyImage(image);
    }
@@ -132,7 +142,7 @@ class Sky{
   try{
     // A tiny panorama unlocks the GPU star field and first complete frame. The
     // larger panorama tiers are deliberately deferred until the scene is shown.
-    if(!this.image){const image=await loadSkyImage(root.SolarAssets?.sky,512);if(this.disposed||ticket!==this.initTicket)return;this.image=image;}
+    if(!this.image){const image=await loadSkyImage(root.SolarAssets?.sky,512,this.abort.signal);if(this.disposed||ticket!==this.initTicket)return;this.image=image;}
    if(this.disposed||ticket!==this.initTicket)return;
    // The visible canvas is retained on unchanged poses, so a preserved buffer
    // is intentional. Disabling it while skipping draws produces a black sky.

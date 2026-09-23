@@ -2,19 +2,8 @@
   'use strict';
   const measurementId='G-4MP85CMH64';
   const production=/^(?:www\.)?solartime\.app$/i.test(location.hostname);
-  root.dataLayer=root.dataLayer||[];
-  root.gtag=root.gtag||function(){root.dataLayer.push(arguments);};
-  root.gtag('consent','default',{
-    ad_storage:'denied',
-    ad_user_data:'denied',
-    ad_personalization:'denied',
-    analytics_storage:'denied',
-    wait_for_update:500
-  });
-  function updateConsent(granted){
-    const state=granted?'granted':'denied';
-    root.gtag('consent','update',{ad_storage:state,ad_user_data:state,ad_personalization:state,analytics_storage:state});
-  }
+  const consent=root.SolarConsent;
+  if(!consent)throw Error('consent.js must load before google-analytics.js');
   if(production){
     const source=`https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
     if(!document.querySelector(`script[src="${source}"]`)){
@@ -24,5 +13,5 @@
     root.gtag('js',new Date());
     root.gtag('config',measurementId);
   }
-  root.SolarGoogleAnalytics=Object.freeze({measurementId,production,updateConsent});
+  root.SolarGoogleAnalytics=Object.freeze({measurementId,production,consent,updateConsent:granted=>consent.choose(granted?'granted':'denied')});
 })(window);

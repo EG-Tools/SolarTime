@@ -13,6 +13,12 @@ function mediaType(key){
 
 const mutableUI=key=>/(?:^|\/)content\/ui\//.test(key);
 const mediaCacheControl=key=>mutableUI(key)?'public, max-age=3600, must-revalidate':'public, max-age=31536000, immutable';
+const comparableEtag=value=>String(value||'').trim().replace(/^W\//i,'');
+const etagMatches=(header,etag)=>String(header||'').split(',').some(value=>value.trim()==='*'||comparableEtag(value)===comparableEtag(etag));
+function mediaCacheRequest(request,withHeaders=false){
+ const url=new URL(request.url);url.search='';
+ return new Request(url.toString(),withHeaders?{headers:request.headers}:undefined);
+}
 
 function mediaHeaders(object,status,key){
  const headers=new Headers();object.writeHttpMetadata(headers);
@@ -33,16 +39,16 @@ async function mediaResponse(request,env,ctx,key){
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET, HEAD, OPTIONS','access-control-allow-headers':'Range','access-control-max-age':'86400'}});
   if(request.method!=='GET'&&request.method!=='HEAD')return new Response('Method Not Allowed',{status:405,headers:{allow:'GET, HEAD, OPTIONS'}});
   const head=request.method==='HEAD',range=head?null:request.headers.get('range'),cache=mutableUI(key)?null:caches.default;
-  const lookup=new Request(request.url,{headers:request.headers});if(head)lookup.headers.delete('range');
+  const lookup=mediaCacheRequest(request,true);if(head)lookup.headers.delete('range');
   if(cache){const cached=await cache.match(lookup);if(cached){if(!head)return cached;if(cached.body)ctx.waitUntil(cached.body.cancel());return new Response(null,{status:cached.status,headers:cached.headers});}}
   const object=head?await env.SOLAR_TIME_MEDIA.head(key):await env.SOLAR_TIME_MEDIA.get(key,{range:request.headers});
   if(!object)return new Response('Not Found',{status:404});
-  if(request.headers.get('if-none-match')===object.httpEtag){if(object.body)ctx.waitUntil(object.body.cancel());return new Response(null,{status:304,headers:mediaHeaders(object,304,key)});}
+  if(etagMatches(request.headers.get('if-none-match'),object.httpEtag)){if(object.body)ctx.waitUntil(object.body.cancel());return new Response(null,{status:304,headers:mediaHeaders(object,304,key)});}
   const partial=!!range&&!!object.range,status=partial?206:200,headers=mediaHeaders(object,status,key);
   if(head)return new Response(null,{status,headers});
   const response=new Response(object.body,{status,headers});
   if(cache){
-    const cacheKey=new Request(request.url),whole=!partial||Number(headers.get('content-length'))===object.size;
+    const cacheKey=mediaCacheRequest(request),whole=!partial||Number(headers.get('content-length'))===object.size;
     // Store only complete 200 responses. Cache.match can then answer Range/ETag
     // requests itself. Never buffer media in JS or prefetch unbounded archives.
     if(whole){
@@ -63,7 +69,7 @@ export default {
   const url=new URL(request.url);
   try{
    if(url.pathname.startsWith(MEDIA_PREFIX)){
-    const key=decodeURIComponent(url.pathname.slice(MEDIA_PREFIX.length));
+    let key;try{key=decodeURIComponent(url.pathname.slice(MEDIA_PREFIX.length));}catch(_){return new Response('Bad Request',{status:400});}
     if(!key||key.includes('..'))return new Response('Bad Request',{status:400});
     return await mediaResponse(request,env,ctx,key);
    }

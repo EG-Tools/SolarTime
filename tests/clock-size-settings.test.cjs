@@ -15,10 +15,15 @@ test('clock size is restored, persisted, reset and applied through one CSS scale
  assert.match(app,/A\.clamp\(saved\.clockSize,\.5,2\)/);
  assert.match(app,/clockSize,clockFont/);
  assert.match(app,/clockSize=1;clockFont='georgia'/);
- assert.match(app,/setProperty\('--clock-scale',String\(clockSize\)\)/);
+ assert.match(app,/setProperty\('--clock-scale',String\(clockSize\)\);scheduleClockFit\(\)/);
+ assert.match(app,/function fitClockToViewport\(\)/);
+ assert.match(app,/availableHalf\/requiredHalf/);
+ assert.match(app,/dataset\.fitScale=String\(rounded\)/);
  assert.doesNotMatch(app,/\$\('hour-cycle'\)/);
- assert.match(css,/--clock-scale:1;--clock-base-size:78px/);
- assert.match(css,/font-size:calc\(var\(--clock-base-size\)\*var\(--clock-scale\)\)/);
+ assert.match(css,/--clock-scale:1;--clock-fit-scale:1;--clock-base-size:78px/);
+ assert.match(css,/font-size:calc\(var\(--clock-base-size\)\*var\(--clock-scale\)\*var\(--clock-fit-scale\)\)/);
+ assert.match(css,/\.date-line\{font-size:12px;margin-top:3px\}/);
+ assert.doesNotMatch(css,/@media\(max-width:680px\)\{\.date-line\{font-size:11px;margin-top:/);
  assert.match(runtimeCss,/#star-density-control,#clock-size-control\{border-top:0;margin-top:0;padding-top:5px\}/);
  assert.match(runtimeCss,/\.clock-face \.scene-status\{position:static;left:auto;transform:none;justify-content:center;margin-top:12px\}/);
 });

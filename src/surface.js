@@ -1,8 +1,22 @@
-/* Solar Time v0.54 — surface implementation owner. */
+/* Solar Time v0.55 — surface implementation owner. */
 (function(root){
 'use strict';
 const STYLE=root.SolarSurfaceStyle;
 if(!STYLE)throw Error('surface-style.js must load before surface.js');
+const EARTH_NIGHT_GLSL=`
+  vec3 stableNight(vec2 uv,float facing){
+    vec3 center=texture2D(nightMap,uv).rgb;
+    float outer=1.-smoothstep(.20,.55,facing);
+    if(outer<=.001)return center;
+    // Longitude and latitude become increasingly compressed toward the limb.
+    // Filter only that annulus so central city detail stays pixel-sharp while
+    // sub-pixel lights at the edge no longer jump between samples each frame.
+    float footprint=min(nightTexel*16.,max(nightTexel,1./(PI*max(diameter,1.)*max(facing,.06))));
+    vec2 dx=vec2(footprint,0.),dy=vec2(0.,footprint*2.);
+    vec3 filtered=(center*4.+texture2D(nightMap,uv+dx).rgb+texture2D(nightMap,uv-dx).rgb+
+      texture2D(nightMap,uv+dy).rgb+texture2D(nightMap,uv-dy).rgb)/8.;
+    return mix(center,filtered,outer);
+  }`;
 function surfaceKernel(style){
   const sun=style.sun;
   let assets={};
@@ -52,9 +66,10 @@ function surfaceKernel(style){
   const vertex=`attribute vec2 a; varying vec2 p; void main(){p=a;gl_Position=vec4(a,0.,1.);}`;
   const fragment=`precision highp float;
     varying vec2 p; uniform sampler2D colorMap; uniform sampler2D bumpMap; uniform sampler2D cloudsMap; uniform sampler2D nightMap;
-    uniform vec3 axisU,axisV,pole,light; uniform float phase,kind,hasBump,diameter,texel,effectTime,sunActivity,nightLights;
+    uniform vec3 axisU,axisV,pole,light; uniform float phase,kind,hasBump,diameter,texel,nightTexel,effectTime,sunActivity,nightLights;
     const float PI=3.141592653589793;
     vec3 world(vec3 q){return axisU*q.x+axisV*q.y+pole*q.z;}
+    ${EARTH_NIGHT_GLSL}
     void main(){
       float rr=dot(p,p); if(rr>=1.){gl_FragColor=vec4(0.);return;}
       vec3 n=vec3(p.x,-p.y,sqrt(1.-rr));
@@ -85,7 +100,8 @@ function surfaceKernel(style){
         // A broad twilight band fades city lights in through early evening
         // and out again at dawn instead of switching at the terminator.
         float nightSide=(1.-smoothstep(-.34,.30,mu))*nightLights;
-        col+=texture2D(nightMap,uv).rgb*nightSide*(1.-cloud*.68)*1.05;
+        float nightLimb=smoothstep(.035,.18,n.z);
+        col+=stableNight(uv,n.z)*nightSide*(1.-cloud*.68)*1.05*nightLimb;
         float ocean=smoothstep(.035,.14,base.b-base.r)*step(base.r,base.b)*step(base.g,base.b);
         vec3 halfdir=normalize(light+vec3(0.,0.,1.));
         col+=vec3(.63,.76,.85)*pow(max(0.,dot(n,halfdir)),70.)*day*ocean*.38;
@@ -111,7 +127,7 @@ function surfaceKernel(style){
         if(!g.getProgramParameter(program,g.LINK_STATUS))throw Error(g.getProgramInfoLog(program));this.program=program;
         this.buffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
         this.attribute=g.getAttribLocation(program,'a');
-        this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','nightMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','effectTime','sunActivity','nightLights'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
+        this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','nightMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
       }catch(error){if(this.gl){this.gl.getExtension('WEBGL_lose_context')?.loseContext();this.gl=null;}this.canvas=makeCanvas(32);this.ctx=this.canvas.getContext('2d');this.stats.fallback=error.message;}
     }
     async texture(id,width){
@@ -167,7 +183,7 @@ function surfaceKernel(style){
         for(const [i,t,name] of [[0,color,'colorMap'],[1,bump,'bumpMap'],[2,clouds,'cloudsMap'],[3,night,'nightMap']]){g.activeTexture(g.TEXTURE0+i);g.bindTexture(g.TEXTURE_2D,t.handle);g.uniform1i(u[name],i);}
         g.uniform3fv(u.axisU,frame.u);g.uniform3fv(u.axisV,frame.v);g.uniform3fv(u.pole,frame.pole);g.uniform3fv(u.light,light);
         g.uniform1f(u.phase,phase);g.uniform1f(u.kind,id==='earth'?1:id==='sun'?2:id==='uranus'?4:['jupiter','saturn','venus','neptune'].includes(id)?3:0);
-        g.uniform1f(u.hasBump,bump!==color?1:0);g.uniform1f(u.diameter,n);g.uniform1f(u.texel,1/width);g.uniform1f(u.effectTime,seconds);g.uniform1f(u.sunActivity,activity?1:0);g.uniform1f(u.nightLights,night!==color?1:0);g.drawArrays(g.TRIANGLES,0,6);
+        g.uniform1f(u.hasBump,bump!==color?1:0);g.uniform1f(u.diameter,n);g.uniform1f(u.texel,1/width);g.uniform1f(u.nightTexel,1/night.width);g.uniform1f(u.effectTime,seconds);g.uniform1f(u.sunActivity,activity?1:0);g.uniform1f(u.nightLights,night!==color?1:0);g.drawArrays(g.TRIANGLES,0,6);
         if(g.isContextLost())throw Error('WebGL context lost');
       }else{
         // Identical UV geometry, cooperatively rasterized when GPU is disabled.
@@ -204,7 +220,7 @@ function surfaceKernel(style){
             data[i]=data[i]*(1-cover)+240*(.14+.93*day)*cover+19*rim;
             data[i+1]=data[i+1]*(1-cover)+246*(.14+.93*day)*cover+92*rim;
             data[i+2]=data[i+2]*(1-cover)+255*(.14+.93*day)*cover+184*rim;
-            if(night!==color){const ni=(Math.min(night.height-1,Math.floor(v*night.height))*night.width+Math.floor(u*night.width))*4,nightSide=(1-smooth(-.34,.30,mu))*(1-cover*.68)*1.05;data[i]+=night.data[ni]*nightSide;data[i+1]+=night.data[ni+1]*nightSide;data[i+2]+=night.data[ni+2]*nightSide;}
+            if(night!==color){const ni=(Math.min(night.height-1,Math.floor(v*night.height))*night.width+Math.floor(u*night.width))*4,nightLimb=smooth(.035,.24,nz),nightSide=(1-smooth(-.34,.30,mu))*(1-cover*.68)*1.05*nightLimb;data[i]+=night.data[ni]*nightSide;data[i+1]+=night.data[ni+1]*nightSide;data[i+2]+=night.data[ni+2]*nightSide;}
           }
           data[i+3]=map[m+6];
           if((m/7)%8192===0&&performance.now()-sliceStart>6){await new Promise(resolve=>setTimeout(resolve,0));if(this.disposed)throw Error('Surface disposed');sliceStart=performance.now();}
@@ -226,7 +242,7 @@ class SurfaceService{
     this.stats={backend:'compatibility',submitted:0,accepted:0,discarded:0,workerMs:0,mapPixels:0,texturePixels:0};
     if(worker&&typeof Worker==='function'&&typeof OffscreenCanvas==='function'){
       let url;try{
-        const boot=`const kernel=(${surfaceKernel.toString()})(${JSON.stringify(STYLE)});const engine=new kernel.Engine();onmessage=async e=>{const {jobs,revision,epoch,assets}=e.data;if(assets)kernel.setAssets(assets);const start=performance.now();try{for(const job of jobs){const canvas=await engine.render(job);const bitmap=canvas.transferToImageBitmap();postMessage({kind:'frame',revision,epoch,job,bitmap},[bitmap]);}postMessage({kind:'done',revision,epoch,ms:performance.now()-start,stats:engine.stats,mapPixels:engine.mapPixels,texturePixels:engine.texturePixels});}catch(error){postMessage({kind:'error',revision,epoch,message:error.message});}};`;
+        const boot=`const EARTH_NIGHT_GLSL=${JSON.stringify(EARTH_NIGHT_GLSL)};const kernel=(${surfaceKernel.toString()})(${JSON.stringify(STYLE)});const engine=new kernel.Engine();onmessage=async e=>{const {jobs,revision,epoch,assets}=e.data;if(assets)kernel.setAssets(assets);const start=performance.now();try{for(const job of jobs){const canvas=await engine.render(job);const bitmap=canvas.transferToImageBitmap();postMessage({kind:'frame',revision,epoch,job,bitmap},[bitmap]);}postMessage({kind:'done',revision,epoch,ms:performance.now()-start,stats:engine.stats,mapPixels:engine.mapPixels,texturePixels:engine.texturePixels});}catch(error){postMessage({kind:'error',revision,epoch,message:error.message});}};`;
         url=URL.createObjectURL(new Blob([boot],{type:'text/javascript'}));this.worker=new Worker(url);this.worker.onmessage=e=>this.receive(e.data);this.worker.onerror=e=>{this.stats.workerError=e.message||'Worker unavailable';this.fallback();};this.stats.backend='worker';
       }catch(error){this.stats.workerError=error.message;this.fallback();}finally{if(url)URL.revokeObjectURL(url);}
     }
@@ -317,9 +333,10 @@ const DIRECT_QUAD_VERTEX=`attribute vec2 a;
   void main(){p=a;vec2 q=center+a*radius;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);}`;
 const DIRECT_PLANET_FRAGMENT=`precision highp float;
   varying vec2 p;uniform sampler2D colorMap,bumpMap,cloudsMap,nightMap;
-  uniform vec3 axisU,axisV,pole,light;uniform float phase,kind,hasBump,diameter,texel,effectTime,sunActivity,nightLights;
+  uniform vec3 axisU,axisV,pole,light;uniform float phase,kind,hasBump,diameter,texel,nightTexel,effectTime,sunActivity,nightLights;
   const float PI=3.141592653589793;
   vec3 world(vec3 q){return axisU*q.x+axisV*q.y+pole*q.z;}
+  ${EARTH_NIGHT_GLSL}
   void main(){
     float rr=dot(p,p);if(rr>=1.)discard;
     // p is already in screen/view coordinates (top is negative Y). Flipping Y
@@ -349,7 +366,8 @@ const DIRECT_PLANET_FRAGMENT=`precision highp float;
       float cloud=texture2D(cloudsMap,uv).r*.50;
       col=mix(col,vec3(.94,.965,1.)*(.14+day*.93),cloud);
       float nightSide=(1.-smoothstep(-.34,.30,mu))*nightLights;
-      col+=texture2D(nightMap,uv).rgb*nightSide*(1.-cloud*.68)*1.05;
+      float nightLimb=smoothstep(.035,.18,n.z);
+      col+=stableNight(uv,n.z)*nightSide*(1.-cloud*.68)*1.05*nightLimb;
       float ocean=smoothstep(.035,.14,base.b-base.r)*step(base.r,base.b)*step(base.g,base.b);
       vec3 halfdir=normalize(light+vec3(0.,0.,1.));
       col+=vec3(.63,.76,.85)*pow(max(0.,dot(n,halfdir)),70.)*day*ocean*.38;
@@ -491,7 +509,7 @@ class DirectRenderer{
     const g=this.gl;
     this.maxTextureSize=Math.min(4096,2**Math.floor(Math.log2(g.getParameter(g.MAX_TEXTURE_SIZE))));
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
-    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','nightMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','effectTime','sunActivity','nightLights']);
+    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','nightMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights']);
     this.coronaProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
     this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','worldOffset','anchor','camera','lens','travel','scale','localScale','color']);
     this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor']);
@@ -658,7 +676,7 @@ class DirectRenderer{
     const frame=job.frame;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,false);
     const g=this.gl,p=this.planetProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius);g.uniform3fv(p.u.axisU,frame.u);g.uniform3fv(p.u.axisV,frame.v);g.uniform3fv(p.u.pole,frame.pole);g.uniform3fv(p.u.light,job.light);
-    g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='uranus'?4:['jupiter','saturn','venus','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);
+    g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='uranus'?4:['jupiter','saturn','venus','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);g.uniform1f(p.u.nightTexel,1/(night?.width||color.width));g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);
     this.bindTextureUnit(0,color.texture);this.bindTextureUnit(1,bump?.texture||color.texture);this.bindTextureUnit(2,clouds?.texture||this.black);this.bindTextureUnit(3,night?.texture||this.black);
     g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,true);

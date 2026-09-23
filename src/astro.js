@@ -1,4 +1,4 @@
-/* Solar Time v0.54 | Layered ephemeris and deterministic display model.
+/* Solar Time v0.55 | Layered ephemeris and deterministic display model.
  * Planet elements: JPL / Standish & Williams table 1 for 1800–2050,
  * tables 2a/2b for the long-term 1800–2999 presentation range.
  * https://ssd.jpl.nasa.gov/planets/approx_pos.html

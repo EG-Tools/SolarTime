@@ -12,6 +12,7 @@ test('persisted restoration restarts an interrupted viewport settle',()=>{
 test('time-travel playback readout follows the actual clock rate',()=>{
   const app=read('src/app.js');
   assert.match(app,/clock\.live\|\|Math\.abs\(clock\.rate-1\)<1e-9\?'1 ×':speedText\(\)/);
+  assert.match(app,/if\(signature===controlsUiSignature\)return;controlsUiSignature=signature/);
 });
 
 test('satellite orbit geometry is normalized and zoom is a draw transform',()=>{
@@ -55,4 +56,32 @@ test('inactive speed slider exposes its configured value as pending',()=>{
   assert.match(app,/function selectedSpeedActive\(\)\{const cfg=SPEED_MODES\[speedMode\];return !clock\.live&&Math\.abs\(clock\.rate-cfg\.rate\(speedValues\[speedMode\]\)\)<1e-9;\}/);
   assert.match(app,/aria-valuetext',active\?selectedText:t\('speedUnitReady',\{unit:selectedText\}\)/);
   assert.match(app,/if\(!selectedSpeedActive\(\)\)\{applySpeed\(\);return;\}/);
+});
+
+test('a fully paused stable scene skips foreground draws but invalidations render immediately',()=>{
+  const source=read('src/renderer.js'),app=read('src/app.js'),window={SolarAstro:A};
+  vm.runInNewContext(source,{window,performance});
+  const renderer=Object.create(window.SolarRenderer.prototype);
+  Object.assign(renderer,{dirty:false,presentationDirty:false,presentationUntil:0,presentedResources:'stable',
+    cameraTween:null,autoRotation:null,actualScaleTween:null,cameraChangeAt:-Infinity,
+    resourceSignature:()=> 'stable',orbitRevealAlpha:()=>1});
+  assert.equal(renderer.needsDraw(1000),false);
+  renderer.invalidatePresentation();assert.equal(renderer.needsDraw(1000),true);
+  renderer.presentationDirty=false;renderer.presentedResources='old';assert.equal(renderer.needsDraw(1000),true);
+  assert.match(app,/const renderScene=!resizeFrame&&\(!clock\.paused\|\|activeMotion\|\|renderer\.needsDraw\(mono\)\)/);
+  assert.match(app,/if\(renderScene\)\{\s*const renderStarted=/);
+});
+
+test('one simulation timestamp reuses planetary and satellite precision vectors',()=>{
+  const source=read('src/renderer.js');let bodyCalls=0,satelliteCalls=0;
+  const fakeA={...A,positionAt(body,ms){bodyCalls++;return A.positionAt(body,ms);},satelliteAt(body,ms,radius){satelliteCalls++;return A.satelliteAt(body,ms,radius);}};
+  const window={SolarAstro:fakeA};vm.runInNewContext(source,{window,performance});
+  const renderer=Object.create(window.SolarRenderer.prototype);
+  Object.assign(renderer,{physicsMs:NaN,physicsBodies:new Map(),physicsSatellites:new Map()});
+  const ms=Date.parse('2026-09-23T00:00:00Z'),earth=A.BODIES.find(body=>body.id==='earth');
+  assert.equal(renderer.physicalAt(earth,ms),renderer.physicalAt(earth,ms));
+  assert.equal(renderer.satelliteUnitAt(A.MOON,ms),renderer.satelliteUnitAt(A.MOON,ms));
+  assert.equal(bodyCalls,1);assert.equal(satelliteCalls,1);
+  renderer.physicalAt(earth,ms+1);renderer.satelliteUnitAt(A.MOON,ms+1);
+  assert.equal(bodyCalls,2);assert.equal(satelliteCalls,2);
 });

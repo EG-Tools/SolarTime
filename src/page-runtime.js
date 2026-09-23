@@ -86,7 +86,8 @@
     checkedAt=now;checking=true;
     try{
       const url=new URL('version.json',root.location.href);url.searchParams.set('check',String(now));
-      const response=await root.fetch(url,{cache:'no-store',credentials:'same-origin'});
+      const timeout=typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'?AbortSignal.timeout(12000):undefined;
+      const response=await root.fetch(url,{cache:'no-store',credentials:'same-origin',...(timeout?{signal:timeout}:{})});
       if(!response.ok)return;
       const manifest=await response.json(),nextVersion=String(manifest.version||''),nextRevision=String(manifest.revision||'');
       if(!/^\d+(?:\.\d+)+$/.test(nextVersion)||!/^r\d+$/.test(nextRevision))return;

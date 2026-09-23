@@ -22,7 +22,9 @@ test('Background comet is a bounded curved cubic, with exact endpoint directions
 });
 test('Sky and planet maps stage a complete baseline before detail LODs',()=>{
  const sky=fs.readFileSync(require.resolve('../src/sky.js'),'utf8'),surface=fs.readFileSync(require.resolve('../src/surface.js'),'utf8'),app=fs.readFileSync(require.resolve('../src/app.js'),'utf8');
- assert.match(sky,/loadSkyImage\(root\.SolarAssets\?\.sky,512\)/);
+ assert.match(sky,/loadSkyImage\(root\.SolarAssets\?\.sky,512,this\.abort\.signal\)/);
+ assert.match(sky,/Sky image request timed out/);
+ assert.match(sky,/signal\?\.addEventListener\?\.\('abort',abort,\{once:true\}\)/);
  assert.match(sky,/for\(const width of \[1024,2048\]\)/);
  assert.match(surface,/BASELINE_TEXTURE_WIDTH=256/);
  assert.match(surface,/visibleTexturesReady\(\)/);

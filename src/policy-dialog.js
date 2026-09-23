@@ -26,7 +26,22 @@
     event.preventDefault();showDocument(link);
   };
   for(const link of links)link.addEventListener('click',event=>openDialog(link,event));
-  for(const tab of tabs)tab.addEventListener('click',()=>selectDocument(tab.dataset.policyPage));
+  for(const tab of tabs){
+    tab.addEventListener('click',()=>selectDocument(tab.dataset.policyPage));
+    tab.addEventListener('keydown',event=>{
+      const current=tabs.indexOf(tab);let next=-1;
+      if(event.key==='ArrowRight')next=(current+1)%tabs.length;
+      else if(event.key==='ArrowLeft')next=(current-1+tabs.length)%tabs.length;
+      else if(event.key==='Home')next=0;
+      else if(event.key==='End')next=tabs.length-1;
+      if(next<0)return;
+      event.preventDefault();tabs[next].focus({preventScroll:true});selectDocument(tabs[next].dataset.policyPage);
+    });
+  }
+  frame.addEventListener('load',()=>{
+    try{frame.contentDocument?.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();closeDialog();}});}
+    catch(_){/* A future cross-origin policy page keeps its native boundary. */}
+  });
   close?.addEventListener('click',closeDialog);UI?.bindDialog(dialog,closeDialog);
   root.SolarPolicyDialog=Object.freeze({open:href=>{const link=links.find(item=>item.getAttribute('href')===href);if(link)showDocument(link);},close:closeDialog});
 })(window);

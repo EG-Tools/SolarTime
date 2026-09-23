@@ -11,12 +11,15 @@ test('site information links share the in-app translucent dialog',()=>{
   assert.ok(html.includes('id="site-policy-dialog"'));
   assert.ok(html.includes('id="site-policy-frame"'));
   assert.equal((html.match(/class="site-policy-tab"/g)||[]).length,3);
-  assert.ok(html.includes('src="src/policy-dialog.js?v=0.54-r1"'));
+  assert.ok(html.includes('src="src/policy-dialog.js?v=0.55-r1"'));
   assert.ok(code.includes('.site-policy-links a[href$=".html"],#cookie-consent a[href="privacy.html"]'));
   assert.ok(code.includes('new URL(href,root.document.baseURI)'));
   assert.ok(code.includes("url.searchParams.set('embed','1')"));
   assert.ok(code.includes("tab.setAttribute('aria-selected',String(selected))"));
   assert.ok(code.includes("tab.addEventListener('click',()=>selectDocument(tab.dataset.policyPage))"));
+  for(const key of ['ArrowRight','ArrowLeft','Home','End'])assert.ok(code.includes("event.key==='"+key+"'"),key);
+  assert.ok(code.includes("frame.contentDocument?.addEventListener('keydown'"));
+  assert.ok(code.includes("event.key==='Escape'"));
   assert.ok(code.includes('UI.show(dialog,()=>dialog.showModal())'));
   assert.ok(css.includes('.site-policy-dialog{width:min(820px,calc(100% - 36px))'));
   assert.ok(css.includes('.site-policy-dialog[open]{display:grid;grid-template-rows:auto minmax(0,1fr)}'));
@@ -30,7 +33,7 @@ test('standalone policy pages keep canonical URLs and support embedded presentat
   assert.ok(css.includes('html.embedded .info-card{border-color:rgba(193,215,236,.12);background:linear-gradient'));
   for(const file of ['about.html','privacy.html','terms.html']){
     const page=read(file);
-    assert.ok(page.includes('src="src/policy-dialog.js?v=0.54-r1"'),file);
+    assert.ok(page.includes('src="src/policy-dialog.js?v=0.55-r1"'),file);
     assert.ok(page.includes(`rel="canonical" href="https://solartime.app/${file}"`),file);
     assert.ok(!page.includes('pagead2.googlesyndication.com'),file+' cannot request ads inside the in-app frame');
   }

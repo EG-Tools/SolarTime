@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
-  <meta name="solar-time-version" content="0.54">
+  <meta name="solar-time-version" content="0.55">
   <meta name="solar-time-revision" content="r1">
   <meta name="google-adsense-account" content="ca-pub-5773171100052324">
   <meta name="solar-time-ad-slot" content="">
@@ -17,12 +17,12 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23060910'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='12' transform='rotate(-28 32 32)' fill='none' stroke='%23748295' stroke-width='1.4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23efbf76'/%3E%3Ccircle cx='54' cy='20' r='3' fill='%23b6d8ed'/%3E%3C/svg%3E">
   <link rel="apple-touch-icon" sizes="180x180" href="https://solar-time.keg0320.workers.dev/media/releases/content/ui/apple-touch-icon.png?v=0.46-r3">
   <link rel="manifest" href="manifest.webmanifest?v=0.46-r3">
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-4MP85CMH64"></script>
-  <script src="src/google-analytics.js?v=0.54-r1"></script>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5773171100052324" crossorigin="anonymous"></script>
-  <script src="src/page-runtime.js?v=0.54-r1"></script>
-  <link rel="stylesheet" href="styles.css?v=0.54-r1">
-  <link rel="stylesheet" href="src/runtime-optimizations.css?v=0.54-r1">
+  <script src="src/consent.js?v=0.55-r1"></script>
+  <script src="src/google-analytics.js?v=0.55-r1"></script>
+  <script src="src/microsoft-clarity.js?v=0.55-r1"></script>
+  <script src="src/page-runtime.js?v=0.55-r1"></script>
+  <link rel="stylesheet" href="styles.css?v=0.55-r1">
+  <link rel="stylesheet" href="src/runtime-optimizations.css?v=0.55-r1">
 </head>
 <body>
   <div id="solar-viewport">
@@ -144,6 +144,7 @@
     <div class="setting-row"><label for="show-moon" data-i18n="satellites">주요 위성 · 달과 유로파</label><input id="show-moon" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-pluto"><span data-i18n="pluto">명왕성</span> <small data-i18n="dwarfPlanet">왜행성</small></label><input id="show-pluto" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-comets" data-i18n="comets">멀리 지나는 혜성</label><input id="show-comets" type="checkbox" checked role="switch"></div>
+    <button id="review-cookie-consent" type="button" class="text-button settings-consent" data-i18n="cookieTitle">쿠키 사용</button>
     <button id="reset-defaults" type="button" class="text-button settings-reset" data-i18n="resetDefaults">초기화</button>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
@@ -255,7 +256,7 @@
       <img class="life-user-watermark life-user-watermark-footer" data-life-user-watermark alt="Life User">
       <span class="credit-line"><span data-i18n="scaleNoteLineOne">크기·거리 축척 조정 · 평균 궤도 근사</span> ·</span>
       <span class="credit-line"><span data-i18n="scaleNoteLineTwo">자전·공전 시간 연동</span> · <a class="source-link" href="https://github.com/EG-Tools/SolarTime/blob/main/assets/CREDITS.md" target="_blank" rel="noopener" data-i18n="sources">출처</a></span>
-      <span class="credit-line">Solar Time v0.54 · <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
+      <span class="credit-line">Solar Time v0.55 · <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
       <span class="credit-line">© 2026 Life User. All rights reserved.</span>
       <nav class="site-policy-links" aria-label="Site information"><a href="about.html">ABOUT</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a></nav>
     </div>
@@ -283,7 +284,7 @@
       <button id="release-notes-toggle" class="release-notes-toggle" type="button" aria-expanded="false" aria-controls="release-notes-panel"><span data-i18n="releaseNotes">업데이트 내역</span><span class="release-notes-toggle-mark" aria-hidden="true"></span></button>
       <section id="release-notes-panel" class="release-notes-panel" hidden>
         <div class="release-notes-header">
-          <div class="release-notes-heading"><h3 id="release-notes-version">v0.54</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
+          <div class="release-notes-heading"><h3 id="release-notes-version">v0.55</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
           <div class="release-notes-navigation step-navigation" aria-label="업데이트 내역 이동">
             <button id="release-notes-newer" class="step-previous" type="button" aria-label="최신 업데이트 내역" data-i18n-aria="releaseNotesNewer"></button>
             <span id="release-notes-position" aria-live="polite">1 / 1</span>
@@ -298,7 +299,7 @@
       <p data-i18n="timeHelp">상단 시계는 기기 실제 시간입니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.</p>
       <p data-i18n="orbitHelp">행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.</p>
       <div class="shortcuts"><span><kbd>Space</kbd> <span data-i18n="pause">일시정지</span></span><span><kbd>R</kbd> <span data-i18n="realTime">실제 시간</span></span><span><kbd>F</kbd> <span data-i18n="fullscreen">전체 화면</span></span><span><kbd>H</kbd> <span data-i18n="zenMode">감상 모드</span></span><span><kbd>0</kbd> <span data-i18n="homeView">기본 시점</span></span><span><kbd>1 · 2 · 3</kbd> <span data-i18n="savedViews">저장 시점</span></span><span><kbd>Esc</kbd> <span data-i18n="stepExit">단계별 종료</span></span></div>
-      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span class="music-credit support-credit">BACKGROUND MUSIC · SUNO AI</span><span class="support-identity">Life User • Solar Time v0.54 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
+      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span class="music-credit support-credit">BACKGROUND MUSIC · SUNO AI</span><span class="support-identity">Life User • Solar Time v0.55 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </dialog>
@@ -337,36 +338,36 @@
   <noscript><div class="fatal-error">태양계 시계를 실행하려면 브라우저의 JavaScript를 켜 주세요.</div></noscript>
   </div>
   <aside id="desktop-ad-rail" class="desktop-ad-rail" aria-label="Advertisement" hidden>
-    <button id="desktop-ad-toggle" class="desktop-ad-toggle" type="button" aria-expanded="true" aria-controls="desktop-ad-panel"><span>AD</span><span class="desktop-ad-arrow" aria-hidden="true">›</span></button>
-    <div id="desktop-ad-panel" class="desktop-ad-panel" aria-hidden="false">
+    <button id="desktop-ad-toggle" class="desktop-ad-toggle card-surface" type="button" aria-expanded="true" aria-controls="desktop-ad-panel"><span>AD</span><span class="desktop-ad-arrow" aria-hidden="true">›</span></button>
+    <div id="desktop-ad-panel" class="desktop-ad-panel card-surface" aria-hidden="false">
       <ins id="desktop-ad-unit" class="adsbygoogle" data-ad-client="ca-pub-5773171100052324" data-ad-format="rectangle" data-full-width-responsive="false" hidden></ins>
       <div id="desktop-ad-preview" class="desktop-ad-preview" hidden><strong>AD PREVIEW</strong><span>200 × 200</span></div>
     </div>
   </aside>
-  <section id="cookie-consent" class="cookie-consent" role="dialog" aria-labelledby="cookie-consent-title" hidden>
+  <section id="cookie-consent" class="cookie-consent card-surface" role="dialog" aria-labelledby="cookie-consent-title" hidden>
     <p><strong id="cookie-consent-title" data-i18n="cookieTitle">쿠키 사용</strong><span data-i18n="cookieMessage">방문 분석과 광고 측정을 위해 쿠키 사용 여부를 선택해 주세요.</span></p>
     <div class="cookie-consent-actions"><a href="privacy.html" target="_blank" rel="noopener" data-i18n="cookiePrivacy">개인정보</a><button id="cookie-reject" type="button" data-i18n="cookieReject">거부</button><button id="cookie-accept" class="primary" type="button" data-i18n="cookieAccept">허용</button></div>
   </section>
   <script id="solar-assets" src="src/assets.js?v=assetpack-20260922-r3"></script>
   <script src="src/sky-asset.js?v=assetpack-20260922-r3"></script>
-  <script src="src/materials.js?v=0.54-r1"></script>
+  <script src="src/materials.js?v=0.55-r1"></script>
   <script src="src/astronomy-engine.min.js?v=2.1.19"></script>
-  <script src="src/astro.js?v=0.54-r1"></script>
+  <script src="src/astro.js?v=0.55-r1"></script>
   <script src="src/surface-style.js?v=0.47-r1"></script>
-  <script src="src/surface.js?v=0.54-r1"></script>
-  <script src="src/sky.js?v=0.47-r2"></script>
+  <script src="src/surface.js?v=0.55-r1"></script>
+  <script src="src/sky.js?v=7f6731d11c8a"></script>
   <script src="src/visual-effects.js?v=0.47-r2"></script>
-  <script src="src/renderer.js?v=0.54-r1"></script>
-  <script src="src/performance.js?v=0.54-r1"></script>
-  <script src="src/language-data.js?v=0.54-r1"></script>
-  <script src="src/localization.js?v=0.54-r1"></script>
+  <script src="src/renderer.js?v=0.55-r1"></script>
+  <script src="src/performance.js?v=0.55-r1"></script>
+  <script src="src/language-data.js?v=0.55-r1"></script>
+  <script src="src/localization.js?v=0.55-r1"></script>
   <script src="src/preferences.js?v=0.45"></script>
-  <script src="src/ui-runtime.js?v=0.54-r1"></script>
-  <script src="src/policy-dialog.js?v=0.54-r1"></script>
+  <script src="src/ui-runtime.js?v=0.55-r1"></script>
+  <script src="src/policy-dialog.js?v=0.55-r1"></script>
   <script src="src/music-player.js?v=0.45"></script>
-  <script src="src/adsense.js?v=0.54-r1"></script>
-  <script src="src/cookie-consent.js?v=0.54-r1"></script>
-  <script src="src/app.js?v=0.54-r1"></script>
+  <script src="src/adsense.js?v=0.55-r1"></script>
+  <script src="src/cookie-consent.js?v=0.55-r1"></script>
+  <script src="src/app.js?v=0.55-r1"></script>
   <!-- Cloudflare Web Analytics -->
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}'></script>
   <!-- End Cloudflare Web Analytics -->
