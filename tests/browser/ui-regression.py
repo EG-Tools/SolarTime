@@ -69,7 +69,7 @@ def suite(browser,root,size,installed):
  check(page.evaluate("JSON.parse(localStorage.getItem('eg.solar-time.v0.01')).clockSize") == 2,tag+' clock size persisted')
  page.locator('#show-seconds').check();page.wait_for_timeout(50)
  clock_fit=page.evaluate("""()=>{const c=document.getElementById('wall-clock').getBoundingClientRect(),p=document.getElementById('ampm').getBoundingClientRect();return {left:Math.min(c.left,p.left),right:Math.max(c.right,p.right),fit:Number(document.getElementById('wall-clock').dataset.fitScale)}}""")
- check(clock_fit['left']>=9 and clock_fit['right']<=size[0]-9,tag+' 200 percent clock with seconds fits the viewport')
+ check(clock_fit['left']>=9 and clock_fit['right']<=size[0]-9,tag+f' 200 percent clock with seconds fits the viewport {clock_fit}')
  if size[0]<=390:check(clock_fit['fit']<1,tag+' compact clock uses display-only fit scaling')
  check(page.evaluate("JSON.parse(localStorage.getItem('eg.solar-time.v0.01')).clockSize") == 2,tag+' fitted clock preserves the preferred 200 percent size')
  page.locator('#show-seconds').uncheck();page.wait_for_timeout(30)

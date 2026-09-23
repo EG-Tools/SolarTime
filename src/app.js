@@ -294,10 +294,15 @@
           const requiredHalf=Math.max(1,center-left,right-center);
           return availableHalf/requiredHalf;
         };
-        let fit=Math.max(.5,Math.min(1,ratio()));style.setProperty('--clock-fit-scale',String(fit));
-        // Fixed letter spacing and the AM/PM margin do not scale perfectly with
-        // the clock font. Re-measure once so the final edge keeps its padding.
-        fit=Math.max(.5,Math.min(1,fit*Math.min(1,ratio())));
+        let fit=1;
+        // Linux CI and user-installed fonts can be materially wider than the
+        // preferred Windows faces. Re-measure until fixed letter spacing and
+        // the absolutely positioned AM/PM label are inside the safe width too.
+        for(let pass=0;pass<4;pass++){
+          const next=Math.max(.25,Math.min(1,fit*Math.min(1,ratio())));
+          if(Math.abs(next-fit)<.0005){fit=next;break;}
+          fit=next;style.setProperty('--clock-fit-scale',String(fit));
+        }
         const rounded=Math.floor(fit*1000)/1000;
         style.setProperty('--clock-fit-scale',String(rounded));clockElement.dataset.fitScale=String(rounded);
       }
