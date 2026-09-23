@@ -1,4 +1,4 @@
-/* Solar Time v0.55 — surface implementation owner. */
+/* Solar Time v0.56 — surface implementation owner. */
 (function(root){
 'use strict';
 const STYLE=root.SolarSurfaceStyle;

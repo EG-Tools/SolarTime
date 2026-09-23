@@ -102,7 +102,7 @@
     const request=(mode,value)=>open().then(db=>new Promise((resolve,reject)=>{const transaction=db.transaction('sounds',mode==='get'?'readonly':'readwrite'),store=transaction.objectStore('sounds'),operation=mode==='get'?store.get('alarm'):mode==='put'?store.put(value,'alarm'):store.delete('alarm');operation.onsuccess=()=>resolve(operation.result);operation.onerror=()=>reject(operation.error||Error('Audio storage failed'));}));
     return Object.freeze({get:()=>request('get'),put:value=>request('put',value),remove:()=>request('remove')});
   }
-  function create({document=root.document,UI,Preferences,translate,notify=()=>{},shutdownBridge,onOpen=()=>{}}){
+  function create({document=root.document,UI,Preferences,translate,notify=()=>{},shutdownBridge,onOpen=()=>{},shouldKeepOpen=()=>false}){
     const $=id=>document.getElementById(id),storageKey='solar-time.timers.v1',now=()=>Date.now(),sounds=soundStore();
     const panel=$('timer-panel'),button=$('timer-button'),alarmDialog=$('alarm-dialog'),shutdownDialog=$('shutdown-dialog'),downloadDialog=$('shutdown-helper-download-dialog'),installDialog=$('shutdown-helper-install-dialog'),removeDialog=$('shutdown-helper-remove-dialog');
     const controls={alarm:{toggle:$('alarm-enabled'),hours:$('alarm-hours'),minutes:$('alarm-minutes'),target:$('alarm-target')},shutdown:{toggle:$('shutdown-enabled'),hours:$('shutdown-hours'),minutes:$('shutdown-minutes'),target:$('shutdown-target')}};
@@ -215,7 +215,7 @@
       try{const decoded=await decodeSound(file);await sounds.put({blob:file,name:file.name,type:file.type});customBuffer=decoded;state.soundMode='custom';state.soundName=file.name;save();syncSound();notify(t('alarmSoundSaved'));}catch(_){notify(t('alarmSoundInvalid'));}
     }
     button.addEventListener('click',()=>open());$('timer-close').addEventListener('click',()=>{open(false);button.focus({preventScroll:true});});UI.bindPopup(panel,()=>open(false));
-    const closeOnViewport=event=>{if(downloadDialog.open||installDialog.open||removeDialog.open||alarmDialog.open||shutdownDialog.open)return;if(UI.visible(panel)&&!panel.contains(event.target)&&!button.contains(event.target))open(false);};
+    const closeOnViewport=event=>{if(downloadDialog.open||installDialog.open||removeDialog.open||alarmDialog.open||shutdownDialog.open||shouldKeepOpen(event))return;if(UI.visible(panel)&&!panel.contains(event.target)&&!button.contains(event.target))open(false);};
     document.addEventListener('pointerdown',closeOnViewport);
     for(const name of ['alarm','shutdown']){
       controls[name].toggle.addEventListener('change',()=>controls[name].toggle.checked?schedule(name):cancel(name));

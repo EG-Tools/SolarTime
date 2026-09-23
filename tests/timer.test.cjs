@@ -16,7 +16,8 @@ test('timer provides exclusive sound choices, alarm actions and a zen-safe shutd
  assert.match(html,/id="alarm-snooze"/);assert.match(html,/id="alarm-stop"/);
  assert.doesNotMatch(code,/bindDialog\(alarmDialog,[^\n]+backdrop:false/);
  assert.match(code,/document\.addEventListener\('pointerdown',closeOnViewport\)/);
- assert.match(code,/if\(downloadDialog\.open\|\|installDialog\.open\|\|removeDialog\.open\|\|alarmDialog\.open\|\|shutdownDialog\.open\)return/);
+ assert.match(code,/shouldKeepOpen\(event\)/);assert.match(read('src/app.js'),/shouldKeepOpen:event=>\$\('help-dialog'\)\.open\|\|\$\('help-button'\)\.contains\(event\.target\)/);
+ assert.match(code,/if\(downloadDialog\.open\|\|installDialog\.open\|\|removeDialog\.open\|\|alarmDialog\.open\|\|shutdownDialog\.open\|\|shouldKeepOpen\(event\)\)return/);
  assert.match(code,/!panel\.contains\(event\.target\)&&!button\.contains\(event\.target\)/);
  assert.match(html,/id="shutdown-countdown">10</);assert.match(html,/id="shutdown-cancel"/);
  assert.doesNotMatch(html,/id="shutdown-helper-download"/);assert.match(html,/id="shutdown-helper-progress"/);
@@ -48,7 +49,7 @@ test('native shutdown bridge is Windows desktop only and clamps shutdown.exe sec
  assert.equal(bridge.platform('Mozilla/5.0 (X11; Linux x86_64)','Linux x86_64').windows,false);
  const helper=read('windows/SolarTimeShutdownHelper.cmd');assert.match(helper,/shutdown\.exe/);assert.match(helper,/359940/);assert.match(helper,/\/s \/t \$seconds/);assert.match(helper,/\/a/);assert.match(helper,/solartime-timer:\/\/uninstall/);assert.match(helper,/del \/f \/q "%~f0"/);assert.match(helper,/\$percent=\[char\]37/);
  assert.match(helper,/echo 설치가 완료되었습니다\./);assert.match(helper,/Start-Sleep -Seconds 1/);assert.match(helper,/SOLARTIME_INSTALLER_DELETE/);assert.match(helper,/SolarTimeInstallerCleanup_/);
- assert.match(helper,/Zone\.Identifier/);assert.match(helper,/install-complete\?token=/);assert.match(helper,/install=\(\[a-f0-9\]\{32\}\)/);assert.match(helper,/SolarTimeShutdownCleanup_/);assert.match(helper,/WScript\.Sleep 5000/);assert.match(helper,/wscript\.exe" \/\/B \/\/Nologo/);assert.doesNotMatch(helper,/start "" powershell\.exe/);assert.doesNotMatch(helper,/Start-Sleep -Seconds 30/);
+ assert.match(helper,/Zone\.Identifier/);assert.match(helper,/install-complete\?token=/);assert.match(helper,/install=\(\[a-f0-9\]\{32\}\)/);assert.match(helper,/SolarTimeShutdownCleanup_/);assert.match(helper,/WScript\.Sleep 5000/);assert.match(helper,/SolarTimeShutdownLauncher\.vbs/);assert.match(helper,/expression\.Pattern = "\^solartime-timer:/);assert.match(helper,/shell\.Run command, 0, False/);assert.match(helper,/wscript\.exe" \/\/B \/\/Nologo/);assert.doesNotMatch(helper,/start "" powershell\.exe/);assert.doesNotMatch(helper,/Start-Sleep -Seconds 30/);
  const windowsHelper=helper.replace(/\r?\n/g,'\r\n'),hash=require('node:crypto').createHash('sha256').update(windowsHelper).digest('hex').toUpperCase();assert.equal(bridge.HELPER_SHA256,hash);assert.match(bridge.HELPER_URL,/solar-time\.keg0320\.workers\.dev\/media\/releases\/content\/windows\/SolarTimeShutdownHelper\.[a-f0-9]{16}\.cmd/);assert.match(bridge.HELPER_SOURCE_URL,/SolarTimeShutdownHelper\.[a-f0-9]{16}\.source\.txt/);assert.match(read('tools/upload-windows-helper.cjs'),/replace\(\/\\r\?\\n\/g,'\\r\\n'\)/);
  assert.doesNotMatch(bridgeSource,/helperBase64|application\/octet-stream/);assert.match(bridgeSource,/download\(\).*HELPER_URL/);assert.match(bridgeSource,/crypto\?\.getRandomValues/);assert.match(bridgeSource,/installStatus/);assert.match(bridgeSource,/uninstall\(\).*solartime-timer:\/\/uninstall/);
 });

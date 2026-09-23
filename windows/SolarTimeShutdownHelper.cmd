@@ -8,10 +8,25 @@ if not "%~1"=="" goto protocol
 
 set "SOLARTIME_DIR=%LOCALAPPDATA%\SolarTime"
 set "SOLARTIME_TARGET=%SOLARTIME_DIR%\SolarTimeShutdownHelper.cmd"
+set "SOLARTIME_LAUNCHER=%SOLARTIME_DIR%\SolarTimeShutdownLauncher.vbs"
 set "SOLARTIME_INSTALLER_SOURCE=%~f0"
 if not exist "%SOLARTIME_DIR%" mkdir "%SOLARTIME_DIR%"
 copy /Y "%~f0" "%SOLARTIME_TARGET%" >nul
-powershell.exe -NoProfile -Command "$root='HKCU:\Software\Classes\solartime-timer'; New-Item -Path $root -Force | Out-Null; Set-Item -Path $root -Value 'URL:Solar Time Windows Timer'; New-ItemProperty -Path $root -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null; New-Item -Path ($root+'\DefaultIcon') -Force | Out-Null; Set-Item -Path ($root+'\DefaultIcon') -Value ($env:SystemRoot+'\System32\shutdown.exe,0'); New-Item -Path ($root+'\shell\open\command') -Force | Out-Null; $quote=[char]34; $percent=[char]37; Set-Item -Path ($root+'\shell\open\command') -Value ($quote+$env:SOLARTIME_TARGET+$quote+' '+$quote+$percent+'1'+$quote)"
+> "%SOLARTIME_LAUNCHER%" echo Option Explicit
+>> "%SOLARTIME_LAUNCHER%" echo Dim shell, fso, expression, helper, uri, quote, command
+>> "%SOLARTIME_LAUNCHER%" echo If WScript.Arguments.Count ^< 1 Then WScript.Quit 2
+>> "%SOLARTIME_LAUNCHER%" echo Set expression = New RegExp
+>> "%SOLARTIME_LAUNCHER%" echo expression.Pattern = "^solartime-timer://(cancel/?|uninstall/?|schedule[?]seconds=[0-9]{2,6})$"
+>> "%SOLARTIME_LAUNCHER%" echo expression.IgnoreCase = True
+>> "%SOLARTIME_LAUNCHER%" echo uri = WScript.Arguments(0^)
+>> "%SOLARTIME_LAUNCHER%" echo If Not expression.Test(uri^) Then WScript.Quit 3
+>> "%SOLARTIME_LAUNCHER%" echo Set shell = CreateObject("WScript.Shell"^)
+>> "%SOLARTIME_LAUNCHER%" echo Set fso = CreateObject("Scripting.FileSystemObject"^)
+>> "%SOLARTIME_LAUNCHER%" echo helper = fso.BuildPath(fso.GetParentFolderName(WScript.ScriptFullName^), "SolarTimeShutdownHelper.cmd"^)
+>> "%SOLARTIME_LAUNCHER%" echo quote = Chr(34^)
+>> "%SOLARTIME_LAUNCHER%" echo command = quote ^& shell.ExpandEnvironmentStrings("%%ComSpec%%"^) ^& quote ^& " /d /c " ^& quote ^& quote ^& helper ^& quote ^& " " ^& quote ^& uri ^& quote ^& quote
+>> "%SOLARTIME_LAUNCHER%" echo shell.Run command, 0, False
+powershell.exe -NoProfile -Command "$root='HKCU:\Software\Classes\solartime-timer'; New-Item -Path $root -Force | Out-Null; Set-Item -Path $root -Value 'URL:Solar Time Windows Timer'; New-ItemProperty -Path $root -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null; New-Item -Path ($root+'\DefaultIcon') -Force | Out-Null; Set-Item -Path ($root+'\DefaultIcon') -Value ($env:SystemRoot+'\System32\shutdown.exe,0'); New-Item -Path ($root+'\shell\open\command') -Force | Out-Null; $quote=[char]34; $percent=[char]37; $wscript=$env:SystemRoot+'\System32\wscript.exe'; Set-Item -Path ($root+'\shell\open\command') -Value ($quote+$wscript+$quote+' //B //Nologo '+$quote+$env:SOLARTIME_LAUNCHER+$quote+' '+$quote+$percent+'1'+$quote)"
 if errorlevel 1 (
   echo Solar Time shutdown helper installation failed.
   pause
@@ -46,23 +61,27 @@ exit /b %errorlevel%
 :uninstall_silent
 "%SystemRoot%\System32\shutdown.exe" /a >nul 2>&1
 set "SOLARTIME_UNINSTALL_TARGET=%~f0"
+set "SOLARTIME_UNINSTALL_LAUNCHER=%~dp0SolarTimeShutdownLauncher.vbs"
 set "SOLARTIME_UNINSTALL_CLEANUP=%TEMP%\SolarTimeShutdownCleanup_%RANDOM%%RANDOM%.vbs"
 > "%SOLARTIME_UNINSTALL_CLEANUP%" echo Option Explicit
->> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Dim shell, fso, target
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Dim shell, fso, target, launcher
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Set shell = CreateObject("WScript.Shell"^)
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Set fso = CreateObject("Scripting.FileSystemObject"^)
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo target = WScript.Arguments(0^)
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo launcher = WScript.Arguments(1^)
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo WScript.Sleep 5000
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo shell.Run "reg.exe delete ""HKCU\Software\Classes\solartime-timer"" /f", 0, True
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo On Error Resume Next
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo fso.DeleteFile target, True
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo fso.DeleteFile launcher, True
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo fso.DeleteFile WScript.ScriptFullName, True
-start "" "%SystemRoot%\System32\wscript.exe" //B //Nologo "%SOLARTIME_UNINSTALL_CLEANUP%" "%SOLARTIME_UNINSTALL_TARGET%"
+start "" "%SystemRoot%\System32\wscript.exe" //B //Nologo "%SOLARTIME_UNINSTALL_CLEANUP%" "%SOLARTIME_UNINSTALL_TARGET%" "%SOLARTIME_UNINSTALL_LAUNCHER%"
 exit /b 0
 
 :uninstall
 "%SystemRoot%\System32\shutdown.exe" /a >nul 2>&1
 powershell.exe -NoProfile -Command "Remove-Item -Path 'HKCU:\Software\Classes\solartime-timer' -Recurse -Force -ErrorAction SilentlyContinue"
+del /f /q "%~dp0SolarTimeShutdownLauncher.vbs" >nul 2>&1
 echo Solar Time Windows shutdown helper was disabled.
 pause
 del /f /q "%~f0" >nul 2>&1
