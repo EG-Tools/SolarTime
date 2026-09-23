@@ -1,7 +1,9 @@
 'use strict';
 const {seam}=require('../src/surface-style.js');
 const {assertOriginal}=require('./source-guard.cjs');
-const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),sharp=require('sharp');
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+let sharpApi;
+function imageProcessor(){return sharpApi||(sharpApi=require('sharp'));}
 
 const TEXTURE_WIDTHS=Object.freeze([256,512,1024,2048,4096]);
 const SKY_FILE='universe-optimized.webp';
@@ -31,6 +33,7 @@ function sourceFiles(root){
  return fs.readdirSync(path.join(root,'assets')).filter(name=>name.endsWith('.webp')&&!EXCLUDED.has(name)).sort();
 }
 async function seamBakedVariant(source,width,height,lossless=false){
+ const sharp=imageProcessor();
  const image=sharp(source).resize(width,height,{fit:'fill',kernel:sharp.kernel.lanczos3});
  const {data,info}=await image.raw().toBuffer({resolveWithObject:true}),channels=info.channels;
  const band=Math.max(seam.minBand,Math.min(seam.maxBand,Math.round(width*seam.ratio)));
@@ -44,6 +47,7 @@ async function seamBakedVariant(source,width,height,lossless=false){
  return sharp(data,{raw:{width,height,channels}}).webp(lossless?{lossless:true,effort:6}:{quality:95,effort:6,smartSubsample:true}).toBuffer();
 }
 async function textureVariants(root,output,prefix,file,group='textures'){
+ const sharp=imageProcessor();
  const source=path.join(root,'assets',file),metadata=await sharp(source).metadata();
  if(!metadata.width||!metadata.height||Math.abs(metadata.width/metadata.height-2)>.03)throw Error(file+' must be a 2:1 texture.');
  const widths=TEXTURE_WIDTHS.filter(width=>width<=metadata.width);if(!widths.includes(metadata.width))widths.push(metadata.width);widths.sort((a,b)=>a-b);
