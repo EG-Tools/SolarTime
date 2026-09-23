@@ -27,3 +27,16 @@ test('media uses complete cached objects for ranges, HEAD and ETag without modif
   assert.equal((await mf.dispatchFetch('https://solar.test/media/%E0%A4%A')).status,400);
  }finally{await mf.dispose();}
 });
+
+test('helper installation completion is an anonymous one-time R2 signal',async()=>{
+ const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:fs.readFileSync(path.join(__dirname,'../cloudflare/worker.js'),'utf8'),compatibilityDate:'2026-09-14',r2Buckets:['SOLAR_TIME_MEDIA']}));
+ try{
+  const token='0123456789abcdef0123456789abcdef',status='https://solar.test/api/windows-helper/install-status?token='+token,complete='https://solar.test/api/windows-helper/install-complete?token='+token;
+  let response=await mf.dispatchFetch(status);assert.equal(response.status,200);assert.deepEqual(await response.json(),{installed:false});assert.equal(response.headers.get('access-control-allow-origin'),'*');
+  assert.equal((await mf.dispatchFetch(complete,{method:'OPTIONS'})).status,204);
+  assert.equal((await mf.dispatchFetch(complete,{method:'POST'})).status,204);
+  response=await mf.dispatchFetch(status);assert.deepEqual(await response.json(),{installed:true});
+  await new Promise(resolve=>setTimeout(resolve,20));response=await mf.dispatchFetch(status);assert.deepEqual(await response.json(),{installed:false});
+  assert.equal((await mf.dispatchFetch('https://solar.test/api/windows-helper/install-status?token=bad')).status,400);
+ }finally{await mf.dispose();}
+});

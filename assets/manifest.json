@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "revision": "assetpack-20260922-r3",
-  "generatedAt": "2026-09-22T09:11:35.729Z",
+  "generatedAt": "2026-09-23T09:28:41.377Z",
   "materials": {
     "clouds": {
       "source": "clouds.webp",
@@ -629,6 +629,12 @@
     ]
   },
   "music": {
+    "00 - Soft Morning.mp3": {
+      "source": "music/00 - Soft Morning.mp3",
+      "path": "releases/content/music/00 - Soft Morning.ecc592bdc418b3b9.mp3",
+      "bytes": 2310912,
+      "sha256": "ecc592bdc418b3b91c767d943241def2f21c04340864f4577149b1f203f6dd94"
+    },
     "01 - Celestial Drift.mp3": {
       "source": "music/01 - Celestial Drift.mp3",
       "path": "releases/content/music/01 - Celestial Drift.2d06e6cb8ab0321b.mp3",

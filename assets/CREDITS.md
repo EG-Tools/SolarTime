@@ -2,6 +2,12 @@
 
 The exact built-in ImageGen prompts used for the current Sun, Pluto, Uranus and Europa reconstructions, plus the Earth night-light palette study, are recorded in `assets/IMAGEGEN_PROMPTS.md`.
 
+## Default alarm sound
+
+“Soft Morning” by Maryan Dembitskyi, provided through Pixabay for free use. The alarm loops until the user stops or snoozes it.
+
+- Maryan Dembitskyi - Soft Morning: https://pixabay.com/ko/users/marmixer-6762941/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=484625
+
 ## Already embedded in this package
 
 **Earth:** NASA Blue Marble Next Generation. Visualization by Reto Stöckli and Robert Simmon / NASA Earth Observatory. Converted from the Basemap-distributed `bmng.jpg` and resampled to 4096×2048 WebP in v0.06. This is not live weather.

@@ -218,7 +218,7 @@ test('v0.46 r3 keeps install icons on R2 and forces PNG MIME delivery',()=>{
   for(const name of ['apple-touch-icon.png','app-icon-192.png','app-icon-512.png','life-user-watermark.webp'])assert.ok(!site.includes("'"+name+"'"),name);
   assert.match(worker,/if\(value\.endsWith\('\.png'\)\)return 'image\/png'/);
   assert.match(worker,/headers=mediaHeaders\(object,status,key\)/);
-  assert.deepEqual(wrangler.assets.run_worker_first,['/media/*']);
+  assert.deepEqual(wrangler.assets.run_worker_first,['/media/*','/api/windows-helper/*']);
 });
 
 

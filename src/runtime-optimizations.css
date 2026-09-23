@@ -102,6 +102,94 @@ html.solar-standalone .modal{
   top:calc(var(--solar-viewport-top,0px) + var(--solar-viewport-height,100dvh)/2);
   left:calc(var(--solar-viewport-left,0px) + var(--solar-viewport-width,100vw)/2);
 }
+
+/* Timer panel shares the settings card language but owns its countdown controls. */
+.timer-panel{right:40px;top:max(87px,calc(var(--solar-safe-top) + 10px));z-index:9;width:292px;padding:0;max-height:calc(100dvh - 100px);overflow:hidden}
+.timer-panel.card-surface{display:flex;flex-direction:column}
+.timer-panel>.panel-heading{flex:none;margin:0;padding:23px 23px 17px}
+.timer-scroll{padding:0 23px 23px}
+.setting-row input[type=checkbox]:disabled{cursor:not-allowed;opacity:.35}
+.timer-section{padding:2px 0 15px}
+.timer-section+.timer-section{padding-top:15px;border-top:1px solid var(--line)}
+.timer-duration{display:flex;align-items:center;gap:8px;margin:3px 0 8px}
+.timer-duration label{display:flex;align-items:center;gap:5px;color:#8592a2;font-size:10px}
+.timer-duration input{box-sizing:border-box;width:54px;height:34px;padding:5px 7px;border:1px solid rgba(171,188,212,.16);border-radius:7px;outline:0;background:rgba(3,7,13,.42);color:#e1d3b8;font:12px/1 inherit;text-align:center;font-variant-numeric:tabular-nums}
+.timer-duration input:focus{border-color:rgba(232,199,131,.46);box-shadow:0 0 0 2px rgba(232,199,131,.06)}
+.timer-duration input:disabled{opacity:.34}
+.timer-duration input::-webkit-inner-spin-button{opacity:.35}
+.timer-target{display:block;min-height:18px;color:#778596;font-size:9px;line-height:1.6;font-variant-numeric:tabular-nums}
+.timer-section.is-active .timer-target{color:#cbb486}
+.timer-sound-options{display:grid;gap:3px;margin:11px 0 0;padding:0;border:0}
+.timer-sound-options legend{margin:0 0 5px;color:#748293;font-size:9px}
+.timer-radio-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px;min-height:31px}
+.timer-radio{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;gap:7px;min-width:0;color:#9ba7b5;font-size:10px;cursor:pointer}
+.timer-radio>input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.timer-radio-mark{position:relative;width:14px;height:14px;border:1px solid rgba(171,188,212,.3);border-radius:50%;background:rgba(3,7,13,.36);transition:border-color .18s,box-shadow .18s}
+.timer-radio-mark::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--accent);opacity:0;transform:scale(.45);transition:opacity .18s,transform .18s}
+.timer-radio>input:checked+.timer-radio-mark{border-color:rgba(232,199,141,.7);box-shadow:0 0 9px rgba(232,199,141,.12)}
+.timer-radio>input:checked+.timer-radio-mark::after{opacity:1;transform:scale(1)}
+.timer-radio:focus-within .timer-radio-mark{outline:1px solid rgba(232,199,141,.62);outline-offset:3px}
+.timer-radio-row-custom{grid-template-columns:max-content max-content minmax(23px,1fr)}
+.timer-radio-row-custom>#alarm-sound-choose{align-self:center;padding:5px 2px;background:transparent;color:#758292;font-size:8px}
+.timer-radio-row-custom>#alarm-sound-choose:hover{color:#d8c49e}
+.timer-radio-row-custom>#alarm-preview-custom{justify-self:end}
+.timer-sound-preview{position:relative;display:grid;place-items:center;width:23px;height:23px;padding:0;border:1px solid rgba(171,188,212,.17);border-radius:7px;background:rgba(3,7,13,.26);color:#9ca9b8;transition:border-color .18s,color .18s,background .18s,box-shadow .18s}
+.timer-sound-preview>span{display:block;width:0;height:0;margin-left:1px;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:7px solid currentColor}
+.timer-sound-preview[aria-pressed=true]{border-color:rgba(232,199,141,.44);background:rgba(188,154,91,.1);color:#dfc582;box-shadow:0 0 9px rgba(223,197,130,.08)}
+.timer-sound-preview[aria-pressed=true]>span{width:7px;height:7px;margin-left:0;border:0;border-radius:1px;background:currentColor}
+.timer-sound-preview:disabled{cursor:not-allowed;opacity:.28}
+.timer-sound-preview:not(:disabled):hover,.timer-sound-preview:not(:disabled):focus-visible{border-color:rgba(232,199,141,.48);color:#e4ca8d;outline:0}
+.timer-sound-name{display:block;max-width:100%;margin:2px 0 0 23px;overflow:hidden;color:#697788;font-size:8px;text-overflow:ellipsis;white-space:nowrap}
+.timer-sound-credit{display:flex;align-items:center;gap:4px;margin:-1px 0 2px 23px;color:#596778;font-size:8px;letter-spacing:.2px}
+.timer-sound-credit a{color:#788697;text-decoration:none;transition:color .18s ease}
+.timer-sound-credit a:hover,.timer-sound-credit a:focus-visible{color:#d8c49e;outline:0}
+.timer-helper-row{margin-top:7px}
+.timer-helper-label{display:flex;align-items:center;gap:7px;min-width:0}
+.timer-helper-label label{min-width:0}
+.timer-helper-remove{align-self:center;padding:5px 2px;border:0;background:transparent;color:#758292;font:inherit;font-size:8px;letter-spacing:0;cursor:pointer;transition:color .18s ease,opacity .18s ease}
+.timer-helper-remove:not(:disabled):hover,.timer-helper-remove:not(:disabled):focus-visible{color:#d8c49e;outline:0}
+.timer-helper-remove:disabled{cursor:not-allowed;opacity:.28}
+.timer-support-note{margin:3px 0 9px;color:#6f7d8d;font-size:9px;line-height:1.55;word-break:keep-all}
+.timer-helper-progress{display:grid;gap:6px;margin-top:10px;color:#6f7d8d;font-size:8px}
+.timer-helper-progress-heading{display:flex;align-items:center;justify-content:space-between;color:#8592a2;font-size:9px}
+.timer-helper-progress-heading output{color:#cbb486;font-variant-numeric:tabular-nums}
+.timer-helper-track{height:2px;border-radius:999px;background:#34404e;overflow:hidden}
+.timer-helper-track i{display:block;width:var(--helper-progress,0%);height:100%;border-radius:inherit;background:linear-gradient(90deg,#a88d58,#e5c985);box-shadow:0 0 7px rgba(225,194,130,.34);transition:width .35s ease}
+.timer-shutdown.is-unavailable{opacity:.58}
+.timer-shutdown.is-unavailable .timer-helper-progress{opacity:.45}
+.alarm-dialog{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);margin:0}
+.alarm-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+.alarm-actions #alarm-stop{color:var(--accent);border-color:#bd9a5b66;background:#bd9a5b15}
+.shutdown-dialog{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);margin:0;text-align:center;z-index:100}
+.shutdown-dialog strong{display:block;margin:2px 0 8px;color:var(--accent);font-size:38px;font-weight:300;line-height:1;font-variant-numeric:tabular-nums}
+.shutdown-helper-download-dialog{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);margin:0;width:min(390px,calc(100vw - 24px));padding:19px;z-index:101}
+.shutdown-helper-download-dialog p{margin-bottom:11px}
+.shutdown-helper-safety-list{display:grid;gap:7px;margin:0 0 11px;padding-left:17px;color:#9ba8b8;font-size:10px;line-height:1.55}
+.shutdown-helper-safety-list li::marker{color:#cfb06f}
+.shutdown-helper-source{display:inline-block;margin-bottom:10px;color:#cfb06f;font-size:9px;text-decoration:none;border-bottom:1px solid rgba(207,176,111,.38)}
+.shutdown-helper-checksum{display:grid;gap:4px;padding:8px 9px;border:1px solid rgba(116,135,159,.2);border-radius:7px;background:rgba(3,8,14,.25)}
+.shutdown-helper-checksum span{color:#8492a3;font-size:8px;letter-spacing:.12em}
+.shutdown-helper-checksum code{overflow-wrap:anywhere;color:#aeb9c7;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:8px;line-height:1.45;user-select:text}
+.shutdown-helper-download-question{color:#dfd1b6!important;text-align:center}
+.shutdown-helper-download-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+.shutdown-helper-download-actions #shutdown-helper-download-yes{color:var(--accent);border-color:#bd9a5b66;background:#bd9a5b15}
+.shutdown-helper-install-dialog,.shutdown-helper-remove-dialog{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);margin:0;width:min(360px,calc(100vw - 24px));padding:19px;text-align:center;z-index:102}
+.shutdown-helper-install-dialog p,.shutdown-helper-remove-dialog p{margin-bottom:11px}
+.shutdown-helper-install-question,.shutdown-helper-remove-question{color:#dfd1b6!important}
+.shutdown-helper-install-actions,.shutdown-helper-remove-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+.shutdown-helper-install-actions #shutdown-helper-install-yes{color:var(--accent);border-color:#bd9a5b66;background:#bd9a5b15}
+.shutdown-helper-remove-actions #shutdown-helper-remove-yes{color:#e1bca7;border-color:rgba(192,121,88,.38);background:rgba(192,121,88,.08)}
+.shutdown-actions{grid-template-columns:1fr}
+.shutdown-actions #shutdown-cancel{color:var(--accent);border-color:#bd9a5b66;background:#bd9a5b15}
+.icon-button.timer-active{color:var(--accent);background:rgba(165,183,204,.09)}
+@media(max-width:1050px){.timer-panel{right:27px}}
+@media(max-width:680px){.timer-panel{right:16px;top:max(61px,calc(var(--solar-safe-top) + 8px));width:264px}.timer-panel>.panel-heading{padding:21px 21px 17px}.timer-scroll{padding:0 21px 21px}}
+@media(max-height:630px) and (min-width:681px){.timer-panel{top:max(60px,calc(var(--solar-safe-top) + 8px))}}
+@media(max-width:420px){.brand{gap:5px}.brand svg{width:26px;height:26px}.brand h1{font-size:9px;letter-spacing:1.3px}.top-actions .icon-button{width:30px;height:31px}.top-actions .language-toggle{width:34px}.top-actions svg{width:18px;height:18px}}
+html.solar-standalone :is(.alarm-dialog,.shutdown-dialog){
+  top:calc(var(--solar-viewport-top,0px) + var(--solar-viewport-height,100dvh)/2);
+  left:calc(var(--solar-viewport-left,0px) + var(--solar-viewport-width,100vw)/2);
+}
 html.solar-standalone #reset-defaults-dialog{
   top:calc(var(--solar-viewport-top,0px) + var(--solar-viewport-height,100dvh)/2);
   left:calc(var(--solar-viewport-left,0px) + var(--solar-viewport-width,100vw)/2);

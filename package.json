@@ -18,6 +18,7 @@
     "deploy:cloudflare": "node tools/deploy-cloudflare.cjs",
     "test:v046": "node --test tests/v046-release.test.cjs",
     "upload:ui": "node tools/upload-ui-assets.cjs",
+    "upload:windows-helper": "node tools/upload-windows-helper.cjs",
     "fetch:derived": "node tools/fetch-derived-assets.cjs",
     "pack:originals": "node tools/pack-originals.cjs",
     "restore:ui:history": "node tools/restore-ui-history.cjs",

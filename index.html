@@ -100,11 +100,14 @@
           <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
         </div>
       </div>
-      <button id="help-button" class="icon-button" aria-label="사용 방법과 계산 기준" aria-expanded="false" aria-controls="help-dialog" title="사용 방법과 계산 기준" data-i18n-aria="helpLabel" data-i18n-title="helpLabel">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.8 9a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.7-2.2 3.4M12 16v.1"/></svg>
+      <button id="timer-button" class="icon-button" type="button" aria-label="타이머" aria-expanded="false" aria-controls="timer-panel" title="타이머" data-i18n-aria="timer" data-i18n-title="timer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M12 5v2M17.2 7.3l1.5-1.5"/><circle cx="12" cy="13.5" r="7"/><path d="M12 10v3.8l2.7 1.7"/></svg>
       </button>
       <button id="settings-button" class="icon-button" aria-label="화면 설정" aria-expanded="false" aria-controls="settings-panel" title="화면 설정" data-i18n-aria="settings" data-i18n-title="settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5"/><circle cx="15" cy="17" r="2.5"/></svg>
+      </button>
+      <button id="help-button" class="icon-button" aria-label="사용 방법과 계산 기준" aria-expanded="false" aria-controls="help-dialog" title="사용 방법과 계산 기준" data-i18n-aria="helpLabel" data-i18n-title="helpLabel">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.8 9a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.7-2.2 3.4M12 16v.1"/></svg>
       </button>
       <button id="fullscreen-button" class="icon-button" aria-label="전체 화면" title="전체 화면 · F">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg>
@@ -146,6 +149,45 @@
     <div class="setting-row"><label for="show-comets" data-i18n="comets">멀리 지나는 혜성</label><input id="show-comets" type="checkbox" checked role="switch"></div>
     <button id="review-cookie-consent" type="button" class="text-button settings-consent" data-i18n="cookieTitle">쿠키 사용</button>
     <button id="reset-defaults" type="button" class="text-button settings-reset" data-i18n="resetDefaults">초기화</button>
+    </div>
+    <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
+  </aside>
+
+  <aside id="timer-panel" class="panel timer-panel card-surface ui" hidden aria-label="타이머" data-i18n-aria="timer">
+    <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+    <div class="panel-heading"><div><span class="eyebrow">TIME CONTROL</span><h2 data-i18n="timer">타이머</h2></div><button id="timer-close" class="close-button" type="button" aria-label="타이머 닫기" data-i18n-aria="timerClose">×</button></div>
+    <div class="timer-scroll card-scroll">
+      <section class="timer-section" aria-labelledby="alarm-label">
+        <div class="setting-row"><label id="alarm-label" for="alarm-enabled" data-i18n="alarm">알람</label><input id="alarm-enabled" type="checkbox" role="switch"></div>
+        <div class="timer-duration" role="group" aria-label="알람 시간" data-i18n-aria="alarmDuration">
+          <label><input id="alarm-hours" type="number" min="0" max="99" step="1" value="0" inputmode="numeric"><span data-i18n="hours">시간</span></label>
+          <label><input id="alarm-minutes" type="number" min="0" max="59" step="1" value="5" inputmode="numeric"><span data-i18n="minutes">분</span></label>
+        </div>
+        <output id="alarm-target" class="timer-target" aria-live="polite" data-i18n="timerInactive">설정 안 됨</output>
+        <fieldset class="timer-sound-options">
+          <legend data-i18n="alarmSound">알람 사운드</legend>
+          <div class="timer-radio-row"><label class="timer-radio"><input id="alarm-sound-default" type="radio" name="alarm-sound-mode" value="default" checked><span class="timer-radio-mark" aria-hidden="true"></span><span data-i18n="defaultAlarmSound">기본 알람 사운드</span></label><button id="alarm-preview-default" class="timer-sound-preview" type="button" aria-label="기본 알람 사운드 미리듣기" aria-pressed="false"><span aria-hidden="true"></span></button></div>
+          <span class="timer-sound-credit"><a href="https://pixabay.com/ko/users/marmixer-6762941/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=484625" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi - Soft Morning</a></span>
+          <div class="timer-radio-row timer-radio-row-custom"><label class="timer-radio"><input id="alarm-sound-custom" type="radio" name="alarm-sound-mode" value="custom"><span class="timer-radio-mark" aria-hidden="true"></span><span data-i18n="customAlarmSound">알람 사운드 설정</span></label><button id="alarm-sound-choose" type="button" data-i18n="chooseFile">파일 선택</button><button id="alarm-preview-custom" class="timer-sound-preview" type="button" aria-label="설정한 알람 사운드 미리듣기" aria-pressed="false"><span aria-hidden="true"></span></button></div>
+          <input id="alarm-sound-file" type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac,.opus" hidden>
+          <span id="alarm-sound-name" class="timer-sound-name" data-i18n="noSoundSelected">선택된 파일 없음</span>
+        </fieldset>
+      </section>
+      <section id="shutdown-section" class="timer-section timer-shutdown" aria-labelledby="shutdown-label">
+        <div class="setting-row"><label id="shutdown-label" for="shutdown-enabled" data-i18n="scheduledShutdown">예약 종료</label><input id="shutdown-enabled" type="checkbox" role="switch"></div>
+        <div class="timer-duration" role="group" aria-label="예약 종료 시간" data-i18n-aria="shutdownDuration">
+          <label><input id="shutdown-hours" type="number" min="0" max="99" step="1" value="1" inputmode="numeric"><span data-i18n="hours">시간</span></label>
+          <label><input id="shutdown-minutes" type="number" min="0" max="59" step="1" value="0" inputmode="numeric"><span data-i18n="minutes">분</span></label>
+        </div>
+        <output id="shutdown-target" class="timer-target" aria-live="polite" data-i18n="timerInactive">설정 안 됨</output>
+        <div class="setting-row timer-helper-row"><div class="timer-helper-label"><label for="shutdown-helper-enabled" data-i18n="shutdownHelper">Windows 종료 보조 모듈</label><button id="shutdown-helper-remove" class="timer-helper-remove" type="button" data-i18n="removeHelper" disabled>제거</button></div><input id="shutdown-helper-enabled" type="checkbox" role="switch"></div>
+        <p id="shutdown-support-note" class="timer-support-note" data-i18n="shutdownHelperNote">예약 종료를 사용하려면 보조 모듈을 설치하고 활성화해야 합니다.</p>
+        <div id="shutdown-helper-progress" class="timer-helper-progress" aria-live="polite">
+          <div class="timer-helper-progress-heading"><span data-i18n="helperSetup">보조 모듈 설치</span><output id="shutdown-helper-percent">0%</output></div>
+          <div class="timer-helper-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+          <span id="shutdown-helper-status" data-i18n="helperNotInstalled">설치 안 됨</span>
+        </div>
+      </section>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </aside>
@@ -276,6 +318,46 @@
     <div class="preset-actions reset-defaults-actions"><button type="button" id="reset-defaults-no" data-i18n="no">아니오</button><button type="button" id="reset-defaults-yes" data-i18n="yes">예</button></div>
   </dialog>
 
+  <dialog id="alarm-dialog" class="preset-dialog alarm-dialog card-surface" aria-labelledby="alarm-dialog-title" aria-describedby="alarm-dialog-note">
+    <h2 id="alarm-dialog-title" data-i18n="alarmRinging">알람이 울리고 있습니다</h2>
+    <p id="alarm-dialog-note" data-i18n="alarmRingingNote">설정한 시간이 되었습니다.</p>
+    <div class="preset-actions alarm-actions"><button type="button" id="alarm-snooze" data-i18n="snoozeFive">5분 뒤로 미루기</button><button type="button" id="alarm-stop" data-i18n="stopAlarm">알람 끄기</button></div>
+  </dialog>
+
+  <dialog id="shutdown-dialog" class="preset-dialog shutdown-dialog card-surface" aria-labelledby="shutdown-dialog-title" aria-describedby="shutdown-dialog-note">
+    <h2 id="shutdown-dialog-title" data-i18n="shutdownCountdownTitle">Windows 예약 종료</h2>
+    <p id="shutdown-dialog-note"><strong id="shutdown-countdown">10</strong><span data-i18n="shutdownCountdownNote">초 후 컴퓨터가 종료됩니다.</span></p>
+    <div class="preset-actions shutdown-actions"><button type="button" id="shutdown-cancel" data-i18n="cancelShutdown">종료 취소</button></div>
+  </dialog>
+
+  <dialog id="shutdown-helper-download-dialog" class="preset-dialog shutdown-helper-download-dialog card-surface" aria-labelledby="shutdown-helper-download-title" aria-describedby="shutdown-helper-download-note shutdown-helper-download-question">
+    <h2 id="shutdown-helper-download-title" data-i18n="helperDownloadTitle">안전 확인된 공식 보조 모듈</h2>
+    <p id="shutdown-helper-download-note" data-i18n="helperDownloadDescription">Solar Time에서 직접 제작하고 내용을 확인한 Windows 예약 종료용 파일입니다.</p>
+    <ul class="shutdown-helper-safety-list">
+      <li data-i18n="helperDownloadPrivacy">개인정보는 수집하지 않으며, 설치 완료 확인을 위한 익명의 일회용 신호만 Solar Time에 전송합니다.</li>
+      <li data-i18n="helperDownloadPermission">관리자 권한 없이 현재 사용자에게만 설치되며 Windows 종료 명령만 사용합니다.</li>
+      <li data-i18n="helperDownloadSource">원본 코드와 SHA-256 값을 공개해 파일 변경 여부를 확인할 수 있습니다.</li>
+    </ul>
+    <a class="shutdown-helper-source" href="https://solar-time.keg0320.workers.dev/media/releases/content/windows/SolarTimeShutdownHelper.d114f25638cc943f.source.txt" target="_blank" rel="noopener noreferrer" data-i18n="helperViewSource">원본 코드 보기</a>
+    <p class="shutdown-helper-checksum"><span data-i18n="helperChecksumLabel">SHA-256</span><code id="shutdown-helper-checksum"></code></p>
+    <p id="shutdown-helper-download-question" class="shutdown-helper-download-question" data-i18n="helperDownloadQuestion">Cloudflare에서 다운로드하시겠습니까?</p>
+    <div class="preset-actions shutdown-helper-download-actions"><button type="button" id="shutdown-helper-download-no" data-i18n="no">아니오</button><button type="button" id="shutdown-helper-download-yes" data-i18n="yes">예</button></div>
+  </dialog>
+
+  <dialog id="shutdown-helper-install-dialog" class="preset-dialog shutdown-helper-install-dialog card-surface" aria-labelledby="shutdown-helper-install-title" aria-describedby="shutdown-helper-install-note shutdown-helper-install-question">
+    <h2 id="shutdown-helper-install-title" data-i18n="helperInstallTitle">보조 모듈 설치 확인</h2>
+    <p id="shutdown-helper-install-note" data-i18n="helperInstallDescription">다운로드한 CMD 파일을 실행하고 설치 완료 메시지를 확인한 뒤 계속해 주세요.</p>
+    <p id="shutdown-helper-install-question" class="shutdown-helper-install-question" data-i18n="helperInstallQuestion">보조 모듈 실행을 완료했습니까?</p>
+    <div class="preset-actions shutdown-helper-install-actions"><button type="button" id="shutdown-helper-install-no" data-i18n="no">아니오</button><button type="button" id="shutdown-helper-install-yes" data-i18n="yes">예</button></div>
+  </dialog>
+
+  <dialog id="shutdown-helper-remove-dialog" class="preset-dialog shutdown-helper-remove-dialog card-surface" aria-labelledby="shutdown-helper-remove-title" aria-describedby="shutdown-helper-remove-note shutdown-helper-remove-question">
+    <h2 id="shutdown-helper-remove-title" data-i18n="helperRemoveTitle">종료 보조 모듈 제거</h2>
+    <p id="shutdown-helper-remove-note" data-i18n="helperRemoveDescription">예약된 종료를 취소하고 사용자 계정에서 보조 모듈과 연결 정보를 삭제합니다.</p>
+    <p id="shutdown-helper-remove-question" class="shutdown-helper-remove-question" data-i18n="helperRemoveQuestion">보조 모듈을 제거하시겠습니까?</p>
+    <div class="preset-actions shutdown-helper-remove-actions"><button type="button" id="shutdown-helper-remove-no" data-i18n="no">아니오</button><button type="button" id="shutdown-helper-remove-yes" data-i18n="yes">예</button></div>
+  </dialog>
+
   <dialog id="help-dialog" class="modal card-surface" aria-labelledby="help-title">
     <form method="dialog"><button class="close-button" aria-label="도움말 닫기" data-i18n-aria="helpClose">×</button></form>
     <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
@@ -363,6 +445,8 @@
   <script src="src/localization.js?v=0.55-r1"></script>
   <script src="src/preferences.js?v=0.45"></script>
   <script src="src/ui-runtime.js?v=0.55-r1"></script>
+  <script src="src/windows-shutdown.js?v=0.55-r1"></script>
+  <script src="src/timer-controller.js?v=0.55-r1"></script>
   <script src="src/policy-dialog.js?v=0.55-r1"></script>
   <script src="src/music-player.js?v=0.45"></script>
   <script src="src/adsense.js?v=0.55-r1"></script>

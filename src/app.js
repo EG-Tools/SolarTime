@@ -130,7 +130,7 @@
   const COPY=Object.create(null),BODY_COPY=Object.create(null),PHASE_COPY=Object.create(null);
   async function hydrateLanguage(region,copyCode=LANG_META[region]?.copy||'kor'){
     const code=copyCode,bundle=await LanguageData.load(code);
-    COPY[code]=bundle.copy;BODY_COPY[code]=bundle.bodies;PHASE_COPY[code]=bundle.phases;
+    Object.assign(bundle.copy,Modules.TimerController?.copy(code)||{});COPY[code]=bundle.copy;BODY_COPY[code]=bundle.bodies;PHASE_COPY[code]=bundle.phases;
   }
   // NASA/NSSDCA representative values. Gas- and ice-giant temperatures refer
   // to a comparable atmospheric pressure level because they have no hard surface.
@@ -165,7 +165,7 @@
       Object.assign(renderer.options,FACTORY_OPTIONS);renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
       const clock=new A.SimulationClock(Date.now(),performance.now());
       let timezone='local',showSeconds=false,hourCycle='12',clockSize=1,language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),zen=false,raf=0,clockFitFrame=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
-      let speedMode='day',speedValues={hour:1,day:1,year:1};
+      let speedMode='day',speedValues={hour:1,day:1,year:1},timerController=null;
       const activeRegion=()=>REGIONS[language]||REGIONS.kor;
       autoTimeZone=autoTimeZone||activeRegion().timeZone;
       const activeTimeZone=()=>timezone==='utc'?'UTC':languageMode==='auto'?autoTimeZone:activeRegion().timeZone;
@@ -195,6 +195,7 @@
         $('fullscreen-button').setAttribute('aria-label',t(document.fullscreenElement?'fullscreenExit':'fullscreen'));$('fullscreen-button').title=t(document.fullscreenElement?'fullscreenExit':'fullscreen')+' · F';
         $('zen-toggle').setAttribute('aria-label',t(zen?'zenOff':'zenOn'));$('zen-toggle').title=t(zen?'normalMode':'zenMode')+' · H';
         musicUi();
+        timerController?.refreshLanguage();
       }
       const CLOCK_FONTS=Object.freeze({
         aptos:'"Aptos Display","Segoe UI Light","Segoe UI",Arial,sans-serif',
@@ -260,6 +261,7 @@
       renderer.setSite(activeRegion());
        if(savedRotationMode==='random')renderer.setRandomRotate(true,performance.now());
        else if(savedRotationMode)renderer.setAutoRotate(savedRotationMode,performance.now());
+      timerController=Modules.TimerController.create({document,UI,Preferences,translate:t,notify:toast,shutdownBridge:Modules.WindowsShutdown.create(document),onOpen:()=>{settings(false);closeBody();}});
       translateStatic();
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
@@ -652,7 +654,7 @@
       const updateSettingsScrollCues=bindScrollCues(settingsPanel,settingsScroll);
       const updateBodyScrollCues=bindScrollCues($('body-panel'),$('body-scroll'));
       bindScrollCues($('kakao-pay-dialog'),$('kakao-pay-scroll'));
-      function settings(open) {const next=open===undefined?!uiElementVisible(settingsPanel):open;if(next){showFading(settingsPanel);updateSettingsScrollCues();requestAnimationFrame(updateSettingsScrollCues);}else hideFading(settingsPanel);$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
+      function settings(open) {const next=open===undefined?!uiElementVisible(settingsPanel):open;if(next){timerController?.close();showFading(settingsPanel);updateSettingsScrollCues();requestAnimationFrame(updateSettingsScrollCues);}else hideFading(settingsPanel);$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
       UI.bindPopup(settingsPanel,()=>settings(false));
       UI.bindPopup($('body-panel'),closeBody);
       UI.bindPopup($('toast'),()=>{clearTimeout(toastTimer);hideFading($('toast'));});
@@ -1047,7 +1049,7 @@
             if(wasTransitioning&&!renderer.cameraTween)persist();
           }
           if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);}
-        } catch(error){disposed=true;setMusicEnabled(false);UI.dispose();music.dispose();renderer.dispose();materials.dispose();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
+        } catch(error){disposed=true;setMusicEnabled(false);timerController?.dispose();UI.dispose();music.dispose();renderer.dispose();materials.dispose();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
       }
       document.addEventListener('visibilitychange',()=>{
         if(document.hidden){closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
@@ -1058,11 +1060,11 @@
           if(!raf){lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
         }
       });
-      window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);cancelAnimationFrame(clockFitFrame);resizeFrame=0;clockFitFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);materialRefreshTimer=0;});
+      window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;timerController?.dispose();UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);cancelAnimationFrame(clockFitFrame);resizeFrame=0;clockFitFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);materialRefreshTimer=0;});
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.55',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.55',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

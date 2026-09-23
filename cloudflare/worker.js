@@ -1,4 +1,27 @@
 const MEDIA_PREFIX='/media/';
+const HELPER_API_PREFIX='/api/windows-helper/';
+const HELPER_TOKEN=/^[a-f0-9]{32}$/;
+const helperCors=Object.freeze({'access-control-allow-origin':'*','access-control-allow-methods':'GET, POST, OPTIONS','access-control-allow-headers':'content-type','access-control-max-age':'600'});
+
+const helperStatusKey=token=>`releases/runtime/windows-helper/${token}`;
+
+async function helperApiResponse(request,env,ctx,url){
+ const headers={...helperCors,'cache-control':'no-store','x-content-type-options':'nosniff'},token=String(url.searchParams.get('token')||'').toLowerCase();
+ if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
+ if(!HELPER_TOKEN.test(token))return Response.json({error:'invalid token'},{status:400,headers});
+ const key=helperStatusKey(token);
+ if(url.pathname===HELPER_API_PREFIX+'install-complete'){
+  if(request.method!=='POST')return new Response('Method Not Allowed',{status:405,headers:{...headers,allow:'POST, OPTIONS'}});
+  await env.SOLAR_TIME_MEDIA.put(key,'1',{httpMetadata:{contentType:'text/plain',cacheControl:'no-store'}});
+  return new Response(null,{status:204,headers});
+ }
+ if(url.pathname===HELPER_API_PREFIX+'install-status'){
+  if(request.method!=='GET')return new Response('Method Not Allowed',{status:405,headers:{...headers,allow:'GET, OPTIONS'}});
+  const found=await env.SOLAR_TIME_MEDIA.head(key);if(found)ctx.waitUntil(env.SOLAR_TIME_MEDIA.delete(key));
+  return Response.json({installed:!!found},{headers});
+ }
+ return new Response('Not Found',{status:404,headers});
+}
 
 function mediaType(key){
  const value=String(key||'').toLowerCase();
@@ -8,6 +31,7 @@ function mediaType(key){
  if(value.endsWith('.json'))return 'application/json; charset=utf-8';
  if(value.endsWith('.svg'))return 'image/svg+xml';
  if(value.endsWith('.gz'))return 'application/gzip';
+ if(value.endsWith('.cmd'))return 'application/octet-stream';
  return '';
 }
 
@@ -26,6 +50,11 @@ function mediaHeaders(object,status,key){
  headers.set('etag',object.httpEtag);headers.set('accept-ranges','bytes');
  headers.set('access-control-allow-origin','*');headers.set('cross-origin-resource-policy','cross-origin');
  headers.set('cache-control',mediaCacheControl(key));
+ if(/\.cmd$/i.test(key)){
+  headers.set('content-type','application/octet-stream');
+  headers.set('content-disposition','attachment; filename="SolarTimeShutdownHelper.cmd"');
+  headers.set('x-content-type-options','nosniff');
+ }
  if(status===206&&object.range){
   const range=object.range,start=Number.isFinite(range.suffix)?Math.max(0,object.size-range.suffix):(range.offset||0);
   const length=Math.min(range.length??range.suffix??(object.size-start),object.size-start),end=start+length-1;
@@ -68,6 +97,7 @@ export default {
  async fetch(request,env,ctx){
   const url=new URL(request.url);
   try{
+   if(url.pathname.startsWith(HELPER_API_PREFIX))return await helperApiResponse(request,env,ctx,url);
    if(url.pathname.startsWith(MEDIA_PREFIX)){
     let key;try{key=decodeURIComponent(url.pathname.slice(MEDIA_PREFIX.length));}catch(_){return new Response('Bad Request',{status:400});}
     if(!key||key.includes('..'))return new Response('Bad Request',{status:400});
