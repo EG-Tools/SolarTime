@@ -306,7 +306,12 @@
         const rounded=Math.floor(fit*1000)/1000;
         style.setProperty('--clock-fit-scale',String(rounded));clockElement.dataset.fitScale=String(rounded);
       }
-      function scheduleClockFit(){if(clockFitFrame)cancelAnimationFrame(clockFitFrame);clockFitFrame=requestAnimationFrame(fitClockToViewport);}
+      function scheduleClockFit(){
+        if(clockFitFrame)cancelAnimationFrame(clockFitFrame);
+        // Apply a deterministic fit immediately; a follow-up frame catches
+        // any font or viewport layout that settles after the current event.
+        fitClockToViewport();clockFitFrame=requestAnimationFrame(fitClockToViewport);
+      }
       function syncClockSizeControl(){
         const value=Math.round(A.clamp(clockSize,.5,2)*100);
         clockSize=value/100;$('clock-size').value=String(value);$('clock-size-output').textContent=value+'%';document.documentElement.style.setProperty('--clock-scale',String(clockSize));scheduleClockFit();

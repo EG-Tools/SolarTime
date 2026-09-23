@@ -13,7 +13,7 @@ test('v0.46 page build stays consistent while unchanged coordinator keeps its bu
   assert.equal(version.version,'0.55');
   assert.equal(pkg.version,'0.0.55');
   assert.ok(app.includes("version:'0.55',revision:'r1'"));
-  assert.ok(html.includes('src/app.js?v=0.55-r1-clockfit'));
+  assert.ok(html.includes('src/app.js?v=0.55-r1-clockfit2'));
   assert.ok(html.includes('src/localization.js?v=0.55-r1'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
