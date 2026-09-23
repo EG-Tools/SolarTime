@@ -6,7 +6,9 @@ const args=process.argv.slice(2),worker=args.includes('--worker'),attemptArg=arg
 for(const arg of args)if(arg!=='--worker'&&!/^--attempts=\d+$/.test(arg))throw Error('Unknown verification option: '+arg);
 const attempts=Number(attemptArg?.split('=')[1]||1);if(!Number.isInteger(attempts)||attempts<1||attempts>30)throw Error('Attempts must be 1..30.');
 const origin=worker?'https://solar-time.keg0320.workers.dev/':'https://solartime.app/';
-const files=releaseFiles(root),configured=projectConfig(root),assetManifest=JSON.parse(fs.readFileSync(path.join(root,'assets/manifest.json'),'utf8')),generated=runtimeScripts(root,assetManifest,configured.deployment,{cdnBase:'/media/'});
+const files=releaseFiles(root),configured=projectConfig(root),assetManifest=JSON.parse(fs.readFileSync(path.join(root,'assets/manifest.json'),'utf8'));
+const mediaBase=worker?'/media/':configured.deployment.cdnBase;
+const generated=runtimeScripts(root,assetManifest,configured.deployment,{cdnBase:mediaBase});
 const virtual=new Map([['src/assets.js',Buffer.from(generated.assets)],['src/sky-asset.js',Buffer.from(generated.sky)]]);
 const digest=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 const textFile=/\.(?:css|html|js|json|md|txt|webmanifest|xml)$/i;

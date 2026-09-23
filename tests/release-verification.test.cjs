@@ -14,4 +14,5 @@ test('public text verification ignores only platform line-ending differences',()
  assert.match(source,/textFile=.*webmanifest/);
  assert.match(source,/replace\(\/\\r\\n\?\/g,'\\n'\)/);
  assert.match(source,/comparable\(file,remote\.bytes\)\.equals\(comparable\(file,local\)\)/);
+ assert.match(source,/mediaBase=worker\?'\/media\/'\:configured\.deployment\.cdnBase/);
 });
