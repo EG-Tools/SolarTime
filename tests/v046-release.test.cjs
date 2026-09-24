@@ -7,14 +7,14 @@ function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createCo
 
 test('v0.46 page build stays consistent while unchanged coordinator keeps its bundle revision',()=>{
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
-  assert.ok(html.includes('name="solar-time-version" content="0.56"'));
+  assert.ok(html.includes('name="solar-time-version" content="0.57"'));
   assert.ok(html.includes('name="solar-time-revision" content="'+version.revision+'"'));
   assert.match(version.revision,/^r[1-9]\d*$/);
-  assert.equal(version.version,'0.56');
-  assert.equal(pkg.version,'0.0.56');
-  assert.ok(app.includes("version:'0.56',revision:'r2'"));
-  assert.ok(html.includes('src/app.js?v=0.56-r2'));
-  assert.ok(html.includes('src/localization.js?v=0.56-r2'));
+  assert.equal(version.version,'0.57');
+  assert.equal(pkg.version,'0.0.57');
+  assert.ok(app.includes("version:'0.57',revision:'r1'"));
+  assert.ok(html.includes('src/app.js?v=0.57-r1'));
+  assert.ok(html.includes('src/localization.js?v=0.57-r1'));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
@@ -250,7 +250,7 @@ test('r14 moves the scale readout to the top and enlarges it by one pixel',()=>{
 
 test('r15 adds one extra pixel only between the scale readout and home',()=>{
   const html=read('index.html'),css=read('styles.css');
-assert.ok(html.includes('href="styles.css?v=0.56-r2"'));
+assert.ok(html.includes('href="styles.css?v=0.57-r1"'));
   assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1;margin-bottom:5px\}/);
   assert.match(css,/\.view-controls\{[^}]*--tool-gap:5px;gap:var\(--tool-gap\)/);
   assert.match(css,/\.camera-presets\{[^}]*gap:var\(--tool-gap\);margin:0/);
@@ -283,7 +283,7 @@ test('r16 removes avoidable renderer hot-path work and restores the watermark',(
 
 test('v0.46 r3 keeps compact LIVE status separate and treats iPhone safe areas as boundaries',()=>{
   const html=read('index.html'),css=read('src/runtime-optimizations.css');
-assert.ok(html.includes('src/runtime-optimizations.css?v=0.56-'+JSON.parse(read('version.json')).revision));
+assert.ok(html.includes('src/runtime-optimizations.css?v=0.57-'+JSON.parse(read('version.json')).revision));
   assert.match(css,/--solar-safe-left:env\(safe-area-inset-left,0px\)/);
   assert.match(css,/--solar-safe-right:env\(safe-area-inset-right,0px\)/);
   assert.match(css,/body\.zen \.clock-face\{top:max\(56px,calc\(var\(--solar-safe-top\) \+ 8px\)\)\}/);
@@ -295,15 +295,15 @@ assert.ok(html.includes('src/runtime-optimizations.css?v=0.56-'+JSON.parse(read(
 test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js'),pipeline=read('tools/asset-pipeline.cjs');
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
- const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.56');assert.deepEqual(notes.RELEASES.slice(0,7).map(r=>r.version),['0.56','0.55','0.54','0.53','0.52','0.51','0.50']);
+ const notes=notesApi();assert.equal(notes.RELEASES[0].version,'0.57');assert.deepEqual(notes.RELEASES.slice(0,7).map(r=>r.version),['0.57','0.56','0.55','0.54','0.53','0.52','0.51']);
   for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(notes.itemsFor(notes.RELEASES[0],code).length>0,code);
- assert.ok(app.includes('src/release-notes.js?v=0.56-r2'));assert.ok(html.includes('<h3 id="release-notes-version">v0.56</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
+ assert.ok(app.includes('src/release-notes.js?v=0.57-r1'));assert.ok(html.includes('<h3 id="release-notes-version">v0.57</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
 
   assert.ok(html.includes('src/assets.js?v=assetpack-20260922-r3'));
   assert.ok(html.includes('src/sky-asset.js?v=assetpack-20260922-r3'));
- for(const file of ['surface','performance'])assert.ok(html.includes('src/'+file+'.js?v=0.56-r2'),file);
- assert.ok(html.includes('src/renderer.js?v=0.56-r2'),'renderer');
-  assert.match(html,/src\/app\.js\?v=0\.56-r2/);
+ for(const file of ['surface','performance'])assert.ok(html.includes('src/'+file+'.js?v=0.57-r1'),file);
+ assert.ok(html.includes('src/renderer.js?v=0.57-r1'),'renderer');
+  assert.match(html,/src\/app\.js\?v=0\.57-r1/);
   assert.deepEqual(assetRevision,{version:'assetpack-20260922-r3'});
   assert.equal(manifest.revision,'assetpack-20260922-r3');
   for(const entry of Object.values(manifest.materials))assert.equal(entry.seamBaked,true,entry.source);

@@ -1,3 +1,12 @@
+# v0.57 r1 — verified Windows shutdown
+
+- Confirm scheduling, cancellation and removal from native exit codes, not URI dispatch.
+- Replace the VBScript/command-shell chain with direct PowerShell registration and installed-file verification.
+- Keep unknown operations cancellable; reject delayed schedules after newer cancellations.
+- Add short-lived Cloudflare receipts, private runtime storage, hourly cleanup and explicit coordinated deployment.
+- Add behavioral browser/Worker tests and isolated Windows PowerShell 5.1 tests.
+- Reinstall the Windows helper after deployment. Cloudflare authentication and physical Windows end-to-end validation remain deployment prerequisites.
+
 # Maintenance changelog
 
 ## v0.55 r1 · 2026-09-23

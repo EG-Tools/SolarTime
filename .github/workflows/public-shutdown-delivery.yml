@@ -1,0 +1,77 @@
+name: Public shutdown delivery
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/public-shutdown-delivery.yml'
+      - 'src/windows-shutdown.js'
+      - 'src/timer-controller.js'
+      - 'windows/**'
+      - 'cloudflare/**'
+      - 'version.json'
+      - 'tools/verify-shutdown.cjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/public-shutdown-delivery.yml'
+      - 'src/windows-shutdown.js'
+      - 'src/timer-controller.js'
+      - 'windows/**'
+      - 'cloudflare/**'
+      - 'version.json'
+      - 'tools/verify-shutdown.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-shutdown-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Record currently served versions (read only)
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          (async () => {
+            const report = {checkedAt:new Date().toISOString(),commit:process.env.GITHUB_SHA,origins:{}};
+            for (const origin of ['https://solartime.app/', 'https://solar-time.keg0320.workers.dev/']) {
+              const response = await fetch(origin+'version.json?verify='+Date.now(), {cache:'no-store',signal:AbortSignal.timeout(20000)});
+              if (!response.ok) throw Error(origin+' HTTP '+response.status);
+              report.origins[origin] = await response.json();
+            }
+            fs.mkdirSync('.cloudflare',{recursive:true});
+            fs.writeFileSync('.cloudflare/observed-versions.json',JSON.stringify(report,null,2)+'\n');
+            console.log(JSON.stringify(report,null,2));
+          })().catch(error => {console.error(error);process.exitCode=1;});
+          NODE
+      - name: Verify R2 installer and source bytes plus receipt API
+        run: node tools/verify-shutdown.cjs
+      - name: Verify all published Worker runtime files
+        run: node tools/verify-public-release.cjs --worker --attempts=3
+      - name: Verify matching Pages release after merge
+        if: github.event_name != 'pull_request'
+        run: node tools/verify-public-release.cjs --attempts=24
+      - name: Print verification evidence
+        if: always()
+        run: |
+          for file in .cloudflare/shutdown-verification.json .cloudflare/worker-verification.json .cloudflare/public-verification.json; do
+            if [ -f "$file" ]; then echo "=== $file ==="; cat "$file"; fi
+          done
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: public-shutdown-delivery
+          path: |
+            .cloudflare/observed-versions.json
+            .cloudflare/*verification.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
