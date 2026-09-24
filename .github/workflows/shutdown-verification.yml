@@ -1,0 +1,46 @@
+name: Shutdown verification
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  shutdown:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Inspect PowerShell and deployed helper without executing shutdown
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path .shutdown-results -Force | Out-Null
+          $bridge = Get-Content src/windows-shutdown.js -Raw
+          $url = [regex]::Match($bridge, "const HELPER_URL='([^']+)'").Groups[1].Value
+          $expected = [regex]::Match($bridge, "const HELPER_SHA256='([^']+)'").Groups[1].Value
+          try {
+            Invoke-WebRequest -Uri $url -OutFile .shutdown-results/served-helper.cmd -TimeoutSec 30
+            $actual = (Get-FileHash .shutdown-results/served-helper.cmd -Algorithm SHA256).Hash
+            Write-Host "Served helper hash: $actual; source hash: $expected; match: $($actual -eq $expected)"
+          } catch { Write-Host "Public helper check failed: $($_.Exception.Message)" }
+          foreach ($hostName in @('https://solartime.app','https://solar-time.keg0320.workers.dev')) {
+            try { Write-Host "$hostName version: $((Invoke-WebRequest -Uri ($hostName+'/version.json') -TimeoutSec 20).Content)" } catch { Write-Host "$hostName unavailable: $($_.Exception.Message)" }
+          }
+          $u = [Uri]'solartime-timer://schedule?seconds=120'
+          if ($u.Host -ne 'schedule' -or $u.Query -notmatch '^\?seconds=(\d{2,6})$') { throw 'URI parsing failed' }
+          Write-Host "URI parsed seconds: $($Matches[1])"
+          $quote=[char]34; $percent=[char]37; $wscript='C:\Windows\System32\wscript.exe'
+          Write-Host ('Legacy registration string: '+($quote+$wscript+$quote+' //B //Nologo '+$quote+'C:\Users\Test\SolarTimeShutdownLauncher.vbs'+$quote+' '+$quote+$percent+'1'+$quote))
+          if (Test-Path tests/windows-shutdown.integration.ps1) { & ./tests/windows-shutdown.integration.ps1 }
+      - name: Collect reviewed sources and diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          git archive --format=zip -o .shutdown-results/source.zip HEAD
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: shutdown-verification
+          path: .shutdown-results
+          include-hidden-files: true
+          retention-days: 3
