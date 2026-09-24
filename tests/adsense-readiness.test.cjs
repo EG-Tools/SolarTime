@@ -73,7 +73,7 @@ test('Google Analytics runs only on the production domain with denied consent de
  assert.ok(code.includes("root.gtag('config',measurementId)"));
  for(const key of ['ad_storage','ad_user_data','ad_personalization','analytics_storage'])assert.ok(consent.includes(`${key}:'denied'`),key);
  for(const file of ['index.html','about.html','privacy.html','terms.html']){
-  const page=read(file);assert.ok(page.includes('src/consent.js?v=0.56-r1'),file);assert.ok(page.includes('src/google-analytics.js?v=0.56-r1'),file);
+  const page=read(file);assert.ok(page.includes('src/consent.js?v=0.56-r2'),file);assert.ok(page.includes('src/google-analytics.js?v=0.56-r2'),file);
   assert.ok(page.indexOf('src/consent.js')<page.indexOf('src/google-analytics.js'),file+' consent order');
  }
 });
@@ -84,7 +84,7 @@ test('cookie choice uses the shared card fade lifecycle and controls Google cons
  assert.match(html,/id="cookie-consent" class="cookie-consent card-surface"/);
  assert.match(html,/id="desktop-ad-(?:toggle|panel)" class="desktop-ad-(?:toggle|panel) card-surface"/);
  for(const key of ['cookieTitle','cookieMessage','cookiePrivacy','cookieReject','cookieAccept'])assert.ok(html.includes(`data-i18n="${key}"`),key);
- assert.ok(html.includes('src/cookie-consent.js?v=0.56-r1'));
+ assert.ok(html.includes('src/cookie-consent.js?v=0.56-r2'));
  assert.ok(code.includes('if(UI)UI.show(banner)'));
  assert.ok(code.includes('if(UI)UI.hide(banner)'));
  assert.ok(code.includes('consent.choose(value)'));

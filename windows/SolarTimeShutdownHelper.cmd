@@ -9,9 +9,12 @@ if not "%~1"=="" goto protocol
 set "SOLARTIME_DIR=%LOCALAPPDATA%\SolarTime"
 set "SOLARTIME_TARGET=%SOLARTIME_DIR%\SolarTimeShutdownHelper.cmd"
 set "SOLARTIME_LAUNCHER=%SOLARTIME_DIR%\SolarTimeShutdownLauncher.vbs"
+set "SOLARTIME_MARKER=%SOLARTIME_DIR%\SolarTimeShutdownInstall.id"
+set "SOLARTIME_INSTALL_ID=%RANDOM%%RANDOM%%RANDOM%%RANDOM%"
 set "SOLARTIME_INSTALLER_SOURCE=%~f0"
 if not exist "%SOLARTIME_DIR%" mkdir "%SOLARTIME_DIR%"
 copy /Y "%~f0" "%SOLARTIME_TARGET%" >nul
+> "%SOLARTIME_MARKER%" echo %SOLARTIME_INSTALL_ID%
 > "%SOLARTIME_LAUNCHER%" echo Option Explicit
 >> "%SOLARTIME_LAUNCHER%" echo Dim shell, fso, expression, helper, uri, quote, command
 >> "%SOLARTIME_LAUNCHER%" echo If WScript.Arguments.Count ^< 1 Then WScript.Quit 2
@@ -62,26 +65,41 @@ exit /b %errorlevel%
 "%SystemRoot%\System32\shutdown.exe" /a >nul 2>&1
 set "SOLARTIME_UNINSTALL_TARGET=%~f0"
 set "SOLARTIME_UNINSTALL_LAUNCHER=%~dp0SolarTimeShutdownLauncher.vbs"
+set "SOLARTIME_UNINSTALL_MARKER=%~dp0SolarTimeShutdownInstall.id"
+set "SOLARTIME_UNINSTALL_ID="
+if exist "%SOLARTIME_UNINSTALL_MARKER%" set /p SOLARTIME_UNINSTALL_ID=<"%SOLARTIME_UNINSTALL_MARKER%"
 set "SOLARTIME_UNINSTALL_CLEANUP=%TEMP%\SolarTimeShutdownCleanup_%RANDOM%%RANDOM%.vbs"
 > "%SOLARTIME_UNINSTALL_CLEANUP%" echo Option Explicit
->> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Dim shell, fso, target, launcher
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Dim shell, fso, target, launcher, marker, expected, current, stream
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Set shell = CreateObject("WScript.Shell"^)
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo Set fso = CreateObject("Scripting.FileSystemObject"^)
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo target = WScript.Arguments(0^)
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo launcher = WScript.Arguments(1^)
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo marker = WScript.Arguments(2^)
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo expected = WScript.Arguments(3^)
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo WScript.Sleep 5000
->> "%SOLARTIME_UNINSTALL_CLEANUP%" echo shell.Run "reg.exe delete ""HKCU\Software\Classes\solartime-timer"" /f", 0, True
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo On Error Resume Next
->> "%SOLARTIME_UNINSTALL_CLEANUP%" echo fso.DeleteFile target, True
->> "%SOLARTIME_UNINSTALL_CLEANUP%" echo fso.DeleteFile launcher, True
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo current = ""
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo If fso.FileExists(marker^) Then
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo   Set stream = fso.OpenTextFile(marker, 1, False^)
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo   current = Trim(stream.ReadLine^)
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo   stream.Close
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo End If
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo If current = expected Then
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo   shell.Run "reg.exe delete ""HKCU\Software\Classes\solartime-timer"" /f", 0, True
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo   fso.DeleteFile target, True
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo   fso.DeleteFile launcher, True
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo   fso.DeleteFile marker, True
+>> "%SOLARTIME_UNINSTALL_CLEANUP%" echo End If
 >> "%SOLARTIME_UNINSTALL_CLEANUP%" echo fso.DeleteFile WScript.ScriptFullName, True
-start "" "%SystemRoot%\System32\wscript.exe" //B //Nologo "%SOLARTIME_UNINSTALL_CLEANUP%" "%SOLARTIME_UNINSTALL_TARGET%" "%SOLARTIME_UNINSTALL_LAUNCHER%"
+start "" "%SystemRoot%\System32\wscript.exe" //B //Nologo "%SOLARTIME_UNINSTALL_CLEANUP%" "%SOLARTIME_UNINSTALL_TARGET%" "%SOLARTIME_UNINSTALL_LAUNCHER%" "%SOLARTIME_UNINSTALL_MARKER%" "%SOLARTIME_UNINSTALL_ID%"
 exit /b 0
 
 :uninstall
 "%SystemRoot%\System32\shutdown.exe" /a >nul 2>&1
 powershell.exe -NoProfile -Command "Remove-Item -Path 'HKCU:\Software\Classes\solartime-timer' -Recurse -Force -ErrorAction SilentlyContinue"
 del /f /q "%~dp0SolarTimeShutdownLauncher.vbs" >nul 2>&1
+del /f /q "%~dp0SolarTimeShutdownInstall.id" >nul 2>&1
 echo Solar Time Windows shutdown helper was disabled.
 pause
 del /f /q "%~f0" >nul 2>&1
