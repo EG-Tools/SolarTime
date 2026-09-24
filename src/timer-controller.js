@@ -95,7 +95,11 @@
     id:{helperInstallTitle:'Konfirmasi pemasangan modul',helperInstallDescription:'Jalankan berkas CMD yang diunduh dan pastikan pesan pemasangan selesai sebelum melanjutkan.',helperInstallQuestion:'Sudah selesai menjalankan modul?'},
     nl:{helperInstallTitle:'Installatie van module bevestigen',helperInstallDescription:'Voer het gedownloade CMD-bestand uit en controleer de melding dat de installatie is voltooid voordat u doorgaat.',helperInstallQuestion:'Is het uitvoeren van de module voltooid?'}
   });
-  const copy=code=>Object.freeze({...EN,...(TIMER_COPY[code]||{}),...HELPER_COPY.en,...(HELPER_COPY[code]||{}),...HELPER_STATE_COPY.en,...(HELPER_STATE_COPY[code]||{}),...DOWNLOAD_COPY.en,...(DOWNLOAD_COPY[code]||{}),...REMOVE_COPY.en,...(REMOVE_COPY[code]||{}),...INSTALL_COPY.en,...(INSTALL_COPY[code]||{})});
+  const VERIFIED_COPY=Object.freeze({
+    en:{shutdownPending:'Waiting for Windows confirmation. Allow the helper to open.',shutdownUnknown:'Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.',shutdownFailed:'Windows command failed (code {code}).',shutdownNotLaunched:'The helper did not open. Click the switch again and allow the browser prompt.',helperVerifyFailed:'Helper verification failed. Run the latest installer, then allow the helper to open.',shutdownDataWarning:'Save your work: Windows timed shutdown can force applications to close.',helperDownloadPrivacy:'Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.',helperDownloadPermission:'Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.',helperInstallDescription:'Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.',helperInstallQuestion:'Verify the installed helper now?',helperRemoveRequested:'Windows confirmed cancellation and removal of the helper.'},
+    kor:{shutdownPending:'Windows 확인 대기 중입니다. 보조 모듈 열기를 허용해 주세요.',shutdownUnknown:'Windows 처리 결과를 확인하지 못했습니다. 종료가 예약됐을 수 있으므로 종료 취소로 확인해 주세요.',shutdownFailed:'Windows 명령이 실패했습니다. 오류 코드: {code}',shutdownNotLaunched:'보조 모듈을 열지 못했습니다. 스위치를 다시 누르고 브라우저의 열기 요청을 허용해 주세요.',helperVerifyFailed:'보조 모듈을 확인하지 못했습니다. 최신 설치 파일을 실행한 뒤 보조 모듈 열기를 허용해 주세요.',shutdownDataWarning:'작업을 먼저 저장해 주세요. Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.',helperDownloadPrivacy:'일회용 무작위 요청 번호, 보조 모듈 버전, 명령 처리 결과만 Solar Time에 전송합니다. 계정·파일·컴퓨터 이름은 보내지 않으며 확인 기록은 만료 후 자동 정리됩니다.',helperDownloadPermission:'관리자 권한 없이 현재 사용자에게 설치합니다. PowerShell, URL 연결 등록, Windows 종료 명령을 사용합니다.',helperInstallDescription:'최신 CMD 설치 파일을 실행한 뒤 설치된 모듈을 확인합니다. 브라우저에서 PowerShell 열기를 허용해 주세요.',helperInstallQuestion:'설치된 모듈을 지금 확인하시겠습니까?',helperRemoveRequested:'Windows에서 예약 취소 및 보조 모듈 제거를 확인했습니다.'}
+  });
+  const copy=code=>Object.freeze({...EN,...(TIMER_COPY[code]||{}),...HELPER_COPY.en,...(HELPER_COPY[code]||{}),...HELPER_STATE_COPY.en,...(HELPER_STATE_COPY[code]||{}),...DOWNLOAD_COPY.en,...(DOWNLOAD_COPY[code]||{}),...REMOVE_COPY.en,...(REMOVE_COPY[code]||{}),...INSTALL_COPY.en,...(INSTALL_COPY[code]||{}),...VERIFIED_COPY.en,...(VERIFIED_COPY[code]||{})});
   function soundStore(indexedDB=root.indexedDB){
     let database;
     const open=()=>database||(database=new Promise((resolve,reject)=>{if(!indexedDB){reject(Error('IndexedDB unavailable'));return;}const request=indexedDB.open('solar-time-audio',1);request.onupgradeneeded=()=>request.result.createObjectStore('sounds');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||Error('Audio storage unavailable'));}));
@@ -106,11 +110,11 @@
     const $=id=>document.getElementById(id),storageKey='solar-time.timers.v1',now=()=>Date.now(),sounds=soundStore();
     const panel=$('timer-panel'),button=$('timer-button'),alarmDialog=$('alarm-dialog'),shutdownDialog=$('shutdown-dialog'),downloadDialog=$('shutdown-helper-download-dialog'),installDialog=$('shutdown-helper-install-dialog'),removeDialog=$('shutdown-helper-remove-dialog');
     const controls={alarm:{toggle:$('alarm-enabled'),hours:$('alarm-hours'),minutes:$('alarm-minutes'),target:$('alarm-target')},shutdown:{toggle:$('shutdown-enabled'),hours:$('shutdown-hours'),minutes:$('shutdown-minutes'),target:$('shutdown-target')}};
-    let state={alarm:{enabled:false,hours:0,minutes:5,deadline:0},shutdown:{enabled:false,hours:1,minutes:0,deadline:0},helperEnabled:false,helperProgress:0,helperConfirmed:false,helperRevision:'',helperInstallToken:'',helperInstallDeadline:0,soundMode:'default',soundName:''};
-    let interval=0,audioContext=null,toneInterval=0,customBuffer=null,defaultBuffer=null,defaultPromise=null,customSource=null,defaultAlarmMedia=null,previewSource=null,previewMedia=null,previewKind='',previewRequest=0,ringing=false,disposed=false,lastSecond=-1,lastInstallPoll=0,installPollTask=null;
+    let state={alarm:{enabled:false,hours:0,minutes:5,deadline:0},shutdown:{enabled:false,hours:1,minutes:0,deadline:0,status:'idle'},helperEnabled:false,helperProgress:0,helperConfirmed:false,helperRevision:'',helperInstallToken:'',helperInstallDeadline:0,soundMode:'default',soundName:''};
+    let interval=0,audioContext=null,toneInterval=0,customBuffer=null,defaultBuffer=null,defaultPromise=null,customSource=null,defaultAlarmMedia=null,previewSource=null,previewMedia=null,previewKind='',previewRequest=0,ringing=false,disposed=false,lastSecond=-1,lastInstallPoll=0,installPollTask=null,nativeBusy='',nativeSerial=0,helperBusy=false;
     try{const saved=Preferences.read(storageKey);if(saved&&typeof saved==='object'){
-      for(const name of ['alarm','shutdown']){const value=saved[name];if(value&&typeof value==='object')state[name]={enabled:!!value.enabled,hours:integer(value.hours,0,99),minutes:integer(value.minutes,0,59),deadline:Number.isFinite(value.deadline)?value.deadline:0};}
-      state.helperEnabled=!!saved.helperEnabled;state.helperProgress=[0,50,100].includes(saved.helperProgress)?saved.helperProgress:(state.helperEnabled?100:0);state.helperConfirmed=saved.helperConfirmed===true;state.helperRevision=typeof saved.helperRevision==='string'?saved.helperRevision:'';state.helperInstallToken=/^[a-f0-9]{32}$/.test(saved.helperInstallToken||'')?saved.helperInstallToken:'';state.helperInstallDeadline=Number.isFinite(saved.helperInstallDeadline)?saved.helperInstallDeadline:0;if(state.helperRevision!==String(shutdownBridge?.helperSha256||'')){state.helperEnabled=false;state.helperProgress=0;state.helperConfirmed=false;state.helperRevision='';state.helperInstallToken='';state.helperInstallDeadline=0;state.shutdown.enabled=false;state.shutdown.deadline=0;}if(!state.helperConfirmed&&state.helperProgress>=100){state.helperProgress=50;state.helperEnabled=false;state.shutdown.enabled=false;state.shutdown.deadline=0;}if(state.helperConfirmed){state.helperProgress=100;state.helperInstallToken='';state.helperInstallDeadline=0;}state.soundMode=saved.soundMode==='custom'?'custom':'default';state.soundName=typeof saved.soundName==='string'?saved.soundName:'';
+      for(const name of ['alarm','shutdown']){const value=saved[name];if(value&&typeof value==='object')state[name]={enabled:!!value.enabled,hours:integer(value.hours,0,99),minutes:integer(value.minutes,0,59),deadline:Number.isFinite(value.deadline)?value.deadline:0,...(name==='shutdown'?{status:value.enabled?(value.status==='confirmed'?'confirmed':'unknown'):'idle'}:{})};}
+      state.helperEnabled=!!saved.helperEnabled;state.helperProgress=[0,50,100].includes(saved.helperProgress)?saved.helperProgress:(state.helperEnabled?100:0);state.helperConfirmed=saved.helperConfirmed===true;state.helperRevision=typeof saved.helperRevision==='string'?saved.helperRevision:'';state.helperInstallToken=/^[a-f0-9]{32}$/.test(saved.helperInstallToken||'')?saved.helperInstallToken:'';state.helperInstallDeadline=Number.isFinite(saved.helperInstallDeadline)?saved.helperInstallDeadline:0;if(state.helperConfirmed&&state.helperRevision!==String(shutdownBridge?.helperSha256||'')){state.helperEnabled=false;state.helperProgress=0;state.helperConfirmed=false;state.helperRevision='';state.helperInstallToken='';state.helperInstallDeadline=0;if(state.shutdown.enabled)state.shutdown.status='unknown';}if(!state.helperConfirmed&&state.helperProgress>=100){state.helperProgress=50;state.helperEnabled=false;if(state.shutdown.enabled)state.shutdown.status='unknown';}if(state.helperConfirmed){state.helperProgress=100;state.helperInstallToken='';state.helperInstallDeadline=0;}state.soundMode=saved.soundMode==='custom'?'custom':'default';state.soundName=typeof saved.soundName==='string'?saved.soundName:'';
     }}catch(_){/* Blocked storage must not disable timers. */}
     const t=(key,values)=>translate(key,values),eligible=!!shutdownBridge?.eligible;
     function save(){Preferences.write(storageKey,state);}
@@ -118,7 +122,7 @@
     function readFields(name){const control=controls[name];state[name].hours=integer(control.hours.value,0,99);state[name].minutes=integer(control.minutes.value,0,59);control.hours.value=String(state[name].hours);control.minutes.value=String(state[name].minutes);return totalMinutes(state[name].hours,state[name].minutes);}
     function formatTarget(deadline){try{return new Intl.DateTimeFormat(document.documentElement.lang||undefined,{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(deadline));}catch(_){return new Date(deadline).toLocaleString();}}
     function formatRemaining(deadline){const seconds=Math.max(0,Math.ceil((deadline-now())/1000)),hours=Math.floor(seconds/3600),minutes=Math.floor(seconds%3600/60),rest=seconds%60;return [hours,minutes,rest].map((value,index)=>index?String(value).padStart(2,'0'):String(value)).join(':');}
-    function updateOutput(name){const item=state[name],target=controls[name].target,section=target.closest('.timer-section');section?.classList.toggle('is-active',item.enabled);target.textContent=item.enabled&&item.deadline>0?t('timerTarget',{time:formatTarget(item.deadline),remaining:formatRemaining(item.deadline)}):t('timerInactive');}
+    function updateOutput(name){const item=state[name],target=controls[name].target,section=target.closest('.timer-section');section?.classList.toggle('is-active',item.enabled);target.textContent=name==='shutdown'&&item.status==='pending'?t('shutdownPending'):name==='shutdown'&&item.status==='unknown'?t('shutdownUnknown'):item.enabled&&item.deadline>0?t('timerTarget',{time:formatTarget(item.deadline),remaining:formatRemaining(item.deadline)}):t('timerInactive');}
     function syncSound(){
       $('alarm-sound-default').checked=state.soundMode!=='custom';$('alarm-sound-custom').checked=state.soundMode==='custom';
       $('alarm-sound-name').textContent=state.soundName||t('noSoundSelected');$('alarm-sound-choose').textContent=t(state.soundName?'changeFile':'chooseFile');
@@ -127,11 +131,12 @@
     function syncAvailability(){
       const helper=$('shutdown-helper-enabled'),shutdown=controls.shutdown,available=eligible;
       if(!available){state.helperEnabled=false;state.shutdown.enabled=false;state.shutdown.deadline=0;}
-      if(!state.helperConfirmed){if(state.helperProgress>=100)state.helperProgress=50;state.helperEnabled=false;state.shutdown.enabled=false;state.shutdown.deadline=0;}else state.helperProgress=100;
-      helper.checked=available&&state.helperEnabled;helper.disabled=!available;
-      $('shutdown-helper-remove').disabled=!available||!state.helperConfirmed||state.helperProgress<100;
-      const enabled=available&&state.helperEnabled;shutdown.toggle.disabled=!enabled;shutdown.hours.disabled=!enabled;shutdown.minutes.disabled=!enabled;
-      $('shutdown-section').classList.toggle('is-unavailable',!available);$('shutdown-support-note').textContent=t(!available?'shutdownUnsupported':'shutdownHelperNote');
+      if(!state.helperConfirmed){if(state.helperProgress>=100)state.helperProgress=50;state.helperEnabled=false;}else state.helperProgress=100;
+      helper.checked=available&&state.helperEnabled;helper.disabled=!available||helperBusy||!!nativeBusy;
+      $('shutdown-helper-remove').disabled=!available||!state.helperConfirmed||state.helperProgress<100||helperBusy||!!nativeBusy;
+      $('shutdown-helper-install-yes').disabled=helperBusy;
+      const enabled=available&&state.helperEnabled;shutdown.toggle.disabled=!available||(!enabled&&!state.shutdown.enabled)||nativeBusy==='cancel'||nativeBusy==='uninstall';shutdown.hours.disabled=!enabled||!!nativeBusy;shutdown.minutes.disabled=!enabled||!!nativeBusy;
+      $('shutdown-section').classList.toggle('is-unavailable',!available);$('shutdown-support-note').textContent=t(!available?'shutdownUnsupported':'shutdownHelperNote')+(available?' '+t('shutdownDataWarning'):'');
       const progress=available?state.helperProgress:0,track=$('shutdown-helper-progress').querySelector('.timer-helper-track');
       $('shutdown-helper-progress').style.setProperty('--helper-progress',progress+'%');$('shutdown-helper-percent').textContent=progress+'%';track.setAttribute('aria-valuenow',String(progress));
       $('shutdown-helper-status').textContent=t(progress>=100?(state.helperEnabled?'helperInstallComplete':'helperDisabled'):progress>=50?'helperDownloadReady':'helperNotInstalled');
@@ -179,11 +184,40 @@
     function closeAlarm(){stopTone();if(alarmDialog.open)UI.hide(alarmDialog,()=>alarmDialog.close());}
     function closeShutdown(){if(shutdownDialog.open)UI.hide(shutdownDialog,()=>shutdownDialog.close());}
     function ring(){state.alarm.enabled=false;state.alarm.deadline=0;save();sync();ringing=true;startTone();if(!alarmDialog.open)UI.show(alarmDialog,()=>alarmDialog.showModal());}
-    function cancel(name,{native=true,quiet=false}={}){const wasEnabled=state[name].enabled;state[name].enabled=false;state[name].deadline=0;if(name==='shutdown'){closeShutdown();if(native&&wasEnabled)shutdownBridge?.cancel();}save();sync();if(!quiet&&wasEnabled)notify(t(name==='alarm'?'alarmCancelled':'shutdownCancelled'));}
-    function schedule(name,{quiet=false}={}){
-      const minutes=readFields(name);if(minutes<1){controls[name].toggle.checked=false;notify(t('timerDurationRequired'));sync();return false;}
-      if(name==='shutdown'&&(!eligible||!state.helperEnabled)){controls.shutdown.toggle.checked=false;notify(t(!eligible?'shutdownUnsupported':'shutdownHelperRequired'));sync();return false;}
-      primeAudio();if(name==='alarm'&&state.soundMode!=='custom')loadDefaultSound();state[name].enabled=true;state[name].deadline=now()+minutes*60000;if(name==='shutdown')shutdownBridge.schedule(minutes*60);
+    function failureMessage(result){return result?.reason==='not-launched'?t('shutdownNotLaunched'):result?.uncertain?t('shutdownUnknown'):t('shutdownFailed',{code:result?.code??'unknown'});}
+    async function nativeResult(action,seconds){try{return await shutdownBridge?.[action]?.(seconds)||{ok:false,uncertain:true};}catch(_){return {ok:false,uncertain:true};}}
+    async function cancel(name,{native=true,quiet=false}={}){
+      const wasEnabled=state[name].enabled;
+      if(name==='shutdown'&&native&&wasEnabled){
+        if(nativeBusy==='cancel'||nativeBusy==='uninstall')return false;
+        const request=++nativeSerial;nativeBusy='cancel';state.shutdown.status='pending';
+        const pending=nativeResult('cancel');save();sync();
+        const result=await pending;if(disposed||request!==nativeSerial)return false;nativeBusy='';
+        if(result?.ok!==true){state.shutdown.status='unknown';save();sync();notify(failureMessage(result));return false;}
+      }
+      state[name].enabled=false;state[name].deadline=0;
+      if(name==='shutdown'){state.shutdown.status='idle';closeShutdown();}
+      save();sync();if(!quiet&&wasEnabled)notify(t(name==='alarm'?'alarmCancelled':'shutdownCancelled'));return true;
+    }
+    async function schedule(name,{quiet=false}={}){
+      if(name==='shutdown'&&nativeBusy){sync();return false;}
+      const previous={...state[name]},minutes=readFields(name);
+      if(minutes<1){notify(t('timerDurationRequired'));sync();return false;}
+      if(name==='shutdown'&&(!eligible||!state.helperEnabled)){notify(t(!eligible?'shutdownUnsupported':'shutdownHelperRequired'));sync();return false;}
+      primeAudio();if(name==='alarm'&&state.soundMode!=='custom')loadDefaultSound();
+      if(name==='shutdown'){
+        const request=++nativeSerial;nativeBusy='schedule';state.shutdown.enabled=true;state.shutdown.status='pending';state.shutdown.deadline=0;
+        // Start the protocol request while user activation is still live.
+        const pending=nativeResult('schedule',minutes*60);save();sync();
+        const result=await pending;if(disposed||request!==nativeSerial)return false;nativeBusy='';
+        if(result?.ok!==true){
+          if(result?.reason==='not-launched'){state.shutdown=previous;}
+          else if(result?.uncertain||previous.enabled){state.shutdown.enabled=true;state.shutdown.status='unknown';state.shutdown.deadline=previous.deadline;}
+          else {state.shutdown.enabled=false;state.shutdown.status='idle';state.shutdown.deadline=0;}
+          save();sync();notify(failureMessage(result));return false;
+        }
+        state.shutdown.deadline=result.deadline;state.shutdown.status='confirmed';
+      }else {state.alarm.enabled=true;state.alarm.deadline=now()+minutes*60000;}
       save();sync();if(!quiet)notify(t(name==='alarm'?'alarmScheduled':'shutdownScheduled',{time:formatTarget(state[name].deadline)}));return true;
     }
     function showShutdownCountdown(seconds){$('shutdown-countdown').textContent=String(seconds);if(!shutdownDialog.open)UI.show(shutdownDialog,()=>shutdownDialog.showModal());}
@@ -204,7 +238,7 @@
       if(disposed)return;const time=now(),second=Math.floor(time/1000);if(second===lastSecond)return;lastSecond=second;
       pollHelperInstall(time);
       if(state.alarm.enabled&&state.alarm.deadline<=time)ring();
-      if(state.shutdown.enabled){const remaining=Math.max(0,Math.ceil((state.shutdown.deadline-time)/1000));if(remaining>0&&remaining<=10)showShutdownCountdown(remaining);if(remaining<=0)cancel('shutdown',{native:false,quiet:true});}
+      if(state.shutdown.enabled&&state.shutdown.status==='confirmed'){const remaining=Math.max(0,Math.ceil((state.shutdown.deadline-time)/1000));if(remaining>0&&remaining<=10)showShutdownCountdown(remaining);if(remaining<=0)cancel('shutdown',{native:false,quiet:true});}
       updateOutput('alarm');updateOutput('shutdown');
     }
     const scrollBinding=UI.bindScrollCues(panel,panel.querySelector('.timer-scroll'));
@@ -221,23 +255,33 @@
       controls[name].toggle.addEventListener('change',()=>controls[name].toggle.checked?schedule(name):cancel(name));
       for(const input of [controls[name].hours,controls[name].minutes])input.addEventListener('change',()=>{readFields(name);if(state[name].enabled)schedule(name,{quiet:true});else {save();sync();}});
     }
-    $('shutdown-helper-enabled').addEventListener('change',event=>{
+    $('shutdown-helper-enabled').addEventListener('change',async event=>{
       if(!eligible){state.helperEnabled=false;sync();return;}
       if(event.target.checked&&state.helperProgress<50){event.target.checked=false;state.helperEnabled=false;save();sync();showDownloadConfirm();return;}
-      if(event.target.checked&&!state.helperConfirmed){event.target.checked=false;state.helperEnabled=false;save();sync();if(state.helperInstallToken&&(!state.helperInstallDeadline||state.helperInstallDeadline>now()))notify(t('helperDownloadStarted'));else showInstallConfirm();return;}
-      const hadScheduledShutdown=state.shutdown.enabled;state.helperEnabled=!!event.target.checked;
-      if(!state.helperEnabled){state.shutdown.enabled=false;state.shutdown.deadline=0;if(hadScheduledShutdown)shutdownBridge?.cancel();save();sync();}
-      else {save();sync();notify(t('shutdownHelperEnabled'));}
+      if(event.target.checked&&!state.helperConfirmed){event.target.checked=false;state.helperEnabled=false;save();sync();showInstallConfirm();return;}
+      const enable=!!event.target.checked;
+      if(!enable&&state.shutdown.enabled){if(!await cancel('shutdown')){sync();return;}}
+      state.helperEnabled=enable;save();sync();if(enable)notify(t('shutdownHelperEnabled'));
     });
     $('shutdown-helper-download-no').addEventListener('click',closeDownloadConfirm);
     $('shutdown-helper-download-yes').addEventListener('click',async()=>{const token=await downloadHelper();if(token){state.helperProgress=50;state.helperInstallToken=token;state.helperInstallDeadline=now()+10*60*1000;notify(t('helperDownloadStarted'));}else {state.helperProgress=0;state.helperInstallToken='';state.helperInstallDeadline=0;notify(t('helperNotInstalled'));}state.helperEnabled=false;state.helperConfirmed=false;save();sync();closeDownloadConfirm();});
     UI.bindDialog(downloadDialog,closeDownloadConfirm);
     $('shutdown-helper-install-no').addEventListener('click',closeInstallConfirm);
-    $('shutdown-helper-install-yes').addEventListener('click',()=>{state.helperConfirmed=true;state.helperProgress=100;state.helperEnabled=true;state.helperRevision=String(shutdownBridge?.helperSha256||'');state.helperInstallToken='';state.helperInstallDeadline=0;save();sync();closeInstallConfirm();notify(t('shutdownHelperEnabled'));});
+    $('shutdown-helper-install-yes').addEventListener('click',async()=>{
+      if(helperBusy)return;helperBusy=true;const pending=nativeResult('probe');sync();
+      const result=await pending;if(disposed)return;helperBusy=false;
+      if(result?.ok!==true){sync();notify(t('helperVerifyFailed'));return;}
+      state.helperConfirmed=true;state.helperProgress=100;state.helperEnabled=true;state.helperRevision=String(shutdownBridge?.helperSha256||'');state.helperInstallToken='';state.helperInstallDeadline=0;save();sync();closeInstallConfirm();notify(t('shutdownHelperEnabled'));
+    });
     UI.bindDialog(installDialog,closeInstallConfirm);
     $('shutdown-helper-remove').addEventListener('click',()=>{if(state.helperProgress>=100)showRemoveConfirm();});
     $('shutdown-helper-remove-no').addEventListener('click',closeRemoveConfirm);
-    $('shutdown-helper-remove-yes').addEventListener('click',()=>{const requested=!!shutdownBridge?.uninstall?.();if(requested){state.helperEnabled=false;state.helperProgress=0;state.helperConfirmed=false;state.helperRevision='';state.helperInstallToken='';state.helperInstallDeadline=0;state.shutdown.enabled=false;state.shutdown.deadline=0;closeShutdown();save();sync();notify(t('helperRemoveRequested'));}closeRemoveConfirm();});
+    $('shutdown-helper-remove-yes').addEventListener('click',async()=>{
+      if(nativeBusy)return;const request=++nativeSerial;nativeBusy='uninstall';const pending=nativeResult('uninstall');sync();
+      const result=await pending;if(disposed||request!==nativeSerial)return;nativeBusy='';
+      if(result?.ok!==true){if(state.shutdown.enabled)state.shutdown.status='unknown';save();sync();notify(failureMessage(result));return;}
+      state.helperEnabled=false;state.helperProgress=0;state.helperConfirmed=false;state.helperRevision='';state.helperInstallToken='';state.helperInstallDeadline=0;state.shutdown.enabled=false;state.shutdown.deadline=0;state.shutdown.status='idle';closeShutdown();save();sync();notify(t('helperRemoveRequested'));closeRemoveConfirm();
+    });
     UI.bindDialog(removeDialog,closeRemoveConfirm);
     $('alarm-sound-default').addEventListener('change',()=>{if(!$('alarm-sound-default').checked)return;stopPreview();state.soundMode='default';save();syncSound();});
     $('alarm-sound-custom').addEventListener('change',()=>{if(!$('alarm-sound-custom').checked)return;stopPreview();if(customBuffer){state.soundMode='custom';save();syncSound();}else $('alarm-sound-file').click();});
@@ -248,10 +292,10 @@
     $('alarm-stop').addEventListener('click',()=>{closeAlarm();cancel('alarm',{quiet:true});});UI.bindDialog(alarmDialog,()=>{closeAlarm();cancel('alarm',{quiet:true});});
     $('shutdown-cancel').addEventListener('click',()=>cancel('shutdown'));
     shutdownDialog.addEventListener('cancel',event=>{event.preventDefault();cancel('shutdown');});
-    if(state.alarm.enabled&&state.alarm.deadline<=now())state.alarm.enabled=false;if(state.shutdown.enabled&&state.shutdown.deadline<=now())state.shutdown.enabled=false;
+    if(state.alarm.enabled&&state.alarm.deadline<=now())state.alarm.enabled=false;if(state.shutdown.enabled&&state.shutdown.status==='confirmed'&&state.shutdown.deadline<=now()){state.shutdown.enabled=false;state.shutdown.status='idle';}
     const visibilityCheck=()=>check();
     sync();save();loadStoredSound();interval=root.setInterval(check,250);document.addEventListener('visibilitychange',visibilityCheck);
-    return Object.freeze({open,close:()=>open(false),refreshLanguage,check,getState:()=>JSON.parse(JSON.stringify(state)),dispose(){if(disposed)return;disposed=true;clearInterval(interval);document.removeEventListener('visibilitychange',visibilityCheck);document.removeEventListener('pointerdown',closeOnViewport);scrollBinding.dispose();stopPreview();closeAlarm();closeShutdown();closeDownloadConfirm();closeInstallConfirm();closeRemoveConfirm();audioContext?.close?.().catch(()=>{});}});
+    return Object.freeze({open,close:()=>open(false),refreshLanguage,check,getState:()=>JSON.parse(JSON.stringify(state)),dispose(){if(disposed)return;disposed=true;++nativeSerial;shutdownBridge?.dispose?.();clearInterval(interval);document.removeEventListener('visibilitychange',visibilityCheck);document.removeEventListener('pointerdown',closeOnViewport);scrollBinding.dispose();stopPreview();closeAlarm();closeShutdown();closeDownloadConfirm();closeInstallConfirm();closeRemoveConfirm();audioContext?.close?.().catch(()=>{});}});
   }
   modules.TimerController=Object.freeze({create,totalMinutes,MAX_MINUTES,MAX_SOUND_BYTES,DEFAULT_ALARM_FILE,copy});
 })(window);
