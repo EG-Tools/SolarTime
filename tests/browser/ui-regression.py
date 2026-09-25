@@ -3,6 +3,8 @@ from pathlib import Path
 from urllib.parse import urlparse,unquote
 import json,re,os,struct,zlib,sys
 from playwright.sync_api import sync_playwright
+from regression_diagnostics import BrowserDiagnostics
+from release_history import verify_history, navigate_to_release, verify_current_release
 
 def png(w=32,h=16):
  def chunk(t,d):return struct.pack('!I',len(d))+t+d+struct.pack('!I',zlib.crc32(t+d)&0xffffffff)
@@ -11,6 +13,7 @@ image=png()
 def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seoul'):
  context=browser.new_context(viewport=dict(width=size[0],height=size[1]),locale=locale,timezone_id=timezone_id,reduced_motion='reduce',has_touch=standalone)
  page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+ diagnostics.attach(context,page,str(size)+(' installed-simulation' if standalone else ' browser'))
  html=(root/'index.html').read_text(encoding='utf8');scripts=[src for src in re.findall(r'<script[^>]+src="([^"]+)"[^>]*></script>',html) if not urlparse(src).scheme]
  html=re.sub(r'<script[^>]+src="[^"]+"[^>]*></script>','',html)
  html=re.sub(r'<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"[^>]*>',lambda m:'<style>'+ (root/m[1].split('?')[0]).read_text(encoding='utf8')+'</style>',html)
@@ -176,18 +179,7 @@ def suite(browser,root,size,installed):
  check(args[0]=='earth' and abs(args[1]-(1+17/60))<1e-8 and args[2]==103.85,tag+' SG uses shared Earth camera')
  page.locator('#help-button').click();page.locator('#release-notes-toggle').click()
  page.wait_for_function('!!window.SolarReleaseNotes')
- check(page.locator('#release-notes-version').inner_text()=='v0.56',tag+' visible release version')
- check(page.locator('#release-notes-list li').count()==4 and 'scheduled-shutdown' in page.locator('#release-notes-list').inner_text(),tag+' visible English SG release note')
- page.locator('#release-notes-older').click();check(page.locator('#release-notes-version').inner_text()=='v0.55' and 'Microsoft Clarity' in page.locator('#release-notes-list').inner_text(),tag+' previous release navigation')
- page.locator('#release-notes-older').click();check(page.locator('#release-notes-version').inner_text()=='v0.54' and 'clock-size' in page.locator('#release-notes-list').inner_text().lower(),tag+' clock release navigation')
- page.locator('#release-notes-older').click();check(page.locator('#release-notes-version').inner_text()=='v0.53' and 'cookie' in page.locator('#release-notes-list').inner_text().lower(),tag+' consent release navigation')
- page.locator('#release-notes-older').click();check(page.locator('#release-notes-version').inner_text()=='v0.52' and 'Black Marble' in page.locator('#release-notes-list').inner_text(),tag+' night lights release navigation')
- page.locator('#release-notes-older').click();check(page.locator('#release-notes-version').inner_text()=='v0.51' and 'JPL' in page.locator('#release-notes-list').inner_text(),tag+' astronomy release navigation')
- page.locator('#release-notes-older').click();check(page.locator('#release-notes-version').inner_text()=='v0.50' and 'Auto Language' in page.locator('#release-notes-list').inner_text(),tag+' language release navigation')
- page.locator('#release-notes-older').click();check(page.locator('#release-notes-version').inner_text()=='v0.48',tag+' earlier release navigation')
- page.locator('#release-notes-older').click();check(page.locator('#release-notes-version').inner_text()=='v0.47',tag+' historical release navigation')
- for _ in range(8):page.locator('#release-notes-newer').click()
- check(page.locator('#release-notes-version').inner_text()=='v0.56',tag+' current release navigation')
+ verify_history(page,root,tag,'en',check)
  page.locator('#help-dialog .close-button').first.click()
  page.evaluate("SolarPolicyDialog.open('about.html')")
  check(page.locator('#site-policy-dialog').evaluate('e=>e.open'),tag+' footer policy opens in-app')
@@ -216,10 +208,10 @@ def suite(browser,root,size,installed):
   check(args[0]=='earth' and abs(args[1]-lat)<1e-8 and abs(args[2]-lon)<1e-8,tag+' '+country+' Earth-view city')
   page.locator('#help-button').click()
   if not page.locator('#release-notes-list').is_visible():page.locator('#release-notes-toggle').click()
-  check(page.locator('#release-notes-version').inner_text()=='v0.56' and 'Windows' in page.locator('#release-notes-list').inner_text(),tag+' '+country+' current Dutch release')
-  for _ in range(7):page.locator('#release-notes-older').click()
+  verify_current_release(page,root,tag+' '+country,'nl',check)
+  navigate_to_release(page,'0.48',check,tag+' '+country)
   check('Willekeurige rotatie' in page.locator('#release-notes-list').inner_text(),tag+' '+country+' Dutch release history')
-  for _ in range(7):page.locator('#release-notes-newer').click()
+  navigate_to_release(page,json.loads((root/'version.json').read_text())['version'],check,tag+' '+country)
   page.locator('#help-dialog .close-button').first.click()
  check(len([u for u in page.evaluate('__fixtureRequests') if '/locales/nl.json' in u])==1,tag+' one shared Dutch request')
  # Country Zoom reference and shared random toggle, including compact installed simulations.
@@ -308,7 +300,9 @@ def suite(browser,root,size,installed):
  ctx.close()
  print('PASS',tag,flush=True)
 def main():
+ global diagnostics
  root=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path(__file__).resolve().parents[2]
+ diagnostics=BrowserDiagnostics(root,'ui-regression',checks)
  with sync_playwright() as p:
   options={'headless':True,'args':['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']}
   if os.environ.get('SOLAR_CHROMIUM_EXECUTABLE'):options['executable_path']=os.environ['SOLAR_CHROMIUM_EXECUTABLE']
@@ -336,8 +330,13 @@ def main():
    check('America/Los_Angeles' in (page.locator('#alignment-date').get_attribute('title') or ''),'alignment tooltip identifies its local timezone')
    check(not errors,'automatic Pacific-time copy has no runtime errors')
    ctx.close()
-  finally:browser.close()
- out=root/'.cloudflare/ui-regression.json';out.parent.mkdir(exist_ok=True)
- out.write_text(json.dumps({'mode':'offline synthetic DOM; installed mode is simulated, not a physical iPhone','passed':len(checks),'checks':checks},ensure_ascii=False,indent=2),encoding='utf8')
+  except BaseException as error:
+   diagnostics.fail(error);raise
+  finally:
+   diagnostics.finish();browser.close()
  print('UI checks passed:',len(checks),flush=True)
-if __name__=='__main__':main()
+if __name__=='__main__':
+ try:main()
+ except BaseException as error:
+  if 'diagnostics' in globals():diagnostics.fail(error);diagnostics.finish()
+  raise

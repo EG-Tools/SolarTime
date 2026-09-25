@@ -4,6 +4,7 @@ No services, textures, credentials, or native iPhone measurements are involved.
 """
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from regression_diagnostics import BrowserDiagnostics
 import json,os,sys
 ROOT=Path(__file__).resolve().parents[2]
 PROBE=r'''()=>{
@@ -50,26 +51,35 @@ return {renderer,error:g.getError(),legacy,gpu,temporal,cpu};
 }'''
 
 def main():
+ global diagnostics
+ diagnostics=BrowserDiagnostics(ROOT,'tiny-star-diagnostics')
  with sync_playwright() as p:
   opt={'headless':True,'args':['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']}
   if os.environ.get('SOLAR_CHROMIUM_EXECUTABLE'):opt['executable_path']=os.environ['SOLAR_CHROMIUM_EXECUTABLE']
   browser=p.chromium.launch(**opt)
   try:
-   page=browser.new_page();page.add_script_tag(content=(ROOT/'src/visual-effects.js').read_text(encoding='utf8'));result=page.evaluate(PROBE)
-  finally:browser.close()
- out=ROOT/'.cloudflare/tiny-star-regression.json';out.parent.mkdir(exist_ok=True);out.write_text(json.dumps(result,indent=2),encoding='utf8')
- assert result['error']==0,result
- assert result['legacy']['relativeRange']>.5,('Baseline did not reproduce radial shimmer',result['legacy'])
- for row in result['gpu']:
-  assert row['min']>0 and row['relativeRange']<.12,('GPU subpixel light instability',row)
- for row in result['temporal']:
-  if row['radius']<.55:assert row['relativeRange']==0,('Tiny-star brightness animated',row)
-  else:assert row['relativeRange']>.1,('Large star animation removed',row)
- for row in result['cpu']:
-  assert row['min']>0 and row['relativeRange']<.15,('Canvas sprite light instability',row)
+   page=browser.new_page();diagnostics.attach(page.context,page,'WebGL-Canvas2D');page.add_script_tag(content=(ROOT/'src/visual-effects.js').read_text(encoding='utf8'));result=page.evaluate(PROBE)
+   out=ROOT/'.cloudflare/tiny-star-regression.json';out.parent.mkdir(exist_ok=True);out.write_text(json.dumps(result,indent=2),encoding='utf8')
+   assert result['error']==0,result
+   assert result['legacy']['relativeRange']>.5,('Baseline did not reproduce radial shimmer',result['legacy'])
+   for row in result['gpu']:
+    assert row['min']>0 and row['relativeRange']<.12,('GPU subpixel light instability',row)
+   for row in result['temporal']:
+    if row['radius']<.55:assert row['relativeRange']==0,('Tiny-star brightness animated',row)
+    else:assert row['relativeRange']>.1,('Large star animation removed',row)
+   for row in result['cpu']:
+    assert row['min']>0 and row['relativeRange']<.15,('Canvas sprite light instability',row)
+  except BaseException as error:
+   diagnostics.fail(error);raise
+  finally:
+   diagnostics.finish();browser.close()
  print('WebGL renderer:',result['renderer'])
  print('Old radial relative range:',result['legacy']['relativeRange'])
  print('Worst filtered GPU relative range:',max(x['relativeRange'] for x in result['gpu']))
  print('Worst filtered Canvas2D relative range:',max(x['relativeRange'] for x in result['cpu']))
  print('PASS: 18 GPU motion sweeps, 6 temporal sweeps, 12 Canvas2D motion sweeps.')
-if __name__=='__main__':main()
+if __name__=='__main__':
+ try:main()
+ except BaseException as error:
+  if 'diagnostics' in globals():diagnostics.fail(error);diagnostics.finish()
+  raise

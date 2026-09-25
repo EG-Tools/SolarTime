@@ -8,60 +8,86 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: solar-time-cloudflare-production
+  group: solar-time-production
   cancel-in-progress: false
 jobs:
   deploy:
     if: >-
       github.repository == 'EG-Tools/SolarTime' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' &&
+      (github.event_name == 'workflow_run' &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       github.event.workflow_run.conclusion == 'success'))
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       CLOUDFLARE_ACCOUNT_ID: '4640527a19614f7b65a034f422704b64'
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ env.TARGET_SHA }}
           persist-credentials: false
-      - name: Check authorization and ensure this is still the main release
-        id: gate
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo '::warning::Cloudflare NOT deployed: configure the CLOUDFLARE_API_TOKEN repository secret.'
-            echo 'Cloudflare was **not deployed**: CLOUDFLARE_API_TOKEN is not configured.' >> "$GITHUB_STEP_SUMMARY"
-          elif [ "$(git rev-parse HEAD)" != "$(git ls-remote origin refs/heads/main | cut -f1)" ]; then
-            echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo 'Skipped superseded commit; no deployment performed.' >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'ready=true' >> "$GITHUB_OUTPUT"
-          fi
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
-        if: steps.gate.outputs.ready == 'true'
         with:
           node-version: '22'
-      - if: steps.gate.outputs.ready == 'true'
-        run: npm ci
-      - name: Test, upload verified helper, deploy Worker and verify both public origins
-        if: steps.gate.outputs.ready == 'true'
+          cache: npm
+      - name: Require the exact verified main SHA and Actions-based Pages
         env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node tools/ci-gate.cjs
+      - run: npm ci
+      - name: Build both origins from the verified source
+        run: |
+          npm run build:cloudflare
+          node tools/build-pages.cjs
+      - name: Upload and verify native helper before Worker deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          node tools/deploy-shutdown.cjs --apply
-          node tools/verify-public-release.cjs --attempts=24
-          echo 'Cloudflare and Pages public-file verification completed successfully.' >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
-        if: always() && steps.gate.outputs.ready == 'true'
+          node tools/ci-gate.cjs --current-only
+          node tools/upload-windows-helper.cjs --apply
+          node -e "require('./tools/verify-shutdown.cjs').verifyShutdown({health:false}).catch(e=>{console.error(e.message);process.exitCode=1})"
+      - name: Deploy Cloudflare Worker
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          node tools/ci-gate.cjs --current-only
+          node node_modules/wrangler/bin/wrangler.js deploy
+          node tools/verify-shutdown.cjs
+          node tools/verify-public-release.cjs --worker --attempts=6
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
         with:
-          name: cloudflare-release-verification
-          path: .cloudflare/*verification.json
+          path: .cloudflare/pages
+      - name: Recheck main before Pages publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/ci-gate.cjs --current-only
+      - name: Publish the verified Pages artifact
+        id: pages
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
+      - name: Verify published Pages files
+        run: |
+          node tools/verify-public-release.cjs --attempts=24
+          echo "Verified Cloudflare and Pages deployment for $TARGET_SHA." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: production-deployment-evidence
+          path: .cloudflare/*.json
           include-hidden-files: true
-          retention-days: 7
+          retention-days: 14
