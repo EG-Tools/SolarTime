@@ -1,3 +1,9 @@
+# v0.58 r1 — alarm music OFF
+
+- Stop background music through its shared controller before alarm playback. Keep the music button OFF after stop/snooze.
+- Correct the five-minute snooze delay and test default/custom alarms, previews and pending music playback.
+- Windows shutdown helper and Cloudflare receipt API are unchanged; no PC helper reinstall is required.
+
 # v0.57 r1 — verified Windows shutdown
 
 - Confirm scheduling, cancellation and removal from native exit codes, not URI dispatch.
