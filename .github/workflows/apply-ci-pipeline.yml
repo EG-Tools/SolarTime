@@ -25,18 +25,20 @@ jobs:
           const patch=z.brotliDecompressSync(Buffer.from(fs.readFileSync('.maintenance/ci-pipeline.b64','utf8').trim(),'base64'));
           if(c.createHash('sha256').update(patch).digest('hex')!=='aec0078104bad046150e348f6a1e94a0278fd00020983fcee92ae5ebc9b41ddd')throw Error('Reviewed patch mismatch');
           for(const extra of [['--check'],[]]){const r=cp.spawnSync('git',['apply',...extra,'-'],{input:patch,stdio:['pipe','inherit','inherit']});if(r.status!==0)throw Error('Patch failed');}
-          fs.rmSync('.maintenance/ci-pipeline.b64');fs.rmSync('.github/workflows/apply-ci-pipeline.yml');
+          fs.rmSync('.maintenance/ci-pipeline.b64');
           const changed=cp.execFileSync('git',['diff','--name-only'],{encoding:'utf8'}).trim().split('\n');
           if(changed.some(p=>/^(src\/|index\.html|styles\.css|version\.json|windows\/|cloudflare\/)/.test(p)))throw Error('Runtime changes are outside phase 1-5');
           NODE
       - run: npm ci
       - run: npm test
       - run: npm run build:cloudflare
-      - name: Commit only to the requested maintenance branch
+      - name: Commit source only; workflow writes require separate owner authorization
         run: |
+          git restore --source=HEAD --staged --worktree .github/workflows
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git diff --cached --check
-          git commit -m 'Consolidate verification, guard exact-main deployments and preserve failure diagnostics'
+          if git diff --cached --name-only | grep -q '^.github/workflows/'; then echo 'Workflow changes cannot be pushed by this token'; exit 1; fi
+          git commit -m 'Add verified CI source, browser release checks and failure diagnostics'
           git push origin HEAD:maintenance/verified-pipeline-1-5
