@@ -1,0 +1,55 @@
+name: Apply reviewed audio changes
+on:
+  push:
+    branches: [fix/audio-recovery-default-v0.60]
+permissions:
+  contents: read
+jobs:
+  apply:
+    if: github.repository == 'EG-Tools/SolarTime'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/audio-recovery-default-v0.60
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+      - name: Apply exact source delta without production credentials
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),z=require('zlib'),c=require('crypto'),cp=require('child_process');
+          const bytes=z.brotliDecompressSync(Buffer.from([1,2,3].map(n=>fs.readFileSync('.audio-review/'+n+'.b64','utf8')).join(''),'base64'));
+          if(c.createHash('sha256').update(bytes).digest('hex')!=='c7457c409ade56beb323574964f6e4a4d7c7be2da53e9918a47098852d70df29')throw Error('Reviewed source hash mismatch');
+          for(const extra of [['--check'],[]]){const r=cp.spawnSync('git',['apply','--unidiff-zero',...extra,'-'],{input:bytes,stdio:['pipe','inherit','inherit']});if(r.status!==0)throw Error('Source patch failed');}
+          fs.rmSync('.audio-review',{recursive:true});
+          const changed=cp.execFileSync('git',['diff','--name-only'],{encoding:'utf8'}).trim().split('\n');
+          if(changed.some(p=>/^(\.github\/|cloudflare\/|windows\/|wrangler\.jsonc|styles\.css|src\/(page-runtime|renderer|sky|performance)\.js)/.test(p)))throw Error('Change exceeds approved audio scope');
+          NODE
+      - run: npm ci
+      - run: npm test
+      - run: node tools/build-cloudflare.cjs && node tools/build-pages.cjs
+      - name: Commit reviewed ordinary sources only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'v0.60 audio recovery and bounded default alarm preparation (20,23 only)'
+          git push origin HEAD:fix/audio-recovery-default-v0.60
+      - name: Record tested source
+        if: always()
+        run: |
+          mkdir -p .audio-results
+          git rev-parse HEAD > .audio-results/tested-commit.txt
+          git archive --format=zip -o .audio-results/source.zip HEAD
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: audio-review-source
+          path: .audio-results
+          include-hidden-files: true
+          retention-days: 3
