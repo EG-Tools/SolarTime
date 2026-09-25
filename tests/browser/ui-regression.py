@@ -64,6 +64,16 @@ def suite(browser,root,size,installed):
  check(page.locator('#timer-panel').is_visible(),tag+' timer opens')
  page.locator('#help-button').click()
  check(page.locator('#help-dialog').evaluate('e=>e.open') and page.locator('#timer-panel').is_visible(),tag+' help opens without closing timer')
+ credits=[('background','BACKGROUND MUSIC SUNO AI - Lyrikey','Lyrikey','https://suno.com/@lyrikey'),('alarm','Alram Music - Maryan Dembitskyi','Maryan Dembitskyi','https://pixabay.com/ko/users/marmixer-6762941/')]
+ for kind,text,author_name,url in credits:
+  row=page.locator('#'+kind+'-music-credit');author=page.locator('#'+kind+'-music-author')
+  check(row.inner_text()==text and author.inner_text()==author_name,tag+' '+kind+' credit text')
+  check(author.get_attribute('href')==url and author.get_attribute('target')=='_blank' and set(author.get_attribute('rel').split())=={'noopener','noreferrer'},tag+' '+kind+' author link')
+  author.scroll_into_view_if_needed();author.focus()
+  check(author.evaluate('e=>document.activeElement===e'),tag+' '+kind+' link keyboard focus')
+ check(page.locator('#alarm-music-credit').evaluate("e=>e.previousElementSibling.id==='background-music-credit'&&e.getBoundingClientRect().top>=e.previousElementSibling.getBoundingClientRect().bottom-.5"),tag+' alarm credit is directly below background credit')
+ check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),tag+' music credits do not overflow horizontally')
+
  page.locator('#help-dialog .close-button').first.click()
  check(page.locator('#timer-panel').is_visible(),tag+' closing help preserves timer')
  page.locator('#settings-button').click()

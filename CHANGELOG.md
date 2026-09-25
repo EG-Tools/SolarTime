@@ -1,3 +1,9 @@
+# v0.60 r2 — help music credits
+
+- Show `BACKGROUND MUSIC SUNO AI - Lyrikey` with the author linked to the requested Suno profile.
+- Add `Alram Music - Maryan Dembitskyi` directly below it with the author linked to the requested Pixabay profile.
+- Open both author links in an isolated new tab, retaining shared credit styling. Audio behavior and deferred work are unchanged.
+
 # v0.60 r1 — audio maintenance, items 20 and 23 only
 
 - Recover mid-playback music errors and stalled playback with bounded retries, source failover and track exhaustion; manual controls and alarm OFF always take priority.
