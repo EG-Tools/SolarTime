@@ -1,3 +1,5 @@
+> CI maintenance update: the production workflow now requires all exact-main verification checks and Pages Source = GitHub Actions. See [current pipeline and one-time setup](ci-pipeline.md). Do not change the custom domain.
+
 # Cloudflare deployment through GitHub Actions
 
 ## One-time owner authorization
