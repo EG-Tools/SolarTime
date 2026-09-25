@@ -22,7 +22,7 @@ function fixture({soundMode='default',hook='normal',pendingPlay=false,hidden=fal
  const request=result=>{const r={result};queueMicrotask(()=>r.onsuccess?.());return r;};
  const blob={arrayBuffer:async()=>new ArrayBuffer(4)};
  const indexedDB={open:()=>request({transaction:()=>({objectStore:()=>({get:()=>request(soundMode==='custom'?{blob,name:'custom.wav'}:null),put:()=>request(null)})})})};
- const window={document,SolarModules:{},indexedDB,AudioContext,location:{href:'https://solartime.app/',protocol:'https:',hostname:'solartime.app'},console:{warn(){}},setInterval:()=>1,clearInterval(){},requestAnimationFrame,fetch:async()=>({ok:true,blob:async()=>blob})};
+ const window={document,SolarModules:{},indexedDB,AudioContext,location:{href:'https://solartime.app/',protocol:'https:',hostname:'solartime.app'},console:{warn(){}},setInterval:()=>1,clearInterval(){},requestAnimationFrame,setTimeout:()=>1,clearTimeout(){},fetch:async()=>({ok:true,blob:async()=>blob})};
  class Clock extends Date{static now(){return clock;}}
  const context={window,document,Date:Clock,Intl,URL,performance:{now:()=>0},requestAnimationFrame,cancelAnimationFrame,clearInterval(){},setTimeout};
  for(const name of ['music-player','timer-copy','alarm-sound','timer-controller'])vm.runInNewContext(read('src/'+name+'.js'),context);

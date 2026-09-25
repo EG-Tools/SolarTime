@@ -29,7 +29,7 @@ test('timer provides exclusive sound choices, alarm actions and a zen-safe shutd
  assert.match(html,/id="shutdown-helper-remove"[^>]+disabled/);assert.match(html,/id="shutdown-helper-remove-dialog"/);assert.match(code,/nativeResult\('uninstall'\)/);
  assert.match(html,/Maryan Dembitskyi - Soft Morning/);assert.doesNotMatch(html,/>Pixabay<\/a>/);assert.equal(moduleFrom('src/timer-controller.js').TimerController.DEFAULT_ALARM_FILE,'00 - Soft Morning.mp3');assert.match(code,/customSource\.loop=true/);
  assert.match(html,/id="alarm-preview-default"[^>]+aria-pressed="false"/);assert.match(html,/id="alarm-preview-custom"[^>]+aria-pressed="false"/);
- assert.match(code,/function togglePreview\(kind\)/);assert.match(code,/source\.onended=/);assert.match(code,/function playDefaultPreview\(request\)/);assert.match(code,/new root\.Audio/);assert.match(code,/else \{stopPreview\(\);UI\.hide\(panel\);\}/);
+ assert.match(code,/function togglePreview\(kind\)/);assert.match(code,/source\.onended=/);assert.match(code,/function playDefaultPreview\(request,urls\)/);assert.match(code,/new root\.Audio/);assert.match(code,/else \{stopPreview\(\);UI\.hide\(panel\);\}/);
  const css=read('src/runtime-optimizations.css');assert.match(css,/\.timer-sound-preview>span[^}]+border-left:7px solid currentColor/);assert.match(css,/\.timer-sound-preview\[aria-pressed=true\]>span[^}]+background:currentColor/);assert.match(css,/\.shutdown-helper-install-dialog,\.shutdown-helper-remove-dialog\{[^}]+inset:50% auto auto 50%[^}]+transform:translate\(-50%,-50%\)/);
  assert.doesNotMatch(html,/id="shutdown-dialog"[^>]*class="[^"]*\bui\b/);
  assert.match(code,/remaining>0&&remaining<=10/);assert.match(code,/nativeResult\('cancel'\)/);

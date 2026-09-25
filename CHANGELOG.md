@@ -1,3 +1,10 @@
+# v0.60 r1 — audio maintenance, items 20 and 23 only
+
+- Recover mid-playback music errors and stalled playback with bounded retries, source failover and track exhaustion; manual controls and alarm OFF always take priority.
+- Bound default-alarm preparation to 12 seconds; stream sounds longer than 45 seconds. Short decoding has 4 MiB compressed and 16 MiB retained PCM budgets.
+- Preserve alarm gain 0.864, preview gain 0.696, fallback gain 0.192 and the existing default music file. No Windows helper reinstall is required.
+- Items 17/18/19/21/22/24 are explicitly deferred until the owner asks. No branch protection changes (25) or performance-recording work (26).
+
 # v0.59 r1 — 2026-09-25
 
 - Alarm/preview gain +20% (0.72→0.864 / 0.58→0.696); preserve music OFF and native shutdown compatibility.
