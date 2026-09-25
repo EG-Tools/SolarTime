@@ -50,26 +50,20 @@ jobs:
         run: node tools/ci-gate.cjs
       - run: npm ci
       - name: Build both origins from the verified source
-        run: |
-          npm run build:cloudflare
-          node tools/build-pages.cjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node tools/deployment.cjs --ci --phase=build --apply
       - name: Upload and verify native helper before Worker deployment
         env:
           GH_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          node tools/ci-gate.cjs --current-only
-          node tools/upload-windows-helper.cjs --apply
-          node -e "require('./tools/verify-shutdown.cjs').verifyShutdown({health:false}).catch(e=>{console.error(e.message);process.exitCode=1})"
+        run: node tools/deployment.cjs --ci --phase=helper --apply
       - name: Deploy Cloudflare Worker
         env:
           GH_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          node tools/ci-gate.cjs --current-only
-          node node_modules/wrangler/bin/wrangler.js deploy
-          node tools/verify-shutdown.cjs
-          node tools/verify-public-release.cjs --worker --attempts=6
+        run: node tools/deployment.cjs --ci --phase=worker --apply
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
         with:
           path: .cloudflare/pages

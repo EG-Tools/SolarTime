@@ -70,6 +70,9 @@ jobs:
       - name: Verify failure-diagnostic capture
         if: matrix.suite == 'ui'
         run: python tests/browser/diagnostics-selftest.py
+      - name: Real alarm audio and Blob lifetime
+        if: matrix.suite == 'ui'
+        run: python tests/browser/alarm-audio-regression.py
       - name: Independent browser regression
         shell: bash
         run: |
