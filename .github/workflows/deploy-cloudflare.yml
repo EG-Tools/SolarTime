@@ -1,0 +1,67 @@
+name: Deploy Cloudflare
+on:
+  workflow_run:
+    workflows: ['Verify Solar Time']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: solar-time-cloudflare-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: >-
+      github.repository == 'EG-Tools/SolarTime' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.conclusion == 'success'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: '4640527a19614f7b65a034f422704b64'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - name: Check authorization and ensure this is still the main release
+        id: gate
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo '::warning::Cloudflare NOT deployed: configure the CLOUDFLARE_API_TOKEN repository secret.'
+            echo 'Cloudflare was **not deployed**: CLOUDFLARE_API_TOKEN is not configured.' >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$(git rev-parse HEAD)" != "$(git ls-remote origin refs/heads/main | cut -f1)" ]; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'Skipped superseded commit; no deployment performed.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          node-version: '22'
+      - if: steps.gate.outputs.ready == 'true'
+        run: npm ci
+      - name: Test, upload verified helper, deploy Worker and verify both public origins
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          node tools/deploy-shutdown.cjs --apply
+          node tools/verify-public-release.cjs --attempts=24
+          echo 'Cloudflare and Pages public-file verification completed successfully.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always() && steps.gate.outputs.ready == 'true'
+        with:
+          name: cloudflare-release-verification
+          path: .cloudflare/*verification.json
+          include-hidden-files: true
+          retention-days: 7

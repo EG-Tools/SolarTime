@@ -1,0 +1,53 @@
+name: Alarm music verification
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: alarm-music-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'fix/alarm-music-off-v0.58'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+      - name: Apply exact reviewed changes to the verified baseline
+        run: |
+          if [ -f .maintenance/apply-alarm-v058.cjs ]; then
+            node .maintenance/apply-alarm-v058.cjs
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -A
+            git commit -m 'Stop background music when alarms ring and correct five-minute snooze (v0.58)'
+            git push origin HEAD:fix/alarm-music-off-v0.58
+          fi
+      - run: npm ci
+      - name: Full regression suite
+        run: |
+          set -o pipefail
+          mkdir -p .alarm-results
+          npm test 2>&1 | tee .alarm-results/tests.log
+      - run: npm run build:cloudflare
+      - name: Record tested source
+        if: always()
+        run: |
+          mkdir -p .alarm-results
+          git rev-parse HEAD > .alarm-results/tested-commit.txt
+          git archive --format=zip -o .alarm-results/source.zip HEAD
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: alarm-music-verification
+          path: .alarm-results
+          include-hidden-files: true
+          retention-days: 7
