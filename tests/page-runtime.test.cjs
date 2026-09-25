@@ -1,4 +1,5 @@
 'use strict';
+const cacheUrl=file=>require('../tools/code-revisions.cjs').urlFor(require('node:path').resolve(__dirname,'..'),file);
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'../src/page-runtime.js'),'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
@@ -78,8 +79,8 @@ test('page build metadata matches the release manifest independently of unchange
  const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),release=JSON.parse(fs.readFileSync(path.join(__dirname,'../version.json'),'utf8'));
  const value=name=>new RegExp('<meta name="'+name+'" content="([^"]+)"').exec(html)?.[1];
  assert.equal(value('solar-time-version'),release.version);assert.equal(value('solar-time-revision'),release.revision);
- assert.ok(html.includes('src/page-runtime.js?v='+release.version+'-'+release.revision));
- assert.ok(html.includes('src/runtime-optimizations.css?v='+release.version+'-'+release.revision));
+ assert.ok(html.includes(cacheUrl('src/page-runtime.js')));
+ assert.ok(html.includes(cacheUrl('src/runtime-optimizations.css')));
  const h=harness();assert.equal(h.window.SolarBuild.revision,'r4');
 });
 test('software sky shading uses the same phone flag and never reuses a shaded ray table on phones',()=>{

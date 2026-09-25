@@ -3,6 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),{atomicWrite,projectConfig
 
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
 function prepareSite(root,{manifest=null,deployment=null,cdnBase=null}={}){
+ require('./code-revisions.cjs').sync(root);
  const configured=projectConfig(root);manifest=manifest||readJson(path.join(root,'assets/manifest.json'));deployment=deployment||configured.deployment;
  if(manifest.revision!==configured.revision)throw Error('Asset manifest revision does not match assets/revision.json.');
  const site=path.join(root,'.cloudflare/site'),resolved=path.resolve(site),cloudflareRoot=path.resolve(root,'.cloudflare');

@@ -45,8 +45,9 @@ remote writes and before Pages publication. No full unit suite is repeated here.
 
 Order: verification → preflight → build → R2 helper upload/byte check → Worker
 publication/verification → Pages artifact publication → Pages public byte check.
-The known helper is still uploaded on each deployment; avoiding identical uploads
-is explicitly deferred to item 11. Shared local CLI consolidation is item 12.
+v0.59 uses the shared deployment module for Actions and local CLI aliases.
+Identical helper objects are hash-checked and skipped; a deployment round trip
+checks a separate diagnostic R2 record and removes it before Pages publication.
 
 `Public shutdown delivery` is now an explicit read-only manual production audit,
 with independent helper/Worker/Pages jobs. It does not deploy or block a PR.
@@ -76,5 +77,5 @@ protects the supported Actions paths, not all administrator actions. The two clo
 providers cannot publish atomically; a failure after Worker publication is reported
 as incomplete, and a rerun of the same verified SHA can complete publication.
 Older verification runs stay failed as historical evidence; failures are not hidden.
-Local CLI entry points are unchanged in this phase and do not constitute the new
-Actions gate. Runtime/battery/FPS improvements are deferred to items 6–10.
+Local CLI entry points use the same deployment implementation as of v0.59,
+with local verification rather than the GitHub exact-main gate. See optimization-v059.md.

@@ -55,7 +55,7 @@ function controllerFixture({schedule,cancel,probe,uninstall,saved}={}){
  const document={getElementById:get,documentElement:{lang:'en'},baseURI:'https://solartime.app/',addEventListener(){},removeEventListener(){}};
  const notices=[];let persisted;
  const window={document,SolarModules:{},location:{protocol:'https:',hostname:'solartime.app'},setInterval:()=>1,clearInterval(){},requestAnimationFrame:fn=>fn()};
- vm.runInNewContext(read('src/timer-controller.js'),{window,URL,Date,Intl,clearInterval(){},setTimeout});
+ for(const name of ['timer-copy','alarm-sound','timer-controller'])vm.runInNewContext(read('src/'+name+'.js'),{window,URL,Date,Intl,clearInterval(){},setTimeout});
  const mod=window.SolarModules.TimerController,copy=mod.copy('en');
  const defaults={helperConfirmed:true,helperEnabled:true,helperProgress:100,helperRevision:HASH,shutdown:{enabled:false,hours:0,minutes:1,deadline:0}};
  const bridge={eligible:true,helperSha256:HASH,schedule:schedule||(()=>Promise.resolve({ok:false,uncertain:true})),cancel:cancel||(()=>Promise.resolve({ok:false,uncertain:true})),probe:probe||(()=>Promise.resolve({ok:false})),uninstall:uninstall||(()=>Promise.resolve({ok:false})),installStatus:()=>Promise.resolve(false),dispose(){}};

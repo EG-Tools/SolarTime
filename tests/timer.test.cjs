@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
-function moduleFrom(file){const context={window:{SolarModules:{}}};vm.runInNewContext(read(file),context,{filename:file});return context.window.SolarModules;}
+function moduleFrom(file){const context={window:{SolarModules:{}}};for(const dependency of ['src/timer-copy.js','src/alarm-sound.js'])vm.runInNewContext(read(dependency),context);vm.runInNewContext(read(file),context,{filename:file});return context.window.SolarModules;}
 
 test('top actions follow music, language, timer, settings, help and fullscreen order',()=>{
  const html=read('index.html'),ids=['music-toggle','language-toggle','timer-button','settings-button','help-button','fullscreen-button'];

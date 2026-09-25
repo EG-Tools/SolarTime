@@ -2,13 +2,13 @@ const MEDIA_PREFIX='/media/';
 const HELPER_API_PREFIX='/api/windows-helper/';
 const HELPER_TOKEN=/^[a-f0-9]{32}$/;
 const RECEIPT_PREFIX='releases/runtime/windows-helper-v2/';
-const helperCors=Object.freeze({'access-control-allow-origin':'*','access-control-allow-methods':'GET, POST, OPTIONS','access-control-allow-headers':'content-type','access-control-max-age':'600'});
+const helperCors=Object.freeze({'access-control-allow-origin':'*','access-control-allow-methods':'GET, POST, DELETE, OPTIONS','access-control-allow-headers':'content-type','access-control-max-age':'600'});
 const helperStatusKey=token=>`releases/runtime/windows-helper/${token}`;
 const receiptKey=(kind,token)=>RECEIPT_PREFIX+kind+'/'+token;
 const helperOrigin=origin=>!origin||origin==='null'||['https://solartime.app','https://www.solartime.app','https://eg-tools.github.io','https://solar-time.keg0320.workers.dev'].includes(origin)||/^http:\/\/(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$/.test(origin);
 
 function validReceipt(value,kind){
- const actions=kind==='install'?['install']:['schedule','cancel','probe','uninstall'];
+ const actions=kind==='install'?['install']:kind==='diagnostic'?['probe']:['schedule','cancel','probe','uninstall'];
  return value&&value.protocol===2&&actions.includes(value.action)&&typeof value.ok==='boolean'&&
   Number.isInteger(value.code)&&value.code>=-2147483648&&value.code<=2147483647&&
   /^[A-F0-9]{64}$/.test(value.revision||'')&&Number.isSafeInteger(value.at)&&
@@ -17,17 +17,45 @@ function validReceipt(value,kind){
   (value.ok?value.code===0:value.code!==0)&&
   (value.ok&&value.action==='schedule'?value.deadline>value.at:value.deadline===0);
 }
+const CLEANUP_STATE_KEY='releases/runtime/windows-helper-cleanup.json';
 async function cleanupHelperReceipts(env){
- // This cron is scoped to ephemeral helper receipts, NEVER media content.
- for(const prefix of [RECEIPT_PREFIX,'releases/runtime/windows-helper/']){
-  let cursor;
-  for(let page=0;page<10;page++){
-   const result=await env.SOLAR_TIME_MEDIA.list({prefix,limit:1000,cursor});
-   const expired=result.objects.filter(object=>new Date(object.uploaded).getTime()<Date.now()-3600000).map(object=>object.key);
-   if(expired.length)await env.SOLAR_TIME_MEDIA.delete(expired);
-   if(!result.truncated)break;cursor=result.cursor;
+ // Only ephemeral confirmation prefixes. Cursors prevent starvation when a
+ // bounded hourly batch cannot visit all objects. No media prefix is accepted.
+ const prefixes=[RECEIPT_PREFIX,'releases/runtime/windows-helper/'];
+ let previous=null;const report={at:Date.now(),scanned:0,deleted:0,cursors:{},complete:true};
+ try{
+  const saved=await env.SOLAR_TIME_MEDIA.get(CLEANUP_STATE_KEY);
+  if(saved)try{previous=await saved.json();}catch(_){/* Invalid old diagnostics do not block expiry cleanup. */}
+  for(const prefix of prefixes){
+   let cursor=previous?.cursors?.[prefix];if(typeof cursor!=='string'||cursor.length>4096)cursor=undefined;
+   for(let page=0;page<10;page++){
+    const result=await env.SOLAR_TIME_MEDIA.list({prefix,limit:1000,cursor});report.scanned+=result.objects.length;
+    const expired=result.objects.filter(object=>object.key.startsWith(prefix)&&new Date(object.uploaded).getTime()<Date.now()-3600000).map(object=>object.key);
+    if(expired.length){await env.SOLAR_TIME_MEDIA.delete(expired);report.deleted+=expired.length;}
+    if(!result.truncated){cursor=undefined;break;}cursor=result.cursor;
+   }
+   if(cursor){report.cursors[prefix]=cursor;report.complete=false;}
   }
+  await env.SOLAR_TIME_MEDIA.put(CLEANUP_STATE_KEY,JSON.stringify(report),{httpMetadata:{contentType:'application/json',cacheControl:'no-store'}});
+  console.info(JSON.stringify({message:'helper receipt cleanup',scanned:report.scanned,deleted:report.deleted,complete:report.complete}));
+  return report;
+ }catch(error){console.error(JSON.stringify({message:'helper receipt cleanup failed',scanned:report.scanned,deleted:report.deleted}));throw error;}
+}
+async function helperRateLimit(request,env,token,headers){
+ // Per-request-ID quota first. A generous per-network abuse ceiling also stops
+ // random-ID fan-out; separate read/write counters preserve normal cancellation.
+ const limits=[];
+ if(env.HELPER_TOKEN_LIMIT)limits.push([env.HELPER_TOKEN_LIMIT,'token:'+token]);
+ const ip=request.headers.get('cf-connecting-ip');
+ if(ip){const binding=request.method==='GET'?env.HELPER_READ_LIMIT:env.HELPER_WRITE_LIMIT;if(binding){
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('solar-time-helper:'+ip));
+  const key=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');limits.push([binding,key]);
+ }}
+ for(const [binding,key] of limits){
+  try{if(!(await binding.limit({key})).success)return Response.json({error:'rate limited'},{status:429,headers:{...headers,'retry-after':'60'}});}
+  catch(_){console.warn('Helper rate limiter unavailable; confirmation remains available');}
  }
+ return null;
 }
 async function helperApiResponse(request,env,ctx,url){
  const headers={...helperCors,'cache-control':'no-store','x-content-type-options':'nosniff'};
@@ -35,12 +63,20 @@ async function helperApiResponse(request,env,ctx,url){
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
  if(url.pathname===HELPER_API_PREFIX+'health'){
   if(request.method!=='GET')return new Response('Method Not Allowed',{status:405,headers});
-  return Response.json({protocol:2,receipts:true},{headers});
+  return Response.json({protocol:2,receipts:true,diagnostics:true,rateLimits:!!(env.HELPER_TOKEN_LIMIT&&env.HELPER_READ_LIMIT&&env.HELPER_WRITE_LIMIT)},{headers});
  }
  const token=String(url.searchParams.get('token')||'');
  if(!HELPER_TOKEN.test(token))return Response.json({error:'invalid token'},{status:400,headers});
  const isInstall=url.pathname===HELPER_API_PREFIX+'install-complete'||url.pathname===HELPER_API_PREFIX+'install-status';
- const kind=isInstall?'install':'operation',key=receiptKey(kind,token);
+ const isDiagnostic=url.pathname===HELPER_API_PREFIX+'diagnostic-complete'||url.pathname===HELPER_API_PREFIX+'diagnostic-status';
+ const kind=isInstall?'install':isDiagnostic?'diagnostic':'operation',key=receiptKey(kind,token);
+ if(![HELPER_API_PREFIX+kind+'-complete',HELPER_API_PREFIX+kind+'-status'].includes(url.pathname))return new Response('Not Found',{status:404,headers});
+ const limited=await helperRateLimit(request,env,token,headers);if(limited)return limited;
+ // Deployment round trips use a separate namespace and probe-only schema.
+ // They never send a native command or remove an installation/operation result.
+ if(isDiagnostic&&url.pathname.endsWith('-status')&&request.method==='DELETE'){
+  await env.SOLAR_TIME_MEDIA.delete(key);return new Response(null,{status:204,headers});
+ }
  if(url.pathname===HELPER_API_PREFIX+kind+'-complete'){
   if(request.method!=='POST')return new Response('Method Not Allowed',{status:405,headers:{...headers,allow:'POST, OPTIONS'}});
   // Preserve old clients, but v2 browsers never trust a legacy boolean installation signal.
