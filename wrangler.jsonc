@@ -3,13 +3,18 @@
   "name": "solar-time",
   "main": "cloudflare/worker.js",
   "compatibility_date": "2026-09-14",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "assets": {
     "directory": ".cloudflare/site",
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/media/*", "/api/windows-helper/*"]
+    "run_worker_first": [
+      "/media/*",
+      "/api/windows-helper/*"
+    ]
   },
   "r2_buckets": [
     {
@@ -17,10 +22,45 @@
       "bucket_name": "solar-time-media"
     }
   ],
-  "triggers": { "crons": ["17 * * * *"] },
+  "triggers": {
+    "crons": [
+      "17 * * * *"
+    ]
+  },
   "observability": {
     "enabled": true,
-    "logs": { "head_sampling_rate": 0.1 },
-    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
-  }
+    "logs": {
+      "head_sampling_rate": 0.1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.01
+    }
+  },
+  "ratelimits": [
+    {
+      "name": "HELPER_TOKEN_LIMIT",
+      "namespace_id": "1365192121",
+      "simple": {
+        "limit": 240,
+        "period": 60
+      }
+    },
+    {
+      "name": "HELPER_READ_LIMIT",
+      "namespace_id": "1365192122",
+      "simple": {
+        "limit": 1800,
+        "period": 60
+      }
+    },
+    {
+      "name": "HELPER_WRITE_LIMIT",
+      "namespace_id": "1365192123",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    }
+  ]
 }

@@ -3,6 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 function metadata(){const app=read('src/app.js'),a=app.indexOf('  const LANG_ORDER='),b=app.indexOf('  const STAR_DENSITY_COPY=',a);return vm.runInNewContext(app.slice(a,b)+';({order:LANG_ORDER,meta:LANG_META,regions:REGIONS})');}
 function detect(zone,languages){const window={};vm.runInNewContext(read('src/localization.js'),{window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
+const localeHash=code=>require('../tools/code-revisions.cjs').hash(read('src/locales/'+code+'.json'));
 const plain=value=>JSON.parse(JSON.stringify(value));
 test('Netherlands and Belgium reuse one Dutch payload while keeping separate regional metadata',()=>{
  const {order,meta,regions}=metadata();assert.equal(new Set(order).size,order.length);
@@ -28,7 +29,7 @@ test('Dutch language data is supported, versioned and cached without duplicate c
  vm.runInNewContext(read('src/language-data.js'),{window,location,document:{currentScript:{src:'https://solar.test/src/language-data.js?v=0.47-r3'}},URL,AbortSignal,fetch:async url=>{requests.push(String(url));return {ok:true,json:async()=>data};}});
  const loader=window.SolarModules.LanguageData;assert.ok(loader.supported.includes('nl'));
  const [a,b]=await Promise.all([loader.load('nl'),loader.load('nl')]);assert.equal(a,b);assert.equal(await loader.load('nl'),a);
- assert.deepEqual(requests,['https://solar.test/src/locales/nl.json?v=0.47-r3']);assert.ok(loader.loaded('nl'));
+ assert.deepEqual(requests,['https://solar.test/src/locales/nl.json?v='+localeHash('nl')]);assert.ok(loader.loaded('nl'));
 });
 test('new countries use the existing menu and retain every existing country in order',()=>{
  const {order}=metadata(),html=read('index.html'),a=html.indexOf('id="language-scroll"'),b=html.indexOf('scroll-cue-down',a),block=html.slice(a,b);

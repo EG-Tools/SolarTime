@@ -1,6 +1,6 @@
 {
   "name": "eg-solar-time",
-  "version": "0.0.58",
+  "version": "0.0.59",
   "private": true,
   "description": "Cloud-backed solar-system clock with smooth camera transitions and a spherical night sky.",
   "scripts": {
@@ -24,7 +24,9 @@
     "restore:ui:history": "node tools/restore-ui-history.cjs",
     "test:ui": "python tests/browser/ui-regression.py",
     "deploy:shutdown": "node tools/deploy-shutdown.cjs",
-    "verify:shutdown": "node tools/verify-shutdown.cjs"
+    "verify:shutdown": "node tools/verify-shutdown.cjs",
+    "update:cache": "node tools/code-revisions.cjs --write",
+    "check:cache": "node tools/code-revisions.cjs"
   },
   "engines": {
     "node": ">=22.16"

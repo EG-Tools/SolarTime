@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
+const localeHash=code=>require('../tools/code-revisions.cjs').hash(read('src/locales/'+code+'.json'));
 const plain=value=>JSON.parse(JSON.stringify(value));
 function metadata(){const app=read('src/app.js'),a=app.indexOf('  const LANG_ORDER='),b=app.indexOf('  const STAR_DENSITY_COPY=',a);return vm.runInNewContext(app.slice(a,b)+';({order:LANG_ORDER,meta:LANG_META,regions:REGIONS})');}
 function detect(zone,languages){const window={};vm.runInNewContext(read('src/localization.js'),{window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
@@ -31,7 +32,7 @@ test('an older public site missing zht falls back without showing a 404',async()
   requests.push(String(url));return String(url).includes('/zht.json')?{ok:false,status:404}:{ok:true,status:200,json:async()=>structuredClone(chn)};
  }});
  const loader=window.SolarModules.LanguageData,bundle=await loader.load('zht');
- assert.deepEqual(requests,['https://solartime.app/src/locales/zht.json?v=0.51-r2','https://solartime.app/src/locales/chn.json?v=0.51-r2']);
+ assert.deepEqual(requests,['https://solartime.app/src/locales/zht.json?v='+localeHash('zht'),'https://solartime.app/src/locales/chn.json?v='+localeHash('chn')]);
  assert.equal(bundle.copy.settings,chn.copy.settings);assert.equal(bundle.copy.eclipseView,'日食');assert.equal(loader.loaded('zht'),true);
 });
 

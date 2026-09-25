@@ -44,11 +44,12 @@
     nl:Object.freeze({cookieTitle:'Cookiegebruik',cookieMessage:'Kies of cookies voor bezoekersanalyse en advertentiemeting zijn toegestaan.',cookiePrivacy:'Privacy',cookieReject:'Weigeren',cookieAccept:'Toestaan'})
   });
   const cache=new Map(),pending=new Map();
+  const LOCALE_REVISIONS=Object.freeze({"chn":"7b3c3bd70d56","de":"f0f4c1549b49","en":"fd50959667d9","es":"b39ae069d6fa","fr":"a165dd2965e9","hi":"e3bb55b00d1b","id":"300ba3f1061c","it":"5612caa44cdd","jpn":"b9f3e4649727","kor":"6d34e2421bc7","nl":"4955c5e9775d","pt":"22cbba8e1a54","zht":"865008c03d4c"});
   const scriptUrl=new URL(document.currentScript?.src||location.href,location.href);
   const valid=value=>value&&typeof value.copy==='object'&&typeof value.bodies==='object'&&typeof value.phases==='object';
   async function request(code,base){
-    const url=new URL(code+'.json',base);url.search=scriptUrl.search;
-    const response=await fetch(url,{cache:'no-cache',credentials:'same-origin',signal:AbortSignal.timeout(15000)});
+    const url=new URL(code+'.json',base);url.searchParams.set('v',LOCALE_REVISIONS[code]||scriptUrl.searchParams.get('v')||'');
+    const response=await fetch(url,{cache:'force-cache',credentials:'same-origin',signal:AbortSignal.timeout(15000)});
     if(!response.ok){
       const fallback=missingFallback[code];
       if(response.status===404&&fallback)return request(fallback,base);

@@ -1,4 +1,5 @@
 'use strict';
+const cacheUrl=file=>require('../tools/code-revisions.cjs').urlFor(require('node:path').resolve(__dirname,'..'),file);
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -27,7 +28,7 @@ test('Eclipse travel is limited to the two satellites, preserves the current cam
 });
 
 test('Locale requests use the current revision so eclipse labels bypass old cached copy',()=>{
-  assert.match(read('index.html'),/src\/language-data\.js\?v=0\.58-r1/);
+  assert.ok(read('index.html').includes(cacheUrl('src/language-data.js')));
 });
 
 test('Every locale includes eclipse controls and fallback copy',()=>{

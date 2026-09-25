@@ -1,3 +1,9 @@
+# v0.59 r1 — 2026-09-25
+
+- Alarm/preview gain +20% (0.72→0.864 / 0.58→0.696); preserve music OFF and native shutdown compatibility.
+- Optimizations 6–16: on-demand timer wakeups, lazy streaming sound resources, last-selection-wins persistence, adaptive installation polling, content-derived cache URLs, deduplicated helper upload, shared deployment runner, flattened translations, identical shared card rules, diagnostic R2 round trip and receipt rate limits/cleanup progress.
+- Existing Windows helper bytes/hash and media artwork remain unchanged.
+
 # v0.58 r1 — alarm music OFF
 
 - Stop background music through its shared controller before alarm playback. Keep the music button OFF after stop/snooze.
