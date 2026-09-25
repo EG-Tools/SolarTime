@@ -106,7 +106,7 @@
     const request=(mode,value)=>open().then(db=>new Promise((resolve,reject)=>{const transaction=db.transaction('sounds',mode==='get'?'readonly':'readwrite'),store=transaction.objectStore('sounds'),operation=mode==='get'?store.get('alarm'):mode==='put'?store.put(value,'alarm'):store.delete('alarm');operation.onsuccess=()=>resolve(operation.result);operation.onerror=()=>reject(operation.error||Error('Audio storage failed'));}));
     return Object.freeze({get:()=>request('get'),put:value=>request('put',value),remove:()=>request('remove')});
   }
-  function create({document=root.document,UI,Preferences,translate,notify=()=>{},shutdownBridge,onOpen=()=>{},shouldKeepOpen=()=>false}){
+  function create({document=root.document,UI,Preferences,translate,notify=()=>{},shutdownBridge,onAlarmStart=()=>{},onOpen=()=>{},shouldKeepOpen=()=>false}){
     const $=id=>document.getElementById(id),storageKey='solar-time.timers.v1',now=()=>Date.now(),sounds=soundStore();
     const panel=$('timer-panel'),button=$('timer-button'),alarmDialog=$('alarm-dialog'),shutdownDialog=$('shutdown-dialog'),downloadDialog=$('shutdown-helper-download-dialog'),installDialog=$('shutdown-helper-install-dialog'),removeDialog=$('shutdown-helper-remove-dialog');
     const controls={alarm:{toggle:$('alarm-enabled'),hours:$('alarm-hours'),minutes:$('alarm-minutes'),target:$('alarm-target')},shutdown:{toggle:$('shutdown-enabled'),hours:$('shutdown-hours'),minutes:$('shutdown-minutes'),target:$('shutdown-target')}};
@@ -183,7 +183,7 @@
     function stopTone(){ringing=false;clearInterval(toneInterval);toneInterval=0;try{customSource?.stop();}catch(_){}customSource=null;try{defaultAlarmMedia?.pause();if(defaultAlarmMedia)defaultAlarmMedia.src='';}catch(_){}defaultAlarmMedia=null;}
     function closeAlarm(){stopTone();if(alarmDialog.open)UI.hide(alarmDialog,()=>alarmDialog.close());}
     function closeShutdown(){if(shutdownDialog.open)UI.hide(shutdownDialog,()=>shutdownDialog.close());}
-    function ring(){state.alarm.enabled=false;state.alarm.deadline=0;save();sync();ringing=true;startTone();if(!alarmDialog.open)UI.show(alarmDialog,()=>alarmDialog.showModal());}
+    function ring(){state.alarm.enabled=false;state.alarm.deadline=0;save();sync();ringing=true;try{onAlarmStart();}catch(error){root.console?.warn?.('Alarm start hook failed',error);}startTone();if(!alarmDialog.open)UI.show(alarmDialog,()=>alarmDialog.showModal());}
     function failureMessage(result){return result?.reason==='not-launched'?t('shutdownNotLaunched'):result?.uncertain?t('shutdownUnknown'):t('shutdownFailed',{code:result?.code??'unknown'});}
     async function nativeResult(action,seconds){try{return await shutdownBridge?.[action]?.(seconds)||{ok:false,uncertain:true};}catch(_){return {ok:false,uncertain:true};}}
     async function cancel(name,{native=true,quiet=false}={}){
@@ -288,7 +288,7 @@
     $('alarm-sound-choose').addEventListener('click',event=>{event.preventDefault();event.stopPropagation();$('alarm-sound-file').click();});
     for(const kind of ['default','custom'])$('alarm-preview-'+kind).addEventListener('click',event=>{event.preventDefault();event.stopPropagation();togglePreview(kind);});
     $('alarm-sound-file').addEventListener('change',event=>{const file=event.target.files?.[0];event.target.value='';chooseSound(file);});
-    $('alarm-snooze').addEventListener('click',()=>{closeAlarm();state.alarm.hours=0;state.alarm.minutes=5;schedule('alarm',{quiet:true});notify(t('alarmSnoozed'));});
+    $('alarm-snooze').addEventListener('click',()=>{closeAlarm();state.alarm.hours=0;state.alarm.minutes=5;setFields('alarm');schedule('alarm',{quiet:true});notify(t('alarmSnoozed'));});
     $('alarm-stop').addEventListener('click',()=>{closeAlarm();cancel('alarm',{quiet:true});});UI.bindDialog(alarmDialog,()=>{closeAlarm();cancel('alarm',{quiet:true});});
     $('shutdown-cancel').addEventListener('click',()=>cancel('shutdown'));
     shutdownDialog.addEventListener('cancel',event=>{event.preventDefault();cancel('shutdown');});
