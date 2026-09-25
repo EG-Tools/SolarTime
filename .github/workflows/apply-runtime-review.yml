@@ -1,0 +1,76 @@
+name: Apply reviewed runtime optimization
+on:
+  push:
+    branches: [optimization/runtime-v0.59]
+    paths: [.github/workflows/apply-runtime-review.yml]
+permissions:
+  contents: read
+jobs:
+  apply:
+    if: github.repository == 'EG-Tools/SolarTime' && github.ref == 'refs/heads/optimization/runtime-v0.59'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: optimization/runtime-v0.59
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+      - name: Apply exact hash-locked ordinary source only
+        run: |
+          node - <<'JS'
+          'use strict';
+          const fs=require('node:fs'),path=require('node:path'),z=require('node:zlib'),c=require('node:crypto'),vm=require('node:vm');
+          const hash=s=>c.createHash('sha256').update(s).digest('hex');
+          const encoded=[1,2,3,4,5,6,7].map(n=>fs.readFileSync('.maintenance/review-'+n+'.b64','utf8').trim()).join('');
+          const data=z.brotliDecompressSync(Buffer.from(encoded,'base64'));
+          if(hash(data)!=='0d3988f48c363e4c90295ce691d77068d368a8bf2db46c27cc8a49ad4c98d851')throw Error('Reviewed source hash mismatch');
+          const items=JSON.parse(data),w={SolarModules:{}};
+          vm.runInNewContext(fs.readFileSync('src/timer-controller.js','utf8'),{window:w});
+          const copies={};for(const lang of ['en','kor','chn','zht','jpn','hi','es','de','fr','pt','it','id','nl'])copies[lang]=w.SolarModules.TimerController.copy(lang);
+          const en=copies.en,overrides=Object.fromEntries(Object.entries(copies).filter(([k])=>k!=='en').map(([k,v])=>[k,Object.fromEntries(Object.entries(v).filter(([field,value])=>value!==en[field]))]));
+          const prepared=[],seen=new Set(),top=new Set(['CHANGELOG.md','Deploy_SolarTime_v0.57.cmd','about.html','privacy.html','terms.html','index.html','styles.css','package.json','package-lock.json','version.json','wrangler.jsonc']);
+          if(!Array.isArray(items)||items.length!==47)throw Error('Unexpected file count');
+          for(const item of items){
+            const p=item.path;
+            if(typeof p!=='string'||p.includes('\\')||p.includes('\0')||p.split('/').some(s=>s==='..'||s===''||s==='.')||seen.has(p)||(!top.has(p)&&! /^(src|tests|tools|cloudflare|docs)\//.test(p))||p==='src/windows-shutdown.js')throw Error('Invalid reviewed path: '+p);
+            seen.add(p);let part='';for(const segment of p.split('/')){part=part?path.join(part,segment):segment;if(fs.existsSync(part)&&fs.lstatSync(part).isSymbolicLink())throw Error('Symlink rejected: '+p);}
+            const exists=fs.existsSync(p),old=exists?fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n'):'';
+            if(item.before===null?exists:!exists||hash(old)!==item.before)throw Error('Baseline differs: '+p);
+            let next;
+            if(item.derive==='timer-copy')next=item.template.replace('{{EN}}',()=>JSON.stringify(en)).replace('{{OVERRIDES}}',()=>JSON.stringify(overrides));
+            else {const chars=Array.from(old),parts=[];let cursor=0;for(const [start,end,text] of item.edits){if(!Number.isInteger(start)||!Number.isInteger(end)||start<cursor||end<start||end>chars.length||typeof text!=='string')throw Error('Invalid delta: '+p);parts.push(chars.slice(cursor,start).join(''),text);cursor=end;}parts.push(chars.slice(cursor).join(''));next=parts.join('');}
+            if(hash(next)!==item.after)throw Error('Final source differs: '+p);prepared.push([p,next]);
+          }
+          for(const [p,text] of prepared){fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,text);}
+          for(let n=1;n<=7;n++)fs.rmSync('.maintenance/review-'+n+'.b64');
+          console.log('Verified '+prepared.length+' source files; native helper and workflows unchanged.');
+          JS
+      - run: npm ci
+      - run: npm test
+      - run: node tools/build-cloudflare.cjs && node tools/build-pages.cjs
+      - name: Commit only ordinary sources to the optimization branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          if git diff --cached --name-only | grep -E '^(.github/|windows/|src/windows-shutdown.js$)'; then exit 1; fi
+          git commit -m 'Optimize timers, audio, cache and cloud delivery; alarm gain +20% v0.59'
+          git push origin HEAD:optimization/runtime-v0.59
+      - name: Archive tested source
+        if: always()
+        run: |
+          mkdir -p .optimization-results
+          git rev-parse HEAD > .optimization-results/commit.txt
+          git archive --format=zip -o .optimization-results/source.zip HEAD
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: optimization-reviewed-source
+          path: .optimization-results
+          include-hidden-files: true
+          retention-days: 3
