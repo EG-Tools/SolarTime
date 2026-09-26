@@ -1,3 +1,10 @@
+# v0.61 r1 — shared-language regions and fixed AUTO
+
+- Keep the automatic language option outside the scrolling country list; retain keyboard navigation and scroll cues.
+- Add Norway, Sweden, Denmark, Finland, Iceland, Malta, Philippines, Malaysia, South Africa, Nigeria and Ghana using the existing English locale.
+- Add the Dominican Republic and Guatemala using the existing Spanish locale. Connect each selection to its IANA time zone and representative Earth-view city.
+- Preserve existing locales, audio, native helper, rendering and all explicitly deferred work.
+
 # v0.60 r2 — help music credits
 
 - Show `BACKGROUND MUSIC SUNO AI - Lyrikey` with the author linked to the requested Suno profile.

@@ -2,9 +2,9 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 
-test('automatic language is the first translated language-menu choice',()=>{
- const html=read('index.html'),scroll=html.indexOf('id="language-scroll"'),automatic=html.indexOf('data-language-auto',scroll),firstCountry=html.indexOf('data-language="',scroll);
- assert.ok(scroll>=0&&automatic>scroll&&automatic<firstCountry);
+test('automatic language is the fixed first translated language-menu choice',()=>{
+ const html=read('index.html'),scroll=html.indexOf('id="language-scroll"'),automatic=html.indexOf('data-language-auto',html.indexOf('id="language-menu"')),firstCountry=html.indexOf('data-language="',scroll);
+ assert.ok(scroll>=0&&automatic<scroll&&scroll<firstCountry);
  assert.match(html.slice(automatic,firstCountry),/id="auto-language-mode">자동<\/strong><span id="auto-language-name">언어/);
 });
 
