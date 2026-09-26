@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
-function moduleFrom(file){const context={window:{SolarModules:{}}};for(const dependency of ['src/timer-copy.js','src/alarm-sound.js'])vm.runInNewContext(read(dependency),context);vm.runInNewContext(read(file),context,{filename:file});return context.window.SolarModules;}
+function moduleFrom(file){const context={window:{SolarModules:{}}};for(const dependency of ['src/alarm-sound.js'])vm.runInNewContext(read(dependency),context);vm.runInNewContext(read(file),context,{filename:file});return context.window.SolarModules;}
 
 test('top actions follow music, language, timer, settings, help and fullscreen order',()=>{
  const html=read('index.html'),ids=['music-toggle','language-toggle','timer-button','settings-button','help-button','fullscreen-button'];
@@ -39,7 +39,7 @@ test('timer duration is capped at 99 hours 59 minutes and all interface language
  const timer=moduleFrom('src/timer-controller.js').TimerController;
  assert.equal(timer.totalMinutes(99,59),5999);assert.equal(timer.totalMinutes(120,80),5999);assert.equal(timer.totalMinutes(-4,-2),0);
  const keys=['timer','alarm','scheduledShutdown','defaultAlarmSound','customAlarmSound','shutdownHelper','shutdownUnsupported','shutdownCountdownTitle','cancelShutdown','helperSetup','helperNotInstalled','helperDownloadReady','helperInstallComplete','helperDisabled','helperDownloadTitle','helperDownloadDescription','helperDownloadPrivacy','helperDownloadPermission','helperDownloadSource','helperViewSource','helperDownloadQuestion','helperInstallTitle','helperInstallDescription','helperInstallQuestion','removeHelper','helperRemoveTitle','helperRemoveDescription','helperRemoveQuestion','helperRemoveRequested'];
- for(const code of ['kor','en','chn','zht','jpn','hi','es','de','fr','pt','it','id','nl'])for(const key of keys)assert.ok(timer.copy(code)[key],code+' '+key);
+ for(const code of ['kor','en','chn','zht','jpn','hi','es','de','fr','pt','it','id','nl'])for(const key of keys)assert.ok(JSON.parse(read('src/locales/'+code+'.json')).copy[key],code+' '+key);
 });
 
 test('native shutdown bridge is Windows desktop only and clamps shutdown.exe seconds',()=>{

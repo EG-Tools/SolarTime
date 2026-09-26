@@ -9,7 +9,7 @@ test('automatic language is the fixed first translated language-menu choice',()=
 });
 
 test('automatic label follows browser language and stays independent from app choices',()=>{
- const source=read('src/localization.js'),label=languages=>{const window={};vm.runInNewContext(source,{window,navigator:{languages,language:languages[0]},Intl});return Array.from(window.SolarModules.Localization.automaticLanguageLabel());};
+ const source=read('src/localization.js'),label=languages=>{const window={};require('./helpers/i18n-runtime.cjs').localization({window,navigator:{languages,language:languages[0]},Intl});return Array.from(window.SolarModules.Localization.automaticLanguageLabel());};
  assert.deepEqual(label(['ko-KR']),['자동','언어']);assert.deepEqual(label(['en-US']),['AUTO','Language']);
  assert.deepEqual(label(['zh-TW']),['自動','語言']);assert.deepEqual(label(['ja-JP']),['自動','言語']);assert.deepEqual(label(['es-ES']),['AUTO','Idioma']);
 });
@@ -17,7 +17,7 @@ test('automatic label follows browser language and stays independent from app ch
 test('automatic country follows timezone while automatic copy follows browser preference',()=>{
  const source=read('src/localization.js'),window={};
  const DateTimeFormat=()=>({resolvedOptions:()=>({timeZone:'Asia/Seoul'}),format:()=>''});
- vm.runInNewContext(source,{window,navigator:{languages:['en-US','ko-KR'],language:'en-US'},Intl:{DateTimeFormat}});
+ require('./helpers/i18n-runtime.cjs').localization({window,navigator:{languages:['en-US','ko-KR'],language:'en-US'},Intl:{DateTimeFormat}});
  assert.equal(window.SolarModules.Localization.detect(),'kor');
  assert.equal(window.SolarModules.Localization.detectCopy(),'en');
  assert.equal(window.SolarModules.Localization.detectTimeZone(),'Asia/Seoul');

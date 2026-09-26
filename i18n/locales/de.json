@@ -1,5 +1,5 @@
 {
-  "copy": {
+  "ui": {
     "metaDescription": "Eine Sonnensystem-Uhr im Fluss der Sterne – Echtzeit, Planetenbahnen, Erde und Mond in einem kleinen Kosmos.",
     "cookieTitle": "Cookie-Nutzung",
     "cookieMessage": "Wähle, ob Cookies für Besuchsanalysen und Werbemessung erlaubt werden.",
@@ -191,10 +191,10 @@
     "reloadPage": "Neu laden",
     "randomRotate": "Zufällige Drehung",
     "starDensityLabel": "Sterndichte",
-    "starDensityAria": "Dichte der Partikelsterne. Bei 0 werden Partikelsterne ausgeblendet.",
-    "timer": "Timer",
+    "starDensityAria": "Dichte der Partikelsterne. Bei 0 werden Partikelsterne ausgeblendet."
+  },
+  "timer": {
     "timerClose": "Timer schließen",
-    "alarm": "Alarm",
     "alarmDuration": "Alarmzeit",
     "scheduledShutdown": "Geplantes Herunterfahren",
     "shutdownDuration": "Zeit bis zum Herunterfahren",
@@ -238,26 +238,14 @@
     "helperDisabled": "Die Solar-Time-Hilfe zum Herunterfahren ist deaktiviert.",
     "helperDownloadTitle": "Geprüfte offizielle Hilfe",
     "helperDownloadDescription": "Diese Datei für geplantes Windows-Herunterfahren wurde von Solar Time erstellt und geprüft.",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
     "helperDownloadSource": "Quellcode und SHA-256 sind öffentlich, damit Änderungen geprüft werden können.",
     "helperViewSource": "Quellcode anzeigen",
-    "helperChecksumLabel": "SHA-256",
     "helperDownloadQuestion": "Von Cloudflare herunterladen?",
     "removeHelper": "Entfernen",
     "helperRemoveTitle": "Herunterfahrhilfe entfernen",
     "helperRemoveDescription": "Bricht das geplante Herunterfahren ab und entfernt die Hilfe samt Verknüpfung aus dem aktuellen Windows-Konto.",
     "helperRemoveQuestion": "Hilfe entfernen?",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
-    "helperInstallTitle": "Installation der Hilfe bestätigen",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallTitle": "Installation der Hilfe bestätigen"
   },
   "bodies": {
     "sun": [
@@ -318,5 +306,6 @@
     "기우는 달": "abnehmender Mond",
     "하현달": "letztes Viertel",
     "그믐달": "abnehmende Sichel"
-  }
+  },
+  "local": {}
 }

@@ -26,7 +26,7 @@ function fixture({saved={},record=null,prepare,hidden=false,installed=false,getR
  window.fetch=fetchFn||(async()=>({ok:true,blob:async()=>new Blob(['sound'],{type:'audio/wav'})}));
  class Clock extends Date{constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}
  const globals={window,document,Date:Clock,Intl,URL,Blob,clearInterval(){},setTimeout,clearTimeout};
- for(const name of ['timer-copy','alarm-sound','timer-controller'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src',name+'.js'),'utf8'),globals);
+ for(const name of ['alarm-sound','timer-controller'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src',name+'.js'),'utf8'),globals);
  if(prepare)window.SolarModules.AlarmSound={...window.SolarModules.AlarmSound,prepare};
  const bridge={eligible:installed,helperSha256:'A'.repeat(64),schedule:async seconds=>({ok:true,deadline:clock+seconds*1000}),cancel:async()=>({ok:true}),probe:async()=>({ok:true}),installStatus:async()=>{counts.probes++;return false;},dispose(){}};
  const timer=window.SolarModules.TimerController.create({document,UI:{bindScrollCues:()=>({update(){},dispose(){}}),bindPopup(){},bindDialog(){},visible:e=>!e.hidden,show:(e,fn)=>{e.hidden=false;fn?.();},hide:(e,fn)=>{e.hidden=true;fn?.();}},Preferences:{read:()=>saved,write(){}},translate:(k,v)=>k+JSON.stringify(v||{}),shutdownBridge:bridge,notify:v=>notices.push(v)});

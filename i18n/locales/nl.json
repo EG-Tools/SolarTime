@@ -1,5 +1,5 @@
 {
-  "copy": {
+  "ui": {
     "metaDescription": "Een klok van het zonnestelsel tussen de sterren — de actuele tijd, planeetbanen, de aarde en de maan in een kleine kosmos.",
     "cookieTitle": "Cookiegebruik",
     "cookieMessage": "Kies of cookies voor bezoekersanalyse en advertentiemeting zijn toegestaan.",
@@ -191,15 +191,14 @@
     "reloadPage": "Opnieuw laden",
     "randomRotate": "Willekeurige rotatie",
     "starDensityLabel": "Sterdichtheid",
-    "starDensityAria": "Dichtheid van de deeltjessterren. Bij nul zijn de deeltjessterren verborgen.",
-    "timer": "Timer",
+    "starDensityAria": "Dichtheid van de deeltjessterren. Bij nul zijn de deeltjessterren verborgen."
+  },
+  "timer": {
     "timerClose": "Timer sluiten",
-    "alarm": "Alarm",
     "alarmDuration": "Alarmtijd",
     "scheduledShutdown": "Gepland afsluiten",
     "shutdownDuration": "Tijd tot afsluiten",
     "hours": "uur",
-    "minutes": "min",
     "timerInactive": "Niet ingesteld",
     "timerTarget": "{time} · nog {remaining}",
     "alarmSound": "Alarmgeluid",
@@ -238,26 +237,14 @@
     "helperDisabled": "De Solar Time-afsluitmodule is uitgeschakeld.",
     "helperDownloadTitle": "Geverifieerde officiële module",
     "helperDownloadDescription": "Dit bestand voor gepland afsluiten van Windows is gemaakt en gecontroleerd door Solar Time.",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
     "helperDownloadSource": "De broncode en SHA-256 zijn openbaar zodat wijzigingen kunnen worden gecontroleerd.",
     "helperViewSource": "Broncode bekijken",
-    "helperChecksumLabel": "SHA-256",
     "helperDownloadQuestion": "Downloaden via Cloudflare?",
     "removeHelper": "Verwijderen",
     "helperRemoveTitle": "Afsluitmodule verwijderen",
     "helperRemoveDescription": "Annuleert gepland afsluiten en verwijdert de module en koppeling uit het huidige Windows-account.",
     "helperRemoveQuestion": "Module verwijderen?",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
-    "helperInstallTitle": "Installatie van module bevestigen",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallTitle": "Installatie van module bevestigen"
   },
   "bodies": {
     "sun": [
@@ -318,5 +305,6 @@
     "기우는 달": "afnemende maan",
     "하현달": "laatste kwartier",
     "그믐달": "afnemende sikkel"
-  }
+  },
+  "local": {}
 }

@@ -121,7 +121,7 @@ test('r10 adds Indonesia and keeps every country on the existing regional-time p
   assert.ok(app.includes("eu:{label:'UNITED KINGDOM',timeZone:'Europe/London'"));
   assert.match(app,/language=target;languageMode=mode;activeCopyCode=targetCopy;if\(automatic\)autoTimeZone=targetTimeZone;renderer\.setSite\(activeRegion\(\)\);translateStatic\(\);renderReleaseNotes\(\);refreshTimeFormats\(\)/);
   assert.match(localization,/jakarta\|pontianak\|makassar\|ujung_pandang\|jayapura/);
-  assert.ok(loader.includes("'pt','it','id'"));
+  for(const code of ['pt','it','id'])assert.ok(JSON.parse(read('i18n/config.json')).languages[code]);
   for(const code of ['pt','br','it','mx','id'])assert.ok(html.includes('data-language="'+code+'"'));
   const en=JSON.parse(read('src/locales/en.json')),ind=JSON.parse(read('src/locales/id.json'));
   assert.deepEqual(Object.keys(ind.copy).sort(),Object.keys(en.copy).sort());
@@ -188,7 +188,7 @@ test('r11 reuses existing language bundles for additional countries',()=>{
     assert.ok(block.includes('timeZone:"'+zone+'"'),code+' timezone');
   }
 
-  assert.match(app,/STAR_DENSITY_COPY\[copyLanguage\(\)\]/);
+  assert.match(app,/t\('starDensityLabel'\)/);
   for(const token of ["['en-ca','ca']","['es-ar','ar']","['pt-ao','ao']","['de-at','at']"])
     assert.ok(localization.includes(token),token);
 });

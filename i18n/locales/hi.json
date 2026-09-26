@@ -1,5 +1,5 @@
 {
-  "copy": {
+  "ui": {
     "metaDescription": "तारों के साथ बहती सौरमंडल घड़ी—वास्तविक समय, ग्रहों की कक्षाएँ, पृथ्वी और चंद्रमा का एक छोटा ब्रह्मांड।",
     "cookieTitle": "कुकी का उपयोग",
     "cookieMessage": "विज़िट विश्लेषण और विज्ञापन मापन के लिए कुकी की अनुमति चुनें।",
@@ -191,7 +191,9 @@
     "reloadPage": "फिर से लोड करें",
     "randomRotate": "यादृच्छिक घुमाव",
     "starDensityLabel": "तारों का घनत्व",
-    "starDensityAria": "पार्टिकल तारों का घनत्व। 0 पर पार्टिकल तारे छिप जाते हैं।",
+    "starDensityAria": "पार्टिकल तारों का घनत्व। 0 पर पार्टिकल तारे छिप जाते हैं।"
+  },
+  "timer": {
     "timer": "टाइमर",
     "timerClose": "टाइमर बंद करें",
     "alarm": "अलार्म",
@@ -238,26 +240,14 @@
     "helperDisabled": "Solar Time शटडाउन सहायक अक्षम है।",
     "helperDownloadTitle": "सत्यापित आधिकारिक सहायक",
     "helperDownloadDescription": "यह Solar Time द्वारा बनाया और जाँचा गया Windows शटडाउन सहायक है।",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
     "helperDownloadSource": "स्रोत और SHA-256 सार्वजनिक हैं ताकि बदलाव जाँचे जा सकें।",
     "helperViewSource": "स्रोत कोड देखें",
-    "helperChecksumLabel": "SHA-256",
     "helperDownloadQuestion": "क्या Cloudflare से डाउनलोड करें?",
     "removeHelper": "हटाएँ",
     "helperRemoveTitle": "शटडाउन सहायक हटाएँ",
     "helperRemoveDescription": "निर्धारित शटडाउन रद्द करता है और मौजूदा Windows खाते से सहायक तथा उसका कनेक्शन हटाता है।",
     "helperRemoveQuestion": "सहायक हटाएँ?",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
-    "helperInstallTitle": "सहायक स्थापना की पुष्टि",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallTitle": "सहायक स्थापना की पुष्टि"
   },
   "bodies": {
     "sun": [
@@ -318,5 +308,6 @@
     "기우는 달": "घटता उभरा चंद्र",
     "하현달": "अंतिम चतुर्थांश",
     "그믐달": "घटता अर्धचंद्र"
-  }
+  },
+  "local": {}
 }

@@ -1,5 +1,5 @@
 {
-  "copy": {
+  "ui": {
     "metaDescription": "伴随星光流动的太阳系时钟，在小宇宙中呈现实时时间、行星公转、地球与月球。",
     "cookieTitle": "Cookie 使用",
     "cookieMessage": "请选择是否允许使用 Cookie 进行访问分析和广告衡量。",
@@ -191,7 +191,9 @@
     "reloadPage": "重新加载",
     "randomRotate": "随机旋转",
     "starDensityLabel": "星星密度",
-    "starDensityAria": "粒子星星密度。设为 0 时隐藏粒子星星。",
+    "starDensityAria": "粒子星星密度。设为 0 时隐藏粒子星星。"
+  },
+  "timer": {
     "timer": "计时器",
     "timerClose": "关闭计时器",
     "alarm": "闹钟",
@@ -238,26 +240,14 @@
     "helperDisabled": "Solar Time 关机辅助模块已停用。",
     "helperDownloadTitle": "已验证的官方辅助模块",
     "helperDownloadDescription": "这是由 Solar Time 制作并审核的 Windows 定时关机文件。",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
     "helperDownloadSource": "公开源代码和 SHA-256，可验证文件是否被更改。",
     "helperViewSource": "查看源代码",
-    "helperChecksumLabel": "SHA-256",
     "helperDownloadQuestion": "是否从 Cloudflare 下载？",
     "removeHelper": "移除",
     "helperRemoveTitle": "移除关机辅助模块",
     "helperRemoveDescription": "取消计划关机，并从当前 Windows 帐户中移除辅助模块及其连接信息。",
     "helperRemoveQuestion": "要移除辅助模块吗？",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
-    "helperInstallTitle": "确认辅助模块安装",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallTitle": "确认辅助模块安装"
   },
   "bodies": {
     "sun": [
@@ -318,5 +308,6 @@
     "기우는 달": "亏凸月",
     "하현달": "下弦月",
     "그믐달": "残月"
-  }
+  },
+  "local": {}
 }

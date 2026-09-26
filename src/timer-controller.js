@@ -5,7 +5,6 @@
   const ALARM_VOLUME=.864,PREVIEW_VOLUME=.696,FALLBACK_VOLUME=.192;
   const integer=(value,min,max,fallback=0)=>{const number=Math.trunc(Number(value));return Number.isFinite(number)?Math.max(min,Math.min(max,number)):fallback;};
   const totalMinutes=(hours,minutes)=>Math.min(MAX_MINUTES,integer(hours,0,99)*60+integer(minutes,0,59));
-  const copy=code=>modules.TimerCopy.copy(code);
   function soundStore(indexedDB=root.indexedDB){
     let database;
     const open=()=>database||(database=new Promise((resolve,reject)=>{if(!indexedDB){reject(Error('IndexedDB unavailable'));return;}const request=indexedDB.open('solar-time-audio',1);request.onupgradeneeded=()=>request.result.createObjectStore('sounds');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||Error('Audio storage unavailable'));}));
@@ -331,5 +330,5 @@
     document.addEventListener('visibilitychange',visibilityCheck);root.addEventListener?.('pageshow',visibilityCheck);root.addEventListener?.('focus',visibilityCheck);
     return Object.freeze({open,close:()=>open(false),refreshLanguage,check,getState:()=>JSON.parse(JSON.stringify(state)),getDiagnostics:()=>({...metrics,retainedDecodedBytes:modules.AlarmSound.decodedBytes(defaultBuffer)+modules.AlarmSound.decodedBytes(customBuffer),customStreaming:!!customResource?.url,defaultStreaming:!!defaultResource?.url,wakeScheduled:!!interval}),dispose(){if(disposed)return;disposed=true;++nativeSerial;invalidateSound();releaseCustom();releaseDefault();shutdownBridge?.dispose?.();root.clearTimeout?.(interval);interval=0;root.removeEventListener?.('pageshow',visibilityCheck);root.removeEventListener?.('focus',visibilityCheck);document.removeEventListener('visibilitychange',visibilityCheck);document.removeEventListener('pointerdown',closeOnViewport);scrollBinding.dispose();stopPreview();closeAlarm();closeShutdown();closeDownloadConfirm();closeInstallConfirm();closeRemoveConfirm();audioContext?.close?.().catch(()=>{});}});
   }
-  modules.TimerController=Object.freeze({create,totalMinutes,MAX_MINUTES,MAX_SOUND_BYTES,DEFAULT_ALARM_FILE,ALARM_VOLUME,PREVIEW_VOLUME,FALLBACK_VOLUME,copy});
+  modules.TimerController=Object.freeze({create,totalMinutes,MAX_MINUTES,MAX_SOUND_BYTES,DEFAULT_ALARM_FILE,ALARM_VOLUME,PREVIEW_VOLUME,FALLBACK_VOLUME});
 })(window);

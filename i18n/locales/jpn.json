@@ -1,5 +1,5 @@
 {
-  "copy": {
+  "ui": {
     "metaDescription": "星明かりとともに流れる太陽系時計。リアルタイムの惑星軌道と、地球・月を小さな宇宙に描きます。",
     "cookieTitle": "Cookieの使用",
     "cookieMessage": "アクセス解析と広告測定のためのCookie使用を選択してください。",
@@ -191,7 +191,9 @@
     "reloadPage": "再読み込み",
     "randomRotate": "ランダム回転",
     "starDensityLabel": "星の密度",
-    "starDensityAria": "パーティクル星の密度。0 にするとパーティクル星を非表示にします。",
+    "starDensityAria": "パーティクル星の密度。0 にするとパーティクル星を非表示にします。"
+  },
+  "timer": {
     "timer": "タイマー",
     "timerClose": "タイマーを閉じる",
     "alarm": "アラーム",
@@ -238,26 +240,14 @@
     "helperDisabled": "Solar Time 終了補助モジュールは無効です。",
     "helperDownloadTitle": "確認済みの公式補助モジュール",
     "helperDownloadDescription": "Solar Time が作成・確認した Windows 予約終了用ファイルです。",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
     "helperDownloadSource": "ソースと SHA-256 を公開し、ファイルの変更を確認できます。",
     "helperViewSource": "ソースコードを見る",
-    "helperChecksumLabel": "SHA-256",
     "helperDownloadQuestion": "Cloudflare からダウンロードしますか？",
     "removeHelper": "削除",
     "helperRemoveTitle": "終了補助モジュールを削除",
     "helperRemoveDescription": "予約終了を取り消し、現在の Windows アカウントから補助モジュールと関連付けを削除します。",
     "helperRemoveQuestion": "補助モジュールを削除しますか？",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
-    "helperInstallTitle": "補助モジュールのインストール確認",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallTitle": "補助モジュールのインストール確認"
   },
   "bodies": {
     "sun": [
@@ -318,5 +308,6 @@
     "기우는 달": "欠けていく月",
     "하현달": "下弦の月",
     "그믐달": "有明月"
-  }
+  },
+  "local": {}
 }

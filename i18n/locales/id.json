@@ -1,5 +1,5 @@
 {
-  "copy": {
+  "ui": {
     "metaDescription": "Jam Tata Surya yang mengalir bersama bintang—waktu nyata, orbit planet, Bumi, dan Bulan dalam sebuah kosmos kecil.",
     "cookieTitle": "Penggunaan cookie",
     "cookieMessage": "Pilih apakah akan mengizinkan cookie untuk analisis kunjungan dan pengukuran iklan.",
@@ -191,10 +191,10 @@
     "reloadPage": "Muat ulang",
     "randomRotate": "Rotasi acak",
     "starDensityLabel": "Kepadatan bintang",
-    "starDensityAria": "Kepadatan bintang partikel. Nol menyembunyikan bintang partikel.",
-    "timer": "Timer",
+    "starDensityAria": "Kepadatan bintang partikel. Nol menyembunyikan bintang partikel."
+  },
+  "timer": {
     "timerClose": "Tutup timer",
-    "alarm": "Alarm",
     "alarmDuration": "Waktu alarm",
     "scheduledShutdown": "Matikan terjadwal",
     "shutdownDuration": "Waktu hingga mati",
@@ -238,26 +238,14 @@
     "helperDisabled": "Modul pematian Solar Time dinonaktifkan.",
     "helperDownloadTitle": "Modul resmi terverifikasi",
     "helperDownloadDescription": "Berkas pematian terjadwal Windows ini dibuat dan diperiksa oleh Solar Time.",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
     "helperDownloadSource": "Kode sumber dan SHA-256 dibuka agar perubahan berkas dapat diperiksa.",
     "helperViewSource": "Lihat kode sumber",
-    "helperChecksumLabel": "SHA-256",
     "helperDownloadQuestion": "Unduh dari Cloudflare?",
     "removeHelper": "Hapus",
     "helperRemoveTitle": "Hapus modul pematian",
     "helperRemoveDescription": "Membatalkan pematian terjadwal dan menghapus modul beserta koneksinya dari akun Windows saat ini.",
     "helperRemoveQuestion": "Hapus modul?",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
-    "helperInstallTitle": "Konfirmasi pemasangan modul",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallTitle": "Konfirmasi pemasangan modul"
   },
   "bodies": {
     "sun": [
@@ -318,5 +306,6 @@
     "기우는 달": "cembung mengecil",
     "하현달": "kuartal terakhir",
     "그믐달": "sabit tua"
-  }
+  },
+  "local": {}
 }

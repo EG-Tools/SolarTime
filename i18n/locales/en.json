@@ -1,5 +1,5 @@
 {
-  "copy": {
+  "ui": {
     "metaDescription": "A solar-system clock flowing with the stars—real time, planetary orbits, Earth and Moon in a small cosmos.",
     "cookieTitle": "Cookies",
     "cookieMessage": "Choose whether to allow cookies for visit analytics and advertising measurement.",
@@ -191,7 +191,9 @@
     "reloadPage": "Reload",
     "randomRotate": "Random rotation",
     "starDensityLabel": "Star density",
-    "starDensityAria": "Particle star density. Zero hides particle stars.",
+    "starDensityAria": "Particle star density. Zero hides particle stars."
+  },
+  "timer": {
     "timer": "Timer",
     "timerClose": "Close timer",
     "alarm": "Alarm",
@@ -318,5 +320,6 @@
     "기우는 달": "waning gibbous",
     "하현달": "last quarter",
     "그믐달": "waning crescent"
-  }
+  },
+  "local": {}
 }

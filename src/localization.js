@@ -87,14 +87,9 @@
     return 'en';
   }
   const interpolate=(text,values={})=>String(text).replace(/\{(\w+)\}/g,(_,key)=>values[key]??'');
-  const AUTO_LANGUAGE_LABELS=Object.freeze({
-    kor:Object.freeze(['자동','언어']),en:Object.freeze(['AUTO','Language']),chn:Object.freeze(['自动','语言']),zht:Object.freeze(['自動','語言']),jpn:Object.freeze(['自動','言語']),
-    hi:Object.freeze(['ऑटो','भाषा']),es:Object.freeze(['AUTO','Idioma']),de:Object.freeze(['AUTO','Sprache']),fr:Object.freeze(['AUTO','Langue']),pt:Object.freeze(['AUTO','Idioma']),
-    it:Object.freeze(['AUTO','Lingua']),id:Object.freeze(['AUTO','Bahasa']),nl:Object.freeze(['AUTO','Taal'])
-  });
   function detectCopy(){
     const languages=(navigator.languages?.length?navigator.languages:[navigator.language||'']).map(value=>String(value).toLowerCase());
-    const patterns=[[/^zh-(?:tw|hk|hant)(?:-|$)/,'zht'],[/^zh(?:-|$)/,'chn'],[/^ko(?:-|$)/,'kor'],[/^ja(?:-|$)/,'jpn'],[/^hi(?:-|$)/,'hi'],[/^es(?:-|$)/,'es'],[/^de(?:-|$)/,'de'],[/^fr(?:-|$)/,'fr'],[/^pt(?:-|$)/,'pt'],[/^it(?:-|$)/,'it'],[/^id(?:-|$)/,'id'],[/^nl(?:-|$)/,'nl'],[/^en(?:-|$)/,'en']];
+    const patterns=modules.LanguageData.browserLanguagePatterns;
     for(const language of languages)for(const [pattern,code] of patterns)if(pattern.test(language))return code;
     return 'en';
   }
@@ -106,7 +101,7 @@
       Intl.DateTimeFormat('en-US',{timeZone}).format(0);return timeZone;
     }catch(_){return null;}
   }
-  function automaticLanguageLabel(){return AUTO_LANGUAGE_LABELS[detectCopy()]||AUTO_LANGUAGE_LABELS.en;}
+  function automaticLanguageLabel(){return modules.LanguageData.automaticLabels[detectCopy()]||modules.LanguageData.automaticLabels.en;}
   function apply(document,translate){
     for(const element of document.querySelectorAll('[data-i18n]'))element.textContent=translate(element.dataset.i18n);
     for(const element of document.querySelectorAll('[data-i18n-aria]'))element.setAttribute('aria-label',translate(element.dataset.i18nAria));

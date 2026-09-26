@@ -52,9 +52,13 @@ test('cancelling before stored sound preparation finishes cannot retain its deco
 test('idle controller cannot be revived by a late default decode after cancellation',async()=>{
  const d=deferred(),f=fixture({decode:()=>d.promise});await f.arm();await flush();await f.cancel();d.resolve({length:48000,numberOfChannels:2});await flush();assert.equal(f.timer.getDiagnostics().retainedDecodedBytes,0);assert.equal(f.pending.size,0);f.dispose();
 });
-test('timer translations keep the approved effective copy in all languages and reuse immutable fallback',()=>{
- const window={};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/timer-copy.js'),'utf8'),{window});const api=window.SolarModules.TimerCopy;
+test('timer translations keep the approved effective copy in all compiled language bundles',()=>{
  const expected=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/timer-copy-sha256.json'),'utf8'));
- for(const [code,digest] of Object.entries(expected)){const copy=api.copy(code);const text=JSON.stringify(Object.fromEntries(Object.keys(copy).sort().map(k=>[k,copy[k]])));assert.equal(crypto.createHash('sha256').update(text).digest('hex'),digest,code);assert.equal(api.copy(code),copy);assert.ok(Object.isFrozen(copy));}
- assert.equal(api.copy('unknown'),api.copy('en'));assert.equal(api.copy('__proto__'),api.copy('en'));
+ const keys=Object.keys(JSON.parse(fs.readFileSync(path.join(__dirname,'../i18n/locales/en.json'),'utf8')).timer).sort();
+ for(const [code,digest] of Object.entries(expected)){
+  const copy=JSON.parse(fs.readFileSync(path.join(__dirname,'../src/locales/'+code+'.json'),'utf8')).copy;
+  const text=JSON.stringify(Object.fromEntries(keys.map(k=>[k,copy[k]])));
+  assert.equal(crypto.createHash('sha256').update(text).digest('hex'),digest,code);
+ }
+ assert.equal(fs.existsSync(path.join(__dirname,'../src/timer-copy.js')),false);
 });

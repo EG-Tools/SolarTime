@@ -1,3 +1,10 @@
+# v0.62 r1 — canonical translation sources
+
+- Manage interface, timer, body/phase, automatic-label and release-history text under `i18n/`; generate runtime payloads with `npm run build:i18n`.
+- Remove the all-language TimerCopy payload and scattered runtime copy overrides; use immutable shared language bundles and one English message fallback.
+- Add source/placeholder/duplicate-key/drift checks, explicit legacy fallback reporting and source-only change review.
+- Preserve all previously effective text, 48 regional mappings, AUTO positioning, audio and native shutdown behavior. Deferred work remains deferred.
+
 # v0.61 r1 — shared-language regions and fixed AUTO
 
 - Keep the automatic language option outside the scrolling country list; retain keyboard navigation and scroll cues.

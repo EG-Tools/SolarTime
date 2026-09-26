@@ -1,0 +1,1023 @@
+{
+  "baseline": "3dcfdba5bcd3218cf1d20655ea0456dad775a07e",
+  "inherited": {
+    "chn:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "zht:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "jpn:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "hi:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.minutes": {
+      "sourceHash": "1f6fa6f69d185e6086d04e7330361bf9001a3b8d0ce511171055dc34eb90c1c5",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "es:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.timer": {
+      "sourceHash": "cdeec2b374c18dd4b59abc6d8c7001c4b163b3261ae62ac84b15560490f037a0",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.alarm": {
+      "sourceHash": "f3b67957357963f70aaf939fd76caf4ef15d392889acee40168a2b3e13cede8e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "de:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.minutes": {
+      "sourceHash": "1f6fa6f69d185e6086d04e7330361bf9001a3b8d0ce511171055dc34eb90c1c5",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "fr:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.minutes": {
+      "sourceHash": "1f6fa6f69d185e6086d04e7330361bf9001a3b8d0ce511171055dc34eb90c1c5",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "pt:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.timer": {
+      "sourceHash": "cdeec2b374c18dd4b59abc6d8c7001c4b163b3261ae62ac84b15560490f037a0",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.minutes": {
+      "sourceHash": "1f6fa6f69d185e6086d04e7330361bf9001a3b8d0ce511171055dc34eb90c1c5",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "it:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.timer": {
+      "sourceHash": "cdeec2b374c18dd4b59abc6d8c7001c4b163b3261ae62ac84b15560490f037a0",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.alarm": {
+      "sourceHash": "f3b67957357963f70aaf939fd76caf4ef15d392889acee40168a2b3e13cede8e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "id:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.timer": {
+      "sourceHash": "cdeec2b374c18dd4b59abc6d8c7001c4b163b3261ae62ac84b15560490f037a0",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.alarm": {
+      "sourceHash": "f3b67957357963f70aaf939fd76caf4ef15d392889acee40168a2b3e13cede8e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.minutes": {
+      "sourceHash": "1f6fa6f69d185e6086d04e7330361bf9001a3b8d0ce511171055dc34eb90c1c5",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.helperDownloadPrivacy": {
+      "sourceHash": "a83c3e37f60416c9671f7263d62b7a23c509a3bd19e832ed1660bca919431373",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.helperDownloadPermission": {
+      "sourceHash": "2ef519371fd1f53d675e3ebde6ee7282020e41f1361e5f442c74553f6ab81284",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.helperRemoveRequested": {
+      "sourceHash": "d533b1aaf9096ae979550a05ef5458a6bc7c6276aa2d8785a4cf18f871d7a086",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.helperInstallDescription": {
+      "sourceHash": "f7b68286de278dc8119501839133c383656d6d669ca9ee167c47897a6367be9c",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.helperInstallQuestion": {
+      "sourceHash": "de87eccfba74d4a20b978b65a735534c534095f62c0e9e5eb229831f6080a280",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.shutdownPending": {
+      "sourceHash": "686c78e0a28d3a314cb8e540c6d620605cab6a0d1b22c98c0f1d9a315412a672",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.shutdownUnknown": {
+      "sourceHash": "48aa03f0cb9937a707de2c701e8d3e4ff24721a643369f7a8771a8050cfca243",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.shutdownFailed": {
+      "sourceHash": "d47f4076c57ead79bd9354ee6fe5dab440763e36fa0b67189e473a0d1c4c496f",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.shutdownNotLaunched": {
+      "sourceHash": "a14392e8ce0a235965aa4ff9481dcfc83853e62f06a8515c8030a67aaca07d98",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.helperVerifyFailed": {
+      "sourceHash": "db48b0cb02bc7707731b239055d2e5016c578f8c81c89104fa037ef46e53120e",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "nl:timer.shutdownDataWarning": {
+      "sourceHash": "f1ef31adda8ff885cc914fe07cab2e9da5a58e06e434f69054bbf5f8c2ac3e90",
+      "reason": "Existing v0.61 English fallback, not a completed translation."
+    },
+    "chn:release.0.61": {
+      "sourceHash": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "zht:release.0.61": {
+      "sourceHash": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "jpn:release.0.61": {
+      "sourceHash": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "hi:release.0.61": {
+      "sourceHash": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "de:release.0.61": {
+      "sourceHash": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "fr:release.0.61": {
+      "sourceHash": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.61": {
+      "sourceHash": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.61": {
+      "sourceHash": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.61": {
+      "sourceHash": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.61": {
+      "sourceHash": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.46": {
+      "sourceHash": "28d0e993d353f23541c6615d28aefb0d9825d661584e468f4bef6dbccdfdf958",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.45": {
+      "sourceHash": "d8e62ab2d69357106072121f87095cb56e30ee7958df4358062170766e2d320a",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.45": {
+      "sourceHash": "d8e62ab2d69357106072121f87095cb56e30ee7958df4358062170766e2d320a",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.45": {
+      "sourceHash": "d8e62ab2d69357106072121f87095cb56e30ee7958df4358062170766e2d320a",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.43": {
+      "sourceHash": "419cfb0b0f6128e627fae52d7cbbf47f9c096e90e4ccb2e67db2e96f8fe286e9",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.43": {
+      "sourceHash": "419cfb0b0f6128e627fae52d7cbbf47f9c096e90e4ccb2e67db2e96f8fe286e9",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.43": {
+      "sourceHash": "419cfb0b0f6128e627fae52d7cbbf47f9c096e90e4ccb2e67db2e96f8fe286e9",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.42": {
+      "sourceHash": "dedda482d05cb243d5317d48f7013f4991646942abf12c63b204cda6af9b6686",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.42": {
+      "sourceHash": "dedda482d05cb243d5317d48f7013f4991646942abf12c63b204cda6af9b6686",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.42": {
+      "sourceHash": "dedda482d05cb243d5317d48f7013f4991646942abf12c63b204cda6af9b6686",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.41": {
+      "sourceHash": "67b68fb4fb70c93b426e64d441371fea7c9ce759ac290875e22a0b5c18c189dd",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.41": {
+      "sourceHash": "67b68fb4fb70c93b426e64d441371fea7c9ce759ac290875e22a0b5c18c189dd",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.41": {
+      "sourceHash": "67b68fb4fb70c93b426e64d441371fea7c9ce759ac290875e22a0b5c18c189dd",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.41": {
+      "sourceHash": "67b68fb4fb70c93b426e64d441371fea7c9ce759ac290875e22a0b5c18c189dd",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.40": {
+      "sourceHash": "f0741cbf3be61bb8bca57a9dd5e634720603deeb3786e58ebe0f151a4270b412",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.40": {
+      "sourceHash": "f0741cbf3be61bb8bca57a9dd5e634720603deeb3786e58ebe0f151a4270b412",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.40": {
+      "sourceHash": "f0741cbf3be61bb8bca57a9dd5e634720603deeb3786e58ebe0f151a4270b412",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.40": {
+      "sourceHash": "f0741cbf3be61bb8bca57a9dd5e634720603deeb3786e58ebe0f151a4270b412",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.39": {
+      "sourceHash": "d87ba047dd0c7afe93cd137803cdcbf8f658d880162fdedee73e7b3f65bc90b5",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.39": {
+      "sourceHash": "d87ba047dd0c7afe93cd137803cdcbf8f658d880162fdedee73e7b3f65bc90b5",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.39": {
+      "sourceHash": "d87ba047dd0c7afe93cd137803cdcbf8f658d880162fdedee73e7b3f65bc90b5",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.39": {
+      "sourceHash": "d87ba047dd0c7afe93cd137803cdcbf8f658d880162fdedee73e7b3f65bc90b5",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.38": {
+      "sourceHash": "df17fa0480873110bc7b27fd225ae4f8b831f321c251487349b623c9e9152356",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.38": {
+      "sourceHash": "df17fa0480873110bc7b27fd225ae4f8b831f321c251487349b623c9e9152356",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.38": {
+      "sourceHash": "df17fa0480873110bc7b27fd225ae4f8b831f321c251487349b623c9e9152356",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.38": {
+      "sourceHash": "df17fa0480873110bc7b27fd225ae4f8b831f321c251487349b623c9e9152356",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.37": {
+      "sourceHash": "2320a2fa41dbdf32de8cb465a8b43a960a833bc954cd42836390f0540db56638",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.37": {
+      "sourceHash": "2320a2fa41dbdf32de8cb465a8b43a960a833bc954cd42836390f0540db56638",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.37": {
+      "sourceHash": "2320a2fa41dbdf32de8cb465a8b43a960a833bc954cd42836390f0540db56638",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.37": {
+      "sourceHash": "2320a2fa41dbdf32de8cb465a8b43a960a833bc954cd42836390f0540db56638",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.36": {
+      "sourceHash": "cb15f9cc9935afcc42e5f38ed0970e0bdb1baf5ec728c68d202f06290028a6b6",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.36": {
+      "sourceHash": "cb15f9cc9935afcc42e5f38ed0970e0bdb1baf5ec728c68d202f06290028a6b6",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.36": {
+      "sourceHash": "cb15f9cc9935afcc42e5f38ed0970e0bdb1baf5ec728c68d202f06290028a6b6",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.36": {
+      "sourceHash": "cb15f9cc9935afcc42e5f38ed0970e0bdb1baf5ec728c68d202f06290028a6b6",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.35": {
+      "sourceHash": "04a79b018ea9f7527393ff434f064f6c03aed56158d52149530e732388e51467",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.35": {
+      "sourceHash": "04a79b018ea9f7527393ff434f064f6c03aed56158d52149530e732388e51467",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.35": {
+      "sourceHash": "04a79b018ea9f7527393ff434f064f6c03aed56158d52149530e732388e51467",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.35": {
+      "sourceHash": "04a79b018ea9f7527393ff434f064f6c03aed56158d52149530e732388e51467",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.34": {
+      "sourceHash": "ded70b87d9aa32e28eacfe28511ea88b85f2b88e785191edee70deaa553af043",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.34": {
+      "sourceHash": "ded70b87d9aa32e28eacfe28511ea88b85f2b88e785191edee70deaa553af043",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.34": {
+      "sourceHash": "ded70b87d9aa32e28eacfe28511ea88b85f2b88e785191edee70deaa553af043",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.34": {
+      "sourceHash": "ded70b87d9aa32e28eacfe28511ea88b85f2b88e785191edee70deaa553af043",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.33": {
+      "sourceHash": "91d091ccb6e7040dea9bdf5d96ffce1a899c8aa5b865d37296fbdd57b7ea6bff",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.33": {
+      "sourceHash": "91d091ccb6e7040dea9bdf5d96ffce1a899c8aa5b865d37296fbdd57b7ea6bff",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.33": {
+      "sourceHash": "91d091ccb6e7040dea9bdf5d96ffce1a899c8aa5b865d37296fbdd57b7ea6bff",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.33": {
+      "sourceHash": "91d091ccb6e7040dea9bdf5d96ffce1a899c8aa5b865d37296fbdd57b7ea6bff",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.32": {
+      "sourceHash": "8839a882fc39a5cb7458ad39b923a34867b7a0ba5c8aefcd676199501f3075ad",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.32": {
+      "sourceHash": "8839a882fc39a5cb7458ad39b923a34867b7a0ba5c8aefcd676199501f3075ad",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.32": {
+      "sourceHash": "8839a882fc39a5cb7458ad39b923a34867b7a0ba5c8aefcd676199501f3075ad",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.32": {
+      "sourceHash": "8839a882fc39a5cb7458ad39b923a34867b7a0ba5c8aefcd676199501f3075ad",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.31": {
+      "sourceHash": "adebd323244690f1fc1e8a901310517ce6fb33343e8fcf3cc576657a83de06fe",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.31": {
+      "sourceHash": "adebd323244690f1fc1e8a901310517ce6fb33343e8fcf3cc576657a83de06fe",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.31": {
+      "sourceHash": "adebd323244690f1fc1e8a901310517ce6fb33343e8fcf3cc576657a83de06fe",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.31": {
+      "sourceHash": "adebd323244690f1fc1e8a901310517ce6fb33343e8fcf3cc576657a83de06fe",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.3": {
+      "sourceHash": "0a4b778a61428eeee120387bde6334beacf149887884df600cae08fd240d9c0d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.3": {
+      "sourceHash": "0a4b778a61428eeee120387bde6334beacf149887884df600cae08fd240d9c0d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.3": {
+      "sourceHash": "0a4b778a61428eeee120387bde6334beacf149887884df600cae08fd240d9c0d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.3": {
+      "sourceHash": "0a4b778a61428eeee120387bde6334beacf149887884df600cae08fd240d9c0d",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.26": {
+      "sourceHash": "9e3fd4a321f9de7dd3b71766cfab9312a6761a46940608783ad11ecbf7ec069c",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.26": {
+      "sourceHash": "9e3fd4a321f9de7dd3b71766cfab9312a6761a46940608783ad11ecbf7ec069c",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.26": {
+      "sourceHash": "9e3fd4a321f9de7dd3b71766cfab9312a6761a46940608783ad11ecbf7ec069c",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.26": {
+      "sourceHash": "9e3fd4a321f9de7dd3b71766cfab9312a6761a46940608783ad11ecbf7ec069c",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.25": {
+      "sourceHash": "1f5234192f93dc62f15ffd2d02ae5417b1e9088c6a50d31ec911a407f3fbf65f",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.25": {
+      "sourceHash": "1f5234192f93dc62f15ffd2d02ae5417b1e9088c6a50d31ec911a407f3fbf65f",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.25": {
+      "sourceHash": "1f5234192f93dc62f15ffd2d02ae5417b1e9088c6a50d31ec911a407f3fbf65f",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.25": {
+      "sourceHash": "1f5234192f93dc62f15ffd2d02ae5417b1e9088c6a50d31ec911a407f3fbf65f",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.24": {
+      "sourceHash": "5bfd322e0ed38c7e8dc171f9f31e45ad010bbfaaebb81f0d834dea3dfddec9ec",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.24": {
+      "sourceHash": "5bfd322e0ed38c7e8dc171f9f31e45ad010bbfaaebb81f0d834dea3dfddec9ec",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.24": {
+      "sourceHash": "5bfd322e0ed38c7e8dc171f9f31e45ad010bbfaaebb81f0d834dea3dfddec9ec",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.24": {
+      "sourceHash": "5bfd322e0ed38c7e8dc171f9f31e45ad010bbfaaebb81f0d834dea3dfddec9ec",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.23": {
+      "sourceHash": "3639007513d24a6fafde136454eeb0568650b03f2e9fa0eb39762afa7ba38435",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.23": {
+      "sourceHash": "3639007513d24a6fafde136454eeb0568650b03f2e9fa0eb39762afa7ba38435",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.23": {
+      "sourceHash": "3639007513d24a6fafde136454eeb0568650b03f2e9fa0eb39762afa7ba38435",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.23": {
+      "sourceHash": "3639007513d24a6fafde136454eeb0568650b03f2e9fa0eb39762afa7ba38435",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.22": {
+      "sourceHash": "a2499a65dd50fb501594b41205bdd5e7281d3be06d82be3070c24050b216383c",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.22": {
+      "sourceHash": "a2499a65dd50fb501594b41205bdd5e7281d3be06d82be3070c24050b216383c",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.22": {
+      "sourceHash": "a2499a65dd50fb501594b41205bdd5e7281d3be06d82be3070c24050b216383c",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.22": {
+      "sourceHash": "a2499a65dd50fb501594b41205bdd5e7281d3be06d82be3070c24050b216383c",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.21": {
+      "sourceHash": "8c87fe28009725209c139f854026e8331b3707c4f425f1b851f87441e5a92bbd",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.21": {
+      "sourceHash": "8c87fe28009725209c139f854026e8331b3707c4f425f1b851f87441e5a92bbd",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.21": {
+      "sourceHash": "8c87fe28009725209c139f854026e8331b3707c4f425f1b851f87441e5a92bbd",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.21": {
+      "sourceHash": "8c87fe28009725209c139f854026e8331b3707c4f425f1b851f87441e5a92bbd",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.20": {
+      "sourceHash": "d0ebda4f851cd17941bc6bc0adaa19d062d36ae554f293b515be1e34c0a76bab",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.20": {
+      "sourceHash": "d0ebda4f851cd17941bc6bc0adaa19d062d36ae554f293b515be1e34c0a76bab",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.20": {
+      "sourceHash": "d0ebda4f851cd17941bc6bc0adaa19d062d36ae554f293b515be1e34c0a76bab",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.20": {
+      "sourceHash": "d0ebda4f851cd17941bc6bc0adaa19d062d36ae554f293b515be1e34c0a76bab",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.18": {
+      "sourceHash": "f7273a39205bddffb93abf0a2aa13bd573208ba2e94a2a476e0636ab7520c21b",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.18": {
+      "sourceHash": "f7273a39205bddffb93abf0a2aa13bd573208ba2e94a2a476e0636ab7520c21b",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.18": {
+      "sourceHash": "f7273a39205bddffb93abf0a2aa13bd573208ba2e94a2a476e0636ab7520c21b",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.18": {
+      "sourceHash": "f7273a39205bddffb93abf0a2aa13bd573208ba2e94a2a476e0636ab7520c21b",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.17": {
+      "sourceHash": "9c50f7fa382c79eaa95ac9d9e0ff4aa150895bee0f282ca3b18099f68cf35145",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.17": {
+      "sourceHash": "9c50f7fa382c79eaa95ac9d9e0ff4aa150895bee0f282ca3b18099f68cf35145",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.17": {
+      "sourceHash": "9c50f7fa382c79eaa95ac9d9e0ff4aa150895bee0f282ca3b18099f68cf35145",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.17": {
+      "sourceHash": "9c50f7fa382c79eaa95ac9d9e0ff4aa150895bee0f282ca3b18099f68cf35145",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.16": {
+      "sourceHash": "034faf494483c59f86584f562aeef558313d8fecd056c3fa77b70fefdedb153e",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.16": {
+      "sourceHash": "034faf494483c59f86584f562aeef558313d8fecd056c3fa77b70fefdedb153e",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.16": {
+      "sourceHash": "034faf494483c59f86584f562aeef558313d8fecd056c3fa77b70fefdedb153e",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.16": {
+      "sourceHash": "034faf494483c59f86584f562aeef558313d8fecd056c3fa77b70fefdedb153e",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.15": {
+      "sourceHash": "1fc0fe2d8f766f921a1524a58bded411a088c964c666eb9fbc0d8b36ded1dfd9",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.15": {
+      "sourceHash": "1fc0fe2d8f766f921a1524a58bded411a088c964c666eb9fbc0d8b36ded1dfd9",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.15": {
+      "sourceHash": "1fc0fe2d8f766f921a1524a58bded411a088c964c666eb9fbc0d8b36ded1dfd9",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.15": {
+      "sourceHash": "1fc0fe2d8f766f921a1524a58bded411a088c964c666eb9fbc0d8b36ded1dfd9",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "pt:release.0.14": {
+      "sourceHash": "83e5063df98562993df5aecaf17dc90e703479eec873c6ecb65d7dc10dfbec63",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "it:release.0.14": {
+      "sourceHash": "83e5063df98562993df5aecaf17dc90e703479eec873c6ecb65d7dc10dfbec63",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "id:release.0.14": {
+      "sourceHash": "83e5063df98562993df5aecaf17dc90e703479eec873c6ecb65d7dc10dfbec63",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    },
+    "nl:release.0.14": {
+      "sourceHash": "83e5063df98562993df5aecaf17dc90e703479eec873c6ecb65d7dc10dfbec63",
+      "reason": "Historical release predates this locale; existing English fallback remains."
+    }
+  },
+  "placeholderVariants": {
+    "kor:ui.earthNote": {
+      "sourceHash": "91a83858eda44a5771d1a172de71ffd0770d0545cf68b82ea255e376e8473911",
+      "translationHash": "d198f9559f30efe5f407e76bc3e99ce1c03eda3fae249d2be0fbf4cd863aebef",
+      "reason": "Existing v0.61 Earth note includes language-specific altitude/day-night detail; preserve wording."
+    },
+    "chn:ui.earthNote": {
+      "sourceHash": "91a83858eda44a5771d1a172de71ffd0770d0545cf68b82ea255e376e8473911",
+      "translationHash": "138bb75a357302b1bdb7297e25cdc17a2b8f4f03673126d6b525a96265dbd5b6",
+      "reason": "Existing v0.61 Earth note includes language-specific altitude/day-night detail; preserve wording."
+    },
+    "zht:ui.earthNote": {
+      "sourceHash": "91a83858eda44a5771d1a172de71ffd0770d0545cf68b82ea255e376e8473911",
+      "translationHash": "d4c327bf2ac9d504ed79d0998997429805f7b9ab998cb710a61e32d417b4ed92",
+      "reason": "Existing v0.61 Earth note includes language-specific altitude/day-night detail; preserve wording."
+    },
+    "jpn:ui.earthNote": {
+      "sourceHash": "91a83858eda44a5771d1a172de71ffd0770d0545cf68b82ea255e376e8473911",
+      "translationHash": "55ad1d107e4691e0185233ad8de4251887a48176478f3150d7894d140c875f41",
+      "reason": "Existing v0.61 Earth note includes language-specific altitude/day-night detail; preserve wording."
+    }
+  }
+}
