@@ -1,0 +1,24 @@
+name: Translation source review
+on:
+  push:
+    branches: [refactor/translation-source-v0.62]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: |
+          mkdir -p .source-review
+          git archive --format=zip -o .source-review/source.zip HEAD
+          git rev-parse HEAD > .source-review/commit.txt
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: translation-source-baseline
+          path: .source-review
+          include-hidden-files: true
+          retention-days: 3
