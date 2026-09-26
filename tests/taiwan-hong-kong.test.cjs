@@ -8,7 +8,7 @@ function detect(zone,languages){const window={};vm.runInNewContext(read('src/loc
 
 test('Taiwan and Hong Kong use one complete Traditional Chinese payload with distinct regional formats',()=>{
  const {order,meta,regions}=metadata();
- assert.equal(order.indexOf('chn'),order.indexOf('cl')+1);assert.equal(order.indexOf('hk'),order.indexOf('de')+1);assert.equal(order.indexOf('tw'),order.indexOf('es')+1);
+ assert.equal(order.indexOf('chn'),order.indexOf('cl')+1);assert.ok(order.indexOf('hk')>order.indexOf('de'));assert.ok(order.indexOf('tw')>order.indexOf('es'));
  assert.deepEqual(plain(meta.tw),{code:'TW',name:'台灣',locale:'zh-TW',html:'zh-Hant-TW',copy:'zht'});
  assert.deepEqual(plain(meta.hk),{code:'HK',name:'香港',locale:'zh-HK',html:'zh-Hant-HK',copy:'zht'});
  assert.equal(regions.tw.timeZone,'Asia/Taipei');assert.equal(regions.tw.label,'TAIWAN');

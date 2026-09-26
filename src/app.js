@@ -1,11 +1,24 @@
-/* Solar Time v0.60 — app implementation owner. */
+/* Solar Time v0.61 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
   const Localization=Modules.Localization,LanguageData=Modules.LanguageData,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
-  const LANG_ORDER=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve'];
+  const LANG_ORDER=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','dk','do','ec','fi','fr','de','gh','gt','hk','is','hi','id','ie','it','jpn','kor','my','mt','mx','mz','nl','nz','ng','no','pa','pe','ph','pt','sg','za','es','se','tw','eu','en','uy','ve'];
   const LANG_META={
+    no:{"code":"NO","name":"Norway","locale":"en-NO","html":"en-NO","copy":"en"},
+    se:{"code":"SE","name":"Sweden","locale":"en-SE","html":"en-SE","copy":"en"},
+    dk:{"code":"DK","name":"Denmark","locale":"en-DK","html":"en-DK","copy":"en"},
+    fi:{"code":"FI","name":"Finland","locale":"en-FI","html":"en-FI","copy":"en"},
+    is:{"code":"IS","name":"Iceland","locale":"en-IS","html":"en-IS","copy":"en"},
+    mt:{"code":"MT","name":"Malta","locale":"en-MT","html":"en-MT","copy":"en"},
+    ph:{"code":"PH","name":"Philippines","locale":"en-PH","html":"en-PH","copy":"en"},
+    my:{"code":"MY","name":"Malaysia","locale":"en-MY","html":"en-MY","copy":"en"},
+    za:{"code":"ZA","name":"South Africa","locale":"en-ZA","html":"en-ZA","copy":"en"},
+    ng:{"code":"NG","name":"Nigeria","locale":"en-NG","html":"en-NG","copy":"en"},
+    gh:{"code":"GH","name":"Ghana","locale":"en-GH","html":"en-GH","copy":"en"},
+    do:{"code":"DO","name":"República Dominicana","locale":"es-DO","html":"es-DO","copy":"es"},
+    gt:{"code":"GT","name":"Guatemala","locale":"es-GT","html":"es-GT","copy":"es"},
     kor:{code:'KOR',name:'한국',locale:'ko-KR',html:'ko',copy:'kor'},
     en:{code:'EN',name:'USA',locale:'en-US',html:'en',copy:'en'},
     chn:{code:'CHN',name:'中国',locale:'zh-CN',html:'zh-Hans',copy:'chn'},
@@ -44,6 +57,20 @@
     ve:{code:"VE",name:"Venezuela",locale:"es-VE",html:"es-VE",copy:"es"}
   };
   const REGIONS={
+    // Representative city coordinates: IANA tzdb zone.tab. Reuse English/Spanish copy.
+    no:{"label":"NORWAY","timeZone":"Europe/Oslo","latitude":59.916666666666664,"longitude":10.75,"region":"Norway","city":"Oslo"},
+    se:{"label":"SWEDEN","timeZone":"Europe/Stockholm","latitude":59.333333333333336,"longitude":18.05,"region":"Sweden","city":"Stockholm"},
+    dk:{"label":"DENMARK","timeZone":"Europe/Copenhagen","latitude":55.666666666666664,"longitude":12.583333333333334,"region":"Denmark","city":"Copenhagen"},
+    fi:{"label":"FINLAND","timeZone":"Europe/Helsinki","latitude":60.166666666666664,"longitude":24.966666666666665,"region":"Finland","city":"Helsinki"},
+    is:{"label":"ICELAND","timeZone":"Atlantic/Reykjavik","latitude":64.15,"longitude":-21.85,"region":"Iceland","city":"Reykjavik"},
+    mt:{"label":"MALTA","timeZone":"Europe/Malta","latitude":35.9,"longitude":14.516666666666667,"region":"Malta","city":"Valletta"},
+    ph:{"label":"PHILIPPINES","timeZone":"Asia/Manila","latitude":14.586666666666668,"longitude":120.96777777777778,"region":"Philippines","city":"Manila"},
+    my:{"label":"MALAYSIA","timeZone":"Asia/Kuala_Lumpur","latitude":3.1666666666666665,"longitude":101.7,"region":"Malaysia","city":"Kuala Lumpur"},
+    za:{"label":"SOUTH AFRICA","timeZone":"Africa/Johannesburg","latitude":-26.25,"longitude":28,"region":"South Africa","city":"Johannesburg"},
+    ng:{"label":"NIGERIA","timeZone":"Africa/Lagos","latitude":6.45,"longitude":3.4,"region":"Nigeria","city":"Lagos"},
+    gh:{"label":"GHANA","timeZone":"Africa/Accra","latitude":5.55,"longitude":-0.21666666666666667,"region":"Ghana","city":"Accra"},
+    do:{"label":"DOMINICAN REPUBLIC","timeZone":"America/Santo_Domingo","latitude":18.466666666666665,"longitude":-69.9,"region":"República Dominicana","city":"Santo Domingo"},
+    gt:{"label":"GUATEMALA","timeZone":"America/Guatemala","latitude":14.633333333333333,"longitude":-90.51666666666667,"region":"Guatemala","city":"Ciudad de Guatemala"},
     kor:{label:'KOREA',timeZone:'Asia/Seoul',latitude:37.5665,longitude:126.978,region:'한국',city:'서울'},
     en:{label:'USA',timeZone:'America/New_York',latitude:39.8283,longitude:-98.5795,region:'United States',city:'mainland center'},
     chn:{label:'CHINA',timeZone:'Asia/Shanghai',latitude:35.8617,longitude:104.1954,region:'中国',city:'国土中心'},
@@ -801,7 +828,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=d3fa104637b4','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=3211432438d2','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -862,7 +889,7 @@
       const updateLanguageScrollCues=bindScrollCues(languageMenu,languageScroll);
       function openLanguageMenu(){
         showFading(languageMenu);languageToggle.setAttribute('aria-expanded','true');updateLanguageScrollCues();requestAnimationFrame(updateLanguageScrollCues);
-        const current=languageMode==='auto'?languageMenu.querySelector('[data-language-auto]'):languageMenu.querySelector(`[data-language="${language}"]`);requestAnimationFrame(()=>{current?.scrollIntoView({block:'nearest'});current?.focus({preventScroll:true});updateLanguageScrollCues();});
+        const current=languageMode==='auto'?languageMenu.querySelector('[data-language-auto]'):languageMenu.querySelector(`[data-language="${language}"]`);requestAnimationFrame(()=>{if(current&&languageScroll.contains(current))current.scrollIntoView({block:'nearest'});current?.focus({preventScroll:true});updateLanguageScrollCues();});
       }
       function closeLanguageMenu(returnFocus=false){hideFading(languageMenu);languageToggle.setAttribute('aria-expanded','false');if(returnFocus)languageToggle.focus({preventScroll:true});}
       UI.bindPopup(languageMenu,()=>closeLanguageMenu());
@@ -874,7 +901,7 @@
       languageMenu.addEventListener('keydown',event=>{
         const options=[...languageMenu.querySelectorAll('[role="menuitemradio"]')],index=options.indexOf(document.activeElement);let next=-1;
         if(event.key==='ArrowDown')next=(index+1)%options.length;else if(event.key==='ArrowUp')next=(index-1+options.length)%options.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=options.length-1;else return;
-        event.preventDefault();options[next].focus({preventScroll:true});options[next].scrollIntoView({block:'nearest'});updateLanguageScrollCues();
+        event.preventDefault();options[next].focus({preventScroll:true});if(languageScroll.contains(options[next]))options[next].scrollIntoView({block:'nearest'});updateLanguageScrollCues();
       });
       document.addEventListener('pointerdown',event=>{if(uiElementVisible(languageMenu)&&!languageControl.contains(event.target))closeLanguageMenu();});
       const canvas=$('universe'),pointers=new Map();
@@ -1064,7 +1091,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.60',revision:'r2',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.61',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

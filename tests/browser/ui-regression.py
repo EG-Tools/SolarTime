@@ -4,6 +4,7 @@ from urllib.parse import urlparse,unquote
 import json,re,os,struct,zlib,sys
 from playwright.sync_api import sync_playwright
 from regression_diagnostics import BrowserDiagnostics
+from region_menu import verify_region_menu
 from release_history import verify_history, navigate_to_release, verify_current_release
 
 def png(w=32,h=16):
@@ -106,6 +107,7 @@ def suite(browser,root,size,installed):
  check(abs(before['y']-box(page,'#body-close')['y'])<.1,tag+' fixed body close')
  check(surface(page,'#body-panel')==settings_surface,tag+' body surface')
  page.locator('#body-close').click()
+ verify_region_menu(page,root,tag,size,check)
  # Camera, language, release-note and time-travel behavior is viewport
  # independent. Run that expensive coverage once on desktop; compact cases
  # retain the layout, touch/standalone and shared-card checks that can actually

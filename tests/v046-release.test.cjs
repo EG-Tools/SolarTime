@@ -3,6 +3,7 @@ const cacheUrl=file=>require('../tools/code-revisions.cjs').urlFor(require('node
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function notesApi(){return require('../src/release-notes.js');}
+const priorRegionOrder=order=>Array.from(order).filter(c=>!require('./fixtures/regions-v061.json').some(r=>r.code===c));
 const notesFor=version=>{const api=notesApi();return api.itemsFor(api.RELEASES.find(r=>r.version===version),'kor').join(' ');};
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
@@ -19,7 +20,7 @@ test('v0.46 page build stays consistent while unchanged coordinator keeps its bu
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
-  assert.deepEqual(order,['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve']);
+  assert.deepEqual(priorRegionOrder(order),['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve']);
   assert.match(html,/id="star-density-output" for="star-density">100%<\/output>/);assert.match(html,/id="star-density" class="solar-range" type="range" min="0" max="300" step="10" value="100"/);assert.match(app,/orbitBrightness:\.5,starDensity:1/);
 });
 
@@ -113,7 +114,7 @@ test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
 
 test('r10 adds Indonesia and keeps every country on the existing regional-time path',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js'),loader=read('src/language-data.js');
-  assert.ok(app.includes("LANG_ORDER=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve']"));
+  assert.deepEqual(Array.from(vm.runInNewContext(/const LANG_ORDER=(\[[^;]+\]);/.exec(app)[1])),[...html.matchAll(/data-language="([^"]+)"/g)].map(m=>m[1]));
   assert.ok(app.includes("id:{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'}"));
   assert.ok(app.includes("id:{label:'INDONESIA',timeZone:'Asia/Jakarta'"));
   assert.ok(app.includes("eu:{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'}"));
@@ -155,7 +156,7 @@ test('r11 reuses existing language bundles for additional countries',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js');
   const expected=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve'];
   const order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
-  assert.deepEqual(order,expected);
+  assert.deepEqual(priorRegionOrder(order),expected);
 
   const bundleMap={
     ao:'pt',ar:'es',au:'en',at:'de',ca:'en',cl:'es',co:'es',cr:'es',ec:'es',

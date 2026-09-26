@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
-  <meta name="solar-time-version" content="0.60">
-  <meta name="solar-time-revision" content="r2">
+  <meta name="solar-time-version" content="0.61">
+  <meta name="solar-time-revision" content="r1">
   <meta name="google-adsense-account" content="ca-pub-5773171100052324">
   <meta name="solar-time-ad-slot" content="">
   <meta id="meta-description" name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주." data-i18n-content="metaDescription">
@@ -21,8 +21,8 @@
   <script src="src/google-analytics.js?v=dad372dd7f64"></script>
   <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
   <script src="src/page-runtime.js?v=1d8a9a92e549"></script>
-  <link rel="stylesheet" href="styles.css?v=1f80c5ef128b">
-  <link rel="stylesheet" href="src/runtime-optimizations.css?v=a0341de0e0e2">
+  <link rel="stylesheet" href="styles.css?v=b8da0cecc488">
+  <link rel="stylesheet" href="src/runtime-optimizations.css?v=2e2600ed28fb">
 </head>
 <body>
   <div id="solar-viewport">
@@ -58,9 +58,10 @@
       <div id="language-control" class="language-control">
         <button id="language-toggle" class="icon-button language-toggle" type="button" aria-label="언어 변경. 현재 한국어" aria-expanded="false" aria-controls="language-menu" title="언어 변경 · KOR">KOR</button>
         <div id="language-menu" class="language-menu card-surface" role="menu" aria-label="언어 선택" hidden>
+          <button type="button" class="language-auto" role="menuitemradio" data-language-auto><strong id="auto-language-mode">자동</strong><span id="auto-language-name">언어</span></button>
+          <div class="language-list">
           <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
           <div id="language-scroll" class="language-scroll">
-          <button type="button" class="language-auto" role="menuitemradio" data-language-auto><strong id="auto-language-mode">자동</strong><span id="auto-language-name">언어</span></button>
           <button type="button" role="menuitemradio" data-language="ao"><strong>AO</strong><span>Angola</span></button>
           <button type="button" role="menuitemradio" data-language="ar"><strong>AR</strong><span>Argentina</span></button>
           <button type="button" role="menuitemradio" data-language="au"><strong>AU</strong><span>Australia</span></button>
@@ -72,25 +73,38 @@
           <button type="button" role="menuitemradio" data-language="chn"><strong>CHN</strong><span>中国</span></button>
           <button type="button" role="menuitemradio" data-language="co"><strong>CO</strong><span>Colombia</span></button>
           <button type="button" role="menuitemradio" data-language="cr"><strong>CR</strong><span>Costa Rica</span></button>
+          <button type="button" role="menuitemradio" data-language="dk"><strong>DK</strong><span>Denmark</span></button>
+          <button type="button" role="menuitemradio" data-language="do"><strong>DO</strong><span>República Dominicana</span></button>
           <button type="button" role="menuitemradio" data-language="ec"><strong>EC</strong><span>Ecuador</span></button>
+          <button type="button" role="menuitemradio" data-language="fi"><strong>FI</strong><span>Finland</span></button>
           <button type="button" role="menuitemradio" data-language="fr"><strong>FR</strong><span>France</span></button>
           <button type="button" role="menuitemradio" data-language="de"><strong>DE</strong><span>Deutschland</span></button>
+          <button type="button" role="menuitemradio" data-language="gh"><strong>GH</strong><span>Ghana</span></button>
+          <button type="button" role="menuitemradio" data-language="gt"><strong>GT</strong><span>Guatemala</span></button>
           <button type="button" role="menuitemradio" data-language="hk"><strong>HK</strong><span>香港</span></button>
+          <button type="button" role="menuitemradio" data-language="is"><strong>IS</strong><span>Iceland</span></button>
           <button type="button" role="menuitemradio" data-language="hi"><strong>HI</strong><span>भारत</span></button>
           <button type="button" role="menuitemradio" data-language="id"><strong>ID</strong><span>Indonesia</span></button>
           <button type="button" role="menuitemradio" data-language="ie"><strong>IE</strong><span>Ireland</span></button>
           <button type="button" role="menuitemradio" data-language="it"><strong>IT</strong><span>Italia</span></button>
           <button type="button" role="menuitemradio" data-language="jpn"><strong>JPN</strong><span>日本</span></button>
           <button type="button" role="menuitemradio" data-language="kor"><strong>KOR</strong><span>한국</span></button>
+          <button type="button" role="menuitemradio" data-language="my"><strong>MY</strong><span>Malaysia</span></button>
+          <button type="button" role="menuitemradio" data-language="mt"><strong>MT</strong><span>Malta</span></button>
           <button type="button" role="menuitemradio" data-language="mx"><strong>MX</strong><span>México</span></button>
           <button type="button" role="menuitemradio" data-language="mz"><strong>MZ</strong><span>Moçambique</span></button>
           <button type="button" role="menuitemradio" data-language="nl"><strong>NL</strong><span>Nederland</span></button>
           <button type="button" role="menuitemradio" data-language="nz"><strong>NZ</strong><span>New Zealand</span></button>
+          <button type="button" role="menuitemradio" data-language="ng"><strong>NG</strong><span>Nigeria</span></button>
+          <button type="button" role="menuitemradio" data-language="no"><strong>NO</strong><span>Norway</span></button>
           <button type="button" role="menuitemradio" data-language="pa"><strong>PA</strong><span>Panamá</span></button>
           <button type="button" role="menuitemradio" data-language="pe"><strong>PE</strong><span>Perú</span></button>
+          <button type="button" role="menuitemradio" data-language="ph"><strong>PH</strong><span>Philippines</span></button>
           <button type="button" role="menuitemradio" data-language="pt"><strong>PT</strong><span>Portugal</span></button>
           <button type="button" role="menuitemradio" data-language="sg"><strong>SG</strong><span>Singapore</span></button>
+          <button type="button" role="menuitemradio" data-language="za"><strong>ZA</strong><span>South Africa</span></button>
           <button type="button" role="menuitemradio" data-language="es"><strong>ES</strong><span>España</span></button>
+          <button type="button" role="menuitemradio" data-language="se"><strong>SE</strong><span>Sweden</span></button>
           <button type="button" role="menuitemradio" data-language="tw"><strong>TW</strong><span>台灣</span></button>
           <button type="button" role="menuitemradio" data-language="eu"><strong>UK</strong><span>United Kingdom</span></button>
           <button type="button" role="menuitemradio" data-language="en"><strong>EN</strong><span>USA</span></button>
@@ -98,6 +112,7 @@
           <button type="button" role="menuitemradio" data-language="ve"><strong>VE</strong><span>Venezuela</span></button>
           </div>
           <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
+          </div>
         </div>
       </div>
       <button id="timer-button" class="icon-button" type="button" aria-label="타이머" aria-expanded="false" aria-controls="timer-panel" title="타이머" data-i18n-aria="timer" data-i18n-title="timer">
@@ -298,7 +313,7 @@
       <img class="life-user-watermark life-user-watermark-footer" data-life-user-watermark alt="Life User">
       <span class="credit-line"><span data-i18n="scaleNoteLineOne">크기·거리 축척 조정 · 평균 궤도 근사</span> ·</span>
       <span class="credit-line"><span data-i18n="scaleNoteLineTwo">자전·공전 시간 연동</span> · <a class="source-link" href="https://github.com/EG-Tools/SolarTime/blob/main/assets/CREDITS.md" target="_blank" rel="noopener" data-i18n="sources">출처</a></span>
-      <span class="credit-line">Solar Time v0.60 · <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
+      <span class="credit-line">Solar Time v0.61 · <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
       <span class="credit-line">© 2026 Life User. All rights reserved.</span>
       <nav class="site-policy-links" aria-label="Site information"><a href="about.html">ABOUT</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a></nav>
     </div>
@@ -366,7 +381,7 @@
       <button id="release-notes-toggle" class="release-notes-toggle" type="button" aria-expanded="false" aria-controls="release-notes-panel"><span data-i18n="releaseNotes">업데이트 내역</span><span class="release-notes-toggle-mark" aria-hidden="true"></span></button>
       <section id="release-notes-panel" class="release-notes-panel" hidden>
         <div class="release-notes-header">
-          <div class="release-notes-heading"><h3 id="release-notes-version">v0.60</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
+          <div class="release-notes-heading"><h3 id="release-notes-version">v0.61</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
           <div class="release-notes-navigation step-navigation" aria-label="업데이트 내역 이동">
             <button id="release-notes-newer" class="step-previous" type="button" aria-label="최신 업데이트 내역" data-i18n-aria="releaseNotesNewer"></button>
             <span id="release-notes-position" aria-live="polite">1 / 1</span>
@@ -381,7 +396,7 @@
       <p data-i18n="timeHelp">상단 시계는 기기 실제 시간입니다. 하단 실제 시간을 끄면 시간·일·년 단위의 슬라이더로 시뮬레이션 속도를 조절합니다. 시간은 1분~24시간, 일은 1~365일, 년은 1~20년 범위입니다.</p>
       <p data-i18n="orbitHelp">행성은 타원 궤도를 따라 근점에서 빠르고 원점에서 느리게 움직입니다. 달과 유로파는 각각 지구와 목성의 자식으로 현재 시뮬레이션 시각의 위치를 계산하며, 이심률은 0.05와 0.01만 적용합니다. 장기 섭동과 미세 거리 변화는 제외하므로 관측·항법·일식/월식 예측용 정밀 천문력이 아닙니다.</p>
       <div class="shortcuts"><span><kbd>Space</kbd> <span data-i18n="pause">일시정지</span></span><span><kbd>R</kbd> <span data-i18n="realTime">실제 시간</span></span><span><kbd>F</kbd> <span data-i18n="fullscreen">전체 화면</span></span><span><kbd>H</kbd> <span data-i18n="zenMode">감상 모드</span></span><span><kbd>0</kbd> <span data-i18n="homeView">기본 시점</span></span><span><kbd>1 · 2 · 3</kbd> <span data-i18n="savedViews">저장 시점</span></span><span><kbd>Esc</kbd> <span data-i18n="stepExit">단계별 종료</span></span></div>
-      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="alarm-music-credit" class="music-credit support-credit">Alram Music - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.60 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
+      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="alarm-music-credit" class="music-credit support-credit">Alram Music - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.61 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </dialog>
@@ -442,7 +457,7 @@
   <script src="src/renderer.js?v=8cc514ec1d3d"></script>
   <script src="src/performance.js?v=1dc377370858"></script>
   <script src="src/language-data.js?v=d3bd2a5191a4"></script>
-  <script src="src/localization.js?v=c402bf9ee59e"></script>
+  <script src="src/localization.js?v=63ae8d3e7d23"></script>
   <script src="src/preferences.js?v=1f334598a53a"></script>
   <script src="src/ui-runtime.js?v=5ddcb5a4fba0"></script>
   <script src="src/windows-shutdown.js?v=3109e303c919"></script>
@@ -453,7 +468,7 @@
   <script src="src/music-player.js?v=1be4e47857ee"></script>
   <script src="src/adsense.js?v=4f3eb62dffcc"></script>
   <script src="src/cookie-consent.js?v=788c7b7e3d9d"></script>
-  <script src="src/app.js?v=57ed7a3ee02a"></script>
+  <script src="src/app.js?v=548710ecd94e"></script>
   <!-- Cloudflare Web Analytics -->
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}'></script>
   <!-- End Cloudflare Web Analytics -->
