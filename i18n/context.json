@@ -1,0 +1,13 @@
+{
+  "ui.realTime": "Live simulation time, not a request to shut down or trigger an alarm.",
+  "ui.pause": "Pause the solar simulation; do not imply that the native Windows shutdown is paused.",
+  "timer.stopAlarm": "Stop alarm audio, not shut down the computer.",
+  "timer.shutdownScheduled": "Display only after the existing native success acknowledgement; preserve {time}.",
+  "timer.shutdownUnknown": "Result unconfirmed: the PC may still be scheduled to shut down. Do not translate as cancelled or failed with certainty.",
+  "timer.shutdownCancelled": "Native cancellation confirmed, not merely clicking the switch.",
+  "timer.shutdownFailed": "Windows returned a failure code; preserve {code}.",
+  "timer.timerTarget": "Show the target clock time and the remaining duration. Preserve both {time} and {remaining}.",
+  "timer.helperDownloadPrivacy": "Describe only the existing one-time receipt data. Do not claim that native helper installation is required for ordinary alarms.",
+  "timer.shutdownDataWarning": "A safety warning to save work because Windows timed shutdown can close applications forcibly.",
+  "ui.auNote": "Optional astronomical-unit footnote. An intentionally empty value is valid for the languages already using it."
+}

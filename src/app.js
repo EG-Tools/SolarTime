@@ -1,4 +1,4 @@
-/* Solar Time v0.61 — app implementation owner. */
+/* Solar Time v0.62 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -109,25 +109,6 @@
     uy:{label:"URUGUAY",timeZone:"America/Montevideo",latitude:-32.5228,longitude:-55.7658,region:"Uruguay",city:"centro geográfico"},
     ve:{label:"VENEZUELA",timeZone:"America/Caracas",latitude:6.4238,longitude:-66.5897,region:"Venezuela",city:"centro geográfico"}
   };
-  const STAR_DENSITY_COPY=Object.freeze({
-    kor:Object.freeze({label:'별 밀도',aria:'파티클 별 밀도. 0이면 파티클 별을 숨깁니다.'}),
-    en:Object.freeze({label:'Star density',aria:'Particle star density. Zero hides particle stars.'}),
-    chn:Object.freeze({label:'星星密度',aria:'粒子星星密度。设为 0 时隐藏粒子星星。'}),
-    zht:Object.freeze({label:'星星密度',aria:'粒子星星密度。設為 0 時隱藏粒子星星。'}),
-    jpn:Object.freeze({label:'星の密度',aria:'パーティクル星の密度。0 にするとパーティクル星を非表示にします。'}),
-    eu:Object.freeze({label:'Star density',aria:'Particle star density. Zero hides particle stars.'}),
-    hi:Object.freeze({label:'तारों का घनत्व',aria:'पार्टिकल तारों का घनत्व। 0 पर पार्टिकल तारे छिप जाते हैं।'}),
-    es:Object.freeze({label:'Densidad de estrellas',aria:'Densidad de estrellas de partículas. Cero oculta las estrellas de partículas.'}),
-    de:Object.freeze({label:'Sterndichte',aria:'Dichte der Partikelsterne. Bei 0 werden Partikelsterne ausgeblendet.'}),
-    fr:Object.freeze({label:'Densité d’étoiles',aria:'Densité des étoiles particules. Zéro masque les étoiles particules.'})
-,
-    nl:Object.freeze({label:'Sterdichtheid',aria:'Dichtheid van de deeltjessterren. Bij nul zijn de deeltjessterren verborgen.'}),
-    pt:Object.freeze({label:'Densidade de estrelas',aria:'Densidade das estrelas de partículas. Zero oculta as estrelas de partículas.'}),
-    br:Object.freeze({label:'Densidade de estrelas',aria:'Densidade das estrelas de partículas. Zero oculta as estrelas de partículas.'}),
-    it:Object.freeze({label:'Densità stellare',aria:'Densità delle stelle particellari. Zero nasconde le stelle particellari.'}),
-    mx:Object.freeze({label:'Densidad de estrellas',aria:'Densidad de estrellas de partículas. Cero oculta las estrellas de partículas.'}),
-    id:Object.freeze({label:'Kepadatan bintang',aria:'Kepadatan bintang partikel. Nol menyembunyikan bintang partikel.'})
-  });
   const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,starDensity:1,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,earthNightLights:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
   const FACTORY_BODY_SCALES=Object.freeze({sun:1.54,mercury:3.79,venus:3.06,earth:5.05,mars:4.28,jupiter:2,saturn:2.42,uranus:3.04,neptune:2.32,pluto:5.23,moon:3.7,europa:3.44});
   const FACTORY_ORBIT_SCALES=Object.freeze({sun:.16,earth:.43,jupiter:1});
@@ -145,19 +126,11 @@
   // Country owns the clock/site while copy owns the interface language. In
   // automatic mode they may deliberately differ (for example an English
   // browser in Seoul still tracks Korea, but reads an English interface).
-  const COPY_META=Object.freeze({
-    kor:Object.freeze({locale:'ko-KR',html:'ko'}),en:Object.freeze({locale:'en-US',html:'en'}),
-    chn:Object.freeze({locale:'zh-CN',html:'zh-Hans'}),zht:Object.freeze({locale:'zh-TW',html:'zh-Hant'}),
-    jpn:Object.freeze({locale:'ja-JP',html:'ja'}),hi:Object.freeze({locale:'hi-IN',html:'hi'}),
-    es:Object.freeze({locale:'es-ES',html:'es'}),de:Object.freeze({locale:'de-DE',html:'de'}),
-    fr:Object.freeze({locale:'fr-FR',html:'fr'}),pt:Object.freeze({locale:'pt-PT',html:'pt'}),
-    it:Object.freeze({locale:'it-IT',html:'it'}),id:Object.freeze({locale:'id-ID',html:'id'}),
-    nl:Object.freeze({locale:'nl-NL',html:'nl'})
-  });
+  const COPY_META=LanguageData.metadata;
   const COPY=Object.create(null),BODY_COPY=Object.create(null),PHASE_COPY=Object.create(null);
   async function hydrateLanguage(region,copyCode=LANG_META[region]?.copy||'kor'){
     const code=copyCode,bundle=await LanguageData.load(code);
-    Object.assign(bundle.copy,Modules.TimerController?.copy(code)||{});COPY[code]=bundle.copy;BODY_COPY[code]=bundle.bodies;PHASE_COPY[code]=bundle.phases;
+    COPY[code]=bundle.copy;BODY_COPY[code]=bundle.bodies;PHASE_COPY[code]=bundle.phases;
   }
   // NASA/NSSDCA representative values. Gas- and ice-giant temperatures refer
   // to a comparable atmospheric pressure level because they have no hard surface.
@@ -198,9 +171,9 @@
       const activeTimeZone=()=>timezone==='utc'?'UTC':languageMode==='auto'?autoTimeZone:activeRegion().timeZone;
       const copyLanguage=()=>activeCopyCode;
       const copyMeta=()=>COPY_META[copyLanguage()]||COPY_META.en;
-      const t=(key,values)=>interpolate(COPY[copyLanguage()]?.[key]??COPY.kor?.[key]??key,values);
-      const bodyCopy=body=>copyLanguage()==='kor'?{name:body.ko,description:body.description}:{name:BODY_COPY[copyLanguage()]?.[body.id]?.[0]||body.en,description:BODY_COPY[copyLanguage()]?.[body.id]?.[1]||body.description};
-      const phaseCopy=name=>copyLanguage()==='kor'?name:(PHASE_COPY[copyLanguage()]?.[name]||name);
+      const t=(key,values)=>interpolate(COPY[copyLanguage()]?.[key]??LanguageData.fallback.copy[key]??key,values);
+      const bodyCopy=body=>{const row=BODY_COPY[copyLanguage()]?.[body.id]||LanguageData.fallback.bodies[body.id];return {name:row?.[0]||body.en,description:row?.[1]||''};};
+      const phaseCopy=name=>PHASE_COPY[copyLanguage()]?.[name]??LanguageData.fallback.phases[name]??name;
       const quantity=(value,unit)=>['en','hi','es','de','fr','pt','it','id','nl'].includes(copyLanguage())?`${value} ${t(unit)}`:`${value}${t(unit)}`;
       const music=Modules.MusicPlayer.create({
         audio:$('background-music'),tracks:MUSIC_TRACKS,
@@ -214,8 +187,7 @@
         const automaticLabel=Localization.automaticLanguageLabel();$('auto-language-mode').textContent=automaticLabel[0];$('auto-language-name').textContent=automaticLabel[1];
         const lang=$('language-toggle');lang.textContent=LANG_META[language].code;lang.setAttribute('aria-label',`${t('languageChange')}. ${LANG_META[language].name}`);lang.title=`${t('languageChange')} · ${LANG_META[language].code}`;
         const menu=$('language-menu');menu.setAttribute('aria-label',t('languageChange'));
-        const starCopy=STAR_DENSITY_COPY[copyLanguage()]||STAR_DENSITY_COPY.kor;
-        $('star-density-label').textContent=starCopy.label;$('star-density').setAttribute('aria-label',starCopy.aria);
+        $('star-density-label').textContent=t('starDensityLabel');$('star-density').setAttribute('aria-label',t('starDensityAria'));
         menu.querySelector('[data-language-auto]')?.setAttribute('aria-checked',String(languageMode==='auto'));
         for(const option of menu.querySelectorAll('[data-language]'))option.setAttribute('aria-checked',String(languageMode==='manual'&&option.dataset.language===language));
         $('fit-view').setAttribute('aria-label',t('homeView'));$('fit-view').title=t('homeView')+' · 0';
@@ -828,7 +800,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=3211432438d2','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=7310273d3e38','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1091,7 +1063,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.61',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.62',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

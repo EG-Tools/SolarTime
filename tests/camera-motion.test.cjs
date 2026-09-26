@@ -30,7 +30,7 @@ test('Move country inspection preserves wheel mode and matches the 250x Earth ra
  const d=r.camera.dolly;r.smoothDolly(d*1.5,'earth',1100);r.advanceCamera(1300);close(r.camera.dolly,d*1.5);
 });
 test('all supported country coordinates use the same 250x camera command',()=>{
- const app=read('src/app.js'),start=app.indexOf('  const REGIONS='),end=app.indexOf('  const STAR_DENSITY_COPY=',start);
+ const app=read('src/app.js'),start=app.indexOf('  const REGIONS='),end=app.indexOf('  const FACTORY_OPTIONS=',start);
  const regions=vm.runInNewContext(app.slice(start,end)+';REGIONS');
  for(const region of Object.values(regions)) {const {r}=renderer();assert.ok(r.animateFeature('earth',region.latitude,region.longitude,ms,0,1000),region.label);assert.equal(r.cameraTween.to.zoom,250);}
 });

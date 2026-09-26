@@ -1,8 +1,8 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
-function metadata(){const app=read('src/app.js'),a=app.indexOf('  const LANG_ORDER='),b=app.indexOf('  const STAR_DENSITY_COPY=',a);return vm.runInNewContext(app.slice(a,b)+';({order:LANG_ORDER,meta:LANG_META,regions:REGIONS})');}
-function detect(zone,languages){const window={};vm.runInNewContext(read('src/localization.js'),{window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
+function metadata(){const app=read('src/app.js'),a=app.indexOf('  const LANG_ORDER='),b=app.indexOf('  const FACTORY_OPTIONS=',a);return vm.runInNewContext(app.slice(a,b)+';({order:LANG_ORDER,meta:LANG_META,regions:REGIONS})');}
+function detect(zone,languages){const window={};require('./helpers/i18n-runtime.cjs').localization({window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
 const localeHash=code=>require('../tools/code-revisions.cjs').hash(read('src/locales/'+code+'.json'));
 const plain=value=>JSON.parse(JSON.stringify(value));
 test('Netherlands and Belgium reuse one Dutch payload while keeping separate regional metadata',()=>{
@@ -21,7 +21,7 @@ test('Dutch locale covers every interface key, body and phase and preserves inte
  for(const [key,value] of Object.entries(en.copy)){assert.equal(typeof nl.copy[key],'string');assert.deepEqual(fields(nl.copy[key]),fields(value),key);if(value)assert.ok(nl.copy[key].trim(),key);}
  for(const [key,rows] of Object.entries(nl.bodies)){assert.equal(rows.length,2);assert.ok(rows.every(v=>typeof v==='string'&&v.trim()),key);}
  assert.equal(nl.copy.settings,'Weergave-instellingen');assert.equal(nl.bodies.earth[0],'Aarde');
- assert.match(read('src/app.js'),/nl:Object\.freeze\(\{label:'Sterdichtheid'/);
+ assert.equal(JSON.parse(read('src/locales/nl.json')).copy.starDensityLabel,'Sterdichtheid');
  assert.match(read('src/app.js'),/\['en','hi','es','de','fr','pt','it','id','nl'\]\.includes\(copyLanguage\(\)\)/);
 });
 test('Dutch language data is supported, versioned and cached without duplicate country requests',async()=>{

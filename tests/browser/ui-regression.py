@@ -5,6 +5,7 @@ import json,re,os,struct,zlib,sys
 from playwright.sync_api import sync_playwright
 from regression_diagnostics import BrowserDiagnostics
 from region_menu import verify_region_menu
+from translation_source import verify_translation_source
 from release_history import verify_history, navigate_to_release, verify_current_release
 
 def png(w=32,h=16):
@@ -61,6 +62,7 @@ def suite(browser,root,size,installed):
   page.wait_for_function("!document.getElementById('planet-layer').classList.contains('viewport-resizing')&&!document.getElementById('universe').classList.contains('viewport-resizing')",timeout=4000)
   check(page.locator('#planet-layer').evaluate("e=>getComputedStyle(e).opacity==='1'") and page.locator('#universe').evaluate("e=>getComputedStyle(e).opacity==='1'"),tag+' persisted resize restoration reveals both canvases')
  check(page.locator('meta[name="apple-mobile-web-app-status-bar-style"]').get_attribute('content')=='default',tag+' status bar')
+ if size==(1280,800):verify_translation_source(page,root,tag,check)
  page.locator('#timer-button').click()
  check(page.locator('#timer-panel').is_visible(),tag+' timer opens')
  page.locator('#help-button').click()

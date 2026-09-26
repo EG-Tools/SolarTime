@@ -1,5 +1,5 @@
 {
-  "copy": {
+  "ui": {
     "metaDescription": "Un reloj del sistema solar que fluye con las estrellas: hora real, órbitas planetarias, la Tierra y la Luna en un pequeño cosmos.",
     "cookieTitle": "Uso de cookies",
     "cookieMessage": "Elige si permites cookies para analizar visitas y medir la publicidad.",
@@ -191,7 +191,9 @@
     "reloadPage": "Recargar",
     "randomRotate": "Rotación aleatoria",
     "starDensityLabel": "Densidad de estrellas",
-    "starDensityAria": "Densidad de estrellas de partículas. Cero oculta las estrellas de partículas.",
+    "starDensityAria": "Densidad de estrellas de partículas. Cero oculta las estrellas de partículas."
+  },
+  "timer": {
     "timer": "Temporizador",
     "timerClose": "Cerrar temporizador",
     "alarm": "Alarma",
@@ -199,7 +201,6 @@
     "scheduledShutdown": "Apagado programado",
     "shutdownDuration": "Tiempo de apagado",
     "hours": "horas",
-    "minutes": "min",
     "timerInactive": "Sin configurar",
     "timerTarget": "{time} · quedan {remaining}",
     "alarmSound": "Sonido de alarma",
@@ -238,26 +239,14 @@
     "helperDisabled": "El asistente de apagado de Solar Time está desactivado.",
     "helperDownloadTitle": "Asistente oficial verificado",
     "helperDownloadDescription": "Archivo de apagado programado de Windows creado y revisado por Solar Time.",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
     "helperDownloadSource": "El código fuente y el SHA-256 son públicos para verificar cualquier cambio.",
     "helperViewSource": "Ver código fuente",
-    "helperChecksumLabel": "SHA-256",
     "helperDownloadQuestion": "¿Descargar desde Cloudflare?",
     "removeHelper": "Eliminar",
     "helperRemoveTitle": "Eliminar asistente de apagado",
     "helperRemoveDescription": "Cancela el apagado programado y elimina el asistente y su conexión de la cuenta de Windows actual.",
     "helperRemoveQuestion": "¿Eliminar el asistente?",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
-    "helperInstallTitle": "Confirmar instalación del asistente",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallTitle": "Confirmar instalación del asistente"
   },
   "bodies": {
     "sun": [
@@ -318,5 +307,6 @@
     "기우는 달": "gibosa menguante",
     "하현달": "cuarto menguante",
     "그믐달": "menguante"
-  }
+  },
+  "local": {}
 }

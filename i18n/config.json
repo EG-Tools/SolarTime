@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "baseLanguage": "en",
+  "languages": {
+    "kor": {
+      "locale": "ko-KR",
+      "html": "ko",
+      "automaticLabel": [
+        "자동",
+        "언어"
+      ]
+    },
+    "en": {
+      "locale": "en-US",
+      "html": "en",
+      "automaticLabel": [
+        "AUTO",
+        "Language"
+      ]
+    },
+    "chn": {
+      "locale": "zh-CN",
+      "html": "zh-Hans",
+      "automaticLabel": [
+        "自动",
+        "语言"
+      ]
+    },
+    "zht": {
+      "locale": "zh-TW",
+      "html": "zh-Hant",
+      "automaticLabel": [
+        "自動",
+        "語言"
+      ]
+    },
+    "jpn": {
+      "locale": "ja-JP",
+      "html": "ja",
+      "automaticLabel": [
+        "自動",
+        "言語"
+      ]
+    },
+    "hi": {
+      "locale": "hi-IN",
+      "html": "hi",
+      "automaticLabel": [
+        "ऑटो",
+        "भाषा"
+      ]
+    },
+    "es": {
+      "locale": "es-ES",
+      "html": "es",
+      "automaticLabel": [
+        "AUTO",
+        "Idioma"
+      ]
+    },
+    "de": {
+      "locale": "de-DE",
+      "html": "de",
+      "automaticLabel": [
+        "AUTO",
+        "Sprache"
+      ]
+    },
+    "fr": {
+      "locale": "fr-FR",
+      "html": "fr",
+      "automaticLabel": [
+        "AUTO",
+        "Langue"
+      ]
+    },
+    "pt": {
+      "locale": "pt-PT",
+      "html": "pt",
+      "automaticLabel": [
+        "AUTO",
+        "Idioma"
+      ]
+    },
+    "it": {
+      "locale": "it-IT",
+      "html": "it",
+      "automaticLabel": [
+        "AUTO",
+        "Lingua"
+      ]
+    },
+    "id": {
+      "locale": "id-ID",
+      "html": "id",
+      "automaticLabel": [
+        "AUTO",
+        "Bahasa"
+      ]
+    },
+    "nl": {
+      "locale": "nl-NL",
+      "html": "nl",
+      "automaticLabel": [
+        "AUTO",
+        "Taal"
+      ]
+    }
+  },
+  "legacyFileKeys": [
+    "eclipseView",
+    "eclipsePrevious",
+    "eclipseNext",
+    "eclipseUnavailable",
+    "alignmentView",
+    "alignmentPrevious",
+    "alignmentNext",
+    "alignmentUnavailable",
+    "cookieTitle",
+    "cookieMessage",
+    "cookiePrivacy",
+    "cookieReject",
+    "cookieAccept",
+    "earthNightLights",
+    "clockSize"
+  ],
+  "invariantKeys": [
+    "timer.helperChecksumLabel"
+  ],
+  "missingBundleFallback": {
+    "zht": "chn"
+  },
+  "allowEmptyKeys": [
+    "ui.auNote"
+  ],
+  "browserLanguageRules": [
+    [
+      "^zh-(?:tw|hk|hant)(?:-|$)",
+      "zht"
+    ],
+    [
+      "^zh(?:-|$)",
+      "chn"
+    ],
+    [
+      "^ko(?:-|$)",
+      "kor"
+    ],
+    [
+      "^ja(?:-|$)",
+      "jpn"
+    ],
+    [
+      "^hi(?:-|$)",
+      "hi"
+    ],
+    [
+      "^es(?:-|$)",
+      "es"
+    ],
+    [
+      "^de(?:-|$)",
+      "de"
+    ],
+    [
+      "^fr(?:-|$)",
+      "fr"
+    ],
+    [
+      "^pt(?:-|$)",
+      "pt"
+    ],
+    [
+      "^it(?:-|$)",
+      "it"
+    ],
+    [
+      "^id(?:-|$)",
+      "id"
+    ],
+    [
+      "^nl(?:-|$)",
+      "nl"
+    ],
+    [
+      "^en(?:-|$)",
+      "en"
+    ]
+  ]
+}

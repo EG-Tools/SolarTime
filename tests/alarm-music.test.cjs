@@ -25,7 +25,7 @@ function fixture({soundMode='default',hook='normal',pendingPlay=false,hidden=fal
  const window={document,SolarModules:{},indexedDB,AudioContext,location:{href:'https://solartime.app/',protocol:'https:',hostname:'solartime.app'},console:{warn(){}},setInterval:()=>1,clearInterval(){},requestAnimationFrame,setTimeout:()=>1,clearTimeout(){},fetch:async()=>({ok:true,blob:async()=>blob})};
  class Clock extends Date{static now(){return clock;}}
  const context={window,document,Date:Clock,Intl,URL,performance:{now:()=>0},requestAnimationFrame,cancelAnimationFrame,clearInterval(){},setTimeout};
- for(const name of ['music-player','timer-copy','alarm-sound','timer-controller'])vm.runInNewContext(read('src/'+name+'.js'),context);
+ for(const name of ['music-player','alarm-sound','timer-controller'])vm.runInNewContext(read('src/'+name+'.js'),context);
  const music=window.SolarModules.MusicPlayer.create({audio,tracks:[{file:'music.mp3',title:'Background music'}],folder:'assets/music/',translate:k=>k,notify(){},button:get('music-toggle'),previous:get('previous'),next:get('next'),title:get('title'),now:get('now')});
  const options={document,Preferences:{read:()=>({soundMode}),write(){}},translate:k=>k,shutdownBridge:{eligible:false},UI:{bindScrollCues:()=>({update(){},dispose(){}}),bindPopup(){},bindDialog(){},visible:el=>!el.hidden,show:(el,fn)=>{el.hidden=false;fn?.();},hide:(el,fn)=>{el.hidden=true;fn?.();}}};
  if(hook!=='omitted')options.onAlarmStart=()=>{hookCalls++;if(hook==='throw')throw Error('isolated hook error');music.setEnabled(false);};

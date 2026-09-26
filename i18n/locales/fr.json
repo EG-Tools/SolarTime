@@ -1,5 +1,5 @@
 {
-  "copy": {
+  "ui": {
     "metaDescription": "Une horloge du système solaire au fil des étoiles : heure réelle, orbites planétaires, Terre et Lune dans un petit cosmos.",
     "cookieTitle": "Utilisation des cookies",
     "cookieMessage": "Choisissez si vous autorisez les cookies pour l’analyse des visites et la mesure publicitaire.",
@@ -191,7 +191,9 @@
     "reloadPage": "Recharger",
     "randomRotate": "Rotation aléatoire",
     "starDensityLabel": "Densité d’étoiles",
-    "starDensityAria": "Densité des étoiles particules. Zéro masque les étoiles particules.",
+    "starDensityAria": "Densité des étoiles particules. Zéro masque les étoiles particules."
+  },
+  "timer": {
     "timer": "Minuteur",
     "timerClose": "Fermer le minuteur",
     "alarm": "Alarme",
@@ -199,7 +201,6 @@
     "scheduledShutdown": "Arrêt programmé",
     "shutdownDuration": "Délai avant arrêt",
     "hours": "h",
-    "minutes": "min",
     "timerInactive": "Non défini",
     "timerTarget": "{time} · reste {remaining}",
     "alarmSound": "Son de l’alarme",
@@ -238,26 +239,14 @@
     "helperDisabled": "L’assistant d’arrêt de Solar Time est désactivé.",
     "helperDownloadTitle": "Assistant officiel vérifié",
     "helperDownloadDescription": "Ce fichier d’arrêt programmé de Windows est créé et vérifié par Solar Time.",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
     "helperDownloadSource": "Le code source et le SHA-256 sont publics afin de vérifier toute modification.",
     "helperViewSource": "Voir le code source",
-    "helperChecksumLabel": "SHA-256",
     "helperDownloadQuestion": "Télécharger depuis Cloudflare ?",
     "removeHelper": "Supprimer",
     "helperRemoveTitle": "Supprimer l’assistant d’arrêt",
     "helperRemoveDescription": "Annule l’arrêt programmé et supprime l’assistant ainsi que son association du compte Windows actuel.",
     "helperRemoveQuestion": "Supprimer l’assistant ?",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
-    "helperInstallTitle": "Confirmer l’installation de l’assistant",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallTitle": "Confirmer l’installation de l’assistant"
   },
   "bodies": {
     "sun": [
@@ -318,5 +307,6 @@
     "기우는 달": "gibbeuse décroissante",
     "하현달": "dernier quartier",
     "그믐달": "dernier croissant"
-  }
+  },
+  "local": {}
 }

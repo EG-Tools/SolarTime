@@ -3,6 +3,7 @@
 const fs=require('node:fs'),path=require('node:path');
 const {releaseFiles}=require('./release-files.cjs'),{projectConfig,runtimeScripts}=require('./asset-pipeline.cjs');
 function buildPages(root){
+ require('./i18n.cjs').sync(root);
  require('./code-revisions.cjs').sync(root);
  const site=path.join(root,'.cloudflare/pages'),{deployment}=projectConfig(root),manifest=JSON.parse(fs.readFileSync(path.join(root,'assets/manifest.json'),'utf8'));
  const generated=runtimeScripts(root,manifest,deployment,{cdnBase:deployment.cdnBase});

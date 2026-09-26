@@ -3,8 +3,8 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const localeHash=code=>require('../tools/code-revisions.cjs').hash(read('src/locales/'+code+'.json'));
 const plain=value=>JSON.parse(JSON.stringify(value));
-function metadata(){const app=read('src/app.js'),a=app.indexOf('  const LANG_ORDER='),b=app.indexOf('  const STAR_DENSITY_COPY=',a);return vm.runInNewContext(app.slice(a,b)+';({order:LANG_ORDER,meta:LANG_META,regions:REGIONS})');}
-function detect(zone,languages){const window={};vm.runInNewContext(read('src/localization.js'),{window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
+function metadata(){const app=read('src/app.js'),a=app.indexOf('  const LANG_ORDER='),b=app.indexOf('  const FACTORY_OPTIONS=',a);return vm.runInNewContext(app.slice(a,b)+';({order:LANG_ORDER,meta:LANG_META,regions:REGIONS})');}
+function detect(zone,languages){const window={};require('./helpers/i18n-runtime.cjs').localization({window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
 
 test('Taiwan and Hong Kong use one complete Traditional Chinese payload with distinct regional formats',()=>{
  const {order,meta,regions}=metadata();
@@ -23,7 +23,7 @@ test('Traditional Chinese covers every interface, body and lunar phase key',()=>
  for(const section of ['copy','bodies','phases'])assert.deepEqual(Object.keys(zht[section]).sort(),Object.keys(en[section]).sort(),section);
  for(const key of Object.keys(en.copy)){assert.equal(typeof zht.copy[key],'string');assert.ok(zht.copy[key].trim(),key);assert.deepEqual(fields(zht.copy[key]),fields(chn.copy[key]),key);}
  assert.equal(zht.copy.settings,'顯示設定');assert.equal(zht.copy.save,'儲存');assert.equal(zht.bodies.earth[0],'地球');
- assert.match(read('src/language-data.js'),/'zht'/);assert.match(read('src/app.js'),/zht:Object\.freeze\(\{label:'星星密度'/);
+ assert.match(read('src/language-data.js'),/["']zht["']/);assert.equal(JSON.parse(read('src/locales/zht.json')).copy.starDensityLabel,'星星密度');
 });
 
 test('an older public site missing zht falls back without showing a 404',async()=>{

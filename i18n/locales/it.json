@@ -1,5 +1,5 @@
 {
-  "copy": {
+  "ui": {
     "metaDescription": "Un orologio del Sistema Solare che scorre tra le stelle: ora reale, orbite planetarie, Terra e Luna in un piccolo cosmo.",
     "cookieTitle": "Uso dei cookie",
     "cookieMessage": "Scegli se consentire i cookie per l’analisi delle visite e la misurazione pubblicitaria.",
@@ -191,15 +191,15 @@
     "reloadPage": "Ricarica",
     "randomRotate": "Rotazione casuale",
     "starDensityLabel": "Densità stellare",
-    "starDensityAria": "Densità delle stelle particellari. Zero nasconde le stelle particellari.",
-    "timer": "Timer",
+    "starDensityAria": "Densità delle stelle particellari. Zero nasconde le stelle particellari."
+  },
+  "timer": {
     "timerClose": "Chiudi timer",
     "alarm": "Sveglia",
     "alarmDuration": "Tempo sveglia",
     "scheduledShutdown": "Spegnimento programmato",
     "shutdownDuration": "Tempo allo spegnimento",
     "hours": "ore",
-    "minutes": "min",
     "timerInactive": "Non impostato",
     "timerTarget": "{time} · restano {remaining}",
     "alarmSound": "Suono sveglia",
@@ -238,26 +238,14 @@
     "helperDisabled": "L’assistente di spegnimento di Solar Time è disattivato.",
     "helperDownloadTitle": "Assistente ufficiale verificato",
     "helperDownloadDescription": "Questo file per lo spegnimento programmato di Windows è creato e verificato da Solar Time.",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
     "helperDownloadSource": "Il sorgente e il valore SHA-256 sono pubblici per verificare eventuali modifiche.",
     "helperViewSource": "Vedi codice sorgente",
-    "helperChecksumLabel": "SHA-256",
     "helperDownloadQuestion": "Scaricare da Cloudflare?",
     "removeHelper": "Rimuovi",
     "helperRemoveTitle": "Rimuovi assistente di spegnimento",
     "helperRemoveDescription": "Annulla lo spegnimento programmato e rimuove l’assistente e il relativo collegamento dall’account Windows corrente.",
     "helperRemoveQuestion": "Rimuovere l’assistente?",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
-    "helperInstallTitle": "Conferma installazione assistente",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallTitle": "Conferma installazione assistente"
   },
   "bodies": {
     "sun": [
@@ -318,5 +306,6 @@
     "기우는 달": "gibbosa calante",
     "하현달": "ultimo quarto",
     "그믐달": "falce calante"
-  }
+  },
+  "local": {}
 }
