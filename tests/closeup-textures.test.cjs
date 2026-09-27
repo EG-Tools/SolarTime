@@ -104,6 +104,12 @@ test('compatibility surface publishes 1024 first and still schedules final detai
 test('texture payload bytes, compression, shader and helper stay unchanged',()=>{
  const crypto=require('node:crypto');
  const baseline=JSON.parse(read('tests/fixtures/texture-v062-hashes.json'));
- for(const [name,hash] of Object.entries(baseline))assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(root,name))).digest('hex'),hash,name);
+ for(const [name,hash] of Object.entries(baseline)){
+  let bytes=fs.readFileSync(path.join(root,name));
+  // Windows checks out CMD as CRLF; compare its canonical source, while
+  // every texture manifest, shader and web runtime remains byte-for-byte.
+  if(name.endsWith('.cmd'))bytes=Buffer.from(bytes.toString('utf8').replace(/\r\n/g,'\n'));
+  assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),hash,name);
+ }
  assert.doesNotMatch(read('src/surface.js'),/\.quality\s*=|generateMipmap\(/);
 });
