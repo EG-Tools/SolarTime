@@ -71,10 +71,11 @@
     }
     return {targets:new Map(entries.map(e=>[e.name,e.width])),bytes,constrained};
   }
-  function trimTextures(renderer){
+  function trimTextures(renderer,reserveBytes=0){
+    renderer.trimRecent?.(reserveBytes);
     const textures=renderer.textures;if(!textures?.size||!renderer.gl)return;
-    const budget=textureBudget();let bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);
-    renderer.stats.textureBudgetBytes=budget;renderer.stats.textureBytes=bytes;if(bytes<=budget)return;
+    const budget=Math.max(0,textureBudget()-Math.max(0,reserveBytes));let bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);
+    renderer.stats.textureBudgetBytes=textureBudget();renderer.stats.textureBytes=bytes;if(bytes<=budget)return;
     const candidates=[...textures.entries()].filter(([name,record])=>record?.texture&&!record.pending&&!protectTexture(renderer,name)).sort((a,b)=>(a[1].lastUsed||0)-(b[1].lastUsed||0));
     for(const [name,record] of candidates){
       if(bytes<=budget)break;

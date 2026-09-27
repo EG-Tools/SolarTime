@@ -38,8 +38,9 @@ test('cancelled downloads free the two slots; superseded jobs never upload',asyn
   r.textures.set(name,{asset,source,texture:{},width:256,height:128,pending:false,token:0});
  }
  r.textureFor('earth',1024);r.textureFor('jupiter',1024);assert.equal(r.activeLoads,2);
- r.textureFor('earth',2048);assert.ok(signals[0].aborted);await turn();
- assert.equal(r.activeLoads,2);assert.equal(r.pendingCount,2);assert.equal(signals.length,3);
+ r.textureFor('earth',2048);assert.equal(signals[0].aborted,false,'changing final detail must not restart the required preview');
+ r.cancelTexture('earth');assert.ok(signals[0].aborted);await turn();
+ r.textureFor('earth',2048);await turn();assert.equal(r.activeLoads,2);assert.equal(r.pendingCount,2);assert.equal(signals.length,3);
  r.pause();assert.ok(signals.every(s=>s.aborted));await turn();
  assert.equal(r.activeLoads,0);assert.equal(r.pendingCount,0);assert.equal(r.loadQueue.length,0);assert.equal(r.stats.error,undefined);
 });
@@ -72,7 +73,7 @@ test('visible bodies finish baseline textures before detailed upgrades',()=>{
  finish(r,'earth',256);assert.equal(r.visibleTexturesReady(),false);
  finish(r,'jupiter',256);assert.equal(r.visibleTexturesReady(),true);
  r.textureFor('earth',2048);r.textureFor('jupiter',1024);
- assert.deepEqual(r.queued.map(q=>[q.name,q.target]),[['earth',256],['jupiter',256],['earth',2048],['jupiter',1024]]);
+ assert.deepEqual(r.queued.map(q=>[q.name,q.target]),[['earth',256],['jupiter',256],['earth',1024],['jupiter',1024]]);
 });
 test('visible texture plans fit the mobile budget while preserving tracked detail',()=>{
  const window={},context={window,navigator:{userAgent:'iPhone',maxTouchPoints:1},matchMedia:()=>({matches:true}),screen:{width:390,height:844},performance};

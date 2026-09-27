@@ -235,6 +235,7 @@ function surfaceKernel(style){
 }
 const materialSource=surfaceKernel(STYLE);
 const BASELINE_TEXTURE_WIDTH=256;
+const PREVIEW_TEXTURE_WIDTH=1024;
 class SurfaceService{
   constructor({worker=true}={}){
     this.frames=new Map();this.desired=new Map();this.pending=null;this.inflight=false;this.disposed=false;
@@ -263,10 +264,10 @@ class SurfaceService{
     return angle<=Math.max(0,Math.min(a.limit,b.limit,Math.PI/36));
   }
 
-  needs(job,mono){const old=this.frames.get(job.id);if(!old||old.epoch!==this.epoch||old.job.geometry!==job.geometry)return true;if(job.phase===old.job.phase&&job.seconds===old.job.seconds&&job.light.every((v,i)=>v===old.job.light[i]))return false;const turn=Math.abs(job.phase-old.job.phase);return mono-old.mono>=120||Math.min(turn,1-turn)*Math.PI*job.diam>.18;}
+  needs(job,mono){const old=this.frames.get(job.id);if(!old||old.epoch!==this.epoch||old.job.geometry!==job.geometry||old.job.textureWidth<job.textureWidth)return true;if(job.phase===old.job.phase&&job.seconds===old.job.seconds&&job.light.every((v,i)=>v===old.job.light[i]))return false;const turn=Math.abs(job.phase-old.job.phase);return mono-old.mono>=120||Math.min(turn,1-turn)*Math.PI*job.diam>.18;}
   pump(){
     if(this.disposed||this.paused||this.inflight||!this.pending)return;const {mono}=this.pending;let jobs=this.pending.jobs.filter(j=>this.needs(j,mono));this.pending=null;if(!jobs.length)return;
-    this.inflight=true;this.stats.submitted++;const revision=++this.revision,epoch=this.epoch;jobs=jobs.map(job=>({...job,requestedMono:mono}));
+    this.inflight=true;this.stats.submitted++;const revision=++this.revision,epoch=this.epoch;jobs=jobs.map(job=>({...job,textureWidth:job.textureWidth>PREVIEW_TEXTURE_WIDTH&&(this.frames.get(job.id)?.job.textureWidth||0)<PREVIEW_TEXTURE_WIDTH?PREVIEW_TEXTURE_WIDTH:job.textureWidth,requestedMono:mono}));
     this.batch={revision,epoch,jobs:new Map(jobs.map(job=>[job.id,job]))};
     if(this.worker){this.worker.postMessage({jobs,revision,epoch,assets:this.assetsSent?undefined:root.SolarAssets?.materials});this.assetsSent=true;}
     else{
@@ -479,11 +480,11 @@ class DirectRenderer{
     this.canvas=canvas;this.gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:true,preserveDrawingBuffer:false});
     if(!this.gl)throw Error('WebGL is required for the direct planet renderer.');
     this.disposed=false;this.paused=false;this.generation=0;this.textureToken=0;this.width=1;this.height=1;this.dpr=1;
-    this.textures=new Map();this.frames=new Map();this.desired=new Map();this.orbitBuffers=new Map();this.textureSources=new Map();this.coronaTexture=null;this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
+    this.textures=new Map();this.recentTextures=new Map();this.textureIntent=null;this.frames=new Map();this.desired=new Map();this.orbitBuffers=new Map();this.textureSources=new Map();this.coronaTexture=null;this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
     this.boundProgram=null;this.boundBuffer=null;this.boundAttrib=-1;this.boundAttribSize=0;this.boundAttribBuffer=null;this.activeTextureUnit=-1;this.boundTextures=[null,null,null,null];this.canvasViewportW=0;this.canvasViewportH=0;this.orbitState={valid:false};
     this.stats={backend:'gpu-direct',accepted:0,discarded:0,drawCalls:0,frames:0,texturesLoaded:0,texturePixels:0,orbitUploads:0,kernel:{backend:'gpu-direct'}};
     this.contextLost=false;this.onLost=event=>{event.preventDefault();this.contextLost=true;this.invalidate();this.orbitBuffers.clear();this.resetBindings();this.stats.contextLost=true;};
-    this.onRestored=()=>{this.contextLost=false;this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.resetBindings();this.setup();};
+    this.onRestored=()=>{this.contextLost=false;this.recentTextures.clear();this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.resetBindings();this.setup();};
     canvas.addEventListener('webglcontextlost',this.onLost,false);canvas.addEventListener('webglcontextrestored',this.onRestored,false);
     this.setup();
   }
@@ -542,6 +543,7 @@ class DirectRenderer{
   }
   prepare(jobs){
     for(const job of jobs)this.desired.set(job.id,job);
+    this.pruneTextureQueue();
     const assets=root.SolarAssets?.materials,key=jobs.map(job=>job.id+':'+job.textureWidth+':'+(job.nightTextureWidth||0)+':'+job.priority+':'+Number(job.nightLights)).join('|');
     if(key!==this.planKey||assets!==this.planAssets){
       this.planKey=key;this.planAssets=assets;this.texturePlan=root.SolarPerformance?.planTextures(jobs,assets,this.maxTextureSize);
@@ -564,20 +566,95 @@ class DirectRenderer{
     if(program.viewportWidth===this.width&&program.viewportHeight===this.height)return;
     this.gl.uniform2f(program.u.viewport,this.width,this.height);program.viewportWidth=this.width;program.viewportHeight=this.height;
   }
+  textureIsWanted(name){
+    if(this.desired.has(name)||root.SolarPerformance?.protectTexture(this,name))return true;
+    const intent=this.textureIntent;
+    return !!intent&&intent.id===name&&performance.now()<intent.until;
+  }
+  texturePriority(task){
+    const name=task.name,body=name==='clouds'||name==='earth-night'?'earth':name.replace(/-relief$/,''),job=this.desired.get(body);
+    const intent=this.textureIntent,preview=task.target<=PREVIEW_TEXTURE_WIDTH,color=body===name;
+    const focused=job?.priority===2||(intent?.id===body&&performance.now()<intent.until);
+    if(focused&&color)return preview?600:500;
+    if(!this.textures.get(name)?.texture&&this.textureIsWanted(name))return 450;
+    if(focused)return preview?430:400;
+    if(job?.priority===1&&color)return preview?380:350;
+    return this.textureIsWanted(name)?(preview?150:100):0;
+  }
+  // This is an early request through the SAME progressive owner, not a second
+  // download/cache. Start only the preview; a resident final tier is a fast path.
+  prefetchBody(name,target=4096){
+    if(this.disposed||this.paused||this.contextLost)return;
+    const asset=root.SolarAssets?.materials?.[name];if(!asset)return;
+    this.textureIntent={id:name,until:performance.now()+2500};
+    target=directPower(Math.min(target,this.maxTextureSize,asset.tiers?.at(-1)?.width||target));
+    const current=this.textures.get(name);
+    if(current?.asset===asset&&current.texture&&current.width>=PREVIEW_TEXTURE_WIDTH)return;
+    if(this.restoreRecent(name,asset,target))return;
+    this.textureFor(name,Math.min(PREVIEW_TEXTURE_WIDTH,target),true);
+    this.pumpTextureQueue();
+  }
   cancelTexture(name){
     const record=this.textures.get(name);record?.controller?.abort();
     this.loadQueue=this.loadQueue.filter(task=>{if(task.name!==name)return true;if(task.generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);return false;});
     if(record)record.pending=false;
   }
+  pruneTextureQueue(){
+    for(const [name,record] of this.textures)if(record.pending&&!this.textureIsWanted(name))this.cancelTexture(name);
+  }
   queueTexture(task){this.loadQueue.push(task);this.pendingCount++;this.pumpTextureQueue();}
   pumpTextureQueue(){
     if(this.disposed||this.paused||this.contextLost)return;
+    // Re-evaluate queued work against the latest focus. Never start all tiers
+    // or prefetch every planet, and keep the existing two-slot bound.
+    this.loadQueue.sort((a,b)=>this.texturePriority(b)-this.texturePriority(a)||a.token-b.token);
     while(this.activeLoads<2&&this.loadQueue.length){
       const task=this.loadQueue.shift(),record=this.textures.get(task.name);
       if(task.generation!==this.generation||!record||record.token!==task.token||record.source.key!==task.source.key){if(task.generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);continue;}
       const controller=new AbortController();record.controller=controller;
       this.activeLoads++;this.loadTexture(task.name,task.source,task.target,task.token,task.generation,controller.signal).finally(()=>{this.activeLoads=Math.max(0,this.activeLoads-1);if(record.controller===controller)record.controller=null;this.pumpTextureQueue();});
     }
+  }
+  recentKey(name,source,width){return name+':'+width+'|'+source.key;}
+  discardRecent(key){
+    const old=this.recentTextures?.get(key);if(!old)return;
+    if(!this.contextLost)this.gl.deleteTexture(old.texture);
+    this.stats.texturePixels-=old.width*old.height;this.recentTextures.delete(key);
+    this.stats.recentEvictions=(this.stats.recentEvictions||0)+1;this.resetTextureBindings();
+  }
+  trimRecent(reserveBytes=0){
+    const recent=this.recentTextures;if(!recent?.size)return;
+    const budget=root.SolarPerformance?.textureBudget()||192*1024*1024,limit=Math.min(64*1024*1024,budget/3);
+    let bytes=0;for(const row of recent.values())bytes+=row.width*row.height*4;
+    for(const [key,row] of recent){
+      if(bytes<=limit&&this.stats.texturePixels*4+reserveBytes<=budget)break;
+      bytes-=row.width*row.height*4;this.discardRecent(key);
+    }
+    this.stats.recentTextureBytes=bytes;
+  }
+  parkTexture(name,record){
+    if(!record?.texture)return;
+    // Store the actually uploaded source, not an unfinished replacement URL.
+    const source=record.residentSource||record.source;
+    if(!this.contextLost&&record.width>=PREVIEW_TEXTURE_WIDTH&&source){
+      this.recentTextures ||= new Map();
+      const key=this.recentKey(name,source,record.width);this.discardRecent(key);
+      this.recentTextures.set(key,{asset:record.residentAsset||record.asset,source,texture:record.texture,width:record.width,height:record.height});
+    }else{
+      if(!this.contextLost)this.gl.deleteTexture(record.texture);
+      this.stats.texturePixels-=record.width*record.height;
+    }
+  }
+  restoreRecent(name,asset,target){
+    const source=this.textureSource(name,asset,target),key=source&&this.recentKey(name,source,target),saved=this.recentTextures?.get(key);
+    if(!saved)return null;
+    if(saved.asset!==asset){this.discardRecent(key);return null;}
+    this.recentTextures.delete(key);const current=this.textures.get(name);
+    this.cancelTexture(name);this.parkTexture(name,current);
+    const record={...saved,residentSource:saved.source,pending:false,token:++this.textureToken,retryAt:0};
+    this.textures.set(name,record);this.resetTextureBindings();this.trimRecent();
+    this.stats.recentHits=(this.stats.recentHits||0)+1;this.stats.accepted=(this.stats.accepted||0)+1;
+    return record;
   }
   async loadTexture(name,source,target,token,generation,signal){
     let bitmap,canvas,texture;
@@ -591,38 +668,49 @@ class DirectRenderer{
         canvas=materialSource.materialCanvas(bitmap,width,height,false,source.seamBaked).canvas;upload=canvas;
       }
       if(this.disposed||generation!==this.generation)return;
+      const prior=this.textures.get(name);
+      if(prior?.texture&&target>prior.width&&width<prior.width&&prior.asset===root.SolarAssets?.materials?.[name]){
+        Object.assign(prior,{pending:false,retryAt:Date.now()+30000});return;
+      }
+      this.trimRecent(width*height*4);
+      root.SolarPerformance?.trimTextures(this,width*height*4);
       const g=this.gl;texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);
       g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,upload);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
       // Explicit screen-size texture tiers provide LOD without the longitude
       // derivative seam that implicit mip selection creates on a sphere.
       g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
       const record=this.textures.get(name);if(!record||record.token!==token||record.source.key!==source.key){g.deleteTexture(texture);texture=null;this.stats.discarded++;return;}
-      if(record.texture){g.deleteTexture(record.texture);this.stats.texturePixels-=record.width*record.height;}
-      Object.assign(record,{texture,width,height,pending:false,error:null,retryAt:width<target?Date.now()+30000:0});texture=null;this.stats.accepted++;this.stats.texturesLoaded++;this.stats.texturePixels+=width*height;
+      this.parkTexture(name,record);
+      Object.assign(record,{texture,width,height,residentSource:source,residentAsset:record.asset,pending:false,error:null,retryAt:width<target?Date.now()+30000:0});texture=null;this.stats.accepted++;this.stats.texturesLoaded++;this.stats.texturePixels+=width*height;
+      this.trimRecent();
     }catch(error){const record=this.textures.get(name);if(!signal?.aborted&&generation===this.generation&&record&&record.token===token){record.pending=false;record.error=error.message;record.retryAt=Date.now()+30000;this.stats.error=error.message;}}
     finally{bitmap?.close?.();if(texture&&!this.contextLost)this.gl.deleteTexture(texture);if(generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);}
   }
   texture(name,target){const result=this.textureFor(name,target);root.SolarPerformance?.touchTexture(this,name);return result;}
-  textureFor(name,target){
+  textureFor(name,target,previewIntent=false){
     const asset=root.SolarAssets?.materials?.[name];if(!asset)return null;
-    target=directPower(Math.min(target,this.maxTextureSize,this.texturePlan?.targets.get(name)??Infinity));
+    target=directPower(Math.min(target,this.maxTextureSize,previewIntent?Infinity:this.texturePlan?.targets.get(name)??Infinity,asset.tiers?.at(-1)?.width||target));
     let record=this.textures.get(name);
-    // Put a small, complete surface on every visible body before any body uses
-    // a detail download slot. Once the baseline texture exists, the ordinary
-    // frame loop requests the planned LOD and swaps it in without a blank frame.
-    if(!record?.texture)target=Math.min(target,BASELINE_TEXTURE_WIDTH);
     const assetChanged=!record||record.asset!==asset,now=performance.now();
     const current=record?.pending?Math.max(record.width,record.pendingTarget):record?.width||0;
     if(!assetChanged&&current>target&&!this.texturePlan?.constrained){
       if(record.lowerTarget!==target){record.lowerTarget=target;record.lowerSince=now;}
       if(now-record.lowerSince<650)return record.texture?record:null;
     }else if(record){record.lowerTarget=0;record.lowerSince=0;}
+    // A ready exact tier is the only bypass of progressive loading. Browsers'
+    // HTTP cache cannot be assumed synchronous; uncached detail always has a
+    // 1024 preview first, without walking through 512 and 2048 downloads.
+    if(!(record?.asset===asset&&record.texture&&record.width===target)){
+      const ready=this.restoreRecent(name,asset,target);if(ready)return ready;
+    }
+    if(!record?.texture)target=Math.min(target,record?.pending&&record.pendingTarget<=PREVIEW_TEXTURE_WIDTH?record.pendingTarget:previewIntent?PREVIEW_TEXTURE_WIDTH:BASELINE_TEXTURE_WIDTH);
+    else if(record.width<PREVIEW_TEXTURE_WIDTH&&target>PREVIEW_TEXTURE_WIDTH)target=PREVIEW_TEXTURE_WIDTH;
     const source=this.textureSource(name,asset,target);if(!source)return null;
     const changed=assetChanged||record.source.key!==source.key,resize=!record?.texture||record.width!==target,retryReady=changed||!record?.retryAt||Date.now()>=record.retryAt;
     if(retryReady&&(changed||resize)&&(!record?.pending||record.pendingTarget!==target||changed)){
       this.cancelTexture(name);
       const old=record?.texture||null,token=++this.textureToken,generation=this.generation;
-      record={asset,source,texture:old,width:record?.width||0,height:record?.height||0,pending:true,pendingTarget:target,token};
+      record={asset,source,residentAsset:record?.residentAsset||record?.asset,residentSource:record?.residentSource||record?.source,texture:old,width:record?.width||0,height:record?.height||0,pending:true,pendingTarget:target,token};
       this.textures.set(name,record);this.queueTexture({name,source,target,token,generation});
     }
     return record?.texture?record:null;
@@ -685,17 +773,18 @@ class DirectRenderer{
   }
   end(){
     for(const id of this.frames.keys())if(!this.desired.has(id))this.frames.delete(id);
-    for(const [name,record] of this.textures)if(record.pending&&!root.SolarPerformance?.protectTexture(this,name))this.cancelTexture(name);
+    this.pruneTextureQueue();this.trimRecent();
     root.SolarPerformance?.enforceTextureBudget(this);
   }
   flush(){if(!this.disposed&&!this.contextLost)this.gl.flush();}
   get(id){return this.frames.get(id)?.image;}
-  invalidate(){for(const record of this.textures.values()){record.controller?.abort();record.pending=false;}this.generation++;this.loadQueue=[];this.pendingCount=0;}
+  invalidate(){this.textureIntent=null;for(const record of this.textures.values()){record.controller?.abort();record.pending=false;}this.generation++;this.loadQueue=[];this.pendingCount=0;}
   pause(){this.paused=true;this.invalidate();}
   resume(){this.paused=false;this.pumpTextureQueue();}
   suspend(){this.pause();}
   dispose(){
     if(this.disposed)return;this.disposed=true;this.invalidate();const g=this.gl;
+    for(const key of this.recentTextures?.keys()||[])this.discardRecent(key);
     for(const record of this.textures.values())if(record.texture)g.deleteTexture(record.texture);
     for(const record of this.orbitBuffers.values())g.deleteBuffer(record.buffer);
     for(const p of [this.planetProgram,this.coronaProgram,this.line,this.ring])g.deleteProgram(p.program);

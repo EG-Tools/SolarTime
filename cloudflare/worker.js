@@ -156,17 +156,29 @@ function mediaHeaders(object,status,key){
  return headers;
 }
 
+function mediaDelivery(response,cacheStatus){
+ const headers=new Headers(response.headers);
+ headers.set('x-solar-media-cache',cacheStatus);
+ headers.set('timing-allow-origin','*');
+ headers.set('access-control-expose-headers','Content-Length, ETag, Age, CF-Cache-Status, X-Solar-Media-Cache');
+ headers.set('server-timing','solar-cache;desc="'+cacheStatus+'"');
+ return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+}
+
 async function mediaResponse(request,env,ctx,key){
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET, HEAD, OPTIONS','access-control-allow-headers':'Range','access-control-max-age':'86400'}});
   if(request.method!=='GET'&&request.method!=='HEAD')return new Response('Method Not Allowed',{status:405,headers:{allow:'GET, HEAD, OPTIONS'}});
   const head=request.method==='HEAD',range=head?null:request.headers.get('range'),cache=mutableUI(key)?null:caches.default;
   const lookup=mediaCacheRequest(request,true);if(head)lookup.headers.delete('range');
-  if(cache){const cached=await cache.match(lookup);if(cached){if(!head)return cached;if(cached.body)ctx.waitUntil(cached.body.cancel());return new Response(null,{status:cached.status,headers:cached.headers});}}
+  if(cache){
+    let cached;try{cached=await cache.match(lookup);}catch(_){console.warn('Media cache read unavailable; serving R2');}
+    if(cached){if(head){if(cached.body)ctx.waitUntil(cached.body.cancel());cached=new Response(null,{status:cached.status,headers:cached.headers});}return mediaDelivery(cached,'HIT');}
+  }
   const object=head?await env.SOLAR_TIME_MEDIA.head(key):await env.SOLAR_TIME_MEDIA.get(key,{range:request.headers});
   if(!object)return new Response('Not Found',{status:404});
-  if(etagMatches(request.headers.get('if-none-match'),object.httpEtag)){if(object.body)ctx.waitUntil(object.body.cancel());return new Response(null,{status:304,headers:mediaHeaders(object,304,key)});}
+  if(etagMatches(request.headers.get('if-none-match'),object.httpEtag)){if(object.body)ctx.waitUntil(object.body.cancel());return mediaDelivery(new Response(null,{status:304,headers:mediaHeaders(object,304,key)}),cache?'MISS':'BYPASS');}
   const partial=!!range&&!!object.range,status=partial?206:200,headers=mediaHeaders(object,status,key);
-  if(head)return new Response(null,{status,headers});
+  if(head)return mediaDelivery(new Response(null,{status,headers}),cache?'MISS':'BYPASS');
   const response=new Response(object.body,{status,headers});
   if(cache){
     const cacheKey=mediaCacheRequest(request),whole=!partial||Number(headers.get('content-length'))===object.size;
@@ -182,7 +194,7 @@ async function mediaResponse(request,env,ctx,key){
       })().catch(error=>console.warn('Music cache fill failed',String(error))));
     }
   }
-  return response;
+  return mediaDelivery(response,cache?'MISS':'BYPASS');
 }
 
 export default {

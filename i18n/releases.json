@@ -1,5 +1,76 @@
 [
   {
+    "version": "0.63",
+    "date": "2026.09.27",
+    "localized": {
+      "kor": [
+        "클로즈업 시 중간 화질을 먼저 표시한 뒤 원본 4K 텍스처로 교체합니다.",
+        "선택한 천체의 로딩을 우선하고 최근 텍스처를 기존 메모리 예산 안에서 재사용하며, 화질과 알람·음악 동작은 유지합니다.",
+        "공개 텍스처의 원본 해시와 실제 캐시 적중을 배포 후 검사하며 기존 미디어 주소와 접근 제한을 유지합니다."
+      ],
+      "en": [
+        "Close-ups display a medium-resolution preview before replacing it with the original 4K texture.",
+        "Prioritize selected bodies and reuse recent textures within the existing memory budget, preserving image quality and alarm/music behavior.",
+        "Deployment checks original texture hashes and real cache hits while retaining the existing media origin and access restrictions."
+      ],
+      "chn": [
+        "特写时先显示中等分辨率预览，再替换为原始4K纹理。",
+        "优先加载所选天体，并在现有内存预算内复用最近的纹理，保持画质及闹钟、音乐行为不变。",
+        "部署后检查纹理原始哈希及实际缓存命中，并保留现有媒体地址和访问限制。"
+      ],
+      "zht": [
+        "特寫時先顯示中等解析度預覽，再替換為原始4K紋理。",
+        "優先載入所選天體，並在既有記憶體預算內重用最近的紋理，維持畫質及鬧鐘、音樂行為。",
+        "部署後檢查紋理原始雜湊及實際快取命中，並保留既有媒體位址和存取限制。"
+      ],
+      "jpn": [
+        "クローズアップでは中解像度のプレビューを先に表示し、元の4Kテクスチャに切り替えます。",
+        "選択した天体の読み込みを優先し、既存のメモリ上限内で最近のテクスチャを再利用します。画質とアラーム・音楽の動作は維持します。",
+        "配信後に元のテクスチャのハッシュとキャッシュヒットを確認し、既存のメディア配信先とアクセス制限を維持します。"
+      ],
+      "hi": [
+        "क्लोज़-अप में पहले मध्यम रिज़ॉल्यूशन का पूर्वावलोकन दिखता है, फिर उसकी जगह मूल 4K टेक्सचर आता है।",
+        "चुने गए खगोलीय पिंडों को लोड करने में प्राथमिकता दी जाती है और मौजूदा मेमोरी सीमा में हाल के टेक्सचर दोबारा इस्तेमाल होते हैं। चित्र गुणवत्ता, अलार्म और संगीत का व्यवहार यथावत रहता है।",
+        "परिनियोजन में मूल टेक्सचर हैश और वास्तविक कैश हिट की जाँच होती है। मौजूदा मीडिया पता और पहुँच प्रतिबंध यथावत रहते हैं।"
+      ],
+      "es": [
+        "Los primeros planos muestran una vista previa de resolución media antes de sustituirla por la textura 4K original.",
+        "Se prioriza la carga del cuerpo seleccionado y se reutilizan las texturas recientes dentro del presupuesto de memoria existente, sin cambiar la calidad visual ni las alarmas y la música.",
+        "Tras el despliegue se verifican los hashes originales y los aciertos de caché, manteniendo el origen de los archivos y sus restricciones de acceso."
+      ],
+      "de": [
+        "Nahansichten zeigen zunächst eine Vorschau in mittlerer Auflösung und wechseln anschließend zur ursprünglichen 4K-Textur.",
+        "Ausgewählte Himmelskörper werden bevorzugt geladen und kürzlich verwendete Texturen innerhalb des bisherigen Speicherbudgets wiederverwendet. Bildqualität sowie Alarm- und Musikverhalten bleiben erhalten.",
+        "Nach der Bereitstellung werden die ursprünglichen Textur-Hashes und tatsächliche Cache-Treffer geprüft. Medienadresse und Zugriffsbeschränkungen bleiben erhalten."
+      ],
+      "fr": [
+        "Les gros plans affichent un aperçu de résolution moyenne avant de passer à la texture 4K originale.",
+        "Le chargement des astres sélectionnés est prioritaire et les textures récentes sont réutilisées dans le budget mémoire existant, sans modifier la qualité visuelle, les alarmes ou la musique.",
+        "Après le déploiement, les empreintes des textures originales et les accès au cache sont vérifiés. L’adresse des médias et les restrictions d’accès sont conservées."
+      ],
+      "pt": [
+        "As aproximações mostram uma pré-visualização de resolução média antes de a substituir pela textura 4K original.",
+        "O carregamento dos astros selecionados tem prioridade e as texturas recentes são reutilizadas dentro do limite de memória existente, mantendo a qualidade visual e o funcionamento dos alarmes e da música.",
+        "Após a publicação, verificam-se os hashes originais e os acessos à cache, mantendo o endereço dos ficheiros e as restrições de acesso."
+      ],
+      "it": [
+        "Le viste ravvicinate mostrano prima un’anteprima a risoluzione media, poi la sostituiscono con la texture 4K originale.",
+        "Il caricamento degli astri selezionati ha priorità e le texture recenti vengono riutilizzate entro il limite di memoria esistente, mantenendo la qualità visiva e il comportamento di sveglie e musica.",
+        "Dopo la pubblicazione vengono verificati gli hash originali e gli accessi alla cache, mantenendo l’indirizzo dei file e le restrizioni di accesso."
+      ],
+      "id": [
+        "Tampilan jarak dekat menampilkan pratinjau beresolusi sedang terlebih dahulu, lalu menggantinya dengan tekstur 4K asli.",
+        "Pemuatan benda langit yang dipilih diprioritaskan dan tekstur terbaru digunakan kembali dalam batas memori yang ada, tanpa mengubah kualitas gambar serta perilaku alarm dan musik.",
+        "Setelah penerapan, hash tekstur asli dan keberhasilan akses cache diperiksa, dengan alamat media dan pembatasan akses tetap dipertahankan."
+      ],
+      "nl": [
+        "Close-ups tonen eerst een voorbeeld in gemiddelde resolutie en vervangen dit daarna door de oorspronkelijke 4K-textuur.",
+        "Geselecteerde hemellichamen krijgen voorrang bij het laden en recente texturen worden binnen het bestaande geheugenbudget hergebruikt. Beeldkwaliteit en het gedrag van alarmen en muziek blijven behouden.",
+        "Na publicatie worden de oorspronkelijke textuurhashes en cachetreffers gecontroleerd. Het media-adres en de toegangsbeperkingen blijven behouden."
+      ]
+    }
+  },
+  {
     "version": "0.62",
     "date": "2026.09.27",
     "localized": {

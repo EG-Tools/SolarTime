@@ -538,13 +538,14 @@
       if(validTarget){this.camera.focus=focusId;if(anchored)Object.assign(this.camera,anchored);}
       this.cameraChangeAt=performance.now();this.dirty=true;
     }
+    prepareCloseup(id) {this.gpu?.prefetchBody?.(id,window.SolarAssets?.materialInfo?.[id]?.width||SURFACE.detailWidth);}
     focusBody(id) {
       const body=this.sceneBodies().find(b=>b.id===id);
       if(!body)return;
       const baseRadius=this.bodyDisplaySize(body)*this.baseBodyScale(),radius=Math.min(this.w,this.h)*.25;
       const t=clamp((radius-baseRadius)/(Math.min(this.w,this.h)*VIEW.detailFillRadius-baseRadius),0,1);
       const zoom=(1+t*(Math.sqrt(VIEW.detailZoom)-1))**2;
-      this.cancelCameraMotion();this.camera.focus=id;
+      this.prepareCloseup(id);this.cancelCameraMotion();this.camera.focus=id;
       if(this.options.dollyZoom)this.setDolly(clamp(radius/Math.max(baseRadius,.001),VIEW.minZoom,VIEW.maxZoom),id);
       else this.setZoom(clamp(zoom,6,VIEW.maxZoom));
     }
@@ -593,6 +594,7 @@
       // for the whole move. This prevents a one-frame focus hand-off that used to
       // make the tracked planet jump in size/position between saved views.
       this.cameraTween={from,to,start:mono,duration,input,progress:0};
+      if(to.focus)this.prepareCloseup(to.focus);
       if(direction)this.pendingAutoRotation={direction,generation};
       this.cameraChangeAt=mono;this.dirty=true;return true;
     }

@@ -1,0 +1,11 @@
+{
+  "assets/manifest.json": "d5c16c132bcf5ef7e9837c9180ed81bce3645400dd07a40b822675b577afb441",
+  "assets/revision.json": "8d8672e48577f10d933fa552ce7353c04b9c4bc9112e5c60df30c8a7b77df924",
+  "src/assets.js": "81c670bb7357fc5555bfd505a8b76c70c9b5d8e92bcdacf4626fcd82b9d3396d",
+  "src/surface-style.js": "88d7e16327c73b63ac7147fe364b72230153df823c411aaadf49c59eee18d4be",
+  "windows/SolarTimeShutdownHelper.cmd": "6388c8c6a8f397c2a0a3763a0ddb4960f61c4bc4db76899246027e7f581c4b37",
+  "src/windows-shutdown.js": "3109e303c919cf6bbb4490bd74423595958854d0b2d4275d4bd000fd7705070a",
+  "src/sky.js": "7f6731d11c8ae2c1457621d4200202c0a9c70502e22f923a5baf1f940b132b62",
+  "styles.css": "b8da0cecc4882a29a95b45f52c45301ec25ca958ad579176e1455abeef11dd22",
+  "src/runtime-optimizations.css": "2e2600ed28fb9dd97237c738a9814f674917b3abc44dc62e1971c4fbbdc3a9f1"
+}

@@ -45,6 +45,7 @@ async function main(args=process.argv.slice(2)){
   run(root,'node_modules/wrangler/bin/wrangler.js',['deploy']);
   run(root,'tools/verify-shutdown.cjs',['--roundtrip']);
   run(root,'tools/verify-public-release.cjs',['--worker','--attempts=6']);
+  run(root,'tools/verify-textures.cjs');
  }
  if(opt.phase==='all')console.log('Cloudflare verified. Pages must publish the same commit. Reinstall the PC helper only when its installed hash differs; app-only updates do not require reinstalling.');
 }
