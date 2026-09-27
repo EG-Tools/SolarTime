@@ -1,3 +1,10 @@
+# v0.63 r1 — progressive close-up textures
+
+- Default to a 1024 preview before original 4096 detail; only ready resident textures bypass this sequence.
+- Prepare the selected body through the same loader, reprioritize pending work and retain recent tiers within the existing GPU memory budget.
+- Preserve intermediate images on failed upgrades, keep night-light LOD behavior and compatibility rendering.
+- Keep original media bytes and the protected Worker path. Expose cache HIT/MISS and verify original texture hashes and live cache hits during deployment.
+
 # v0.62 r1 — canonical translation sources
 
 - Manage interface, timer, body/phase, automatic-label and release-history text under `i18n/`; generate runtime payloads with `npm run build:i18n`.

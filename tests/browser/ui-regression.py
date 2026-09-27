@@ -6,6 +6,7 @@ from playwright.sync_api import sync_playwright
 from regression_diagnostics import BrowserDiagnostics
 from region_menu import verify_region_menu
 from translation_source import verify_translation_source
+from closeup_textures import verify_closeup_textures
 from release_history import verify_history, navigate_to_release, verify_current_release
 
 def png(w=32,h=16):
@@ -322,6 +323,7 @@ def main():
   if os.environ.get('SOLAR_CHROMIUM_EXECUTABLE'):options['executable_path']=os.environ['SOLAR_CHROMIUM_EXECUTABLE']
   browser=p.chromium.launch(**options)
   try:
+   verify_closeup_textures(browser,root,check,diagnostics)
    # Browser contexts isolate storage, clocks and WebGL state. Reusing one
    # Chromium process avoids paying its launch cost for every viewport.
    for size,installed in [((1280,800),False),((390,844),False),((844,390),False),((390,844),True),((844,390),True)]:

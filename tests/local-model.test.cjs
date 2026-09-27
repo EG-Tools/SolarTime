@@ -34,6 +34,10 @@ function assertStaticAssetLinks(html,deployment){
    assert.equal(address,'https://solartime.app/','The canonical URL must be the production root');
    continue;
   }
+  if(String(attrs.rel||'').trim().toLowerCase()==='preconnect'){
+   assert.equal(address,expected.origin,'Only the existing media origin may be preconnected');
+   assert.equal(attrs.crossorigin,'anonymous','Preconnect must match anonymous texture fetches');continue;
+  }
   assert.equal(String(attrs.rel||'').trim().toLowerCase(),'apple-touch-icon','Only the install icon may use a remote link: '+address);
   assert.match(address,/^https:\/\//i,'The install icon must use explicit HTTPS');
   const url=new URL(address);
