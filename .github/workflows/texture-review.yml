@@ -10,12 +10,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 309650ba9ed60b1394b2bd2105e94821a89b32a8
+          persist-credentials: false
       - name: Snapshot and public cold/warm header sample
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .texture-review
-          git archive --format=zip -o .texture-review/source.zip 309650ba9ed60b1394b2bd2105e94821a89b32a8
+          git archive --format=zip -o .texture-review/source.zip HEAD
           for name in earth-4096.63a07d9bf77cb351 moon-4096.a42e76070d301df9; do
             for attempt in 1 2 3; do
               curl --fail --silent --show-error --max-time 30 -D ".texture-review/${name}-${attempt}.headers" -o /dev/null -w 'connect=%{time_connect} tls=%{time_appconnect} firstByte=%{time_starttransfer} total=%{time_total} bytes=%{size_download}\n' "https://solar-time.keg0320.workers.dev/media/releases/content/textures/${name}.webp" > ".texture-review/${name}-${attempt}.timing"
