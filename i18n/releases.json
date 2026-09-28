@@ -1,5 +1,76 @@
 [
   {
+    "version": "0.65",
+    "date": "2026.09.28",
+    "localized": {
+      "kor": [
+        "기존 방문 통계는 유지하고 동의 후 실제 기능 사용을 별도 이벤트로 기록합니다.",
+        "음악 재생·천체 추적·알람 설정·확인된 예약 종료 등을 구분하며 개인정보와 거짓 전환 집계를 추가하지 않습니다.",
+        "방문과 기능 사용을 구분하며 기존 화면, 화질, 알람·음악 동작은 유지합니다."
+      ],
+      "en": [
+        "Keep existing visit measurement and record actual feature use as separate events after consent.",
+        "Distinguish music playback, body tracking, alarms and confirmed shutdown actions without adding personal input or false lead conversions.",
+        "Keep visits separate from feature use, with existing visuals, image quality, alarms and music unchanged."
+      ],
+      "chn": [
+        "保留现有访问统计，并在获得同意后以独立事件记录实际功能使用。",
+        "区分音乐播放、天体追踪、闹钟和已确认的关机操作，不添加个人输入或虚假的潜在客户转化。",
+        "区分访问与功能使用，并保留现有界面、画质、闹钟和音乐行为。"
+      ],
+      "zht": [
+        "保留既有造訪統計，並在取得同意後以獨立事件記錄實際功能使用。",
+        "區分音樂播放、天體追蹤、鬧鐘和已確認的關機操作，不加入個人輸入或不實的潛在客戶轉換。",
+        "區分造訪與功能使用，並保留既有介面、畫質、鬧鐘及音樂行為。"
+      ],
+      "jpn": [
+        "既存の訪問計測を維持し、同意後の実際の機能利用を個別イベントとして記録します。",
+        "音楽再生、天体追跡、アラーム、確認済みのシャットダウン操作を区別し、個人の入力内容や架空の見込み客コンバージョンは追加しません。",
+        "訪問と機能利用を区別し、既存の画面、画質、アラーム、音楽の動作は維持します。"
+      ],
+      "hi": [
+        "मौजूदा विज़िट मापन बनाए रखते हुए सहमति के बाद वास्तविक सुविधा उपयोग को अलग इवेंट के रूप में दर्ज किया जाता है।",
+        "व्यक्तिगत इनपुट या गलत लीड कन्वर्ज़न जोड़े बिना संगीत, खगोलीय पिंडों की ट्रैकिंग, अलार्म और पुष्टि किए गए शटडाउन कार्यों को अलग मापा जाता है।",
+        "विज़िट और सुविधा उपयोग अलग रहते हैं; मौजूदा दृश्य, छवि गुणवत्ता, अलार्म और संगीत का व्यवहार अपरिवर्तित है।"
+      ],
+      "es": [
+        "Se mantiene la medición de visitas y se registra el uso real de funciones como eventos separados tras el consentimiento.",
+        "Se distinguen la música, el seguimiento de astros, las alarmas y las acciones de apagado confirmadas, sin datos personales introducidos ni conversiones de clientes potenciales falsas.",
+        "Se separan las visitas del uso de funciones y se mantienen la interfaz, la calidad de imagen, las alarmas y la música."
+      ],
+      "de": [
+        "Die bisherige Besuchsmessung bleibt erhalten; tatsächliche Funktionsnutzung wird nach Einwilligung als separates Ereignis erfasst.",
+        "Musik, Himmelskörperverfolgung, Alarme und bestätigte Abschaltaktionen werden ohne persönliche Eingaben oder falsche Lead-Conversions unterschieden.",
+        "Besuche und Funktionsnutzung bleiben getrennt; Darstellung, Bildqualität, Alarme und Musik bleiben unverändert."
+      ],
+      "fr": [
+        "La mesure des visites est conservée et les utilisations réelles des fonctions sont enregistrées séparément après consentement.",
+        "La musique, le suivi des astres, les alarmes et les arrêts confirmés sont distingués, sans données personnelles saisies ni fausses conversions de prospects.",
+        "Les visites restent distinctes de l’utilisation des fonctions ; l’interface, la qualité d’image, les alarmes et la musique sont conservées."
+      ],
+      "pt": [
+        "Mantém-se a medição de visitas e regista-se a utilização real das funções em eventos separados após o consentimento.",
+        "Distinguem-se música, seguimento de astros, alarmes e ações de encerramento confirmadas, sem dados pessoais introduzidos nem conversões falsas de potenciais clientes.",
+        "As visitas são separadas da utilização das funções; a interface, a qualidade de imagem, os alarmes e a música permanecem inalterados."
+      ],
+      "it": [
+        "La misurazione delle visite resta invariata; l’uso effettivo delle funzioni viene registrato con eventi separati dopo il consenso.",
+        "Musica, inseguimento dei corpi celesti, sveglie e spegnimenti confermati sono distinti, senza dati personali inseriti o false conversioni di potenziali clienti.",
+        "Visite e uso delle funzioni restano distinti; interfaccia, qualità delle immagini, sveglie e musica rimangono invariati."
+      ],
+      "id": [
+        "Pengukuran kunjungan tetap dipertahankan, dan penggunaan fitur yang sebenarnya dicatat sebagai peristiwa terpisah setelah persetujuan.",
+        "Musik, pelacakan benda langit, alarm, dan tindakan pematian yang dikonfirmasi dibedakan tanpa input pribadi atau konversi prospek palsu.",
+        "Kunjungan dipisahkan dari penggunaan fitur; tampilan, kualitas gambar, alarm, dan musik tetap tidak berubah."
+      ],
+      "nl": [
+        "Bestaande bezoekmetingen blijven behouden; daadwerkelijk functiegebruik wordt na toestemming als afzonderlijke gebeurtenis vastgelegd.",
+        "Muziek, hemellichamen volgen, alarmen en bevestigde afsluitacties worden onderscheiden zonder persoonlijke invoer of onjuiste leadconversies.",
+        "Bezoeken en functiegebruik blijven gescheiden; weergave, beeldkwaliteit, alarmen en muziek blijven ongewijzigd."
+      ]
+    }
+  },
+  {
     "version": "0.64",
     "date": "2026.09.28",
     "localized": {

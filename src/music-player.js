@@ -5,7 +5,7 @@
   const RETRY_DELAY=1000,STALL_TIMEOUT=15000,STABLE_PLAYBACK=5;
   function create({audio,tracks,folder,translate,notify,button,previous,next,title,now}){
     let enabled=false,disposed=false,index=-1,order=[],position=-1,token=0,failures=0;
-    let active=null,retryTimer=0,cancelFade=null;
+    let active=null,retryTimer=0,cancelFade=null,pendingUsage=null;
     const later=(fn,ms)=>(root.setTimeout||setTimeout)(fn,ms);
     const clear=id=>{if(id)(root.clearTimeout||clearTimeout)(id);};
     audio.volume=.55;audio.muted=true;
@@ -77,18 +77,24 @@
       try{
         if(!reuse){audio.src=chosen;audio.load();}
         watch();await audio.play();if(!current())return;
-        started=true;clear(watchdog);watchdog=0;await fadeVolume(.55,180,activeToken);
+        started=true;clear(watchdog);watchdog=0;
+        const report=pendingUsage;pendingUsage=null;report?.();
+        await fadeVolume(.55,180,activeToken);
       }catch(error){failedLoad(error);}
     }
     function step(direction,resetFailures=true){if(!enabled||disposed)return;if(!order.length)prepareOrder();if(resetFailures)failures=0;playAt(position+direction);}
     function setEnabled(value){
       if(disposed)return;const nextEnabled=!!value;if(nextEnabled===enabled)return;enabled=nextEnabled;
-      if(!enabled){++token;detach();audio.pause();audio.muted=true;refresh();return;}
+      if(!enabled){pendingUsage=null;++token;detach();audio.pause();audio.muted=true;refresh();return;}
       failures=0;
       if(index>=0&&audio.src&&!audio.ended&&!audio.error)playAt(position,{resumeAt:Number(audio.currentTime)||0,reuse:true});
       else{prepareOrder();playAt(0);}
     }
-    const toggle=()=>setEnabled(!enabled),back=()=>step(-1),forward=()=>step(1);
+    const toggle=()=>{
+      if(disposed)return;const turningOn=!enabled;
+      const report=root.SolarUsageAnalytics?.begin(turningOn?'solar_music_play':'solar_music_stop');
+      if(turningOn)pendingUsage=report;setEnabled(turningOn);if(!turningOn)report?.();
+    },back=()=>step(-1),forward=()=>step(1);
     button.addEventListener('click',toggle);previous.addEventListener('click',back);next.addEventListener('click',forward);refresh();
     return Object.freeze({refresh,step,setEnabled,get enabled(){return enabled;},get track(){return tracks[index]?.title||null;},dispose(){if(disposed)return;setEnabled(false);disposed=true;++token;detach();audio.pause();button.removeEventListener('click',toggle);previous.removeEventListener('click',back);next.removeEventListener('click',forward);}});
   }

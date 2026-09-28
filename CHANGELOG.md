@@ -1,3 +1,11 @@
+# v0.65 r1 — visits and consented feature-use measurement
+
+- Keep the single existing GA4 page-view setup; do not duplicate page views or convert all visits into leads.
+- Record meaningful actions with fixed, GA4-only feature events after consent. Native shutdown events require successful Windows receipts; music starts require successful playback.
+- Exclude free text, sound filenames/content, timer values/deadlines, coordinates and helper IDs. Discard pending actions across consent changes; never replay pre-consent usage.
+- Keep the supplied lead-form conversion label inactive until its real conversion goal is selected. Preserve Google Ads base destination, consent, source media, rendering and deferred work.
+- Preserve the v0.64 release-history cleanup without removing more entries.
+
 # v0.64 r1 — Google Ads base tag and shorter release history
 
 - Add Google Ads destination `AW-18454135815` to the existing shared Google tag without a duplicate loader, preserving consent defaults, choices and the production-domain restriction.

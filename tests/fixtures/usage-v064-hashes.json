@@ -1,0 +1,10 @@
+{
+  "src/google-analytics.js": "e24144b73eb2796194d6a10b128683d64e25810acfc16edbffe2ac90203d9843",
+  "src/consent.js": "69c07b6623d762e0f21be391e9d955a93a1127e3ea934b972b1f35ecaf426531",
+  "src/windows-shutdown.js": "3109e303c919cf6bbb4490bd74423595958854d0b2d4275d4bd000fd7705070a",
+  "src/alarm-sound.js": "924225d8b735221f1b466919ecfd2daafcbaca7a4549185c22a50bb85169c7e5",
+  "src/renderer.js": "b68c75854102b78c3ba3ba1d83f1d34d7099cb5f5ffeed1338753a2bbdfc511f",
+  "src/surface.js": "22bcd39aa8ddc689aed3e1d7e5d18293db44db643f5fc0d481a617b23e114482",
+  "src/assets.js": "81c670bb7357fc5555bfd505a8b76c70c9b5d8e92bcdacf4626fcd82b9d3396d",
+  "styles.css": "b8da0cecc4882a29a95b45f52c45301ec25ca958ad579176e1455abeef11dd22"
+}

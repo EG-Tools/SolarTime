@@ -12,7 +12,7 @@ function fixture({count=2,fallback=false,failPlay=false}={}){
  const math=Object.create(Math);math.random=()=>.999;
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/music-player.js'),'utf8'),{window,document,URL,Math:math,performance:{now:()=>clock},requestAnimationFrame:()=>1,cancelAnimationFrame(){}});
  const music=window.SolarModules.MusicPlayer.create({audio,tracks,folder:'assets/',translate:x=>x,notify:x=>notices.push(x),button,previous:new Element(),next:new Element(),title:new Element(),now:new Element()});
- return {music,audio,loads,notices,pending,button,async advance(ms){const end=clock+ms;let loops=0;while(true){const entry=[...pending].sort((a,b)=>a[1].at-b[1].at)[0];if(!entry||entry[1].at>end)break;if(++loops>100)throw Error('Unbounded recovery');clock=entry[1].at;pending.delete(entry[0]);entry[1].fn();await flush();}clock=end;await flush();},async error(){audio.error={code:2};await audio.fire('error');await flush();}};
+ return {window,music,audio,loads,notices,pending,button,async advance(ms){const end=clock+ms;let loops=0;while(true){const entry=[...pending].sort((a,b)=>a[1].at-b[1].at)[0];if(!entry||entry[1].at>end)break;if(++loops>100)throw Error('Unbounded recovery');clock=entry[1].at;pending.delete(entry[0]);entry[1].fn();await flush();}clock=end;await flush();},async error(){audio.error={code:2};await audio.fire('error');await flush();}};
 }
 test('mid-track error retries once, then skips; all failed tracks turn music and UI OFF',async()=>{
  const f=fixture();f.music.setEnabled(true);await flush();assert.equal(f.loads.length,1);
@@ -54,4 +54,21 @@ test('an empty playlist fails cleanly and normal ended advances to the next trac
 
 test('seeking to the saved position cannot mask a hung play promise during recovery',async()=>{
  const d=deferred();let n=0;const f=fixture({failPlay:()=>++n===1?Promise.resolve():d.promise});f.music.setEnabled(true);await flush();f.audio.currentTime=20;await f.error();await f.advance(1000);await f.audio.fire('loadedmetadata');assert.equal(f.audio.currentTime,20);await f.advance(15000);assert.ok(f.pending.size);await f.advance(1000);assert.equal(f.music.track,'track 1');f.music.dispose();d.resolve();await flush();assert.equal(f.music.enabled,false);
+});
+
+test('only user-requested successful music starts count; automatic next/recovery/alarm OFF do not',async()=>{
+ const {attachUsage}=require('./helpers/usage-harness.cjs');
+ const f=fixture(),h=attachUsage(f.window);
+ await f.button.fire('click');await flush();assert.deepEqual(h.events.map(e=>e[1]),['solar_music_play']);
+ f.audio.ended=true;await f.audio.fire('ended');await flush();assert.equal(h.events.length,1);
+ await f.error();await f.advance(1000);assert.equal(h.events.length,1);
+ f.music.setEnabled(false);assert.equal(h.events.length,1);await f.button.fire('click');await flush();assert.equal(h.events.length,2);await f.button.fire('click');assert.equal(h.events.at(-1)[1],'solar_music_stop');f.music.dispose();
+});
+test('rejected, superseded and revoked-consent music starts never count as successful playback',async()=>{
+ const {attachUsage}=require('./helpers/usage-harness.cjs');
+ for(const mode of ['deny','off','revoke']){
+  const d=deferred(),f=fixture({failPlay:()=>d.promise}),h=attachUsage(f.window);await f.button.fire('click');assert.equal(h.events.length,0);
+  if(mode==='deny')d.reject(Object.assign(Error('denied'),{name:'NotAllowedError'}));else{if(mode==='off')f.music.setEnabled(false);else{h.change(false);h.change(true);}d.resolve();}
+  await flush();assert.equal(h.events.length,0,mode);f.music.dispose();
+ }
 });
