@@ -190,6 +190,7 @@
     async function nativeResult(action,seconds){try{return await shutdownBridge?.[action]?.(seconds)||{ok:false,uncertain:true};}catch(_){return {ok:false,uncertain:true};}}
     async function cancel(name,{native=true,quiet=false}={}){
       const wasEnabled=state[name].enabled;
+      const report=wasEnabled&&(name==='alarm'||native)?root.SolarUsageAnalytics?.begin(name==='alarm'?'solar_alarm_cancel':'solar_shutdown_cancel'):null;
       if(name==='shutdown'&&native&&wasEnabled){
         if(nativeBusy==='cancel'||nativeBusy==='uninstall')return false;
         const request=++nativeSerial;nativeBusy='cancel';state.shutdown.status='pending';
@@ -199,13 +200,14 @@
       }
       state[name].enabled=false;state[name].deadline=0;
       if(name==='shutdown'){state.shutdown.status='idle';closeShutdown();}
-      save();sync();if(name==='alarm')releaseIdleAudio();if(!quiet&&wasEnabled)notify(t(name==='alarm'?'alarmCancelled':'shutdownCancelled'));return true;
+      save();sync();if(name==='alarm')releaseIdleAudio();if(!quiet&&wasEnabled)notify(t(name==='alarm'?'alarmCancelled':'shutdownCancelled'));report?.();return true;
     }
-    async function schedule(name,{quiet=false}={}){
+    async function schedule(name,{quiet=false,usageAction='set'}={}){
       if(name==='shutdown'&&nativeBusy){sync();return false;}
       const previous={...state[name]},minutes=readFields(name);
       if(minutes<1){notify(t('timerDurationRequired'));sync();return false;}
       if(name==='shutdown'&&(!eligible||!state.helperEnabled)){notify(t(!eligible?'shutdownUnsupported':'shutdownHelperRequired'));sync();return false;}
+      const report=root.SolarUsageAnalytics?.begin(name==='alarm'?(usageAction==='snooze'?'solar_alarm_snooze':'solar_alarm_set'):'solar_shutdown_set',name==='alarm'&&usageAction!=='snooze'?{sound_type:state.soundMode}:{});
       if(name==='alarm'){primeAudio();if(state.soundMode==='custom')loadStoredSound();else loadDefaultSound();}
       if(name==='shutdown'){
         const request=++nativeSerial;nativeBusy='schedule';state.shutdown.enabled=true;state.shutdown.status='pending';state.shutdown.deadline=0;
@@ -220,7 +222,7 @@
         }
         state.shutdown.deadline=result.deadline;state.shutdown.status='confirmed';
       }else {state.alarm.enabled=true;state.alarm.deadline=now()+minutes*60000;}
-      save();sync();if(!quiet)notify(t(name==='alarm'?'alarmScheduled':'shutdownScheduled',{time:formatTarget(state[name].deadline)}));return true;
+      save();sync();if(!quiet)notify(t(name==='alarm'?'alarmScheduled':'shutdownScheduled',{time:formatTarget(state[name].deadline)}));report?.();return true;
     }
     function showShutdownCountdown(seconds){$('shutdown-countdown').textContent=String(seconds);if(!shutdownDialog.open)UI.show(shutdownDialog,()=>shutdownDialog.showModal());}
     function showDownloadConfirm(){$('shutdown-helper-checksum').textContent=shutdownBridge?.helperSha256||'';if(!downloadDialog.open)UI.show(downloadDialog,()=>downloadDialog.showModal());}
@@ -320,7 +322,7 @@
     $('alarm-sound-choose').addEventListener('click',event=>{event.preventDefault();event.stopPropagation();$('alarm-sound-file').click();});
     for(const kind of ['default','custom'])$('alarm-preview-'+kind).addEventListener('click',event=>{event.preventDefault();event.stopPropagation();togglePreview(kind);});
     $('alarm-sound-file').addEventListener('change',event=>{const file=event.target.files?.[0];event.target.value='';return chooseSound(file);});
-    $('alarm-snooze').addEventListener('click',()=>{closeAlarm();state.alarm.hours=0;state.alarm.minutes=5;setFields('alarm');schedule('alarm',{quiet:true});notify(t('alarmSnoozed'));});
+    $('alarm-snooze').addEventListener('click',()=>{closeAlarm();state.alarm.hours=0;state.alarm.minutes=5;setFields('alarm');schedule('alarm',{quiet:true,usageAction:'snooze'});notify(t('alarmSnoozed'));});
     $('alarm-stop').addEventListener('click',()=>{closeAlarm();cancel('alarm',{quiet:true});});UI.bindDialog(alarmDialog,()=>{closeAlarm();cancel('alarm',{quiet:true});});
     $('shutdown-cancel').addEventListener('click',()=>cancel('shutdown'));
     shutdownDialog.addEventListener('cancel',event=>{event.preventDefault();cancel('shutdown');});
