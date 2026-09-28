@@ -211,7 +211,7 @@ test('r12 simplifies and reorders the right-side view controls',()=>{
 test('v0.46 r3 keeps install icons on R2 and forces PNG MIME delivery',()=>{
   const html=read('index.html'),manifest=JSON.parse(read('manifest.webmanifest')),site=read('tools/cloudflare-site.cjs'),worker=read('cloudflare/worker.js'),wrangler=JSON.parse(read('wrangler.jsonc'));
   assert.ok(html.includes('https://solar-time.keg0320.workers.dev/media/releases/content/ui/apple-touch-icon.png?v=0.46-r3'));
-  assert.equal((html.match(/data-life-user-watermark/g)||[]).length,2);
+  assert.equal((html.match(/data-life-user-watermark/g)||[]).length,1);
   assert.ok(read('src/app.js').includes("releases/content/ui/life-user-watermark.webp"));
   assert.deepEqual(manifest.icons.map(icon=>icon.src),[
     'https://solar-time.keg0320.workers.dev/media/releases/content/ui/app-icon-192.png?v=0.46-r3',
@@ -262,7 +262,7 @@ assert.ok(html.includes('href="'+cacheUrl('styles.css')+'"'));
 test('r16 removes avoidable renderer hot-path work and restores the watermark',()=>{
   const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js');
   for(const file of ['surface','renderer','performance','app'])assert.ok(html.includes('src/'+file+'.js?v='),file);
-  assert.equal((html.match(/data-life-user-watermark/g)||[]).length,2);
+  assert.equal((html.match(/data-life-user-watermark/g)||[]).length,1);
   assert.ok(app.includes('releases/content/ui/life-user-watermark.webp'));
   assert.ok(app.includes("window.SolarAssets?.materials?.earth?.base"));
   assert.match(renderer,/this\.frameBodies=\[\];this\.surfaceBodies=\[\];this\.directBodies=\[\];this\.labelBodies=\[\]/);

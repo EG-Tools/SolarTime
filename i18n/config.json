@@ -108,6 +108,15 @@
     }
   },
   "legacyFileKeys": [
+    "helpIntroTitle",
+    "helpIntroPurpose",
+    "helpIntroExperience",
+    "helpIntroDesktop",
+    "helpFeatures",
+    "helpFeatureSolar",
+    "helpFeatureTime",
+    "helpFeatureMusic",
+    "helpFeatureTimer",
     "eclipseView",
     "eclipsePrevious",
     "eclipseNext",

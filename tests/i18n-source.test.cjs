@@ -32,6 +32,17 @@ test('English fallback is independent of previously visited languages, and does 
  assert.equal(fr.copy.helperChecksumLabel,'SHA-256');assert.equal(Object.getPrototypeOf(fr.copy).constructor.name,'Object');
  assert.match(read('src/app.js'),/LanguageData\.fallback\.copy\[key\]/);assert.doesNotMatch(read('src/app.js'),/COPY\.kor\?\.|Object\.assign\(bundle\.copy|STAR_DENSITY_COPY/);
 });
+test('direct file launches overlay the current localized help introduction on an older public bundle',()=>{
+ const {loader}=runtime({protocol:'file:'}),old={copy:{helpIntroPurpose:'Old public fallback'},bodies:{},phases:{}};
+ const bundle=loader.resolveBundle(old,'kor',{local:true}),current=data('src/locales/kor.json').copy;
+ for(const key of ['helpIntroTitle','helpIntroPurpose','helpIntroExperience','helpIntroDesktop','helpFeatures','helpFeatureSolar','helpFeatureTime','helpFeatureMusic','helpFeatureTimer'])assert.equal(bundle.copy[key],current[key],key);
+ assert.equal(current.helpIntroTitle,'우주 속 한순간');
+ assert.equal(current.helpIntroPurpose,'Solar Time은 현재 시각과 행성의 움직임을 담은 웹 기반 태양계 시계입니다.\n일과 공부중 잠시 쉬고 싶을때 감상하는 화면보호기 용도로 만들어졌습니다.');
+ assert.equal(current.helpIntroExperience,'잔잔한 배경음악과 함께 태양계를 감상하고,\n카메라를 이용해서 나만의 우주 풍경을 만들어 보세요.');
+ assert.equal(current.helpIntroDesktop,'이 프로그램은 데스크톱 PC 환경에 최적화되어 있습니다.');
+ for(const code of api.compile(root).codes){const copy=data('src/locales/'+code+'.json').copy;assert.doesNotMatch(copy.helpIntroTitle,/^Solar Time - /,code);for(const key of ['helpIntroPurpose','helpIntroExperience','helpFeatureTime','helpFeatureMusic','helpFeatureTimer'])assert.ok(copy[key].includes('\n'),`${code} ${key}`);}
+ assert.match(read('styles.css'),/\[data-i18n="helpIntroPurpose"\],[^}]+\.help-feature-list li\{white-space:pre-line\}/);
+});
 test('parallel requests and repeated region reuse load only the chosen shared language once',async()=>{
  const {loader,requests}=runtime();const [a,b]=await Promise.all([loader.load('en'),loader.load('en')]);assert.equal(a,b);assert.equal(await loader.load('en'),a);assert.equal(requests.length,1);assert.equal(loader.loaded('fr'),false);
  assert.equal(fs.existsSync(path.join(root,'src/timer-copy.js')),false);assert.doesNotMatch(read('index.html'),/src\/timer-copy\.js/);

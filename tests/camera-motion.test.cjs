@@ -21,6 +21,14 @@ test('country inspection ends at 250x and removes inherited zoom/dolly/pan',()=>
  r.smoothZoom(125,null,1400);r.advanceCamera(1600);assert.equal(r.camera.zoom,125);
  assert.equal(r.zoomLimits.maxZoom,2048);
 });
+test('wheel zoom and right-drag dolly can each retreat to a 0.1x overview',()=>{
+ const {r,R}=renderer();
+ assert.equal(r.zoomLimits.minZoom,.1);
+ r.setZoom(.001);assert.equal(r.camera.zoom,.1);assert.ok(R.validCamera(r.cameraSnapshot()));
+ r.setZoom(1);r.setDolly(.001);assert.equal(r.camera.dolly,.1);assert.ok(R.validCamera(r.cameraSnapshot()));
+ r.smoothZoom(.001,null,0);assert.equal(r.cameraTween.to.zoom,.1);r.advanceCamera(150);assert.equal(r.camera.zoom,.1);
+ r.smoothDolly(.001,null,200);assert.equal(r.cameraTween.to.dolly,.1);r.advanceCamera(350);assert.equal(r.camera.dolly,.1);
+});
 test('Move country inspection preserves wheel mode and matches the 250x Earth radius',()=>{
  const {r,R}=renderer(),earth=A.BODIES.find(b=>b.id==='earth');
  r.options.dollyZoom=true;Object.assign(r.camera,{zoom:1700,dolly:12});

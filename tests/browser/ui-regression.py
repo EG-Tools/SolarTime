@@ -132,6 +132,16 @@ def suite(browser,root,size,installed):
   # alignment navigation do not initiate their own camera move. Otherwise the
   # continuously rotating default camera can advance between two snapshots.
   page.evaluate('SolarTime.renderer.setAutoRotate(0, performance.now())')
+  page.locator('[data-body="earth"]').dblclick();page.wait_for_timeout(60)
+  page.keyboard.press('ArrowRight');page.wait_for_timeout(60)
+  check(page.evaluate("SolarTime.renderer.selected==='moon' && SolarTime.renderer.cameraTween?.to?.focus==='moon'"),tag+' right arrow advances Earth tracking to Moon')
+  page.keyboard.press('ArrowLeft');page.keyboard.press('ArrowLeft');page.wait_for_timeout(60)
+  check(page.evaluate("SolarTime.renderer.selected==='venus' && SolarTime.renderer.cameraTween?.to?.focus==='venus'"),tag+' left arrow follows footer order while tracking')
+  page.keyboard.press('0');page.wait_for_timeout(60)
+  page.locator('#settings-button').click();page.locator('#show-pluto').uncheck();page.locator('#settings-close').click()
+  page.locator('[data-body="sun"]').click();page.keyboard.press('ArrowLeft');page.wait_for_timeout(60)
+  check(page.evaluate("SolarTime.renderer.selected==='neptune'"),tag+' hidden Pluto is skipped when wrapping left from Sun')
+  page.locator('#settings-button').click();page.locator('#show-pluto').check();page.locator('#settings-close').click()
   page.locator('[data-body="moon"]').click();page.wait_for_timeout(100)
   check(page.locator('#eclipse-control').is_visible(),tag+' Moon eclipse controls')
   page.wait_for_function('!SolarTime.renderer.cameraTween',timeout=7000)

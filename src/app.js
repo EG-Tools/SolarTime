@@ -1,4 +1,4 @@
-/* Solar Time v0.66 — app implementation owner. */
+/* Solar Time v0.67 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -468,6 +468,16 @@
       }
       function navVisibility() {navButtons.get('pluto').hidden=!renderer.options.pluto;for(const satellite of A.SATELLITES)navButtons.get(satellite.id).hidden=!renderer.options.moon;}
       navVisibility();
+      function trackedBodyId(){return renderer.cameraTween?.to?.focus||renderer.camera.focus||null;}
+      function navigateBody(direction){
+        const available=bodies.filter(body=>!navButtons.get(body.id)?.hidden);if(!available.length)return;
+        const currentId=renderer.selected||trackedBodyId(),currentIndex=available.findIndex(body=>body.id===currentId);
+        const nextIndex=currentIndex<0?(direction>0?0:available.length-1):(currentIndex+direction+available.length)%available.length;
+        const next=available[nextIndex],keepTracking=!!trackedBodyId();
+        if(renderer.selected!==next.id)selectBody(next.id);
+        if(keepTracking)focusBody(next.id);
+        wakePointer();
+      }
       function syncBodySizeControl(body=bodies.find(value=>value.id===renderer.selected)) {
         if(!body)return;
         const locked=renderer.options.actualScale,value=Math.round(renderer.bodySizeScale(body)*100),limits=renderer.bodyScaleLimits(body),hasOrbitControl=['sun','earth','jupiter'].includes(body.id);
@@ -806,7 +816,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=6a86d66d9dae','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=92a614c44f49','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -965,16 +975,19 @@
           event.preventDefault();event.stopPropagation();
           if(key==='f')fullscreen();else if(key==='h')setZen(!zen);else reset();return;
         }
-        if(presetDialog.open||$('help-dialog').open||event.target.closest?.('button,a'))return;
+        if(UI.topDialog())return;
+        if(key==='arrowleft'||key==='arrowright'){
+          event.preventDefault();event.stopPropagation();navigateBody(key==='arrowright'?1:-1);return;
+        }
+        if(event.target.closest?.('button,a'))return;
         if(key===' '){event.preventDefault();pause();}
         else if(key==='r')now();
         else if(key==='+'||key==='='){event.preventDefault();zoom(1.15);}
         else if(key==='-'){event.preventDefault();zoom(1/1.15);}
-        else if(event.target===canvas&&['arrowleft','arrowright','arrowup','arrowdown'].includes(key)) {
-          event.preventDefault();let azimuth=renderer.camera.azimuth,elevation=renderer.camera.elevation;
-          if(key==='arrowleft')azimuth-=.08;if(key==='arrowright')azimuth+=.08;
+        else if(event.target===canvas&&(key==='arrowup'||key==='arrowdown')) {
+          event.preventDefault();let elevation=renderer.camera.elevation;
           if(key==='arrowup')elevation+=3*A.DEG;if(key==='arrowdown')elevation-=3*A.DEG;
-          renderer.setOrbitView(azimuth,elevation);cameraUi();persist();
+          renderer.setOrbitView(renderer.camera.azimuth,elevation);cameraUi();persist();
         }
       },{capture:true});
       // Fill every initially visible sphere with its small baseline map under
@@ -1071,7 +1084,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.66',revision:'r2',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.67',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

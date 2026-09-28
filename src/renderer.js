@@ -6,7 +6,10 @@
   function random(seed) { return function() { let t=seed+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
   const mix=(a,b,t)=>a+(b-a)*t;
   const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
-  const VIEW=Object.freeze({minZoom:.6,maxZoom:2048,detailZoom:64,lowerBy:.05,minPanY:-.8,maxPanY:.8,minPanX:-.8,maxPanX:.8,minElevation:-Math.PI,maxElevation:Math.PI,fillRadius:1.10,detailFillRadius:.34});
+  // Both lens zoom and physical camera travel share this overview floor. At
+  // 0.1× either the wheel or a right-button dolly can pull the full system far
+  // into the background, while the existing close-up ceiling stays unchanged.
+  const VIEW=Object.freeze({minZoom:.1,maxZoom:2048,detailZoom:64,lowerBy:.05,minPanY:-.8,maxPanY:.8,minPanX:-.8,maxPanX:.8,minElevation:-Math.PI,maxElevation:Math.PI,fillRadius:1.10,detailFillRadius:.34});
   const DOLLY=Object.freeze({baseDistance:5000,nearRatio:.002,maxPerspective:32});
   const SURFACE=Object.freeze({detailWidth:4096,maxRaster:1024,lowRaster:384});
   const TEXTURE_TIERS=Object.freeze([128,256,512,1024,2048,4096]);

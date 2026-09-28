@@ -1,5 +1,102 @@
 [
   {
+    "version": "0.67",
+    "date": "2026.09.29",
+    "localized": {
+      "kor": [
+        "도움말에 화면보호기 목적과 주요 기능을 간결하게 정리하고, 중복된 데스크톱 조작 설명을 정돈했습니다.",
+        "새로운 소개를 13개 인터페이스 언어로 번역했으며, 첫 실행과 초기화에서는 자동 언어가 브라우저 언어를 우선합니다.",
+        "휠 확대·축소와 마우스 오른쪽 이동의 최대 줌아웃 범위를 0.1배까지 넓혀 태양계 전체를 더 멀리서 볼 수 있습니다.",
+        "메인 화면 좌측 하단의 워터마크를 제거해 정보 텍스트를 왼쪽으로 정리하고, 워터마크는 도움말에만 유지했습니다.",
+        "좌우 방향키로 하단 목록의 천체를 순환하며, 추적 중에는 다음 천체로 부드럽게 추적을 이어갑니다."
+      ],
+      "en": [
+        "Reorganized Help with a concise screen-saver purpose, key features and non-duplicated desktop controls.",
+        "Localized the new introduction in all 13 interface languages; Auto Language prioritizes the browser language on first launch and reset.",
+        "Extended wheel zoom and right-drag camera travel to a 0.1× overview, so the whole solar system can be viewed from much farther away.",
+        "Removed the lower-left watermark from the main view, aligned the information text to the left, and kept the watermark only in Help.",
+        "Use the left and right arrow keys to cycle through the footer bodies; active tracking continues smoothly onto the next body."
+      ],
+      "chn": [
+        "重新整理帮助内容，简洁说明屏幕保护程序用途和主要功能，并删除重复的桌面操作说明。",
+        "新介绍已完整翻译为13种界面语言；首次启动或重置时，自动语言优先采用浏览器语言。",
+        "将滚轮缩放和右键拖动相机的最远视野扩展至0.1倍，可从更远处观看整个太阳系。",
+        "移除主画面左下角的水印，将信息文字向左对齐，并仅在帮助中保留水印。",
+        "可用左右方向键按底部列表顺序循环选择天体，追踪中切换时会平滑继续追踪下一个天体。"
+      ],
+      "zht": [
+        "重新整理說明內容，簡潔說明螢幕保護程式用途和主要功能，並移除重複的桌面操作說明。",
+        "新介紹已完整翻譯為13種介面語言；首次啟動或重設時，自動語言會優先採用瀏覽器語言。",
+        "將滾輪縮放和右鍵拖曳相機的最遠視野擴展至0.1倍，可從更遠處觀看整個太陽系。",
+        "移除主畫面左下角的浮水印，將資訊文字向左對齊，並僅在說明中保留浮水印。",
+        "可用左右方向鍵依底部清單順序循環選擇天體，追蹤中切換時會平順接續追蹤下一個天體。"
+      ],
+      "jpn": [
+        "ヘルプを整理し、スクリーンセーバーとしての目的と主な機能を簡潔に説明して、重複するデスクトップ操作を削除しました。",
+        "新しい紹介を13の表示言語に翻訳し、初回起動とリセット時は自動言語がブラウザー言語を優先します。",
+        "ホイールズームと右ドラッグのカメラ移動を0.1倍まで広げ、太陽系全体をさらに遠くから眺められるようにしました。",
+        "メイン画面左下のウォーターマークを削除して情報テキストを左へ整え、ウォーターマークはヘルプ内だけに残しました。",
+        "左右の矢印キーで下部リストの天体を順に巡回でき、追跡中は次の天体へ滑らかに追跡を引き継ぎます。"
+      ],
+      "hi": [
+        "सहायता में स्क्रीन सेवर का उद्देश्य और मुख्य सुविधाएँ संक्षेप में व्यवस्थित की गईं तथा दोहराए गए डेस्कटॉप निर्देश हटाए गए।",
+        "नया परिचय सभी 13 इंटरफ़ेस भाषाओं में अनूदित है; पहली बार खोलने और रीसेट पर स्वचालित भाषा ब्राउज़र की भाषा को प्राथमिकता देती है।",
+        "व्हील ज़ूम और दायाँ-ड्रैग कैमरा दूरी 0.1× तक बढ़ाई गई, जिससे पूरा सौरमंडल बहुत दूर से देखा जा सकता है।",
+        "मुख्य स्क्रीन के नीचे-बाएँ वॉटरमार्क को हटाकर जानकारी का पाठ बाईं ओर किया गया और वॉटरमार्क केवल सहायता में रखा गया।",
+        "बाएँ और दाएँ तीर कुंजियों से नीचे की सूची के खगोलीय पिंड क्रम से चुनें; सक्रिय ट्रैकिंग अगले पिंड पर सहज रूप से जारी रहती है।"
+      ],
+      "es": [
+        "Se reorganizó la Ayuda para explicar de forma concisa el uso como salvapantallas y las funciones principales, sin controles de escritorio duplicados.",
+        "La nueva introducción está traducida a los 13 idiomas de la interfaz; el idioma automático prioriza el del navegador al iniciar y restablecer.",
+        "El zoom de la rueda y el desplazamiento con arrastre derecho llegan ahora hasta 0,1× para ver todo el sistema solar desde mucho más lejos.",
+        "Se eliminó la marca de agua de la esquina inferior izquierda de la vista principal, se alineó la información a la izquierda y se mantuvo la marca solo en Ayuda.",
+        "Las flechas izquierda y derecha recorren los cuerpos de la lista inferior; si hay seguimiento activo, continúa suavemente con el siguiente cuerpo."
+      ],
+      "de": [
+        "Die Hilfe erklärt nun knapp den Zweck als Bildschirmschoner und die Hauptfunktionen; doppelte Desktop-Bedienhinweise wurden entfernt.",
+        "Die neue Einführung ist in alle 13 Oberflächensprachen übersetzt; beim ersten Start und Zurücksetzen hat die Browsersprache im Automatikmodus Vorrang.",
+        "Mausrad-Zoom und Kamerafahrt per Rechtsziehen reichen nun bis 0,1×, damit das gesamte Sonnensystem aus größerer Entfernung sichtbar ist.",
+        "Das Wasserzeichen unten links in der Hauptansicht wurde entfernt, der Infotext nach links gerückt und das Wasserzeichen nur in der Hilfe beibehalten.",
+        "Mit den Pfeiltasten links und rechts lassen sich die Himmelskörper der unteren Liste durchlaufen; eine aktive Verfolgung wechselt fließend zum nächsten Körper."
+      ],
+      "fr": [
+        "L’aide présente désormais clairement l’usage comme économiseur d’écran et les fonctions principales, sans commandes de bureau répétées.",
+        "La nouvelle introduction est traduite dans les 13 langues de l’interface ; au premier lancement et après réinitialisation, la langue du navigateur est prioritaire.",
+        "Le zoom à la molette et le déplacement par glisser droit descendent désormais à 0,1× pour observer tout le système solaire de beaucoup plus loin.",
+        "Le filigrane en bas à gauche de la vue principale a été supprimé, le texte d’information déplacé vers la gauche et le filigrane conservé uniquement dans l’aide.",
+        "Les flèches gauche et droite parcourent les astres de la liste inférieure ; si le suivi est actif, il se poursuit en douceur sur l’astre suivant."
+      ],
+      "pt": [
+        "A Ajuda foi reorganizada para explicar de forma concisa a função de proteção de ecrã e as principais funcionalidades, sem controlos de ambiente de trabalho repetidos.",
+        "A nova introdução está traduzida nos 13 idiomas da interface; no primeiro arranque e após reposição, o idioma automático dá prioridade ao navegador.",
+        "O zoom da roda e o movimento da câmara com arrasto direito chegam agora a 0,1×, permitindo ver todo o sistema solar de muito mais longe.",
+        "A marca de água no canto inferior esquerdo da vista principal foi removida, o texto informativo alinhado à esquerda e a marca mantida apenas na Ajuda.",
+        "As setas esquerda e direita percorrem os astros da lista inferior; com seguimento ativo, a câmara continua suavemente para o astro seguinte."
+      ],
+      "it": [
+        "La Guida è stata riorganizzata per spiegare in modo conciso l’uso come salvaschermo e le funzioni principali, eliminando i comandi desktop duplicati.",
+        "La nuova introduzione è tradotta nelle 13 lingue dell’interfaccia; al primo avvio e al ripristino, la lingua automatica dà priorità al browser.",
+        "Lo zoom con la rotella e lo spostamento con trascinamento destro arrivano ora a 0,1×, per osservare l’intero sistema solare da molto più lontano.",
+        "La filigrana in basso a sinistra nella vista principale è stata rimossa, il testo informativo allineato a sinistra e la filigrana mantenuta solo nella Guida.",
+        "Le frecce sinistra e destra scorrono i corpi dell’elenco inferiore; con il tracciamento attivo, il passaggio al corpo successivo resta fluido."
+      ],
+      "id": [
+        "Bantuan ditata ulang untuk menjelaskan tujuan penghemat layar dan fitur utama secara ringkas, tanpa petunjuk kontrol desktop yang berulang.",
+        "Pengantar baru diterjemahkan ke 13 bahasa antarmuka; saat pertama dibuka dan setelah reset, Bahasa Otomatis memprioritaskan bahasa browser.",
+        "Zoom roda dan gerak kamera dengan seret kanan kini mencapai 0,1× sehingga seluruh tata surya dapat dilihat dari jarak yang jauh lebih besar.",
+        "Tanda air di kiri bawah tampilan utama dihapus, teks informasi dirapikan ke kiri, dan tanda air dipertahankan hanya di Bantuan.",
+        "Tombol panah kiri dan kanan menelusuri benda langit pada daftar bawah; saat pelacakan aktif, kamera beralih mulus ke benda berikutnya."
+      ],
+      "nl": [
+        "Help legt nu beknopt het doel als schermbeveiliging en de belangrijkste functies uit, zonder dubbele desktopbediening.",
+        "De nieuwe inleiding is vertaald in alle 13 interfacetalen; bij de eerste start en na herstel krijgt de browsertaal voorrang in de automatische stand.",
+        "Muiswielzoom en camerabeweging met rechts slepen gaan nu tot 0,1×, zodat het hele zonnestelsel van veel verder weg zichtbaar is.",
+        "Het watermerk linksonder in de hoofdweergave is verwijderd, de informatietekst naar links uitgelijnd en het watermerk alleen in Help behouden.",
+        "Met de linker- en rechterpijltoets doorloop je de hemellichamen in de onderste lijst; actieve tracking gaat vloeiend door naar het volgende lichaam."
+      ]
+    }
+  },
+  {
     "version": "0.66",
     "date": "2026.09.28",
     "localized": {
