@@ -11,11 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: f7d5ab3c22b21a23977b1c540126872f4c192daa
           persist-credentials: false
       - name: Archive reviewed public source only
         run: |
           mkdir -p .source-review
-          git archive --format=zip f7d5ab3c22b21a23977b1c540126872f4c192daa -o .source-review/source.zip
+          git archive --format=zip HEAD -o .source-review/source.zip
           git rev-parse HEAD > .source-review/snapshot-commit.txt
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
