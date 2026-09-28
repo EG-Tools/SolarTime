@@ -191,7 +191,10 @@
     "reloadPage": "Recargar",
     "randomRotate": "Rotación aleatoria",
     "starDensityLabel": "Densidad de estrellas",
-    "starDensityAria": "Densidad de estrellas de partículas. Cero oculta las estrellas de partículas."
+    "starDensityAria": "Densidad de estrellas de partículas. Cero oculta las estrellas de partículas.",
+    "cookieSettings": "Ajustes de cookies",
+    "cookieDismiss": "Cerrar sin cambiar tu elección",
+    "cookieChoiceNote": "La aceptación y el rechazo se recuerdan durante 6 meses. X no cambia tu elección; si no has elegido, volveremos a preguntar en tu próxima visita."
   },
   "timer": {
     "timer": "Temporizador",

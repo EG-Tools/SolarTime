@@ -9,5 +9,8 @@
   "timer.timerTarget": "Show the target clock time and the remaining duration. Preserve both {time} and {remaining}.",
   "timer.helperDownloadPrivacy": "Describe only the existing one-time receipt data. Do not claim that native helper installation is required for ordinary alarms.",
   "timer.shutdownDataWarning": "A safety warning to save work because Windows timed shutdown can close applications forcibly.",
-  "ui.auNote": "Optional astronomical-unit footnote. An intentionally empty value is valid for the languages already using it."
+  "ui.auNote": "Optional astronomical-unit footnote. An intentionally empty value is valid for the languages already using it.",
+  "ui.cookieSettings": "Opens the existing cookie choice panel without changing or resetting the existing choice.",
+  "ui.cookieDismiss": "X closes without saving a new choice or changing an existing one. New visitors remain denied; this is never acceptance.",
+  "ui.cookieChoiceNote": "Acceptance and explicit rejection use the same six-calendar-month expiry. X with no saved choice allows the notice to return on next load; X with a saved choice preserves it."
 }

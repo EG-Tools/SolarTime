@@ -191,7 +191,10 @@
     "reloadPage": "Recharger",
     "randomRotate": "Rotation aléatoire",
     "starDensityLabel": "Densité d’étoiles",
-    "starDensityAria": "Densité des étoiles particules. Zéro masque les étoiles particules."
+    "starDensityAria": "Densité des étoiles particules. Zéro masque les étoiles particules.",
+    "cookieSettings": "Paramètres des cookies",
+    "cookieDismiss": "Fermer sans modifier votre choix",
+    "cookieChoiceNote": "L’acceptation et le refus sont conservés 6 mois. X ne modifie pas votre choix ; sans choix enregistré, la question revient à la prochaine visite."
   },
   "timer": {
     "timer": "Minuteur",

@@ -31,7 +31,7 @@ test('saved choices are restored before both configurations and never reset by A
   const h=harness({saved});h.run();const c=h.commands();
   assert.deepEqual(c[1].slice(0,2),['consent','update']);assertState(c[1][2],saved);
   assert.equal(c[2][0],'js');assert.equal(c[3][1],GA);assert.equal(c[4][1],ADS);
-  assert.equal(h.values.get('solarTimeCookieConsentV1'),saved);
+  assert.equal(JSON.parse(h.values.get('solarTimeCookieConsentV1')).value,saved);
  }
 });
 test('grant, reject and reset propagate to all four consent types without reconfiguring tags',()=>{

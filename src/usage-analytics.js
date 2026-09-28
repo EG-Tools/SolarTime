@@ -20,9 +20,10 @@
   root.addEventListener?.('solar:consentchange',event=>{
     const next=event.detail?.value==='granted';if(next!==granted){granted=next;epoch++;}
   });
+  const hasConsent=()=>{try{return consent?.value()==='granted'&&granted;}catch(_){return false;}};
   function begin(name,values={}){
     try{
-      if(!owner?.production||!granted||!Object.prototype.hasOwnProperty.call(schema,name))return noop;
+      if(!owner?.production||!hasConsent()||!Object.prototype.hasOwnProperty.call(schema,name))return noop;
       const payload={send_to:owner.measurementId};
       for(const [key,allowed] of Object.entries(schema[name])){
         const value=values?.[key];if(!allowed.includes(value))return noop;payload[key]=value;
@@ -32,7 +33,7 @@
       // A revoked/regranted choice must not replay an earlier pending action.
       return ()=>{
         if(finished)return false;finished=true;
-        if(!granted||epoch!==consentEpoch)return false;
+        if(!hasConsent()||epoch!==consentEpoch)return false;
         try{if(typeof root.gtag!=='function')return false;root.gtag('event',name,payload);return true;}catch(_){return false;}
       };
     }catch(_){return noop;}
