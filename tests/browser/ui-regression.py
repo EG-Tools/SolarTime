@@ -1,4 +1,5 @@
 """Offline DOM/UI regression: synthetic images, local translations, no live service or physical iPhone verification."""
+from google_tag import verify_google_tag
 from pathlib import Path
 from urllib.parse import urlparse,unquote
 import json,re,os,struct,zlib,sys
@@ -323,6 +324,7 @@ def main():
   if os.environ.get('SOLAR_CHROMIUM_EXECUTABLE'):options['executable_path']=os.environ['SOLAR_CHROMIUM_EXECUTABLE']
   browser=p.chromium.launch(**options)
   try:
+   verify_google_tag(browser,root,check,diagnostics)
    verify_closeup_textures(browser,root,check,diagnostics)
    # Browser contexts isolate storage, clocks and WebGL state. Reusing one
    # Chromium process avoids paying its launch cost for every viewport.

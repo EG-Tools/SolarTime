@@ -22,7 +22,7 @@ test('all 13 web and file-language bundles preserve the previous effective inter
   for(const code of compiled.codes){const bundle=await loader.load(code);assert.equal(api.fingerprint(bundle),gold[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
  }
 });
-test('all previously visible historical release translations are unchanged',()=>{
+test('all retained historical release translations are unchanged',()=>{
  const notes=require('../src/release-notes.js');for(const [version,languages] of Object.entries(gold.releases))for(const [code,digest] of Object.entries(languages)){const release=notes.RELEASES.find(r=>r.version===version);assert.ok(release,version);assert.equal(api.fingerprint(notes.itemsFor(release,code)),digest,version+' '+code);}
 });
 test('English fallback is independent of previously visited languages, and does not mutate network data',async()=>{
@@ -57,7 +57,7 @@ test('directly editing generated output fails checks until rebuilt from the sour
  const dir=sandbox();try{fs.appendFileSync(path.join(dir,'src/locales/fr.json'),' ');assert.throws(()=>api.sync(dir),/Generated translation files differ/);assert.deepEqual(api.sync(dir,{write:true}).changed,['src/locales/fr.json']);assert.deepEqual(api.sync(dir).changed,[]);}finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 test('known inherited translations remain reported, not counted as complete, and source changes invalidate allowances',()=>{
- const compiled=api.compile(root);assert.equal(compiled.report.fullyTranslated,false);assert.equal(compiled.report.fallbacks.filter(x=>x.key.startsWith('timer.')).length,133);assert.equal(compiled.report.fallbacks.filter(x=>x.key.startsWith('release.')).length,116);assert.equal(compiled.report.placeholderVariantCount,4);
+ const compiled=api.compile(root);assert.equal(compiled.report.fullyTranslated,false);assert.equal(compiled.report.fallbacks.filter(x=>x.key.startsWith('timer.')).length,133);assert.equal(compiled.report.fallbacks.filter(x=>x.key.startsWith('release.')).length,28);assert.equal(compiled.report.placeholderVariantCount,4);
  assert.throws(()=>api.sync(root,{strict:true}),/not completed translations/);
  const dir=sandbox();try{const en=data('i18n/locales/en.json',dir);en.timer.shutdownUnknown+=' Updated meaning.';write('i18n/locales/en.json',en,dir);assert.throws(()=>api.compile(dir),/missing translation|changed fallback/);}finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
