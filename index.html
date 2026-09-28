@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
   <meta name="solar-time-version" content="0.66">
-  <meta name="solar-time-revision" content="r1">
+  <meta name="solar-time-revision" content="r2">
   <meta name="google-adsense-account" content="ca-pub-5773171100052324">
   <meta name="solar-time-ad-slot" content="">
   <meta id="meta-description" name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주." data-i18n-content="metaDescription">
@@ -23,8 +23,8 @@
   <script src="src/usage-analytics.js?v=889c5a4755d5"></script>
   <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
   <script src="src/page-runtime.js?v=1d8a9a92e549"></script>
-  <link rel="stylesheet" href="styles.css?v=147bc3ef36f0">
-  <link rel="stylesheet" href="src/runtime-optimizations.css?v=2e2600ed28fb">
+  <link rel="stylesheet" href="styles.css?v=d9544263728b">
+  <link rel="stylesheet" href="src/runtime-optimizations.css?v=a0341de0e0e2">
 </head>
 <body>
   <div id="solar-viewport">
@@ -392,7 +392,6 @@
         </div>
         <ul id="release-notes-list" class="release-notes-list" aria-live="polite"></ul>
       </section>
-      <button id="help-cookie-settings" class="text-button settings-consent" type="button" data-i18n="cookieSettings">쿠키 설정</button>
       <h3 data-i18n="basicControls">기본 조작</h3>
       <p data-i18n="basicHelp">좌클릭 드래그로 시점을 회전하고, 가운데 버튼 드래그로 화면을 상하좌우 ±40% 이동합니다. 휠로 확대·축소하고 천체를 더블클릭하거나 «가까이 보기»를 누르면 해당 천체를 추적합니다. 0은 기본 시점, 1·2·3은 저장 시점, F는 전체 화면, H는 감상 모드입니다.</p>
       <h3 data-i18n="timeAndCalculation">시간과 계산</h3>
@@ -445,9 +444,8 @@
     </div>
   </aside>
   <section id="cookie-consent" class="cookie-consent card-surface" role="dialog" aria-labelledby="cookie-consent-title" aria-describedby="cookie-consent-message cookie-choice-note" hidden>
-    <button id="cookie-dismiss" type="button" class="close-button cookie-consent-close" aria-label="선택을 변경하지 않고 닫기" title="선택을 변경하지 않고 닫기" data-i18n-aria="cookieDismiss" data-i18n-title="cookieDismiss">×</button>
     <div class="cookie-consent-copy"><p><strong id="cookie-consent-title" data-i18n="cookieTitle">쿠키 사용</strong><span id="cookie-consent-message" data-i18n="cookieMessage">방문 분석과 광고 측정을 위해 쿠키 사용 여부를 선택해 주세요.</span></p><p id="cookie-choice-note" class="cookie-choice-note" data-i18n="cookieChoiceNote">허용·거부는 6개월간 기억합니다. X는 선택을 바꾸지 않으며, 미선택 상태에서는 다음 접속 때 다시 묻습니다.</p></div>
-    <div class="cookie-consent-actions"><a href="privacy.html" target="_blank" rel="noopener" data-i18n="cookiePrivacy">개인정보</a><button id="cookie-reject" type="button" data-i18n="cookieReject">거부</button><button id="cookie-accept" class="primary" type="button" data-i18n="cookieAccept">허용</button></div>
+    <div class="cookie-consent-actions"><a href="privacy.html" target="_blank" rel="noopener" data-i18n="cookiePrivacy">개인정보</a><button id="cookie-reject" type="button" data-i18n="cookieReject">거부</button><button id="cookie-accept" class="primary" type="button" data-i18n="cookieAccept">허용</button><button id="cookie-dismiss" type="button" class="close-button cookie-consent-close" aria-label="선택을 변경하지 않고 닫기" title="선택을 변경하지 않고 닫기" data-i18n-aria="cookieDismiss" data-i18n-title="cookieDismiss">×</button></div>
   </section>
   <script id="solar-assets" src="src/assets.js?v=81c670bb7357"></script>
   <script src="src/sky-asset.js?v=1b5d12dccbad"></script>
@@ -471,7 +469,7 @@
   <script src="src/music-player.js?v=0bc5bc270288"></script>
   <script src="src/adsense.js?v=4f3eb62dffcc"></script>
   <script src="src/cookie-consent.js?v=1494a5b88bc9"></script>
-  <script src="src/app.js?v=5a7a6e2170f3"></script>
+  <script src="src/app.js?v=753dfc2198da"></script>
   <!-- Cloudflare Web Analytics -->
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}'></script>
   <!-- End Cloudflare Web Analytics -->

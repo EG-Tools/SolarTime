@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 
 def verify_consent_controls(browser, root, check, diagnostics, load):
-    for size in [(1280, 800), (390, 844), (844, 390)]:
+    for size in [(1280, 800), (390, 844), (320, 568), (844, 390)]:
         ctx, page, _, errors = load(browser, root, size)
         diagnostics.attach(ctx, page, 'consent-controls-' + str(size))
         try:
@@ -19,8 +19,11 @@ def verify_consent_controls(browser, root, check, diagnostics, load):
             page.locator('#cookie-accept').click()
             saved = page.evaluate('localStorage.getItem(SolarConsent.storageKey)')
             page.locator('#help-button').click()
-            page.locator('#help-cookie-settings').click()
-            check(page.locator('#cookie-consent').is_visible() and page.locator('#help-button').get_attribute('aria-expanded') == 'false', str(size) + ' help opens usable cookie controls')
+            check(page.locator('#help-cookie-settings').count() == 0, str(size) + ' Help has no duplicate cookie settings')
+            page.locator('#help-dialog .close-button').first.click()
+            page.locator('#settings-button').click()
+            page.locator('#review-cookie-consent').click()
+            check(page.locator('#cookie-consent').is_visible(), str(size) + ' Display settings opens usable cookie controls')
             check(page.evaluate('SolarConsent.value()') == 'granted', str(size) + ' opening settings does not revoke choice')
             page.locator('#cookie-dismiss').click()
             check(page.evaluate('localStorage.getItem(SolarConsent.storageKey)') == saved, str(size) + ' settings X does not change or renew acceptance')
@@ -33,19 +36,22 @@ def verify_consent_controls(browser, root, check, diagnostics, load):
             page.locator('#settings-button').click()
             page.locator('#review-cookie-consent').click()
             check(page.locator('#cookie-consent').is_visible(), str(size) + ' existing Display settings entry stays usable')
-            # Every existing shared language renders the new labels, without clipping.
+            # Every existing shared language renders the labels, without clipping.
             for language in ['kor', 'en', 'chn', 'zht', 'jpn', 'hi', 'es', 'de', 'fr', 'pt', 'it', 'id', 'nl']:
                 page.evaluate('(language)=>SolarTime.setLanguage(language)', 'tw' if language == 'zht' else language)
                 page.wait_for_function('(code)=>SolarTime.getState().copyLanguage===code', arg=language)
                 check(page.locator('#cookie-dismiss').get_attribute('aria-label') == page.evaluate("SolarTime.translate('cookieDismiss')"), str(size) + ' localized X ' + language)
                 geometry = page.locator('#cookie-consent').evaluate('''e=>{
                   const b=e.getBoundingClientRect(),x=e.querySelector('#cookie-dismiss').getBoundingClientRect();
-                  const peers=[...e.querySelectorAll('.cookie-consent-copy,.cookie-consent-actions')].map(n=>n.getBoundingClientRect());
+                  const a=e.querySelector('#cookie-accept').getBoundingClientRect();
+                  const peers=[...e.querySelectorAll('.cookie-consent-copy,.cookie-consent-actions a,.cookie-consent-actions button:not(#cookie-dismiss)')].map(n=>n.getBoundingClientRect());
                   return b.left>=0&&b.right<=innerWidth+1&&b.top>=0&&b.bottom<=innerHeight+1&&e.scrollWidth<=e.clientWidth+1&&
                     x.width>=32&&x.height>=32&&x.left>=b.left&&x.right<=b.right&&x.bottom<=b.bottom&&
+                    Math.abs(x.left-a.right-7)<.1&&Math.abs((x.top+x.height/2)-(a.top+a.height/2))<.1&&
+                    e.querySelector('#cookie-accept').nextElementSibling===e.querySelector('#cookie-dismiss')&&
                     peers.every(p=>x.left>=p.right||x.right<=p.left||x.top>=p.bottom||x.bottom<=p.top);
                 }''')
-                check(geometry, str(size) + ' banner/X fit without overlap ' + language)
+                check(geometry, str(size) + ' banner fits and X stays 7px from Allow without overlap ' + language)
             if size == (390, 844):
                 page.evaluate("SolarTime.setLanguage('kor')")
                 page.screenshot(path=str(root / '.cloudflare/consent-mobile.png'))
@@ -102,7 +108,7 @@ def verify_consent_controls(browser, root, check, diagnostics, load):
         page.evaluate("window.__finish=SolarUsageAnalytics.begin('solar_music_play');window.__consentNow=JSON.parse(localStorage.getItem(SolarConsent.storageKey)).expiresAt;window.dispatchEvent(new Event('pageshow'));")
         check(page.evaluate('SolarConsent.value()') == '' and page.locator('#cookie-consent').is_visible(), 'expiry revokes and asks again on return')
         check(page.evaluate('__finish()') is False, 'expired async action never reports as consented')
-        check(page.evaluate('dataLayer.filter(c=>c[0]==="event").length') == 0, 'no test analytics events sent after denial or expiry')
+        check(page.evaluate('dataLayer.filter(c=>c[0]===\"event\").length') == 0, 'no test analytics events sent after denial or expiry')
         page.evaluate("localStorage.setItem(SolarConsent.storageKey,'denied')")
         page.reload(wait_until='load')
         legacy = page.evaluate('localStorage.getItem(SolarConsent.storageKey)')
