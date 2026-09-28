@@ -1,3 +1,10 @@
+# v0.64 r1 — Google Ads base tag and shorter release history
+
+- Add Google Ads destination `AW-18454135815` to the existing shared Google tag without a duplicate loader, preserving consent defaults, choices and the production-domain restriction.
+- Do not invent conversion actions, labels, values or enhanced-conversion user data. Update the privacy notice to describe the base Ads tag and denied-consent signals.
+- Remove the oldest 22 of 44 release entries (v0.14 through v0.39) from the canonical source and every language variant, generated payload, obsolete translation allowances and history fixtures. Keep the 22 recent entries (v0.40 through v0.63) unchanged and add this release.
+- Verify retained translations, oldest/newest navigation, one-time tag initialization and consent ordering. Existing 4K textures, audio, regions, native helper and deferred work remain unchanged.
+
 # v0.63 r1 — progressive close-up textures
 
 - Default to a 1024 preview before original 4096 detail; only ready resident textures bypass this sequence.
