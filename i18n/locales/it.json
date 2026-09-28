@@ -191,7 +191,10 @@
     "reloadPage": "Ricarica",
     "randomRotate": "Rotazione casuale",
     "starDensityLabel": "Densità stellare",
-    "starDensityAria": "Densità delle stelle particellari. Zero nasconde le stelle particellari."
+    "starDensityAria": "Densità delle stelle particellari. Zero nasconde le stelle particellari.",
+    "cookieSettings": "Impostazioni cookie",
+    "cookieDismiss": "Chiudi senza modificare la scelta",
+    "cookieChoiceNote": "L’accettazione e il rifiuto vengono ricordati per 6 mesi. X non modifica la scelta; senza una scelta, la richiesta riappare alla prossima visita."
   },
   "timer": {
     "timerClose": "Chiudi timer",

@@ -1,3 +1,10 @@
+# v0.66 r1 — expiring cookie choices and neutral dismissal
+
+- Remember explicit acceptance and rejection for six calendar months without sliding renewal; migrate existing undated choices once and fail closed on invalid/expired records.
+- Add a neutral X/Escape dismissal that saves nothing, with Cookie settings in Help and Display settings. Reopening and dismissing do not change an existing choice.
+- Recheck expiry on return and before feature events, synchronize consent-only changes, and keep denied defaults plus the existing Google/Clarity consent signals.
+- Translate new controls in all 13 shared languages. Preserve previous release history, 4K textures, audio, timers, native helper and deferred work.
+
 # v0.65 r1 — visits and consented feature-use measurement
 
 - Keep the single existing GA4 page-view setup; do not duplicate page views or convert all visits into leads.

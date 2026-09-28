@@ -191,7 +191,10 @@
     "reloadPage": "Opnieuw laden",
     "randomRotate": "Willekeurige rotatie",
     "starDensityLabel": "Sterdichtheid",
-    "starDensityAria": "Dichtheid van de deeltjessterren. Bij nul zijn de deeltjessterren verborgen."
+    "starDensityAria": "Dichtheid van de deeltjessterren. Bij nul zijn de deeltjessterren verborgen.",
+    "cookieSettings": "Cookie-instellingen",
+    "cookieDismiss": "Sluiten zonder uw keuze te wijzigen",
+    "cookieChoiceNote": "Toestemming en weigering worden 6 maanden bewaard. X wijzigt uw keuze niet; zonder keuze vragen we het bij uw volgende bezoek opnieuw."
   },
   "timer": {
     "timerClose": "Timer sluiten",

@@ -191,7 +191,10 @@
     "reloadPage": "Reload",
     "randomRotate": "Random rotation",
     "starDensityLabel": "Star density",
-    "starDensityAria": "Particle star density. Zero hides particle stars."
+    "starDensityAria": "Particle star density. Zero hides particle stars.",
+    "cookieSettings": "Cookie settings",
+    "cookieDismiss": "Close without changing your choice",
+    "cookieChoiceNote": "Acceptance and rejection are remembered for 6 months. X leaves your choice unchanged; with no choice, we ask again on your next visit."
   },
   "timer": {
     "timer": "Timer",

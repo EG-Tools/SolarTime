@@ -1,5 +1,76 @@
 [
   {
+    "version": "0.66",
+    "date": "2026.09.28",
+    "localized": {
+      "kor": [
+        "쿠키 허용·거부를 6개월간 기억하고, 만료 후 다시 선택하도록 합니다.",
+        "선택을 저장하지 않고 닫는 X 버튼과 도움말의 쿠키 설정을 추가했습니다.",
+        "설정을 다시 열거나 X로 닫아도 기존 선택과 만료일은 바뀌지 않으며, 음악·알람·화질은 유지합니다."
+      ],
+      "en": [
+        "Remember cookie acceptance and rejection for six months, then ask for a new choice.",
+        "Add an X button that closes without saving a choice and Cookie settings in Help.",
+        "Reopening settings or closing with X preserves the existing choice and expiry; music, alarms and image quality remain unchanged."
+      ],
+      "chn": [
+        "Cookie 的同意和拒绝均保留6个月，到期后再次询问。",
+        "新增不保存选择的 X 关闭按钮，以及帮助中的 Cookie 设置入口。",
+        "重新打开设置或点击 X 不会更改原有选择及到期时间，音乐、闹钟和画质保持不变。"
+      ],
+      "zht": [
+        "Cookie 的同意和拒絕均保留6個月，到期後再次詢問。",
+        "新增不儲存選擇的 X 關閉按鈕，以及說明中的 Cookie 設定入口。",
+        "重新開啟設定或點擊 X 不會變更原有選擇及到期時間，音樂、鬧鐘和畫質保持不變。"
+      ],
+      "jpn": [
+        "Cookie の許可・拒否を6か月間保存し、期限が切れたら再度確認します。",
+        "選択を保存せずに閉じる X ボタンと、ヘルプの Cookie 設定を追加しました。",
+        "設定を開き直したり X で閉じたりしても、選択と期限は変わりません。音楽・アラーム・画質は維持されます。"
+      ],
+      "hi": [
+        "कुकी की स्वीकृति और अस्वीकृति छह महीने तक याद रखी जाती हैं, फिर नया विकल्प पूछा जाता है।",
+        "विकल्प सहेजे बिना बंद करने के लिए X बटन और सहायता में कुकी सेटिंग जोड़ी गई है।",
+        "सेटिंग दोबारा खोलने या X से बंद करने पर मौजूदा विकल्प और उसकी समय-सीमा नहीं बदलते; संगीत, अलार्म और छवि गुणवत्ता यथावत हैं।"
+      ],
+      "es": [
+        "Se recuerdan la aceptación y el rechazo de cookies durante seis meses y se vuelve a preguntar al caducar.",
+        "Se añade un botón X para cerrar sin guardar una elección y los ajustes de cookies en Ayuda.",
+        "Abrir los ajustes o cerrar con X conserva la elección y su caducidad; la música, las alarmas y la calidad de imagen no cambian."
+      ],
+      "de": [
+        "Zustimmung und Ablehnung von Cookies werden sechs Monate gespeichert; danach wird erneut gefragt.",
+        "Eine X-Schaltfläche zum Schließen ohne Speichern einer Auswahl und Cookie-Einstellungen in der Hilfe wurden ergänzt.",
+        "Das erneute Öffnen oder Schließen mit X ändert weder Auswahl noch Ablaufdatum; Musik, Alarme und Bildqualität bleiben unverändert."
+      ],
+      "fr": [
+        "L’acceptation et le refus des cookies sont conservés six mois, puis un nouveau choix est demandé.",
+        "Ajout d’un bouton X pour fermer sans enregistrer de choix et des paramètres des cookies dans l’aide.",
+        "Rouvrir les paramètres ou fermer avec X conserve le choix et son expiration ; musique, alarmes et qualité d’image restent inchangées."
+      ],
+      "pt": [
+        "A aceitação e a recusa de cookies são guardadas durante seis meses; depois é pedida uma nova escolha.",
+        "Adicionado um botão X para fechar sem guardar uma escolha e definições de cookies na Ajuda.",
+        "Reabrir as definições ou fechar com X mantém a escolha e a validade; música, alarmes e qualidade de imagem não mudam."
+      ],
+      "it": [
+        "L’accettazione e il rifiuto dei cookie vengono ricordati per sei mesi, poi viene richiesta una nuova scelta.",
+        "Aggiunti un pulsante X per chiudere senza salvare una scelta e le impostazioni cookie nella Guida.",
+        "Riaprire le impostazioni o chiudere con X conserva la scelta e la scadenza; musica, sveglie e qualità delle immagini non cambiano."
+      ],
+      "id": [
+        "Persetujuan dan penolakan cookie disimpan selama enam bulan, lalu pilihan diminta kembali.",
+        "Menambahkan tombol X untuk menutup tanpa menyimpan pilihan dan pengaturan cookie di Bantuan.",
+        "Membuka kembali pengaturan atau menutup dengan X tidak mengubah pilihan dan masa berlakunya; musik, alarm, dan kualitas gambar tetap sama."
+      ],
+      "nl": [
+        "Toestemming en weigering van cookies worden zes maanden bewaard; daarna wordt opnieuw om een keuze gevraagd.",
+        "Een X-knop om te sluiten zonder een keuze op te slaan en cookie-instellingen in Help zijn toegevoegd.",
+        "Instellingen heropenen of met X sluiten behoudt de keuze en vervaldatum; muziek, alarmen en beeldkwaliteit blijven ongewijzigd."
+      ]
+    }
+  },
+  {
     "version": "0.65",
     "date": "2026.09.28",
     "localized": {

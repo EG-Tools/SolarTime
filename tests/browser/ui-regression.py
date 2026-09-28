@@ -1,5 +1,6 @@
 """Offline DOM/UI regression: synthetic images, local translations, no live service or physical iPhone verification."""
 from google_tag import verify_google_tag
+from consent_controls import verify_consent_controls
 from usage_analytics import verify_usage_analytics
 from pathlib import Path
 from urllib.parse import urlparse,unquote
@@ -325,6 +326,7 @@ def main():
   if os.environ.get('SOLAR_CHROMIUM_EXECUTABLE'):options['executable_path']=os.environ['SOLAR_CHROMIUM_EXECUTABLE']
   browser=p.chromium.launch(**options)
   try:
+   verify_consent_controls(browser,root,check,diagnostics,load)
    verify_google_tag(browser,root,check,diagnostics)
    verify_usage_analytics(browser,root,check,diagnostics,load)
    verify_closeup_textures(browser,root,check,diagnostics)
