@@ -1,26 +1,69 @@
-name: Ads and history source review
+name: Apply reviewed Ads and history maintenance
 on:
   push:
     branches: [maintenance/google-ads-history-v0.64]
 permissions:
   contents: read
 jobs:
-  snapshot:
+  apply:
+    if: github.repository == 'EG-Tools/SolarTime'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          ref: '20204d2d1bbcbe96af85c4a276b6d270637d5a4c'
-      - name: Archive approved source baseline only
+          node-version: '22'
+      - name: Apply reviewed hash-locked ordinary-source delta
         run: |
-          mkdir -p .review
-          git archive --format=zip -o .review/source.zip HEAD
-          git rev-parse HEAD > .review/commit.txt
-          git rev-parse HEAD^{tree} > .review/tree.txt
+          node - <<'NODE'
+          const fs=require('fs'),z=require('zlib'),crypto=require('crypto'),path=require('path');
+          const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
+          const raw=z.brotliDecompressSync(fs.readFileSync('.maintenance/ads-history-v064.br'));
+          if(hash(raw)!=='dff7071829f3f298a04b91153289b656a5d7459e5db0a19c6574fc427726e099')throw Error('Reviewed delta mismatch');
+          const allowed=new Set(['CHANGELOG.md','about.html','docs/google-ads-history-v064.md','i18n/README.md','i18n/legacy-allowlist.json','i18n/releases.json','index.html','package-lock.json','package.json','privacy.html','src/app.js','src/google-analytics.js','src/release-notes.js','terms.html','tests/browser/google_tag.py','tests/browser/ui-regression.py','tests/cleanup-contracts.test.cjs','tests/fixtures/i18n-v061.json','tests/fixtures/r6-contracts.json','tests/fixtures/release-retention-v064.json','tests/google-tag.test.cjs','tests/i18n-source.test.cjs','tests/release-retention.test.cjs','version.json']);
+          const rows=JSON.parse(raw);if(rows.length!==allowed.size)throw Error('File count differs');
+          for(const row of rows){
+            if(!allowed.delete(row.path))throw Error('Unapproved or duplicate path');
+            const exists=fs.existsSync(row.path);if(exists!==(row.before!==null))throw Error('Source existence changed: '+row.path);
+            let bytes=exists?fs.readFileSync(row.path):Buffer.alloc(0);
+            if(exists&&hash(bytes)!==row.before)throw Error('Baseline mismatch: '+row.path);
+            if(row.generated){if(row.path!=='src/release-notes.js')throw Error('Unapproved generated path');continue;}
+            let last=bytes.length+1;
+            for(const [at,remove,text] of [...row.edits].reverse()){
+              if(!Number.isInteger(at)||!Number.isInteger(remove)||at<0||remove<0||at+remove>bytes.length||at>=last||typeof text!=='string')throw Error('Invalid edit');
+              bytes=Buffer.concat([bytes.subarray(0,at),Buffer.from(text,'utf8'),bytes.subarray(at+remove)]);last=at;
+            }
+            if(hash(bytes)!==row.after)throw Error('Result mismatch: '+row.path);
+            fs.mkdirSync(path.dirname(row.path),{recursive:true});fs.writeFileSync(row.path,bytes);
+          }
+          require('./tools/i18n.cjs').sync(process.cwd(),{write:true});
+          require('./tools/code-revisions.cjs').sync(process.cwd(),{write:true});
+          for(const row of rows)if(hash(fs.readFileSync(row.path))!==row.after)throw Error('Final generated result mismatch: '+row.path);
+          fs.rmSync('.maintenance/ads-history-v064.br');
+          NODE
+      - run: npm ci
+      - name: Locked full test suite and both builds
+        run: |
+          set -o pipefail
+          mkdir -p .cloudflare
+          npm test 2>&1 | tee .cloudflare/ads-history-tests.log
+          node tools/build-cloudflare.cjs 2>&1 | tee .cloudflare/ads-history-worker-build.log
+          node tools/build-pages.cjs 2>&1 | tee .cloudflare/ads-history-pages-build.log
+      - name: Commit only reviewed ordinary sources on the feature branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- . ':(exclude).github'
+          git diff --cached --check
+          git commit -m 'v0.64: connect consent-aware Ads tag and remove oldest half of translated release history'
+          git push origin HEAD:maintenance/google-ads-history-v0.64
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
         with:
-          name: ads-history-baseline
-          path: .review
+          name: ads-history-source-validation
+          path: .cloudflare/ads-history-*.log
           include-hidden-files: true
-          retention-days: 3
+          retention-days: 7
