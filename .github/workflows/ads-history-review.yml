@@ -1,0 +1,26 @@
+name: Ads and history source review
+on:
+  push:
+    branches: [maintenance/google-ads-history-v0.64]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: '20204d2d1bbcbe96af85c4a276b6d270637d5a4c'
+      - name: Archive approved source baseline only
+        run: |
+          mkdir -p .review
+          git archive --format=zip -o .review/source.zip HEAD
+          git rev-parse HEAD > .review/commit.txt
+          git rev-parse HEAD^{tree} > .review/tree.txt
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: ads-history-baseline
+          path: .review
+          include-hidden-files: true
+          retention-days: 3
