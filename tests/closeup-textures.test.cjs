@@ -111,6 +111,14 @@ test('texture payload bytes, compression, shader and helper stay unchanged',()=>
   if(name.endsWith('.cmd'))bytes=Buffer.from(bytes.toString('utf8').replace(/\r\n/g,'\n'));
   // v0.66 adds only scoped cookie-control layout; preserve every older style.
   if(name==='styles.css')bytes=Buffer.from(bytes.toString('utf8').replace(/\/\* Consent controls share the existing card surface; reserve space for X\. \*\/[\s\S]*?(?=@media\(max-width:760px\)\{\.cookie-consent)/,''));
+  // Only the revision diagnostic may follow a release; all layout rules
+  // still match the unchanged v0.62 baseline hash after normalization.
+  if(name==='src/runtime-optimizations.css'){
+   const css=bytes.toString('utf8'),revision=JSON.parse(read('version.json')).revision;
+   const markers=[...css.matchAll(/--solar-layout-revision:([^}]+)}/g)];
+   assert.equal(markers.length,1);assert.equal(markers[0][1],revision);
+   bytes=Buffer.from(css.replace(/--solar-layout-revision:[^}]+}/,'--solar-layout-revision:r1}'));
+  }
   assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),hash,name);
  }
  assert.doesNotMatch(read('src/surface.js'),/\.quality\s*=|generateMipmap\(/);
