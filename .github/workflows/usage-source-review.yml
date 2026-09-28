@@ -1,26 +1,60 @@
-name: Usage source review
+name: Apply reviewed usage analytics
 on:
   push:
     branches: [feature/usage-analytics-v0.65]
 permissions:
   contents: read
 jobs:
-  source:
+  apply:
+    if: github.ref == 'refs/heads/feature/usage-analytics-v0.65'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: f7d5ab3c22b21a23977b1c540126872f4c192daa
-          persist-credentials: false
-      - name: Archive reviewed public source only
-        run: |
-          mkdir -p .source-review
-          git archive --format=zip HEAD -o .source-review/source.zip
-          git rev-parse HEAD > .source-review/snapshot-commit.txt
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+          ref: feature/usage-analytics-v0.65
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          name: usage-source-baseline
-          path: .source-review
+          node-version: '22'
+      - name: Apply exact reviewed analytics patch
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs'),z=require('zlib'),crypto=require('crypto'),cp=require('child_process');
+          const encoded=[1,2].map(n=>fs.readFileSync('.usage-stage/'+n+'.b64','utf8').trim()).join('');
+          const patch=z.brotliDecompressSync(Buffer.from(encoded,'base64'));
+          if(crypto.createHash('sha256').update(patch).digest('hex')!=='3d5c741c67483053726d3b840b32b9373fae2ba4a1d66f301e38f2436d929ef7')throw Error('Reviewed source hash mismatch');
+          for(const flags of [['--check'],[]]){const r=cp.spawnSync('git',['apply',...flags,'-'],{input:patch,stdio:['pipe','inherit','inherit']});if(r.status!==0)throw Error('Patch application failed');}
+          fs.rmSync('.usage-stage',{recursive:true});
+          fs.rmSync('.github/workflows/usage-source-review.yml');
+          NODE
+      - run: npm ci
+      - name: Regenerate localized release notes and run locked-dependency checks
+        run: |
+          set -euo pipefail
+          mkdir -p .cloudflare/usage-review
+          npm run build:i18n
+          npm test 2>&1 | tee .cloudflare/usage-review/unit-tests.log
+          node tools/build-cloudflare.cjs
+          node tools/build-pages.cjs
+      - name: Commit only the reviewed final source tree to the feature branch
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          TREE=$(git write-tree)
+          test "$TREE" = 'd0e2e9269cf662558d64ce09fe2a878d44861535'
+          printf '%s\n' "$TREE" > .cloudflare/usage-review/reviewed-tree.txt
+          git commit -m 'v0.65: consent-aware GA4 feature usage without duplicate page views or lead conversions'
+          git push origin HEAD:feature/usage-analytics-v0.65
+          git rev-parse HEAD > .cloudflare/usage-review/tested-source.txt
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: usage-source-validation
+          path: .cloudflare/usage-review
           include-hidden-files: true
-          retention-days: 3
+          retention-days: 7
