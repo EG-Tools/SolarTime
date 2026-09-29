@@ -21,7 +21,7 @@ test('all 13 web and file-language bundles preserve the previous effective inter
  const compiled=api.compile(root);
  for(const protocol of ['https:','file:']){
   const {loader}=runtime({protocol});
-  for(const code of compiled.codes){const bundle=await loader.load(code);const previous={...bundle,copy:{...bundle.copy}};for(const key of ['cookieSettings','cookieDismiss','cookieChoiceNote','defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan','releaseNotesAll'])delete previous.copy[key];assert.equal(api.fingerprint(previous),gold[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
+  for(const code of compiled.codes){const bundle=await loader.load(code);const previous={...bundle,copy:{...bundle.copy}};for(const key of ['cookieSettings','cookieDismiss','cookieChoiceNote','defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan','releaseNotesAll','atmosphericClouds'])delete previous.copy[key];assert.equal(api.fingerprint(previous),gold[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
  }
 });
 test('all retained historical release translations are unchanged',()=>{

@@ -24,6 +24,7 @@
     "orbitBrightnessAria": "Helligkeit der Bahnlinien. Null blendet sie aus.",
     "displaySize": "Darstellungsgröße",
     "earthNightLights": "Nachtlichter",
+    "atmosphericClouds": "Wolken",
     "displaySizeAria": "Darstellungsgröße des ausgewählten Körpers",
     "satelliteOrbitSpacing": "Mondbahn-Abstand",
     "satelliteOrbitSpacingAria": "Bahnabstand des Mondes des ausgewählten Planeten",

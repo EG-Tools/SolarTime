@@ -9,3 +9,7 @@ All cards use the existing shared surface. Dialogs register with UI.bindDialog; 
 Source/code deployment must not rebuild or upload media. Lost photographic masters are not recoverable merely by renaming a derived tier. Review original archives and UI approval hashes explicitly.
 
 Offline browser tests use synthetic textures and local language data. Their success does not certify physical iPhone rendering, native GPU output, live R2 delivery or completed Cloudflare deployment.
+
+## Long-term roadmaps
+
+- [행성 재질·고리 파티클·우주선 비행 모드](planet-materials-and-flight-roadmap.md)

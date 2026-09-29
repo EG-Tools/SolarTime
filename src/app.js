@@ -1,4 +1,4 @@
-/* Solar Time v0.68 — app implementation owner. */
+/* Solar Time v0.69 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -109,7 +109,13 @@
     uy:{label:"URUGUAY",timeZone:"America/Montevideo",latitude:-32.5228,longitude:-55.7658,region:"Uruguay",city:"centro geográfico"},
     ve:{label:"VENEZUELA",timeZone:"America/Caracas",latitude:6.4238,longitude:-66.5897,region:"Venezuela",city:"centro geográfico"}
   };
-  const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,starDensity:1,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,earthNightLights:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
+  function randomCloudSeed(previous=-1){
+    let value;
+    try{const sample=new Uint32Array(1);globalThis.crypto.getRandomValues(sample);value=sample[0]/4294967296;}
+    catch{value=Math.random();}
+    return Math.abs(value-previous)<1e-6?(value+.5)%1:value;
+  }
+  const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,starDensity:1,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,earthNightLights:true,earthCloudAmount:.5,earthCloudSeed:0,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
   const FACTORY_BODY_SCALES=Object.freeze({sun:1.54,mercury:3.79,venus:3.06,earth:5.05,mars:4.28,jupiter:2,saturn:2.42,uranus:3.04,neptune:2.32,pluto:5.23,moon:3.7,europa:3.44});
   const FACTORY_ORBIT_SCALES=Object.freeze({sun:.16,earth:.43,jupiter:1});
   const FACTORY_AUTO_ROTATE=1;
@@ -162,7 +168,7 @@
       A.calibrateAt(bootWall);
       const calibrationMs=performance.now()-calibrationStarted;
       const renderer=new window.SolarRenderer($('starfield'),$('universe'));
-      Object.assign(renderer.options,FACTORY_OPTIONS);renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
+      Object.assign(renderer.options,FACTORY_OPTIONS);renderer.options.earthCloudSeed=randomCloudSeed();renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
       const clock=new A.SimulationClock(Date.now(),performance.now());
       let timezone='local',showSeconds=false,hourCycle='12',clockSize=1,language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),zen=false,raf=0,clockFitFrame=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
       let speedMode='day',speedValues={hour:1,day:1,year:1},timerController=null;
@@ -221,6 +227,8 @@
         const saved=Preferences.read(STORAGE_KEY);
         if(saved&&typeof saved==='object') {
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
+          if(Number.isFinite(saved.earthCloudAmount))renderer.options.earthCloudAmount=A.clamp(saved.earthCloudAmount,0,1);
+          else if(Number.isFinite(saved.earthCloudOpacity))renderer.options.earthCloudAmount=A.clamp(saved.earthCloudOpacity,0,1);
           if(Number.isFinite(saved.orbitBrightness))renderer.options.orbitBrightness=A.clamp(saved.orbitBrightness,0,1);
           else if(typeof saved.orbits==='boolean')renderer.options.orbitBrightness=saved.orbits?.5:0;
           if(Number.isFinite(saved.starDensity))renderer.options.starDensity=A.clamp(saved.starDensity,0,3);
@@ -513,7 +521,9 @@
         $('body-orbit-label').textContent=t(solar?'solarOrbitSpacing':'satelliteOrbitSpacing');orbitSlider.setAttribute('aria-label',t(solar?'solarOrbitSpacingAria':'satelliteOrbitSpacingAria'));
         $('body-size-slider').disabled=locked;$('body-size-reset').disabled=locked||(value===100&&(!hasOrbitControl||orbitValue===100));
         $('body-size-lock').hidden=!locked;$('body-size-control').classList.toggle('locked',locked);
-        $('earth-night-lights-control').hidden=body.id!=='earth';$('earth-night-lights').checked=renderer.options.earthNightLights!==false;
+        const earth=body.id==='earth',cloudValue=Math.round(A.clamp(Number(renderer.options.earthCloudAmount) || 0,0,1)*200);
+        $('earth-night-lights-control').hidden=!earth;$('earth-night-lights').checked=renderer.options.earthNightLights!==false;
+        $('earth-cloud-control').hidden=!earth;$('earth-cloud-amount').value=String(cloudValue);$('earth-cloud-amount-output').textContent=cloudValue+'%';
         $('sun-shine-control').hidden=body.id!=='sun';$('show-activity').checked=renderer.options.activity!==false;
       }
       $('body-size-slider').addEventListener('input',()=>{
@@ -526,6 +536,12 @@
         renderer.setSatelliteOrbitScale(body.id,Number($('satellite-orbit-slider').value)/100);syncBodySizeControl(body);
       });
       $('satellite-orbit-slider').addEventListener('change',persist);
+      $('earth-cloud-amount').addEventListener('input',()=>{
+        const value=Number($('earth-cloud-amount').value),previous=renderer.options.earthCloudAmount;
+        if(value>0&&previous<=0)renderer.setOption('earthCloudSeed',randomCloudSeed(renderer.options.earthCloudSeed));
+        renderer.setOption('earthCloudAmount',value/200);$('earth-cloud-amount-output').textContent=value+'%';
+      });
+      $('earth-cloud-amount').addEventListener('change',persist);
       $('body-size-reset').addEventListener('click',()=>{
         const body=bodies.find(value=>value.id===renderer.selected);if(!body)return;
         const sizeReset=renderer.resetBodyScale(body.id),orbitReset=renderer.resetSatelliteOrbitScale(body.id);
@@ -722,6 +738,7 @@
         if(request!==languageRequest||disposed)return;
         const mono=performance.now();closeResetDefaults(false);renderer.cancelCameraMotion(mono);renderer.stopAutoRotate(mono);
         for(const [key,value] of Object.entries(FACTORY_OPTIONS))renderer.setOption(key,value,false);
+        renderer.setOption('earthCloudSeed',randomCloudSeed(renderer.options.earthCloudSeed),false);
         window.SolarVisualEffects?.regenerateStars?.(renderer.sky);
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
         renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();keyboardTrackingReturn=null;
@@ -847,7 +864,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=39a336d46af7','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=003653eec29d','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1134,7 +1151,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.68',revision:'r3',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.69',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

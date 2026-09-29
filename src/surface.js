@@ -16,11 +16,113 @@ const EARTH_NIGHT_GLSL=`
     vec3 filtered=(center*4.+texture2D(nightMap,uv+dx).rgb+texture2D(nightMap,uv-dx).rgb+
       texture2D(nightMap,uv+dy).rgb+texture2D(nightMap,uv-dy).rgb)/8.;
     return mix(center,filtered,outer);
+  }
+  vec3 cloudVeiledNight(vec2 uv,float facing,float cloud){
+    vec3 clear=stableNight(uv,facing);
+    if(cloud<=.01)return clear;
+    float spread=nightTexel*(2.+cloud*4.);
+    vec2 dx=vec2(spread,0.),dy=vec2(0.,spread*2.);
+    vec3 softened=(clear*2.+texture2D(nightMap,uv+dx).rgb+texture2D(nightMap,uv-dx).rgb+
+      texture2D(nightMap,uv+dy).rgb+texture2D(nightMap,uv-dy).rgb)/6.;
+    return mix(clear,softened,cloud*.48)*(1.-cloud*.42);
+  }`;
+const ATMOSPHERIC_CLOUD_GLSL=`
+  float cloudHash(float n){return fract(sin(n)*43758.5453123);}
+  vec2 atmosphericShellUv(vec3 viewNormal,float shellRadius){
+    float shellSq=shellRadius*shellRadius;
+    vec3 shellNormal=vec3(viewNormal.xy/shellRadius,sqrt(max(0.,1.-dot(viewNormal.xy,viewNormal.xy)/shellSq)));
+    vec3 shellLocal=vec3(dot(shellNormal,axisU),dot(shellNormal,axisV),dot(shellNormal,pole));
+    float shellAngle=atan(shellLocal.y,shellLocal.x);
+    float shellLatitude=asin(clamp(shellLocal.z,-1.,1.));
+    return vec2(fract((shellAngle+PI)/(2.*PI)-phase),.5-shellLatitude/PI);
+  }
+  float atmosphericCloudRegion(vec2 delta,float radius){return 1.-smoothstep(radius*.04,radius,length(delta));}
+  float atmosphericCloudTexture(vec2 sampleUv,float seed){
+    float detailY=sampleUv.y*2.73+cloudHash(seed+71.2);
+    vec2 detailUv=vec2(fract(sampleUv.x*2.73+cloudHash(seed+67.4)),1.-abs(fract(detailY*.5)*2.-1.));
+    float sourceCloud=pow(texture2D(cloudsMap,sampleUv).r,1.18);
+    float fineCloud=texture2D(cloudsMap,detailUv).r;
+    return sourceCloud*(.78+.32*fineCloud)*.72;
+  }
+  float atmosphericCloudCoverage(vec2 uv,float amount,float day,float userSeed){
+    vec2 weatherUv=vec2(fract(uv.x),clamp(uv.y,0.,1.));
+    float target=clamp(amount,0.,1.)*16.;
+    float cycle=floor(day/1.25),cover=0.;
+    // Four deterministic weather generations overlap. The previous 100% level
+    // now sits at 50%; 100% adds two more independently seeded systems to every
+    // generation, doubling the available regional cloud cover.
+    for(int i=0;i<16;i++){
+      float fi=float(i),slot=floor(fi*.25),variant=mod(fi,4.);
+      float rank=variant*4.+slot;
+      float amountWeight=clamp(target-rank,0.,1.);
+      if(amountWeight<=0.)continue;
+      float birthIndex=cycle-slot,birth=birthIndex*1.25,age=day-birth;
+      float seed=birthIndex*19.17+variant*83.41+userSeed*917.53;
+      float lifetime=.5+4.5*cloudHash(seed+1.3);
+      float birthDuration=min(1.5,lifetime*.40);
+      float deathDuration=min(1.15,lifetime*.40);
+      float birthFade=smoothstep(0.,birthDuration,age);
+      float deathFade=smoothstep(lifetime-deathDuration,lifetime,age);
+      float life=birthFade*(1.-deathFade);
+      if(life<=0.)continue;
+      float angle=cloudHash(seed+4.7)*6.28318530718;
+      float speed=.007+.012*cloudHash(seed+7.1);
+      vec2 direction=vec2(cos(angle),sin(angle));
+      vec2 origin=vec2(cloudHash(seed+11.9),.12+.76*cloudHash(seed+15.2));
+      // Zonal wind is body-relative: tropical trade winds lag the surface,
+      // mid-latitude westerlies lead it, and the unspecified polar region
+      // returns smoothly to the surface rate. Each coherent weather system
+      // uses its birth latitude, avoiding a visible shear seam across a cloud.
+      float latitude=abs(origin.y-.5)*2.;
+      float tropical=1.-smoothstep(.28,.42,latitude);
+      float polar=smoothstep(.65,.78,latitude);
+      float midLatitude=(1.-tropical)*(1.-polar);
+      float zonalSpeed=-.05*tropical+.05*midLatitude;
+      vec2 drift=vec2(direction.x*speed+zonalSpeed,direction.y*speed);
+      vec2 center=origin+drift*age;
+      center.x=fract(center.x);center.y=clamp(center.y,.04,.96);
+      float dx=mod(weatherUv.x-center.x+.5,1.)-.5;
+      float dy=(weatherUv.y-center.y)*1.55;
+      vec2 delta=vec2(dx,dy);
+      float radius=.30+.14*cloudHash(seed+21.6);
+      float deathMode=cloudHash(seed+43.2),region=0.;
+      if(deathMode<.333){
+        float growScale=1.12+.58*cloudHash(seed+47.9);
+        float birthScale=mix(growScale,1.,birthFade),deathScale=mix(1.,growScale,deathFade);
+        region=atmosphericCloudRegion(delta,radius*birthScale*deathScale);
+      }else if(deathMode<.666){
+        float shrinkScale=.20+.50*cloudHash(seed+51.7);
+        float birthScale=mix(shrinkScale,1.,birthFade),deathScale=mix(1.,shrinkScale,deathFade);
+        region=atmosphericCloudRegion(delta,radius*birthScale*deathScale);
+      }else{
+        float scatter=max(1.-birthFade,deathFade);
+        float branchCount=3.+floor(cloudHash(seed+55.1)*10.);
+        float spread=radius*(.35+.55*cloudHash(seed+58.4))*scatter;
+        float lobeScale=.25+.24*cloudHash(seed+61.8);
+        float lobeRadius=radius*mix(1.,lobeScale,scatter);
+        float branchWave=.5+.5*cos(atan(delta.y,delta.x)*branchCount+angle);
+        float branchRadius=lobeRadius+spread*pow(branchWave,3.);
+        region=atmosphericCloudRegion(delta,branchRadius);
+        float sprayNoise=.5+.5*sin((weatherUv.x*113.+weatherUv.y*179.+seed)*6.28318530718)*sin((weatherUv.x*197.-weatherUv.y*137.+seed*.73)*6.28318530718);
+        float particleKeep=smoothstep(scatter*.65,.96,sprayNoise);
+        region*=mix(1.,particleKeep,scatter*.82);
+      }
+      if(region<=0.)continue;
+      float sampleY=weatherUv.y+(cloudHash(seed+37.8)-.5)*.34-drift.y*age;
+      vec2 sampleUv=vec2(fract(weatherUv.x+cloudHash(seed+31.4)-drift.x*age),1.-abs(fract(sampleY*.5)*2.-1.));
+      float patch=atmosphericCloudTexture(sampleUv,seed)*region*life*amountWeight;
+      cover+=patch*(1.-cover);
+    }
+    // The user-facing 100% level is intentionally denser than the raw weather
+    // blend while retaining headroom for terrain and night-light readability.
+    return min(.92,cover*2.25);
   }`;
 function surfaceKernel(style){
   const sun=style.sun;
   let assets={};
   const TAU=Math.PI*2,clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),smooth=(a,b,n)=>{const t=clamp((n-a)/(b-a),0,1);return t*t*(3-2*t);};
+  const atmosphericRegion=(dx,dy,radius)=>1-smooth(radius*.04,radius,Math.hypot(dx,dy));
+  const atmosphericTexture=(texture,su,sv)=>{const w=texture.width,h=texture.height,x=su*w-.5,y=clamp(sv*h-.5,0,h-1),ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,x0=(ix+w)%w,x1=(x0+1)%w,y1=Math.min(h-1,iy+1),a=(iy*w+x0)*4,b=(iy*w+x1)*4,c=(y1*w+x0)*4,d=(y1*w+x1)*4;return (texture.data[a]*(1-fx)*(1-fy)+texture.data[b]*fx*(1-fy)+texture.data[c]*(1-fx)*fy+texture.data[d]*fx*fy)/255;};
   const setAssets=value=>{if(value)assets=value;};
   function dataBlob(url){const [meta,data]=url.split(','),raw=atob(data),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return new Blob([bytes],{type:meta.split(':')[1].split(';')[0]});}
   function sourceFor(asset,width){
@@ -66,10 +168,11 @@ function surfaceKernel(style){
   const vertex=`attribute vec2 a; varying vec2 p; void main(){p=a;gl_Position=vec4(a,0.,1.);}`;
   const fragment=`precision highp float;
     varying vec2 p; uniform sampler2D colorMap; uniform sampler2D bumpMap; uniform sampler2D cloudsMap; uniform sampler2D nightMap;
-    uniform vec3 axisU,axisV,pole,light; uniform float phase,kind,hasBump,diameter,texel,nightTexel,effectTime,sunActivity,nightLights;
+    uniform vec3 axisU,axisV,pole,light; uniform float phase,kind,hasBump,diameter,texel,nightTexel,effectTime,sunActivity,nightLights,cloudAmount,cloudSeed,weatherDay;
     const float PI=3.141592653589793;
     vec3 world(vec3 q){return axisU*q.x+axisV*q.y+pole*q.z;}
     ${EARTH_NIGHT_GLSL}
+    ${ATMOSPHERIC_CLOUD_GLSL}
     void main(){
       float rr=dot(p,p); if(rr>=1.){gl_FragColor=vec4(0.);return;}
       vec3 n=vec3(p.x,-p.y,sqrt(1.-rr));
@@ -95,13 +198,15 @@ function surfaceKernel(style){
       float mu=dot(normal,light),day=max(mu,0.);
       vec3 col=base*(.115+day*.98);
       if(kind==1.){
-        float cloud=texture2D(cloudsMap,uv).r*.50;
+        float cloud=0.;
+        vec2 cloudUv=atmosphericShellUv(n,1.007);
+        if(cloudAmount>0.)cloud=atmosphericCloudCoverage(cloudUv,cloudAmount,weatherDay,cloudSeed);
         col=mix(col,vec3(.94,.965,1.)*(.14+day*.93),cloud);
         // A broad twilight band fades city lights in through early evening
         // and out again at dawn instead of switching at the terminator.
         float nightSide=(1.-smoothstep(-.34,.30,mu))*nightLights;
         float nightLimb=smoothstep(.035,.18,n.z);
-        col+=stableNight(uv,n.z)*nightSide*(1.-cloud*.68)*1.05*nightLimb;
+        col+=cloudVeiledNight(uv,n.z,cloud)*nightSide*1.05*nightLimb;
         float ocean=smoothstep(.035,.14,base.b-base.r)*step(base.r,base.b)*step(base.g,base.b);
         vec3 halfdir=normalize(light+vec3(0.,0.,1.));
         col+=vec3(.63,.76,.85)*pow(max(0.,dot(n,halfdir)),70.)*day*ocean*.38;
@@ -127,7 +232,7 @@ function surfaceKernel(style){
         if(!g.getProgramParameter(program,g.LINK_STATUS))throw Error(g.getProgramInfoLog(program));this.program=program;
         this.buffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
         this.attribute=g.getAttribLocation(program,'a');
-        this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','nightMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
+        this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','nightMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','cloudSeed','weatherDay'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
       }catch(error){if(this.gl){this.gl.getExtension('WEBGL_lose_context')?.loseContext();this.gl=null;}this.canvas=makeCanvas(32);this.ctx=this.canvas.getContext('2d');this.stats.fallback=error.message;}
     }
     async texture(id,width){
@@ -170,10 +275,10 @@ function surfaceKernel(style){
     async render(job){
       if(this.disposed)throw Error('Surface disposed');
       if(this.gl?.isContextLost())throw Error('WebGL context lost');
-      const {id,frame,phase,light,seconds=0,activity=false,nightLights=false,nightTextureWidth=0}=job;const n=this.gl?Math.min(1024,job.diam):Math.min(768,job.diam);
+      const {id,frame,phase,light,seconds=0,activity=false,nightLights=false,nightTextureWidth=0,cloudAmount=.5,cloudTextureWidth=0,cloudSeed=0,weatherDay=0}=job;const n=this.gl?Math.min(1024,job.diam):Math.min(768,job.diam);
       const width=this.gl?job.textureWidth:Math.min(4096,job.textureWidth);
       const color=await this.texture(id,width),bump=assets[id+'-relief']?await this.texture(id+'-relief',width):color;
-      const clouds=id==='earth'?await this.texture('clouds',Math.min(2048,width)):color;
+      const clouds=id==='earth'&&cloudAmount>0?await this.texture('clouds',Math.min(4096,cloudTextureWidth||width)):color;
       const night=id==='earth'&&nightLights?await this.texture('earth-night',Math.min(2048,nightTextureWidth||width)):color;
       if(this.canvas.width!==n){this.canvas.width=this.canvas.height=n;}
       if(this.gl?.isContextLost())throw Error('WebGL context lost');
@@ -183,7 +288,7 @@ function surfaceKernel(style){
         for(const [i,t,name] of [[0,color,'colorMap'],[1,bump,'bumpMap'],[2,clouds,'cloudsMap'],[3,night,'nightMap']]){g.activeTexture(g.TEXTURE0+i);g.bindTexture(g.TEXTURE_2D,t.handle);g.uniform1i(u[name],i);}
         g.uniform3fv(u.axisU,frame.u);g.uniform3fv(u.axisV,frame.v);g.uniform3fv(u.pole,frame.pole);g.uniform3fv(u.light,light);
         g.uniform1f(u.phase,phase);g.uniform1f(u.kind,id==='earth'?1:id==='sun'?2:id==='uranus'?4:['jupiter','saturn','venus','neptune'].includes(id)?3:0);
-        g.uniform1f(u.hasBump,bump!==color?1:0);g.uniform1f(u.diameter,n);g.uniform1f(u.texel,1/width);g.uniform1f(u.nightTexel,1/night.width);g.uniform1f(u.effectTime,seconds);g.uniform1f(u.sunActivity,activity?1:0);g.uniform1f(u.nightLights,night!==color?1:0);g.drawArrays(g.TRIANGLES,0,6);
+        g.uniform1f(u.hasBump,bump!==color?1:0);g.uniform1f(u.diameter,n);g.uniform1f(u.texel,1/width);g.uniform1f(u.nightTexel,1/night.width);g.uniform1f(u.effectTime,seconds);g.uniform1f(u.sunActivity,activity?1:0);g.uniform1f(u.nightLights,night!==color?1:0);g.uniform1f(u.cloudAmount,cloudAmount);g.uniform1f(u.cloudSeed,cloudSeed);g.uniform1f(u.weatherDay,weatherDay);g.drawArrays(g.TRIANGLES,0,6);
         if(g.isContextLost())throw Error('WebGL context lost');
       }else{
         // Identical UV geometry, cooperatively rasterized when GPU is disabled.
@@ -215,12 +320,51 @@ function surfaceKernel(style){
             data[i+2]=data[i+2]*gain+255*sun.glow[2]*bright*brightCycle*facing;
           }
           if(id==='earth'){
-            const ci=(Math.min(clouds.height-1,Math.floor(v*clouds.height))*clouds.width+Math.floor(u*clouds.width))*4,cover=clouds.data[ci]/255*.50;
+            let cover=0;
+            if(cloudAmount>0){
+              const shellRadius=1.007,shellX=nx/shellRadius,shellY=ny/shellRadius,shellZ=Math.sqrt(Math.max(0,1-(nx*nx+ny*ny)/(shellRadius*shellRadius))),shellDot=a=>a[0]*shellX+a[1]*shellY+a[2]*shellZ;
+              const cloudU=(Math.atan2(shellDot(frame.v),shellDot(frame.u))/TAU+.5-phase+2)%1,cloudV=Math.acos(clamp(shellDot(frame.pole),-1,1))/Math.PI;
+              const hash=n=>((Math.sin(n)*43758.5453123)%1+1)%1,target=clamp(cloudAmount,0,1)*16,cycle=Math.floor(weatherDay/1.25);
+              for(let system=0;system<16;system++){
+                const slot=Math.floor(system*.25),variant=system%4,rank=variant*4+slot,amountWeight=clamp(target-rank,0,1);
+                if(amountWeight<=0)continue;
+                const birthIndex=cycle-slot,birth=birthIndex*1.25,age=weatherDay-birth,seed=birthIndex*19.17+variant*83.41+cloudSeed*917.53,lifetime=.5+4.5*hash(seed+1.3),birthDuration=Math.min(1.5,lifetime*.40),deathDuration=Math.min(1.15,lifetime*.40);
+                const birthFade=smooth(0,birthDuration,age),deathFade=smooth(lifetime-deathDuration,lifetime,age),life=birthFade*(1-deathFade);if(life<=0)continue;
+                const angle=hash(seed+4.7)*TAU,speed=.007+.012*hash(seed+7.1),dirX=Math.cos(angle),dirY=Math.sin(angle),originY=.12+.76*hash(seed+15.2);
+                const latitude=Math.abs(originY-.5)*2,tropical=1-smooth(.28,.42,latitude),polar=smooth(.65,.78,latitude),midLatitude=(1-tropical)*(1-polar),zonalSpeed=-.05*tropical+.05*midLatitude,driftX=dirX*speed+zonalSpeed,driftY=dirY*speed;
+                const centerX=(hash(seed+11.9)+driftX*age+1)%1,centerY=clamp(originY+driftY*age,.04,.96);
+                const weatherU=((cloudU%1)+1)%1,weatherV=cloudV;let dx=weatherU-centerX;if(dx>.5)dx-=1;else if(dx<-.5)dx+=1;
+                const dy=(weatherV-centerY)*1.55,deltaRadius=.30+.14*hash(seed+21.6),deathMode=hash(seed+43.2),regionAt=(ox,oy,radius)=>atmosphericRegion(dx-ox,dy-oy,radius);let region;
+                if(deathMode<.333){const growScale=1.12+.58*hash(seed+47.9);region=regionAt(0,0,deltaRadius*(growScale+(1-growScale)*birthFade)*(1+(growScale-1)*deathFade));}
+                else if(deathMode<.666){const shrinkScale=.20+.50*hash(seed+51.7);region=regionAt(0,0,deltaRadius*(shrinkScale+(1-shrinkScale)*birthFade)*(1+(shrinkScale-1)*deathFade));}
+                else{
+                  const scatter=Math.max(1-birthFade,deathFade),branchCount=3+Math.floor(hash(seed+55.1)*10),spread=deltaRadius*(.35+.55*hash(seed+58.4))*scatter,lobeScale=.25+.24*hash(seed+61.8),lobeRadius=deltaRadius*(1+(lobeScale-1)*scatter),branchWave=.5+.5*Math.cos(Math.atan2(dy,dx)*branchCount+angle),branchRadius=lobeRadius+spread*branchWave**3;
+                  region=regionAt(0,0,branchRadius);
+                  const sprayNoise=.5+.5*Math.sin((weatherU*113+weatherV*179+seed)*TAU)*Math.sin((weatherU*197-weatherV*137+seed*.73)*TAU),particleKeep=smooth(scatter*.65,.96,sprayNoise);
+                  region*=1-scatter*.82+particleKeep*scatter*.82;
+                }
+                if(region<=0)continue;
+                const sampleU=(weatherU+hash(seed+31.4)-driftX*age+2)%1,sampleY=weatherV+(hash(seed+37.8)-.5)*.34-driftY*age,sampleV=1-Math.abs(((((sampleY*.5)%1)+1)%1)*2-1);
+                const detailU=(sampleU*2.73+hash(seed+67.4))%1,detailY=sampleV*2.73+hash(seed+71.2),detailV=1-Math.abs(((((detailY*.5)%1)+1)%1)*2-1),sourceCloud=atmosphericTexture(clouds,sampleU,sampleV)**1.18,fineCloud=atmosphericTexture(clouds,detailU,detailV);
+                const patch=sourceCloud*(.78+.32*fineCloud)*.72*region*life*amountWeight;cover+=patch*(1-cover);
+              }
+              cover=Math.min(.92,cover*2.25);
+            }
             const rim=(1-nz)**4*(.05+.8*day);
             data[i]=data[i]*(1-cover)+240*(.14+.93*day)*cover+19*rim;
             data[i+1]=data[i+1]*(1-cover)+246*(.14+.93*day)*cover+92*rim;
             data[i+2]=data[i+2]*(1-cover)+255*(.14+.93*day)*cover+184*rim;
-            if(night!==color){const ni=(Math.min(night.height-1,Math.floor(v*night.height))*night.width+Math.floor(u*night.width))*4,nightLimb=smooth(.035,.24,nz),nightSide=(1-smooth(-.34,.30,mu))*(1-cover*.68)*1.05*nightLimb;data[i]+=night.data[ni]*nightSide;data[i+1]+=night.data[ni+1]*nightSide;data[i+2]+=night.data[ni+2]*nightSide;}
+            if(night!==color){
+              const nightY=Math.min(night.height-1,Math.floor(v*night.height)),nightX=Math.floor(u*night.width),ni=(nightY*night.width+nightX)*4,nightLimb=smooth(.035,.24,nz),nightSide=(1-smooth(-.34,.30,mu))*1.05*nightLimb;
+              let red=night.data[ni],green=night.data[ni+1],blue=night.data[ni+2];
+              if(cover>.01){
+                const spread=Math.max(1,Math.round(2+cover*4)),left=(nightY*night.width+(nightX-spread+night.width)%night.width)*4,right=(nightY*night.width+(nightX+spread)%night.width)*4,up=(Math.max(0,nightY-spread*2)*night.width+nightX)*4,down=(Math.min(night.height-1,nightY+spread*2)*night.width+nightX)*4,mixAmount=cover*.48,shade=1-cover*.42;
+                red=(red*(1-mixAmount)+(red*2+night.data[left]+night.data[right]+night.data[up]+night.data[down])/6*mixAmount)*shade;
+                green=(green*(1-mixAmount)+(green*2+night.data[left+1]+night.data[right+1]+night.data[up+1]+night.data[down+1])/6*mixAmount)*shade;
+                blue=(blue*(1-mixAmount)+(blue*2+night.data[left+2]+night.data[right+2]+night.data[up+2]+night.data[down+2])/6*mixAmount)*shade;
+              }
+              data[i]+=red*nightSide;data[i+1]+=green*nightSide;data[i+2]+=blue*nightSide;
+            }
           }
           data[i+3]=map[m+6];
           if((m/7)%8192===0&&performance.now()-sliceStart>6){await new Promise(resolve=>setTimeout(resolve,0));if(this.disposed)throw Error('Surface disposed');sliceStart=performance.now();}
@@ -243,7 +387,7 @@ class SurfaceService{
     this.stats={backend:'compatibility',submitted:0,accepted:0,discarded:0,workerMs:0,mapPixels:0,texturePixels:0};
     if(worker&&typeof Worker==='function'&&typeof OffscreenCanvas==='function'){
       let url;try{
-        const boot=`const EARTH_NIGHT_GLSL=${JSON.stringify(EARTH_NIGHT_GLSL)};const kernel=(${surfaceKernel.toString()})(${JSON.stringify(STYLE)});const engine=new kernel.Engine();onmessage=async e=>{const {jobs,revision,epoch,assets}=e.data;if(assets)kernel.setAssets(assets);const start=performance.now();try{for(const job of jobs){const canvas=await engine.render(job);const bitmap=canvas.transferToImageBitmap();postMessage({kind:'frame',revision,epoch,job,bitmap},[bitmap]);}postMessage({kind:'done',revision,epoch,ms:performance.now()-start,stats:engine.stats,mapPixels:engine.mapPixels,texturePixels:engine.texturePixels});}catch(error){postMessage({kind:'error',revision,epoch,message:error.message});}};`;
+        const boot=`const EARTH_NIGHT_GLSL=${JSON.stringify(EARTH_NIGHT_GLSL)};const ATMOSPHERIC_CLOUD_GLSL=${JSON.stringify(ATMOSPHERIC_CLOUD_GLSL)};const kernel=(${surfaceKernel.toString()})(${JSON.stringify(STYLE)});const engine=new kernel.Engine();onmessage=async e=>{const {jobs,revision,epoch,assets}=e.data;if(assets)kernel.setAssets(assets);const start=performance.now();try{for(const job of jobs){const canvas=await engine.render(job);const bitmap=canvas.transferToImageBitmap();postMessage({kind:'frame',revision,epoch,job,bitmap},[bitmap]);}postMessage({kind:'done',revision,epoch,ms:performance.now()-start,stats:engine.stats,mapPixels:engine.mapPixels,texturePixels:engine.texturePixels});}catch(error){postMessage({kind:'error',revision,epoch,message:error.message});}};`;
         url=URL.createObjectURL(new Blob([boot],{type:'text/javascript'}));this.worker=new Worker(url);this.worker.onmessage=e=>this.receive(e.data);this.worker.onerror=e=>{this.stats.workerError=e.message||'Worker unavailable';this.fallback();};this.stats.backend='worker';
       }catch(error){this.stats.workerError=error.message;this.fallback();}finally{if(url)URL.revokeObjectURL(url);}
     }
@@ -264,7 +408,7 @@ class SurfaceService{
     return angle<=Math.max(0,Math.min(a.limit,b.limit,Math.PI/36));
   }
 
-  needs(job,mono){const old=this.frames.get(job.id);if(!old||old.epoch!==this.epoch||old.job.geometry!==job.geometry||old.job.textureWidth<job.textureWidth)return true;if(job.phase===old.job.phase&&job.seconds===old.job.seconds&&job.light.every((v,i)=>v===old.job.light[i]))return false;const turn=Math.abs(job.phase-old.job.phase);return mono-old.mono>=120||Math.min(turn,1-turn)*Math.PI*job.diam>.18;}
+  needs(job,mono){const old=this.frames.get(job.id);if(!old||old.epoch!==this.epoch||old.job.geometry!==job.geometry||old.job.textureWidth<job.textureWidth)return true;if(job.phase===old.job.phase&&job.seconds===old.job.seconds&&job.weatherDay===old.job.weatherDay&&job.light.every((v,i)=>v===old.job.light[i]))return false;const turn=Math.abs(job.phase-old.job.phase);return mono-old.mono>=120||Math.min(turn,1-turn)*Math.PI*job.diam>.18;}
   pump(){
     if(this.disposed||this.paused||this.inflight||!this.pending)return;const {mono}=this.pending;let jobs=this.pending.jobs.filter(j=>this.needs(j,mono));this.pending=null;if(!jobs.length)return;
     this.inflight=true;this.stats.submitted++;const revision=++this.revision,epoch=this.epoch;jobs=jobs.map(job=>({...job,textureWidth:job.textureWidth>PREVIEW_TEXTURE_WIDTH&&(this.frames.get(job.id)?.job.textureWidth||0)<PREVIEW_TEXTURE_WIDTH?PREVIEW_TEXTURE_WIDTH:job.textureWidth,requestedMono:mono}));
@@ -334,10 +478,11 @@ const DIRECT_QUAD_VERTEX=`attribute vec2 a;
   void main(){p=a;vec2 q=center+a*radius;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);}`;
 const DIRECT_PLANET_FRAGMENT=`precision highp float;
   varying vec2 p;uniform sampler2D colorMap,bumpMap,cloudsMap,nightMap;
-  uniform vec3 axisU,axisV,pole,light;uniform float phase,kind,hasBump,diameter,texel,nightTexel,effectTime,sunActivity,nightLights;
+  uniform vec3 axisU,axisV,pole,light;uniform float phase,kind,hasBump,diameter,texel,nightTexel,effectTime,sunActivity,nightLights,cloudAmount,cloudSeed,weatherDay;
   const float PI=3.141592653589793;
   vec3 world(vec3 q){return axisU*q.x+axisV*q.y+pole*q.z;}
   ${EARTH_NIGHT_GLSL}
+  ${ATMOSPHERIC_CLOUD_GLSL}
   void main(){
     float rr=dot(p,p);if(rr>=1.)discard;
     // p is already in screen/view coordinates (top is negative Y). Flipping Y
@@ -364,11 +509,13 @@ const DIRECT_PLANET_FRAGMENT=`precision highp float;
     }
     float mu=dot(normal,light),day=max(mu,0.);vec3 col=base*(.115+day*.98);
     if(kind==1.){
-      float cloud=texture2D(cloudsMap,uv).r*.50;
+      float cloud=0.;
+      vec2 cloudUv=atmosphericShellUv(n,1.007);
+      if(cloudAmount>0.)cloud=atmosphericCloudCoverage(cloudUv,cloudAmount,weatherDay,cloudSeed);
       col=mix(col,vec3(.94,.965,1.)*(.14+day*.93),cloud);
       float nightSide=(1.-smoothstep(-.34,.30,mu))*nightLights;
       float nightLimb=smoothstep(.035,.18,n.z);
-      col+=stableNight(uv,n.z)*nightSide*(1.-cloud*.68)*1.05*nightLimb;
+      col+=cloudVeiledNight(uv,n.z,cloud)*nightSide*1.05*nightLimb;
       float ocean=smoothstep(.035,.14,base.b-base.r)*step(base.r,base.b)*step(base.g,base.b);
       vec3 halfdir=normalize(light+vec3(0.,0.,1.));
       col+=vec3(.63,.76,.85)*pow(max(0.,dot(n,halfdir)),70.)*day*ocean*.38;
@@ -510,7 +657,7 @@ class DirectRenderer{
     const g=this.gl;
     this.maxTextureSize=Math.min(4096,2**Math.floor(Math.log2(g.getParameter(g.MAX_TEXTURE_SIZE))));
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
-    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','nightMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights']);
+    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','nightMap','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','cloudSeed','weatherDay']);
     this.coronaProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
     this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','worldOffset','anchor','camera','lens','travel','scale','localScale','color']);
     this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor']);
@@ -544,7 +691,7 @@ class DirectRenderer{
   prepare(jobs){
     for(const job of jobs)this.desired.set(job.id,job);
     this.pruneTextureQueue();
-    const assets=root.SolarAssets?.materials,key=jobs.map(job=>job.id+':'+job.textureWidth+':'+(job.nightTextureWidth||0)+':'+job.priority+':'+Number(job.nightLights)).join('|');
+    const assets=root.SolarAssets?.materials,key=jobs.map(job=>job.id+':'+job.textureWidth+':'+(job.nightTextureWidth||0)+':'+(job.cloudTextureWidth||0)+':'+job.priority+':'+Number(job.nightLights)+':'+(Number.isFinite(job.cloudAmount)?job.cloudAmount:job.id==='earth'?.5:0)).join('|');
     if(key!==this.planKey||assets!==this.planAssets){
       this.planKey=key;this.planAssets=assets;this.texturePlan=root.SolarPerformance?.planTextures(jobs,assets,this.maxTextureSize);
       this.stats.plannedTextureBytes=this.texturePlan?.bytes||0;
@@ -757,14 +904,15 @@ class DirectRenderer{
   planet(job,body,screen,radius,time,activity){
     this.desired.set(job.id,job);const color=this.texture(job.id,job.textureWidth);if(!color)return false;
     const bump=root.SolarAssets?.materials?.[job.id+'-relief']?this.texture(job.id+'-relief',job.textureWidth):null;
-    const clouds=job.id==='earth'?this.texture('clouds',Math.min(2048,job.textureWidth)):null;
+    const cloudAmount=job.id==='earth'?(Number.isFinite(job.cloudAmount)?Math.max(0,Math.min(1,job.cloudAmount)):.5):0;
+    const clouds=cloudAmount>0?this.texture('clouds',Math.min(4096,job.cloudTextureWidth||job.textureWidth)):null;
     const night=job.id==='earth'&&job.nightLights?this.texture('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth)):null;
     // Rings are children of this body: the surface and both ring halves share
     // exactly one parent transform and cannot drift into separate orientations.
     const frame=job.frame;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,false);
     const g=this.gl,p=this.planetProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius);g.uniform3fv(p.u.axisU,frame.u);g.uniform3fv(p.u.axisV,frame.v);g.uniform3fv(p.u.pole,frame.pole);g.uniform3fv(p.u.light,job.light);
-    g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='uranus'?4:['jupiter','saturn','venus','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);g.uniform1f(p.u.nightTexel,1/(night?.width||color.width));g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);
+    g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='uranus'?4:['jupiter','saturn','venus','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);g.uniform1f(p.u.nightTexel,1/(night?.width||color.width));g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);g.uniform1f(p.u.cloudAmount,cloudAmount);g.uniform1f(p.u.cloudSeed,Number.isFinite(job.cloudSeed)?job.cloudSeed:0);g.uniform1f(p.u.weatherDay,Number.isFinite(job.weatherDay)?job.weatherDay:0);
     this.bindTextureUnit(0,color.texture);this.bindTextureUnit(1,bump?.texture||color.texture);this.bindTextureUnit(2,clouds?.texture||this.black);this.bindTextureUnit(3,night?.texture||this.black);
     g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,true);

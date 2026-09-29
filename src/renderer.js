@@ -42,7 +42,7 @@
       this.gpu=null;this.gpuError=null;
       const gpuCanvas=typeof document==='object'&&typeof document.getElementById==='function'?document.getElementById('planet-layer'):null;
       if(gpuCanvas&&window.SolarSurface?.DirectRenderer){try{this.gpu=new window.SolarSurface.DirectRenderer(gpuCanvas);}catch(error){this.gpuError=error.message;}}
-      this.options={actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,earthNightLights:true,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
+      this.options={actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,earthNightLights:true,earthCloudAmount:.5,earthCloudSeed:0,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
       this.bodyScales=Object.create(null);this.satelliteOrbitScales=Object.create(null);
       this.camera={...DEFAULT_CAMERA};
       this.site={label:'KOREA',latitude:37.5665,longitude:126.978};
@@ -506,6 +506,16 @@
         this.options.orbitBrightness=clamp(Number.isFinite(numeric)?numeric:1,0,1);
         this.dirty=true;return;
       }
+      if(key==='earthCloudAmount'){
+        const numeric=Number(value);
+        this.options.earthCloudAmount=clamp(Number.isFinite(numeric)?numeric:.5,0,1);
+        this.lastSurfaceSubmit=-Infinity;this.dirty=true;return;
+      }
+      if(key==='earthCloudSeed'){
+        const numeric=Number(value);
+        this.options.earthCloudSeed=Number.isFinite(numeric)?((numeric%1)+1)%1:0;
+        this.lastSurfaceSubmit=-Infinity;this.dirty=true;return;
+      }
       if(key==='actualScale'){
         const mono=performance.now();this.advanceActualScale(mono);this.options.actualScale=!!value;
         if(animate)this.actualScaleTween={from:this.actualScaleMix,to:value?1:0,started:mono,duration:2000};
@@ -854,7 +864,7 @@
     // All bodies submit to the same bounded surface owner; no CPU pixel loop here.
     surfaceJob(body,physical,r,ms,seconds,direct=false,target=null) {
       const focused=body.id===this.camera.focus,selected=body.id===this.selected,priority=focused||selected;
-      const screenDiameter=Math.max(32,r*2*this.dpr);
+      const screenDiameter=Math.max(32,r*2*this.dpr),apparentDiameter=Math.max(16,r*2);
       const nativeWidth=window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth;
       const detailFloor=focused?SURFACE.detailWidth:selected?2048:0;
       const textureDemand=Math.max(screenDiameter*4,detailFloor);
@@ -866,10 +876,17 @@
       // prevents them from sparkling while the camera dollies away.
       const nightDemand=Math.max(128,screenDiameter*2);
       const nightTextureWidth=TEXTURE_TIERS.find(n=>n>=nightDemand)||SURFACE.detailWidth;
+      // Tiny discs cannot resolve a separate cloud layer. Fade it out before
+      // dropping its texture entirely, then choose cloud LOD only from its
+      // on-screen size so a distant focused Earth does not force 4K clouds.
+      const cloudVisibilityRaw=clamp((apparentDiameter-64)/32,0,1);
+      const cloudVisibility=cloudVisibilityRaw*cloudVisibilityRaw*(3-2*cloudVisibilityRaw);
+      const cloudDemand=Math.max(256,screenDiameter*4);
+      const cloudTextureWidth=TEXTURE_TIERS.find(n=>n>=cloudDemand)||SURFACE.detailWidth;
       const vectors=this.bodyFrame(body),frame=vectors.gpu||(vectors.gpu=Object.fromEntries(Object.entries(vectors).filter(([k])=>k!=='gpu').map(([k,v])=>[k,new Float32Array([v.x,v.y,v.z])])));
       const lightVector=this.viewDirection({x:-physical.x,y:-physical.y,z:-physical.z}),len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
       const activity=body.id==='sun'&&this.options.activity,spin=A.rotationAt(body,ms),job=direct&&target?target:{};
-      job.id=body.id;job.textureWidth=textureWidth;job.frame=frame;job.phase=spin/TAU;job.activity=activity;job.seconds=activity?seconds:0;job.nightLights=body.id==='earth'&&this.options.earthNightLights!==false;job.nightTextureWidth=job.nightLights?Math.min(SURFACE.detailWidth,nightTextureWidth):0;
+      job.id=body.id;job.textureWidth=textureWidth;job.frame=frame;job.phase=spin/TAU;job.activity=activity;job.seconds=activity?seconds:0;job.nightLights=body.id==='earth'&&this.options.earthNightLights!==false;job.nightTextureWidth=job.nightLights?Math.min(SURFACE.detailWidth,nightTextureWidth):0;job.cloudAmount=body.id==='earth'?clamp(Number(this.options.earthCloudAmount),0,1)*cloudVisibility:0;job.cloudTextureWidth=job.cloudAmount>0?Math.min(SURFACE.detailWidth,cloudTextureWidth):0;job.cloudSeed=body.id==='earth'?this.options.earthCloudSeed:0;job.weatherDay=body.id==='earth'?ms/86400000:0;
       job.priority=focused?2:selected?1:0;
       const light=direct?(job.light||(job.light=[0,0,0])):[0,0,0];
       light[0]=lightVector.x/len;light[1]=lightVector.y/len;light[2]=lightVector.z/len;job.light=light;
@@ -877,9 +894,9 @@
       const maximum=priority?SURFACE.maxRaster:384,wanted=Math.min(maximum,screenDiameter);
       const diam=[32,64,128,192,256,384,512,768,1024].find(n=>n>=wanted)||1024;
       job.diam=diam;
-      job.geometry=[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,job.nightTextureWidth,'camera-3d',A.rotationPoleTilt(body),this.camera.azimuth.toFixed(5),this.camera.elevation.toFixed(5),Number(activity),Number(job.nightLights)].join(':');
+      job.geometry=[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,job.nightTextureWidth,job.cloudTextureWidth,'camera-3d',A.rotationPoleTilt(body),this.camera.azimuth.toFixed(5),this.camera.elevation.toFixed(5),Number(activity),Number(job.nightLights),job.cloudAmount.toFixed(2),job.cloudSeed.toFixed(6)].join(':');
       job.viewState={yaw:this.camera.azimuth,pitch:this.camera.elevation,limit:this.autoRotation?Math.PI/120:Math.PI/36,
-        key:[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,job.nightTextureWidth,A.rotationPoleTilt(body),this.autoRotation?.generation||0,Number(job.nightLights)].join(':')};
+        key:[body.id,window.SolarAssets?.materialRevision||0,diam,textureWidth,job.nightTextureWidth,job.cloudTextureWidth,A.rotationPoleTilt(body),this.autoRotation?.generation||0,Number(job.nightLights),job.cloudAmount.toFixed(2),job.cloudSeed.toFixed(6)].join(':')};
       return job;
     }
     invalidateSurfaces() {this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate();}
