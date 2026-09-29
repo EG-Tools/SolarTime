@@ -26,7 +26,7 @@ test('manual and automatic production paths share the guard and never grant PRs 
 });
 test('release browser checks read manifest and source items instead of fixed latest versions and click counts',()=>{
  const ui=fs.readFileSync(path.join(root,'tests/browser/ui-regression.py'),'utf8'),history=fs.readFileSync(path.join(root,'tests/browser/release_history.py'),'utf8');
- assert.doesNotMatch(ui,/inner_text\(\)==['"]v0\.56/);assert.match(ui,/verify_history/);assert.match(history,/version.json/);assert.match(history,/all_inner_texts/);assert.match(history,/historical content/);
+ assert.doesNotMatch(ui,/inner_text\(\)==['"]v0\.56/);assert.doesNotMatch(ui,/navigate_to_release\(page,['"]0\./);assert.match(ui,/verify_history/);assert.match(history,/version.json/);assert.match(history,/all_inner_texts/);assert.match(history,/historical content/);
 });
 test('Pages package preserves the public runtime graph and excludes maintenance files',()=>{
  const {buildPages}=require('../tools/build-pages.cjs'),{releaseFiles}=require('../tools/release-files.cjs');

@@ -10,7 +10,7 @@ from regression_diagnostics import BrowserDiagnostics
 from region_menu import verify_region_menu
 from translation_source import verify_translation_source
 from closeup_textures import verify_closeup_textures
-from release_history import verify_history, navigate_to_release, verify_current_release
+from release_history import verify_history, navigate_to_release, verify_current_release, verify_items
 
 def png(w=32,h=16):
  def chunk(t,d):return struct.pack('!I',len(d))+t+d+struct.pack('!I',zlib.crc32(t+d)&0xffffffff)
@@ -237,8 +237,9 @@ def suite(browser,root,size,installed):
   page.locator('#help-button').click()
   if not page.locator('#release-notes-list').is_visible():page.locator('#release-notes-toggle').click()
   verify_current_release(page,root,tag+' '+country,'nl',check)
-  navigate_to_release(page,'0.48',check,tag+' '+country)
-  check('Willekeurige rotatie' in page.locator('#release-notes-list').inner_text(),tag+' '+country+' Dutch release history')
+  historical_version=page.evaluate("SolarReleaseNotes.RELEASES.at(-1).version")
+  navigate_to_release(page,historical_version,check,tag+' '+country)
+  verify_items(page,'nl',check,tag+' '+country+' Dutch release history')
   navigate_to_release(page,json.loads((root/'version.json').read_text())['version'],check,tag+' '+country)
   page.locator('#help-dialog .close-button').first.click()
  check(len([u for u in page.evaluate('__fixtureRequests') if '/locales/nl.json' in u])==1,tag+' one shared Dutch request')
