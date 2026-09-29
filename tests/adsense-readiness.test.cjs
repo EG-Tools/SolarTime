@@ -24,6 +24,7 @@ test('policy and original-content pages are public, linked and crawlable',()=>{
  const html=read('index.html'),robots=read('robots.txt'),sitemap=read('sitemap.xml');
  for(const file of ['about.html','privacy.html','terms.html','changelog.html']){
   const page=read(file);
+  for(const destination of ['about.html','privacy.html','terms.html','changelog.html'])assert.ok(page.includes(`href="${destination}"`),`${file} links to ${destination}`);
   assert.ok(html.includes(`href="${file}"`),file);
   assert.ok(sitemap.includes(`https://solartime.app/${file}`),file);
   assert.ok(page.includes(`content="${publisher}"`),file);
