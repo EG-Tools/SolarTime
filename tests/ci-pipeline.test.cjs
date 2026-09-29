@@ -35,3 +35,7 @@ test('Pages package preserves the public runtime graph and excludes maintenance 
  assert.ok(fs.existsSync(path.join(site,'.nojekyll')));
  const publicAssets=fs.readFileSync(path.join(site,'src/assets.js'),'utf8');assert.match(publicAssets,/https:\/\/solar-time\.keg0320\.workers\.dev\/media\//);
 });
+test('Cloudflare package preserves the same public runtime graph as Pages',()=>{
+ const {prepareSite}=require('../tools/cloudflare-site.cjs'),{releaseFiles}=require('../tools/release-files.cjs');
+ const {site}=prepareSite(root,{cdnBase:'/media/'});for(const name of releaseFiles(root))assert.ok(fs.existsSync(path.join(site,name)),name);
+});
