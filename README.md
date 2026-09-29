@@ -65,6 +65,6 @@ npm run build:cloudflare
 
 ## 문서
 
-- [전체 업데이트 내역](CHANGELOG_KO.md)
+- [전체 업데이트 내역](CHANGELOG.md)
 - [미디어 출처와 라이선스](assets/CREDITS.md)
 - [공개 사이트](https://solartime.app/)

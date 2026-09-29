@@ -1,6 +1,6 @@
 # Solar Time — Credits and Sources
 
-This document lists the media, scientific references and third-party components currently used by Solar Time. Version-by-version changes belong in [`CHANGELOG_KO.md`](../CHANGELOG_KO.md), not in this credit record.
+This document lists the media, scientific references and third-party components currently used by Solar Time. Version-by-version changes belong in [`CHANGELOG.md`](../CHANGELOG.md), not in this credit record.
 
 ## Audio
 

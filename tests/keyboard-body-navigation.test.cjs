@@ -37,6 +37,7 @@ test('Help uses three keyboard columns, four mouse columns and two columns on ph
 
 test('up and down arrows use the shared camera path continuously while held',()=>{
   assert.match(app,/if\(key==='arrowup'\|\|key==='arrowdown'\)\{/);
+  assert.match(app,/if\(UI\.topDialog\(\)\|\|languageMenu\.contains\(event\.target\)\)return;/);
   assert.match(app,/heldZoomKeys\.add\(key\)/);
   assert.match(app,/keyboardZoom\(key==='arrowup'\?1\.04:1\/1\.04\)/);
   assert.match(app,/addEventListener\('keyup',[^]*heldZoomKeys\.delete\(key\)/);

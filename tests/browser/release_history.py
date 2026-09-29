@@ -42,7 +42,7 @@ def verify_history(page,root,label,language,check):
  check(not page.locator('#release-notes-older').is_disabled(),label+' archive entry follows the tenth release')
  page.locator('#release-notes-older').click()
  check(page.locator('#release-notes-all').is_visible(),label+' complete Korean archive link')
- check(page.locator('#release-notes-all').get_attribute('href')=='https://github.com/EG-Tools/SolarTime/blob/main/CHANGELOG_KO.md',label+' archive points to the GitHub history')
+ check(page.locator('#release-notes-all').get_attribute('href')=='https://github.com/EG-Tools/SolarTime/blob/main/CHANGELOG.md',label+' archive points to the GitHub history')
  check(page.locator('#release-notes-older').is_disabled(),label+' archive terminal boundary')
  page.locator('#release-notes-newer').click()
  check(page.locator('#release-notes-version').inner_text()=='v'+versions[-1],label+' archive returns to the tenth release')

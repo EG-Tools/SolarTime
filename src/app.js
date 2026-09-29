@@ -1015,7 +1015,7 @@
         }
         if(editing)return;
         if(key==='arrowup'||key==='arrowdown'){
-          if(UI.topDialog())return;
+          if(UI.topDialog()||languageMenu.contains(event.target))return;
           event.preventDefault();event.stopPropagation();heldZoomKeys.add(key);
           if(!event.repeat)keyboardZoom(key==='arrowup'?1.04:1/1.04);
           return;

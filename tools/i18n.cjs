@@ -118,7 +118,7 @@ function outputs(root,data=compile(root)){
  ].join('\n');
  const loader='src/language-data.js';out.set(loader,replaceBlock(fs.readFileSync(path.join(root,loader),'utf8'),'// BEGIN GENERATED I18N DATA','// END GENERATED I18N DATA',block,loader));
  const notes='src/release-notes.js';out.set(notes,replaceBlock(fs.readFileSync(path.join(root,notes),'utf8'),'// BEGIN GENERATED RELEASE DATA','// END GENERATED RELEASE DATA',' const RECENT_DATA='+JSON.stringify(d.releases.slice(0,10))+';',notes));
- out.set('CHANGELOG_KO.md',koreanChangelog(d.releases));
+ out.set('CHANGELOG.md',koreanChangelog(d.releases));
  return {out,data};
 }
 function sync(root,{write=false,strict=false}={}){
