@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'..'),api=require('../tools/i18n.cjs'),gold=re
 const read=(file,dir=root)=>fs.readFileSync(path.join(dir,file),'utf8');
 const data=(file,dir=root)=>JSON.parse(read(file,dir));
 const write=(file,value,dir)=>fs.writeFileSync(path.join(dir,file),JSON.stringify(value,null,2)+'\n');
-function sandbox(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'solar-i18n-'));fs.cpSync(path.join(root,'i18n'),path.join(dir,'i18n'),{recursive:true});fs.mkdirSync(path.join(dir,'src'));fs.cpSync(path.join(root,'src/locales'),path.join(dir,'src/locales'),{recursive:true});for(const f of ['language-data.js','release-notes.js'])fs.copyFileSync(path.join(root,'src',f),path.join(dir,'src',f));fs.copyFileSync(path.join(root,'CHANGELOG.md'),path.join(dir,'CHANGELOG.md'));return dir;}
+function sandbox(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'solar-i18n-'));fs.cpSync(path.join(root,'i18n'),path.join(dir,'i18n'),{recursive:true});fs.mkdirSync(path.join(dir,'src'));fs.cpSync(path.join(root,'src/locales'),path.join(dir,'src/locales'),{recursive:true});for(const f of ['language-data.js','release-notes.js','consent.js','google-analytics.js','microsoft-clarity.js'])fs.copyFileSync(path.join(root,'src',f),path.join(dir,'src',f));for(const f of ['CHANGELOG.md','changelog.html','site-info.css'])fs.copyFileSync(path.join(root,f),path.join(dir,f));return dir;}
 function runtime({protocol='https:',fetch:fetchFn}={}){
  const requests=[],location={protocol,href:protocol==='file:'?'file:///D:/SolarTime/index.html':'https://solar.test/'},window={};
  const context={window,location,document:{currentScript:{src:new URL('src/language-data.js',location.href).href}},URL,AbortSignal,fetch:async url=>{requests.push(String(url));if(fetchFn)return fetchFn(url);const code=/\/([a-z]+)\.json/.exec(String(url))[1];return {ok:true,json:async()=>data('src/locales/'+code+'.json')};}};
@@ -13,6 +13,8 @@ function runtime({protocol='https:',fetch:fetchFn}={}){
 test('all generated translations are deterministic and current',()=>{
  const a=api.sync(root);assert.deepEqual(a.changed,[]);assert.equal(a.report.languages,13);assert.deepEqual(api.sync(root).changed,[]);
  const version=data('version.json');assert.equal(api.compile(root).releases[0].version,version.version);
+ const archive=api.compile(root).archive;assert.equal(archive[0].version,'0.39');assert.equal(archive.at(-1).version,'0.01');
+ assert.match(read('changelog.html'),/전체 업데이트 내역/);assert.match(read('changelog.html'),/id="v0\.01"/);
  for(const file of ['tools/build-pages.cjs','tools/cloudflare-site.cjs'])assert.match(read(file),/require\('\.\/i18n\.cjs'\)\.sync\(root\)/);
 });
 test('all 13 web and file-language bundles preserve the previous effective interface, timer, body and phase text',async()=>{

@@ -22,7 +22,7 @@ test('ads.txt authorizes only the configured Google publisher',()=>{
 
 test('policy and original-content pages are public, linked and crawlable',()=>{
  const html=read('index.html'),robots=read('robots.txt'),sitemap=read('sitemap.xml');
- for(const file of ['about.html','privacy.html','terms.html']){
+ for(const file of ['about.html','privacy.html','terms.html','changelog.html']){
   const page=read(file);
   assert.ok(html.includes(`href="${file}"`),file);
   assert.ok(sitemap.includes(`https://solartime.app/${file}`),file);
@@ -61,7 +61,7 @@ test('desktop ad stays hidden until a real slot or an explicit local preview is 
 
 test('Cloudflare site build publishes every AdSense review file',()=>{
  const build=read('tools/cloudflare-site.cjs');
- for(const file of ['ads.txt','robots.txt','sitemap.xml','about.html','privacy.html','terms.html','site-info.css'])assert.ok(build.includes(`'${file}'`),file);
+ for(const file of ['ads.txt','robots.txt','sitemap.xml','about.html','privacy.html','terms.html','changelog.html','site-info.css'])assert.ok(build.includes(`'${file}'`),file);
 });
 
 test('Google Analytics runs only on the production domain with denied consent defaults',()=>{
@@ -73,7 +73,7 @@ test('Google Analytics runs only on the production domain with denied consent de
  assert.ok(code.includes('document.querySelector(`script[src="${source}"]`)'));
  assert.ok(code.includes("root.gtag('config',measurementId)"));
  for(const key of ['ad_storage','ad_user_data','ad_personalization','analytics_storage'])assert.ok(consent.includes(`${key}:'denied'`),key);
- for(const file of ['index.html','about.html','privacy.html','terms.html']){
+ for(const file of ['index.html','about.html','privacy.html','terms.html','changelog.html']){
   const page=read(file);assert.ok(page.includes(cacheUrl('src/consent.js')),file);assert.ok(page.includes(cacheUrl('src/google-analytics.js')),file);
   assert.ok(page.indexOf('src/consent.js')<page.indexOf('src/google-analytics.js'),file+' consent order');
  }

@@ -5,79 +5,79 @@
     "localized": {
       "kor": [
         "앱 안의 업데이트 내역을 선택한 언어로 번역된 최신 10개만 표시하도록 정리했습니다.",
-        "10번째 기록 다음에는 GitHub의 한국어 전체 업데이트 내역으로 이동하는 링크가 표시됩니다.",
+        "10번째 기록 다음에는 Solar Time의 한국어 전체 업데이트 내역 페이지로 이동하는 링크가 표시됩니다.",
         "전체 한국어 기록은 번역 원본에서 자동 생성되며, 앱의 업데이트 데이터 용량을 크게 줄였습니다.",
         "README와 미디어 크레딧을 현재 프로그램의 목적, 기능, 사용법과 실제 사용 중인 출처 중심으로 정리했습니다."
       ],
       "en": [
         "The in-app update history now keeps only the latest ten releases translated into the selected language.",
-        "After the tenth entry, a link opens the complete Korean update history on GitHub.",
+        "After the tenth entry, a link opens Solar Time's standalone complete Korean update-history page.",
         "The complete Korean archive is generated automatically from the translation source, substantially reducing the app's update-data payload.",
         "The README and media credits now focus on the app's enduring purpose, features, controls and sources that are actually in use."
       ],
       "chn": [
         "应用内更新记录现仅保留最近10个版本，并按所选语言显示翻译内容。",
-        "在第10条记录之后，会显示前往 GitHub 韩语完整更新记录的链接。",
+        "在第10条记录之后，会显示前往 Solar Time 独立韩语完整更新记录页面的链接。",
         "完整韩语记录由翻译源自动生成，同时大幅减少应用的更新数据体积。",
         "README 和媒体鸣谢已整理为长期有效的程序用途、功能、操作方式及当前实际使用的来源。"
       ],
       "zht": [
         "應用程式內的更新記錄現在只保留最近10個版本，並依所選語言顯示翻譯內容。",
-        "在第10筆記錄之後，會顯示前往 GitHub 韓文完整更新記錄的連結。",
+        "在第10筆記錄之後，會顯示前往 Solar Time 獨立韓文完整更新記錄頁面的連結。",
         "完整韓文記錄會由翻譯來源自動產生，同時大幅縮減應用程式的更新資料容量。",
         "README 和媒體鳴謝已整理為長期適用的程式用途、功能、操作方式及目前實際使用的來源。"
       ],
       "jpn": [
         "アプリ内の更新履歴は、選択した言語に翻訳された最新10件だけを表示するよう整理しました。",
-        "10件目の次には、GitHubにある韓国語の全更新履歴を開くリンクが表示されます。",
+        "10件目の次には、Solar Time内の独立した韓国語の全更新履歴ページを開くリンクが表示されます。",
         "韓国語の全履歴は翻訳元から自動生成され、アプリが読み込む更新データを大幅に削減しました。",
         "READMEとメディアクレジットを、長く使える目的・機能・操作方法と現在実際に使用する出典中心に整理しました。"
       ],
       "hi": [
         "ऐप में अपडेट इतिहास अब चुनी गई भाषा में अनूदित केवल नवीनतम 10 रिलीज़ दिखाता है।",
-        "दसवीं प्रविष्टि के बाद GitHub पर पूरे कोरियाई अपडेट इतिहास का लिंक दिखाई देता है।",
+        "दसवीं प्रविष्टि के बाद Solar Time के अलग पूर्ण कोरियाई अपडेट इतिहास पृष्ठ का लिंक दिखाई देता है।",
         "पूरा कोरियाई संग्रह अनुवाद स्रोत से अपने आप बनता है, जिससे ऐप के अपडेट डेटा का आकार काफी घट गया है।",
         "README और मीडिया श्रेय को ऐप के स्थायी उद्देश्य, सुविधाओं, नियंत्रणों और वास्तव में उपयोग किए जा रहे स्रोतों पर केंद्रित किया गया है।"
       ],
       "es": [
         "El historial de la aplicación muestra ahora solo las diez versiones más recientes traducidas al idioma seleccionado.",
-        "Después de la décima entrada aparece un enlace al historial completo en coreano alojado en GitHub.",
+        "Después de la décima entrada aparece un enlace a la página independiente de Solar Time con el historial completo en coreano.",
         "El archivo coreano completo se genera automáticamente desde la fuente de traducción, reduciendo considerablemente los datos de actualización de la aplicación.",
         "El README y los créditos multimedia se centran ahora en el propósito, las funciones, los controles y las fuentes realmente utilizadas."
       ],
       "de": [
         "Der Update-Verlauf in der App zeigt nun nur die zehn neuesten Versionen in der ausgewählten Sprache.",
-        "Nach dem zehnten Eintrag erscheint ein Link zum vollständigen koreanischen Update-Verlauf auf GitHub.",
+        "Nach dem zehnten Eintrag erscheint ein Link zur eigenständigen Solar-Time-Seite mit dem vollständigen koreanischen Update-Verlauf.",
         "Das vollständige koreanische Archiv wird automatisch aus der Übersetzungsquelle erzeugt, wodurch die Update-Daten der App deutlich kleiner werden.",
         "README und Mediennachweise konzentrieren sich nun dauerhaft auf Zweck, Funktionen, Bedienung und die tatsächlich verwendeten Quellen."
       ],
       "fr": [
         "L’historique intégré affiche désormais uniquement les dix versions les plus récentes traduites dans la langue sélectionnée.",
-        "Après la dixième entrée, un lien ouvre l’historique complet en coréen sur GitHub.",
+        "Après la dixième entrée, un lien ouvre la page autonome de Solar Time contenant l’historique complet en coréen.",
         "L’archive coréenne complète est générée automatiquement depuis la source de traduction, ce qui réduit fortement les données de mise à jour de l’application.",
         "Le README et les crédits des médias se concentrent désormais sur l’objectif durable, les fonctions, les commandes et les sources réellement utilisées."
       ],
       "pt": [
         "O histórico na aplicação apresenta agora apenas as dez versões mais recentes traduzidas para o idioma selecionado.",
-        "Depois da décima entrada, surge uma ligação para o histórico completo em coreano no GitHub.",
+        "Depois da décima entrada, surge uma ligação para a página independente do Solar Time com o histórico completo em coreano.",
         "O arquivo coreano completo é gerado automaticamente a partir da fonte de tradução, reduzindo bastante os dados de atualização da aplicação.",
         "O README e os créditos multimédia concentram-se agora no objetivo, funcionalidades, controlos e fontes realmente utilizadas."
       ],
       "it": [
         "La cronologia nell’app mostra ora soltanto le dieci versioni più recenti tradotte nella lingua selezionata.",
-        "Dopo la decima voce compare un collegamento alla cronologia completa in coreano su GitHub.",
+        "Dopo la decima voce compare un collegamento alla pagina autonoma di Solar Time con la cronologia completa in coreano.",
         "L’archivio coreano completo viene generato automaticamente dalla fonte delle traduzioni, riducendo sensibilmente i dati di aggiornamento dell’app.",
         "Il README e i crediti multimediali sono ora incentrati sullo scopo, le funzioni, i comandi e le fonti effettivamente utilizzate."
       ],
       "id": [
         "Riwayat pembaruan di aplikasi kini hanya menampilkan sepuluh rilis terbaru dalam bahasa yang dipilih.",
-        "Setelah entri kesepuluh, tersedia tautan ke seluruh riwayat pembaruan berbahasa Korea di GitHub.",
+        "Setelah entri kesepuluh, tersedia tautan ke halaman mandiri Solar Time yang memuat seluruh riwayat pembaruan berbahasa Korea.",
         "Arsip lengkap berbahasa Korea dibuat otomatis dari sumber terjemahan sehingga ukuran data pembaruan aplikasi jauh berkurang.",
         "README dan kredit media kini berfokus pada tujuan, fitur, kontrol, dan sumber yang benar-benar digunakan."
       ],
       "nl": [
         "De updategeschiedenis in de app toont nu alleen de tien nieuwste versies in de geselecteerde taal.",
-        "Na het tiende item verschijnt een link naar de volledige Koreaanse updategeschiedenis op GitHub.",
+        "Na het tiende item verschijnt een link naar de zelfstandige Solar Time-pagina met de volledige Koreaanse updategeschiedenis.",
         "Het volledige Koreaanse archief wordt automatisch uit de vertaalbron opgebouwd, waardoor de updategegevens van de app veel kleiner zijn.",
         "De README en mediacredits richten zich nu blijvend op het doel, de functies, de bediening en de werkelijk gebruikte bronnen."
       ]

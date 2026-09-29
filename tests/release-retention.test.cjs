@@ -8,16 +8,18 @@ test('approved one-time pruning removes the oldest half, not a language-specific
  const rows=data('i18n/releases.json'),old=rows.filter(r=>Number(r.version)<Number(spec.prunedInVersion));
  assert.deepEqual(old.map(r=>r.version),spec.retainedVersions);
  assert.ok(spec.removedVersions.every(v=>!rows.some(r=>r.version===v)));
+ assert.deepEqual(data('i18n/releases-archive-ko.json').slice(0,spec.removedVersions.length).map(r=>r.version),spec.removedVersions);
  assert.deepEqual(notes.RELEASES.map(r=>r.version),rows.map(r=>r.version));
 });
 test('every retained canonical release preserves its date and all exact localized text',()=>{
  const rows=data('i18n/releases.json');
  for(const [version,digest] of Object.entries(spec.retainedSourceHashes))assert.equal(api.fingerprint(rows.find(r=>r.version===version)),digest,version);
 });
-test('removed versions leave no generated entries, obsolete exceptions or historical translation fixtures',()=>{
+test('removed multilingual versions remain absent from runtime data but are restored in the Korean archive',()=>{
  const compiled=api.compile(root),allow=data('i18n/legacy-allowlist.json'),fixture=data('tests/fixtures/i18n-v061.json');
  for(const version of spec.removedVersions){
   assert.ok(!compiled.releases.some(r=>r.version===version));
+  assert.ok(compiled.archive.some(r=>r.version===version));
   assert.ok(!Object.keys(allow.inherited).some(k=>k.endsWith(':release.'+version)),version);
   assert.ok(!Object.hasOwn(fixture.releases,version));
  }

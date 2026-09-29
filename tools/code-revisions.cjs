@@ -16,7 +16,7 @@ function revisions(root){
  const generated=runtimeScripts(root,manifest,deployment,{cdnBase:deployment.cdnBase});
  const virtual={'src/assets.js':generated.assets,'src/sky-asset.js':generated.sky};
  const key=file=>hash(virtual[file]??read(file));
- for(const file of ['index.html','about.html','privacy.html','terms.html']){
+ for(const file of ['index.html','about.html','privacy.html','terms.html','changelog.html']){
   pending.set(file,read(file).replace(/\b(src|href)="((?:src\/)?[a-zA-Z0-9_.\/-]+\.(?:js|css))(?:\?[^"#]*)?"/g,(all,attr,target)=>{
    if(!fs.existsSync(path.join(root,target)))throw Error('Missing referenced runtime '+target);
    return attr+'="'+target+'?v='+key(target)+'"';

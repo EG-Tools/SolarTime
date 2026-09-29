@@ -73,7 +73,7 @@ function compile(root){
  for(const key of invariants)if(!Object.hasOwn(fields,key))errors.push('Unknown invariant '+key);
  const legacyFileCopy=Object.fromEntries(codes.map(code=>[code,{...Object.fromEntries(config.legacyFileKeys.map(k=>[k,bundles[code].copy[k]])),...sources[code].local}]));
  for(const key of config.legacyFileKeys)if(!Object.hasOwn(bundles.en.copy,key))errors.push('Unknown local compatibility key '+key);
- const releases=read(root,'i18n/releases.json'),versions=new Set();
+ const releases=read(root,'i18n/releases.json'),archive=read(root,'i18n/releases-archive-ko.json'),versions=new Set();
  if(!Array.isArray(releases)||!releases.length)errors.push('No release history');
  for(const release of releases){
   if(!/^0\.\d{1,2}$/.test(release.version)||versions.has(release.version)||!/^\d{4}\.\d{2}\.\d{2}$/.test(release.date)||!object(release.localized))throw Error('Invalid release '+release.version);
@@ -86,23 +86,60 @@ function compile(root){
    else if(!Array.isArray(items)||items.length!==release.localized.en.length||items.some(v=>typeof v!=='string'||!v.trim()))errors.push(id+': invalid release items');
   }
  }
+ if(!Array.isArray(archive)||!archive.length)errors.push('No Korean release archive');
+ let archivePrevious=Number(releases.at(-1)?.version||Infinity);
+ for(const release of archive){
+  if(!/^0\.\d{1,2}$/.test(release.version)||versions.has(release.version)||!/^[0-9]{4}\.[0-9]{2}\.[0-9]{2}$/.test(release.date)||!Array.isArray(release.items)||!release.items.length||release.items.some(v=>typeof v!=='string'||!v.trim()))throw Error('Invalid Korean archive release '+release.version);
+  const numeric=Number(release.version);if(!(numeric<archivePrevious))throw Error('Korean archive is not newest-first at '+release.version);
+  archivePrevious=numeric;versions.add(release.version);
+ }
  for(const id of Object.keys(inherited))if(!used.has('inherited:'+id))errors.push('Obsolete or changed fallback allowance '+id);
  for(const id of Object.keys(variants))if(!used.has('variant:'+id))errors.push('Obsolete or changed placeholder allowance '+id);
  if(errors.length)throw Error('Translation validation failed:\n'+errors.join('\n'));
- return {config,codes,sources,fields,bundles,metadata,automaticLabels,legacyFileCopy,releases,report:{languages:codes.length,sourceMessages:keys.length,legacyFallbackCount:fallbacks.length,placeholderVariantCount:warnings.length,fallbacks,warnings,fullyTranslated:fallbacks.length===0}};
+ return {config,codes,sources,fields,bundles,metadata,automaticLabels,legacyFileCopy,releases,archive,report:{languages:codes.length,sourceMessages:keys.length,legacyFallbackCount:fallbacks.length,placeholderVariantCount:warnings.length,fallbacks,warnings,fullyTranslated:fallbacks.length===0}};
 }
 function replaceBlock(text,start,end,value,file){
  if(text.split(start).length!==2||text.split(end).length!==2)throw Error('Invalid generated block markers: '+file);
  const a=text.indexOf(start)+start.length,b=text.indexOf(end,a);return text.slice(0,a)+'\n'+value+'\n  '+text.slice(b);
 }
-function koreanChangelog(releases){
+function archiveEntries(releases,archive){return [...releases.map(release=>({version:release.version,date:release.date,items:release.localized.kor||release.localized.en||[]})),...archive];}
+function koreanChangelog(releases,archive){
  const lines=['# Solar Time 전체 업데이트 내역','','Solar Time의 현재 및 과거 업데이트 내역입니다. 최신 버전부터 표시합니다.',''];
- for(const release of releases){
+ for(const release of archiveEntries(releases,archive)){
   lines.push('## v'+release.version+(release.date?' · '+release.date:''),'');
-  for(const item of release.localized.kor||release.localized.en||[])lines.push('- '+item);
+  for(const item of release.items)lines.push('- '+item);
   lines.push('');
  }
  return lines.join('\n').trimEnd()+'\n';
+}
+function escapeHtml(value){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));}
+function changelogPage(root,releases,archive){
+ const revisionHash=require('./code-revisions.cjs').hash,cache=file=>file+'?v='+revisionHash(fs.readFileSync(path.join(root,file),'utf8'));
+ const entries=archiveEntries(releases,archive),sections=entries.map(release=>`      <section class="release-entry" id="v${escapeHtml(release.version)}"><header><h2>v${escapeHtml(release.version)}</h2><time datetime="${release.date.replaceAll('.','-')}">${escapeHtml(release.date)}</time></header><ul>${release.items.map(item=>`<li>${escapeHtml(item)}</li>`).join('')}</ul></section>`).join('\n');
+ return `<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Solar Time의 현재 및 과거 전체 업데이트 내역입니다.">
+  <meta name="google-adsense-account" content="ca-pub-5773171100052324">
+  <link rel="canonical" href="https://solartime.app/changelog.html"><link rel="stylesheet" href="${cache('site-info.css')}">
+  <script src="${cache('src/consent.js')}"></script>
+  <script src="${cache('src/google-analytics.js')}"></script>
+  <script src="${cache('src/microsoft-clarity.js')}"></script>
+  <title>Solar Time 전체 업데이트 내역</title>
+</head>
+<body><div class="site-shell">
+  <header class="site-header"><a class="site-brand" href="./">SOLAR TIME</a><nav class="site-nav" aria-label="사이트 정보"><a href="about.html">ABOUT</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a><a href="changelog.html" aria-current="page">UPDATES</a></nav></header>
+  <main>
+    <p class="eyebrow">UPDATE ARCHIVE · KOREAN</p><h1>전체 업데이트 내역</h1>
+    <p class="lead">Solar Time의 현재 및 과거 업데이트 기록입니다. Git 저장소에 남아 있는 초기 기록까지 한국어로 한곳에 정리했습니다.</p>
+    <div class="release-archive">
+${sections}
+    </div>
+  </main>
+  <footer class="site-footer">© 2026 Life User. All rights reserved.<a href="./">Solar Time 열기</a></footer>
+</div></body></html>
+`;
 }
 function outputs(root,data=compile(root)){
  const out=new Map();for(const code of data.codes)out.set('src/locales/'+code+'.json',json(data.bundles[code]));
@@ -118,7 +155,8 @@ function outputs(root,data=compile(root)){
  ].join('\n');
  const loader='src/language-data.js';out.set(loader,replaceBlock(fs.readFileSync(path.join(root,loader),'utf8'),'// BEGIN GENERATED I18N DATA','// END GENERATED I18N DATA',block,loader));
  const notes='src/release-notes.js';out.set(notes,replaceBlock(fs.readFileSync(path.join(root,notes),'utf8'),'// BEGIN GENERATED RELEASE DATA','// END GENERATED RELEASE DATA',' const RECENT_DATA='+JSON.stringify(d.releases.slice(0,10))+';',notes));
- out.set('CHANGELOG.md',koreanChangelog(d.releases));
+ out.set('CHANGELOG.md',koreanChangelog(d.releases,d.archive));
+ out.set('changelog.html',changelogPage(root,d.releases,d.archive));
  return {out,data};
 }
 function sync(root,{write=false,strict=false}={}){
