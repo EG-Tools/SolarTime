@@ -6,79 +6,79 @@
       "kor": [
         "지구 카드에 0~200% 대기권 구름 슬라이더를 추가하고 기본값과 초기화 값을 100%로 설정했으며, 이후 선택값은 저장됩니다.",
         "구름은 접속할 때마다 다른 위치에서 생성되며 12시간~5일 동안 부드럽게 나타나고, 확대·축소·분산 방식으로 자연스럽게 사라집니다.",
-        "저위도 0.95배와 중위도 1.05배 사이를 위도에 따라 부드럽게 전환하고, 구름층 높이와 야간 불빛 가림을 보강했습니다.",
+        "위도별 속도 차이를 없애 지표와 같은 기준 속도로 통일하고, 구름 맵을 무작위 회전·배율의 패치로 재조합해 반복되는 모양과 절단면을 줄였습니다.",
         "카메라 거리에 따라 구름 텍스처를 256부터 4096까지 단계적으로 전환하며, 0%에서는 구름 계산과 텍스처 로딩을 중지합니다."
       ],
       "en": [
         "Added a 0–200% atmospheric-cloud slider to the Earth card, with 100% as the default and reset value while subsequent choices remain saved.",
         "Clouds begin at new positions on each visit and smoothly form, evolve and disappear over 12 hours to 5 days through expansion, contraction or dispersal.",
-        "Cloud motion now blends gradually by latitude between 0.95× at low latitudes and 1.05× at mid-latitudes, with improved altitude and night-light veiling.",
+        "Removed latitude-based speed differences so clouds share the surface rotation rate, and recomposed the cloud map into randomly rotated and scaled patches to reduce repeated shapes and cut seams.",
         "Cloud textures now progress from 256 to 4096 according to camera distance, while 0% stops cloud computation and texture loading."
       ],
       "chn": [
         "地球卡片新增0–200%的大气云层滑块，默认值和重置值均为100%，之后会保存用户选择。",
         "每次访问时云层都会从新的位置生成，并在12小时至5天内通过扩张、收缩或分散自然出现、演变和消失。",
-        "云层速度会按纬度在低纬0.95倍与中纬1.05倍之间平滑过渡，同时改进云层高度和夜间灯光遮蔽效果。",
+        "移除按纬度变化的速度差，使云层采用与地表相同的基准转速，并将云图重组为随机旋转和缩放的云块，以减少重复形状和切割边界。",
         "云层纹理会随相机距离从256逐级切换到4096；设为0%时停止云层计算和纹理加载。"
       ],
       "zht": [
         "地球卡片新增0–200%的大氣雲層滑桿，預設值與重設值皆為100%，之後會儲存使用者選擇。",
         "每次造訪時雲層都會從新的位置生成，並在12小時至5天內透過擴張、收縮或分散自然出現、演變與消失。",
-        "雲層速度會依緯度在低緯0.95倍與中緯1.05倍之間平滑過渡，同時改善雲層高度與夜間燈光遮蔽效果。",
+        "移除依緯度變化的速度差，使雲層採用與地表相同的基準轉速，並將雲圖重組為隨機旋轉與縮放的雲塊，以減少重複形狀和切割邊界。",
         "雲層紋理會隨相機距離從256逐級切換至4096；設為0%時停止雲層計算與紋理載入。"
       ],
       "jpn": [
         "地球カードに0～200%の大気圏雲スライダーを追加し、初期値とリセット値を100%に設定しました。以後の選択値は保存されます。",
         "雲はアクセスのたびに新しい位置で生成され、12時間から5日の間に拡大・縮小・分散しながら滑らかに発生、変化、消滅します。",
-        "低緯度の0.95倍から中緯度の1.05倍まで緯度に応じて滑らかに遷移し、雲の高度と夜間光の遮蔽も改善しました。",
+        "緯度による速度差を廃止して地表と同じ基準回転に統一し、雲マップをランダムな回転・倍率のパッチとして再構成して、形の繰り返しと切断境界を減らしました。",
         "カメラ距離に応じて雲テクスチャを256から4096まで段階的に切り替え、0%では雲の計算とテクスチャ読み込みを停止します。"
       ],
       "hi": [
         "पृथ्वी कार्ड में 0–200% वायुमंडलीय बादल स्लाइडर जोड़ा गया है; डिफ़ॉल्ट और रीसेट मान 100% है तथा बाद की पसंद सहेजी जाती है।",
         "हर बार साइट खोलने पर बादल नई जगहों से बनते हैं और 12 घंटे से 5 दिनों में फैलते, सिकुड़ते या बिखरते हुए सहज रूप से दिखाई और गायब होते हैं।",
-        "बादलों की गति निम्न अक्षांशों पर 0.95 गुना और मध्य अक्षांशों पर 1.05 गुना के बीच सहज ढाल में बदलती है; ऊँचाई और रात की रोशनी का आवरण भी बेहतर हुआ है।",
+        "अक्षांश के अनुसार गति का अंतर हटाकर बादलों को सतह की समान मूल घूर्णन गति दी गई है, और दोहराव व कटे किनारों को घटाने के लिए बादल मानचित्र को यादृच्छिक घुमाव और आकार वाले टुकड़ों में फिर जोड़ा गया है।",
         "कैमरा दूरी के अनुसार बादल बनावट 256 से 4096 तक क्रमशः बदलती है; 0% पर बादल गणना और बनावट लोडिंग बंद हो जाती है।"
       ],
       "es": [
         "Se añadió a la tarjeta de la Tierra un control de nubes atmosféricas de 0–200%, con 100% como valor inicial y de restablecimiento; las elecciones posteriores se guardan.",
         "Las nubes aparecen en posiciones nuevas en cada visita y se forman, evolucionan y desaparecen suavemente durante periodos de 12 horas a 5 días mediante expansión, contracción o dispersión.",
-        "El movimiento de las nubes cambia gradualmente según la latitud, de 0,95× en latitudes bajas a 1,05× en latitudes medias, con mejoras en altura y ocultación de luces nocturnas.",
+        "Se eliminó la diferencia de velocidad por latitud para que las nubes compartan la rotación base de la superficie, y el mapa se recompone con fragmentos de giro y escala aleatorios para reducir formas repetidas y cortes visibles.",
         "Las texturas de nubes cambian progresivamente de 256 a 4096 según la distancia de la cámara; al 0% se detienen el cálculo y la carga de texturas."
       ],
       "de": [
         "Die Erdkarte enthält nun einen Regler für atmosphärische Wolken von 0–200%; Standard- und Rücksetzwert sind 100%, spätere Einstellungen werden gespeichert.",
         "Wolken entstehen bei jedem Besuch an neuen Positionen und bilden, verändern und lösen sich über 12 Stunden bis 5 Tage durch Ausdehnen, Schrumpfen oder Verteilen weich auf.",
-        "Die Wolkenbewegung geht je nach Breitengrad weich von 0,95× in niedrigen zu 1,05× in mittleren Breiten über; Höhe und Abschattung der Nachtlichter wurden verbessert.",
+        "Die breitenabhängigen Geschwindigkeitsunterschiede wurden entfernt, sodass Wolken und Oberfläche dieselbe Grundrotation verwenden; zufällig gedrehte und skalierte Ausschnitte verringern wiederholte Formen und sichtbare Schnittkanten.",
         "Wolkentexturen wechseln abhängig von der Kameradistanz stufenweise von 256 bis 4096; bei 0% enden Berechnung und Texturladen."
       ],
       "fr": [
         "La carte de la Terre dispose maintenant d’un curseur de nuages atmosphériques de 0 à 200%, avec 100% comme valeur par défaut et de réinitialisation ; les choix suivants sont mémorisés.",
         "À chaque visite, les nuages naissent à de nouveaux emplacements puis se forment, évoluent et disparaissent doucement sur 12 heures à 5 jours par expansion, contraction ou dispersion.",
-        "Le mouvement des nuages varie progressivement selon la latitude, de 0,95× aux basses latitudes à 1,05× aux latitudes moyennes, avec une altitude et un voile des lumières nocturnes améliorés.",
+        "Les différences de vitesse selon la latitude ont été supprimées afin que les nuages partagent la rotation de base de la surface ; la carte est recomposée en fragments tournés et redimensionnés aléatoirement pour réduire les formes répétées et les coupures visibles.",
         "Les textures de nuages passent progressivement de 256 à 4096 selon la distance de la caméra ; à 0%, le calcul et le chargement des textures s’arrêtent."
       ],
       "pt": [
         "Foi adicionado ao cartão da Terra um controlo de nuvens atmosféricas de 0–200%, com 100% como valor predefinido e de reposição; as escolhas seguintes ficam guardadas.",
         "As nuvens surgem em novas posições a cada visita e formam-se, evoluem e desaparecem suavemente durante 12 horas a 5 dias por expansão, contração ou dispersão.",
-        "O movimento das nuvens transita gradualmente conforme a latitude, de 0,95× nas baixas latitudes para 1,05× nas latitudes médias, com melhorias na altitude e no encobrimento das luzes noturnas.",
+        "Foram removidas as diferenças de velocidade por latitude para que as nuvens partilhem a rotação base da superfície, e o mapa é recomposto com fragmentos de rotação e escala aleatórias para reduzir formas repetidas e cortes visíveis.",
         "As texturas das nuvens passam progressivamente de 256 para 4096 conforme a distância da câmara; a 0% param o cálculo e o carregamento de texturas."
       ],
       "it": [
         "La scheda della Terra include ora un cursore per le nubi atmosferiche da 0 a 200%, con 100% come valore predefinito e di ripristino; le scelte successive vengono salvate.",
         "A ogni visita le nubi nascono in nuove posizioni e si formano, evolvono e scompaiono dolcemente nell’arco di 12 ore–5 giorni tramite espansione, contrazione o dispersione.",
-        "Il movimento delle nubi varia gradualmente con la latitudine, da 0,95× alle basse latitudini a 1,05× alle medie latitudini, con altezza e schermatura delle luci notturne migliorate.",
+        "Sono state eliminate le differenze di velocità per latitudine, così le nubi condividono la rotazione di base della superficie; la mappa viene ricomposta con frammenti ruotati e scalati casualmente per ridurre forme ripetute e tagli visibili.",
         "Le texture delle nubi passano progressivamente da 256 a 4096 in base alla distanza della telecamera; allo 0% calcolo e caricamento vengono arrestati."
       ],
       "id": [
         "Kartu Bumi kini memiliki penggeser awan atmosfer 0–200%, dengan 100% sebagai nilai bawaan dan pengaturan ulang; pilihan berikutnya tetap disimpan.",
         "Awan muncul di posisi baru setiap kunjungan lalu terbentuk, berubah, dan menghilang secara halus selama 12 jam hingga 5 hari melalui pemuaian, penyusutan, atau penyebaran.",
-        "Gerak awan bertransisi mulus menurut lintang, dari 0,95× di lintang rendah hingga 1,05× di lintang menengah, dengan ketinggian dan penutupan cahaya malam yang diperbaiki.",
+        "Perbedaan kecepatan menurut lintang dihapus agar awan memakai rotasi dasar yang sama dengan permukaan, lalu peta awan disusun ulang dari potongan yang diputar dan diskalakan secara acak untuk mengurangi bentuk berulang dan batas potongan.",
         "Tekstur awan beralih bertahap dari 256 hingga 4096 mengikuti jarak kamera; pada 0%, perhitungan awan dan pemuatan tekstur dihentikan."
       ],
       "nl": [
         "De aardekaart heeft nu een schuifregelaar voor atmosferische bewolking van 0–200%, met 100% als standaard- en herstelwaarde; latere keuzes worden opgeslagen.",
         "Wolken beginnen bij elk bezoek op nieuwe posities en ontstaan, veranderen en verdwijnen geleidelijk over 12 uur tot 5 dagen door uitzetten, krimpen of verspreiden.",
-        "De wolkenbeweging verloopt per breedtegraad geleidelijk van 0,95× op lage naar 1,05× op middelhoge breedten, met verbeterde hoogte en afscherming van nachtlicht.",
+        "Snelheidsverschillen per breedtegraad zijn verwijderd zodat wolken dezelfde basisrotatie als het oppervlak volgen; willekeurig gedraaide en geschaalde uitsneden verminderen herhaalde vormen en zichtbare snijranden.",
         "Wolkentexturen schakelen afhankelijk van de camera-afstand stapsgewijs van 256 naar 4096; bij 0% stoppen de berekening en het laden van texturen."
       ]
     }

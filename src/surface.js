@@ -36,10 +36,17 @@ const ATMOSPHERIC_CLOUD_GLSL=`
     float shellLatitude=asin(clamp(shellLocal.z,-1.,1.));
     return vec2(fract((shellAngle+PI)/(2.*PI)-phase),.5-shellLatitude/PI);
   }
-  float atmosphericCloudRegion(vec2 delta,float radius){return 1.-smoothstep(radius*.04,radius,length(delta));}
-  float atmosphericCloudTexture(vec2 sampleUv,float seed){
-    float detailY=sampleUv.y*2.73+cloudHash(seed+71.2);
-    vec2 detailUv=vec2(fract(sampleUv.x*2.73+cloudHash(seed+67.4)),1.-abs(fract(detailY*.5)*2.-1.));
+  float atmosphericCloudRegion(vec2 delta,float radius){
+    float boundedRadius=min(radius,.46);
+    return 1.-smoothstep(boundedRadius*.04,boundedRadius,length(delta));
+  }
+  float atmosphericCloudTexture(vec2 localUv,float seed,vec2 direction){
+    vec2 rotated=vec2(localUv.x*direction.x-localUv.y*direction.y,localUv.x*direction.y+localUv.y*direction.x);
+    float patchScale=.18+.20*cloudHash(seed+37.8);
+    float sampleY=rotated.y*patchScale+cloudHash(seed+41.6);
+    vec2 sampleUv=vec2(fract(rotated.x*patchScale+cloudHash(seed+34.9)),1.-abs(fract(sampleY*.5)*2.-1.));
+    float detailY=(rotated.y*2.73-rotated.x*.37)*patchScale+cloudHash(seed+71.2);
+    vec2 detailUv=vec2(fract((rotated.x*2.73+rotated.y*.31)*patchScale+cloudHash(seed+67.4)),1.-abs(fract(detailY*.5)*2.-1.));
     float sourceCloud=pow(texture2D(cloudsMap,sampleUv).r,1.18);
     float fineCloud=texture2D(cloudsMap,detailUv).r;
     return sourceCloud*(.78+.32*fineCloud)*.72;
@@ -69,31 +76,26 @@ const ATMOSPHERIC_CLOUD_GLSL=`
       float speed=.007+.012*cloudHash(seed+7.1);
       vec2 direction=vec2(cos(angle),sin(angle));
       vec2 origin=vec2(cloudHash(seed+11.9),.12+.76*cloudHash(seed+15.2));
-      // Zonal wind is body-relative: tropical trade winds lag the surface,
-      // mid-latitude westerlies lead it, and the unspecified polar region
-      // returns smoothly to the surface rate. Each coherent weather system
-      // uses its birth latitude, avoiding a visible shear seam across a cloud.
-      float latitude=abs(origin.y-.5)*2.;
-      float tropical=1.-smoothstep(.28,.42,latitude);
-      float polar=smoothstep(.65,.78,latitude);
-      float midLatitude=(1.-tropical)*(1.-polar);
-      float zonalSpeed=-.05*tropical+.05*midLatitude;
-      vec2 drift=vec2(direction.x*speed+zonalSpeed,direction.y*speed);
+      // Clouds share the surface rotation rate. Only the short-lived local
+      // weather drift remains, avoiding latitude-band work and visible shear.
+      vec2 drift=direction*speed;
       vec2 center=origin+drift*age;
       center.x=fract(center.x);center.y=clamp(center.y,.04,.96);
       float dx=mod(weatherUv.x-center.x+.5,1.)-.5;
       float dy=(weatherUv.y-center.y)*1.55;
       vec2 delta=vec2(dx,dy);
       float radius=.30+.14*cloudHash(seed+21.6);
-      float deathMode=cloudHash(seed+43.2),region=0.;
+      float deathMode=cloudHash(seed+43.2),region=0.,shapeRadius=radius;
       if(deathMode<.333){
         float growScale=1.12+.58*cloudHash(seed+47.9);
         float birthScale=mix(growScale,1.,birthFade),deathScale=mix(1.,growScale,deathFade);
-        region=atmosphericCloudRegion(delta,radius*birthScale*deathScale);
+        shapeRadius=radius*birthScale*deathScale;
+        region=atmosphericCloudRegion(delta,shapeRadius);
       }else if(deathMode<.666){
         float shrinkScale=.20+.50*cloudHash(seed+51.7);
         float birthScale=mix(shrinkScale,1.,birthFade),deathScale=mix(1.,shrinkScale,deathFade);
-        region=atmosphericCloudRegion(delta,radius*birthScale*deathScale);
+        shapeRadius=radius*birthScale*deathScale;
+        region=atmosphericCloudRegion(delta,shapeRadius);
       }else{
         float scatter=max(1.-birthFade,deathFade);
         float branchCount=3.+floor(cloudHash(seed+55.1)*10.);
@@ -101,16 +103,16 @@ const ATMOSPHERIC_CLOUD_GLSL=`
         float lobeScale=.25+.24*cloudHash(seed+61.8);
         float lobeRadius=radius*mix(1.,lobeScale,scatter);
         float branchWave=.5+.5*cos(atan(delta.y,delta.x)*branchCount+angle);
-        float branchRadius=lobeRadius+spread*pow(branchWave,3.);
-        region=atmosphericCloudRegion(delta,branchRadius);
-        float sprayNoise=.5+.5*sin((weatherUv.x*113.+weatherUv.y*179.+seed)*6.28318530718)*sin((weatherUv.x*197.-weatherUv.y*137.+seed*.73)*6.28318530718);
+        shapeRadius=lobeRadius+spread*pow(branchWave,3.);
+        region=atmosphericCloudRegion(delta,shapeRadius);
+        vec2 sprayUv=delta/max(min(shapeRadius,.46),.02);
+        float sprayNoise=.5+.5*sin((sprayUv.x*113.+sprayUv.y*179.+seed)*6.28318530718)*sin((sprayUv.x*197.-sprayUv.y*137.+seed*.73)*6.28318530718);
         float particleKeep=smoothstep(scatter*.65,.96,sprayNoise);
         region*=mix(1.,particleKeep,scatter*.82);
       }
       if(region<=0.)continue;
-      float sampleY=weatherUv.y+(cloudHash(seed+37.8)-.5)*.34-drift.y*age;
-      vec2 sampleUv=vec2(fract(weatherUv.x+cloudHash(seed+31.4)-drift.x*age),1.-abs(fract(sampleY*.5)*2.-1.));
-      float patch=atmosphericCloudTexture(sampleUv,seed)*region*life*amountWeight;
+      vec2 localUv=delta/max(min(shapeRadius,.46),.02);
+      float patch=atmosphericCloudTexture(localUv,seed,direction)*region*life*amountWeight;
       cover+=patch*(1.-cover);
     }
     // The user-facing 100% level is intentionally denser than the raw weather
@@ -121,7 +123,7 @@ function surfaceKernel(style){
   const sun=style.sun;
   let assets={};
   const TAU=Math.PI*2,clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),smooth=(a,b,n)=>{const t=clamp((n-a)/(b-a),0,1);return t*t*(3-2*t);};
-  const atmosphericRegion=(dx,dy,radius)=>1-smooth(radius*.04,radius,Math.hypot(dx,dy));
+  const atmosphericRegion=(dx,dy,radius)=>{const boundedRadius=Math.min(radius,.46);return 1-smooth(boundedRadius*.04,boundedRadius,Math.hypot(dx,dy));};
   const atmosphericTexture=(texture,su,sv)=>{const w=texture.width,h=texture.height,x=su*w-.5,y=clamp(sv*h-.5,0,h-1),ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,x0=(ix+w)%w,x1=(x0+1)%w,y1=Math.min(h-1,iy+1),a=(iy*w+x0)*4,b=(iy*w+x1)*4,c=(y1*w+x0)*4,d=(y1*w+x1)*4;return (texture.data[a]*(1-fx)*(1-fy)+texture.data[b]*fx*(1-fy)+texture.data[c]*(1-fx)*fy+texture.data[d]*fx*fy)/255;};
   const setAssets=value=>{if(value)assets=value;};
   function dataBlob(url){const [meta,data]=url.split(','),raw=atob(data),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return new Blob([bytes],{type:meta.split(':')[1].split(';')[0]});}
@@ -331,21 +333,21 @@ function surfaceKernel(style){
                 const birthIndex=cycle-slot,birth=birthIndex*1.25,age=weatherDay-birth,seed=birthIndex*19.17+variant*83.41+cloudSeed*917.53,lifetime=.5+4.5*hash(seed+1.3),birthDuration=Math.min(1.5,lifetime*.40),deathDuration=Math.min(1.15,lifetime*.40);
                 const birthFade=smooth(0,birthDuration,age),deathFade=smooth(lifetime-deathDuration,lifetime,age),life=birthFade*(1-deathFade);if(life<=0)continue;
                 const angle=hash(seed+4.7)*TAU,speed=.007+.012*hash(seed+7.1),dirX=Math.cos(angle),dirY=Math.sin(angle),originY=.12+.76*hash(seed+15.2);
-                const latitude=Math.abs(originY-.5)*2,tropical=1-smooth(.28,.42,latitude),polar=smooth(.65,.78,latitude),midLatitude=(1-tropical)*(1-polar),zonalSpeed=-.05*tropical+.05*midLatitude,driftX=dirX*speed+zonalSpeed,driftY=dirY*speed;
+                const driftX=dirX*speed,driftY=dirY*speed;
                 const centerX=(hash(seed+11.9)+driftX*age+1)%1,centerY=clamp(originY+driftY*age,.04,.96);
                 const weatherU=((cloudU%1)+1)%1,weatherV=cloudV;let dx=weatherU-centerX;if(dx>.5)dx-=1;else if(dx<-.5)dx+=1;
-                const dy=(weatherV-centerY)*1.55,deltaRadius=.30+.14*hash(seed+21.6),deathMode=hash(seed+43.2),regionAt=(ox,oy,radius)=>atmosphericRegion(dx-ox,dy-oy,radius);let region;
-                if(deathMode<.333){const growScale=1.12+.58*hash(seed+47.9);region=regionAt(0,0,deltaRadius*(growScale+(1-growScale)*birthFade)*(1+(growScale-1)*deathFade));}
-                else if(deathMode<.666){const shrinkScale=.20+.50*hash(seed+51.7);region=regionAt(0,0,deltaRadius*(shrinkScale+(1-shrinkScale)*birthFade)*(1+(shrinkScale-1)*deathFade));}
+                const dy=(weatherV-centerY)*1.55,deltaRadius=.30+.14*hash(seed+21.6),deathMode=hash(seed+43.2),regionAt=(ox,oy,radius)=>atmosphericRegion(dx-ox,dy-oy,radius);let region,shapeRadius=deltaRadius;
+                if(deathMode<.333){const growScale=1.12+.58*hash(seed+47.9);shapeRadius=deltaRadius*(growScale+(1-growScale)*birthFade)*(1+(growScale-1)*deathFade);region=regionAt(0,0,shapeRadius);}
+                else if(deathMode<.666){const shrinkScale=.20+.50*hash(seed+51.7);shapeRadius=deltaRadius*(shrinkScale+(1-shrinkScale)*birthFade)*(1+(shrinkScale-1)*deathFade);region=regionAt(0,0,shapeRadius);}
                 else{
                   const scatter=Math.max(1-birthFade,deathFade),branchCount=3+Math.floor(hash(seed+55.1)*10),spread=deltaRadius*(.35+.55*hash(seed+58.4))*scatter,lobeScale=.25+.24*hash(seed+61.8),lobeRadius=deltaRadius*(1+(lobeScale-1)*scatter),branchWave=.5+.5*Math.cos(Math.atan2(dy,dx)*branchCount+angle),branchRadius=lobeRadius+spread*branchWave**3;
-                  region=regionAt(0,0,branchRadius);
-                  const sprayNoise=.5+.5*Math.sin((weatherU*113+weatherV*179+seed)*TAU)*Math.sin((weatherU*197-weatherV*137+seed*.73)*TAU),particleKeep=smooth(scatter*.65,.96,sprayNoise);
+                  shapeRadius=branchRadius;region=regionAt(0,0,shapeRadius);
+                  const boundedRadius=Math.max(.02,Math.min(shapeRadius,.46)),sprayU=dx/boundedRadius,sprayV=dy/boundedRadius,sprayNoise=.5+.5*Math.sin((sprayU*113+sprayV*179+seed)*TAU)*Math.sin((sprayU*197-sprayV*137+seed*.73)*TAU),particleKeep=smooth(scatter*.65,.96,sprayNoise);
                   region*=1-scatter*.82+particleKeep*scatter*.82;
                 }
                 if(region<=0)continue;
-                const sampleU=(weatherU+hash(seed+31.4)-driftX*age+2)%1,sampleY=weatherV+(hash(seed+37.8)-.5)*.34-driftY*age,sampleV=1-Math.abs(((((sampleY*.5)%1)+1)%1)*2-1);
-                const detailU=(sampleU*2.73+hash(seed+67.4))%1,detailY=sampleV*2.73+hash(seed+71.2),detailV=1-Math.abs(((((detailY*.5)%1)+1)%1)*2-1),sourceCloud=atmosphericTexture(clouds,sampleU,sampleV)**1.18,fineCloud=atmosphericTexture(clouds,detailU,detailV);
+                const boundedRadius=Math.max(.02,Math.min(shapeRadius,.46)),localU=dx/boundedRadius,localV=dy/boundedRadius,rotatedU=localU*dirX-localV*dirY,rotatedV=localU*dirY+localV*dirX,patchScale=.18+.20*hash(seed+37.8),sampleU=((rotatedU*patchScale+hash(seed+34.9))%1+1)%1,sampleY=rotatedV*patchScale+hash(seed+41.6),sampleV=1-Math.abs(((((sampleY*.5)%1)+1)%1)*2-1);
+                const detailU=(((rotatedU*2.73+rotatedV*.31)*patchScale+hash(seed+67.4))%1+1)%1,detailY=(rotatedV*2.73-rotatedU*.37)*patchScale+hash(seed+71.2),detailV=1-Math.abs(((((detailY*.5)%1)+1)%1)*2-1),sourceCloud=atmosphericTexture(clouds,sampleU,sampleV)**1.18,fineCloud=atmosphericTexture(clouds,detailU,detailV);
                 const patch=sourceCloud*(.78+.32*fineCloud)*.72*region*life*amountWeight;cover+=patch*(1-cover);
               }
               cover=Math.min(.92,cover*2.25);

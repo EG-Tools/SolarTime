@@ -44,8 +44,11 @@ test('cloud amount controls deterministic regional systems tied to simulation da
   assert.match(surface,/float spread=radius\*\(\.35\+\.55\*cloudHash\(seed\+58\.4\)\)\*scatter/);
   assert.match(surface,/atan\(delta\.y,delta\.x\)\*branchCount/);
   assert.match(surface,/particleKeep=smoothstep\(scatter\*\.65,\.96,sprayNoise\)/);
-  assert.match(surface,/atmosphericCloudRegion\(vec2 delta,float radius\)\{return 1\.-smoothstep\(radius\*\.04,radius,length\(delta\)\)/);
-  assert.match(surface,/float atmosphericCloudTexture\(vec2 sampleUv,float seed\)/);
+  assert.match(surface,/float boundedRadius=min\(radius,\.46\)/);
+  assert.match(surface,/float atmosphericCloudTexture\(vec2 localUv,float seed,vec2 direction\)/);
+  assert.match(surface,/vec2 rotated=vec2\(localUv\.x\*direction\.x-localUv\.y\*direction\.y/);
+  assert.match(surface,/float patchScale=\.18\+\.20\*cloudHash\(seed\+37\.8\)/);
+  assert.match(surface,/vec2 localUv=delta\/max\(min\(shapeRadius,\.46\),\.02\)/);
   assert.match(surface,/vec2 atmosphericShellUv\(vec3 viewNormal,float shellRadius\)/);
   assert.match(surface,/vec3 shellNormal=vec3\(viewNormal\.xy\/shellRadius,sqrt\(max\(0\.,1\.-dot\(viewNormal\.xy,viewNormal\.xy\)\/shellSq\)\)\)/);
   assert.match(surface,/return sourceCloud\*\(\.78\+\.32\*fineCloud\)\*\.72/);
@@ -54,10 +57,10 @@ test('cloud amount controls deterministic regional systems tied to simulation da
   assert.match(surface,/const atmosphericRegion=/);
   assert.match(surface,/const atmosphericTexture=/);
   assert.match(surface,/vec2 direction=vec2\(cos\(angle\),sin\(angle\)\)/);
-  assert.match(surface,/float latitude=abs\(origin\.y-\.5\)\*2\./);
-  assert.match(surface,/float tropical=1\.-smoothstep\(\.28,\.42,latitude\)/);
-  assert.match(surface,/float polar=smoothstep\(\.65,\.78,latitude\)/);
-  assert.match(surface,/float zonalSpeed=-\.05\*tropical\+\.05\*midLatitude/);
+  assert.match(surface,/atmosphericCloudTexture\(localUv,seed,direction\)/);
+  assert.match(surface,/vec2 drift=direction\*speed/);
+  assert.match(surface,/const driftX=dirX\*speed,driftY=dirY\*speed/);
+  assert.doesNotMatch(surface,/zonalSpeed|midLatitude|float tropical=|float polar=/);
   assert.match(surface,/vec2 center=origin\+drift\*age/);
   assert.match(renderer,/job\.weatherDay=body\.id==='earth'\?ms\/86400000:0/);
   assert.equal((surface.match(/vec2 cloudUv=atmosphericShellUv\(n,1\.007\)/g)||[]).length,2);
@@ -80,13 +83,11 @@ test('cloud amount controls deterministic regional systems tied to simulation da
   assert.match(performance,/name==='clouds'&&desired\?\.has\('earth'\)&&desired\.get\('earth'\)\.cloudAmount!==0/);
 });
 
-test('zonal wind is slower in the tropics, faster at mid-latitudes and continuous',()=>{
-  const smooth=(a,b,n)=>{const t=Math.max(0,Math.min(1,(n-a)/(b-a)));return t*t*(3-2*t);};
-  const wind=latitude=>{const tropical=1-smooth(.28,.42,latitude),polar=smooth(.65,.78,latitude),mid=(1-tropical)*(1-polar);return -.05*tropical+.05*mid;};
-  assert.equal(wind(0),-.05);
-  assert.equal(wind(.5),.05);
-  assert.equal(wind(.9),0);
-  for(let latitude=.001;latitude<=1;latitude+=.001)assert.ok(Math.abs(wind(latitude)-wind(latitude-.001))<.0022);
+test('all latitude bands share the surface rotation and patches stop before the wrap cut',()=>{
+  const region=(dx,dy,radius)=>{const bounded=Math.min(radius,.46),t=Math.max(0,Math.min(1,(Math.hypot(dx,dy)-bounded*.04)/(bounded-bounded*.04)));return 1-t*t*(3-2*t);};
+  assert.equal(region(.5,0,.75),0);
+  assert.ok(region(.2,0,.75)>0);
+  assert.equal(region(.5,.3,.75),0);
 });
 
 test('cloud visibility and texture LOD follow the apparent Earth diameter',()=>{

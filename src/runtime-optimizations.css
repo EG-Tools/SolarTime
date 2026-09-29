@@ -70,7 +70,7 @@ body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
 
 /* v0.46 r4: one phone-layout flag is shared by CSS and the sky renderer.
    Keep the approved top boundaries and the home-indicator safety inset. */
-:root{--solar-layout-revision:r1}
+:root{--solar-layout-revision:r2}
 html.solar-phone-layout .edge-shade{display:none}
 html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}
 html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 32px)}
