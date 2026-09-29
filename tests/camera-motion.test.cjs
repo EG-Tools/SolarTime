@@ -58,6 +58,15 @@ test('repeated satellite focus always keeps the same close-up framing',()=>{
   }
  }
 });
+test('rapid tracked-body retargeting keeps the last rendered anchor',()=>{
+ const {r}=renderer();
+ assert.ok(r.animateFocus('earth',0,1000));
+ r.advanceCamera(350);r.trackingAnchor={x:12,y:-8,z:3};
+ assert.ok(r.animateFocus('mars',350,1000));
+ assert.deepEqual(plain(r.cameraTween.fromAnchor),{x:12,y:-8,z:3});
+ r.trackingAnchor.x=99;
+ assert.deepEqual(plain(r.cameraTween.fromAnchor),{x:12,y:-8,z:3},'the transition owns a stable anchor snapshot');
+});
 test('Moon and Europa display size never changes their orbital spacing',()=>{
  for(const satellite of A.SATELLITES){
   const {r}=renderer(),parent=A.BODIES.find(body=>body.id===satellite.parent);

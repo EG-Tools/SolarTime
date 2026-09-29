@@ -95,6 +95,15 @@ function replaceBlock(text,start,end,value,file){
  if(text.split(start).length!==2||text.split(end).length!==2)throw Error('Invalid generated block markers: '+file);
  const a=text.indexOf(start)+start.length,b=text.indexOf(end,a);return text.slice(0,a)+'\n'+value+'\n  '+text.slice(b);
 }
+function koreanChangelog(releases){
+ const lines=['# Solar Time 전체 업데이트 내역','','Solar Time의 현재 및 과거 업데이트 내역입니다. 최신 버전부터 표시합니다.',''];
+ for(const release of releases){
+  lines.push('## v'+release.version+(release.date?' · '+release.date:''),'');
+  for(const item of release.localized.kor||release.localized.en||[])lines.push('- '+item);
+  lines.push('');
+ }
+ return lines.join('\n').trimEnd()+'\n';
+}
 function outputs(root,data=compile(root)){
  const out=new Map();for(const code of data.codes)out.set('src/locales/'+code+'.json',json(data.bundles[code]));
  const d=data,block=[
@@ -108,7 +117,8 @@ function outputs(root,data=compile(root)){
   '  const missingFallback=Object.freeze('+JSON.stringify(d.config.missingBundleFallback||{})+');'
  ].join('\n');
  const loader='src/language-data.js';out.set(loader,replaceBlock(fs.readFileSync(path.join(root,loader),'utf8'),'// BEGIN GENERATED I18N DATA','// END GENERATED I18N DATA',block,loader));
- const notes='src/release-notes.js';out.set(notes,replaceBlock(fs.readFileSync(path.join(root,notes),'utf8'),'// BEGIN GENERATED RELEASE DATA','// END GENERATED RELEASE DATA',' const DATA='+JSON.stringify(d.releases)+';',notes));
+ const notes='src/release-notes.js';out.set(notes,replaceBlock(fs.readFileSync(path.join(root,notes),'utf8'),'// BEGIN GENERATED RELEASE DATA','// END GENERATED RELEASE DATA',' const RECENT_DATA='+JSON.stringify(d.releases.slice(0,10))+';',notes));
+ out.set('CHANGELOG_KO.md',koreanChangelog(d.releases));
  return {out,data};
 }
 function sync(root,{write=false,strict=false}={}){

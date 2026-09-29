@@ -46,7 +46,7 @@
       this.bodyScales=Object.create(null);this.satelliteOrbitScales=Object.create(null);
       this.camera={...DEFAULT_CAMERA};
       this.site={label:'KOREA',latitude:37.5665,longitude:126.978};
-      this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.rotationGeneration=0;this.actualScaleMix=0;this.actualScaleTween=null;this.projectionAnchor=null;
+      this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.rotationGeneration=0;this.actualScaleMix=0;this.actualScaleTween=null;this.projectionAnchor=null;this.trackingAnchor=null;
       this.surface=this.gpu||new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
       this.labelStates=new Map();this.lastLabelMono=null;this.labelWidths=new Map();this.labelBodyMap=new Map();this.labelOrdered=[];this.labelReserved=[];this.labelActive=new Set();this.labelObstacleMap=new Map();this.labelCandidateMap=new Map();
       this.orbitCache=new WeakMap();this.orbitModelCache=new WeakMap();this.satelliteOrbitCache=new Map();this.precisionOrbitPathCache=new Map();this.frameCache=new Map();this.starSprites=new Map();
@@ -572,7 +572,7 @@
       if(!Renderer.validCamera(state))return false;
       if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       const mono=performance.now(),direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
-      this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;if(state.mode!==undefined)this.setDollyMode(state.mode==='move',false);
+      this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.trackingAnchor=null;if(state.mode!==undefined)this.setDollyMode(state.mode==='move',false);
       // Commit one camera transaction. Time, selected body and display toggles are not preset data.
       this.camera={azimuth:state.azimuth,elevation:state.elevation,zoom:state.zoom,dolly:state.dolly??1,
         focus:state.focus,panX:state.panX,panY:state.panY};
@@ -580,12 +580,13 @@
       this.cameraChangeAt=performance.now();this.dirty=true;this.clearLabels();this.invalidateSurfaces();return true;
     }
     // One monotonic-time transition owner, not a second requestAnimationFrame loop.
-    // Different tracked bodies travel through overview zoom: focus switches only
-    // at zoom=1 where both its position weight and its extra size are exactly zero.
+    // A retargeted focus transition retains its last rendered tracking anchor so
+    // rapid planet navigation cannot restart from a different body position.
     animateCamera(state,mono=performance.now(),duration=1100,input=false) {
       if(!Renderer.validCamera(state)||!Number.isFinite(mono)||!Number.isFinite(duration))return false;
       if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       if(duration<=0)return this.restoreCamera(state);
+      const interruptedAnchor=this.cameraTween&&this.trackingAnchor?{...this.trackingAnchor}:null;
       const direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
       // A camera transition may pause the physical turn, but it never changes the
       // user's rotation toggle. Keep that intent pending and resume on arrival.
@@ -596,7 +597,7 @@
       // Programmatic transitions keep both the old and new tracking anchors alive
       // for the whole move. This prevents a one-frame focus hand-off that used to
       // make the tracked planet jump in size/position between saved views.
-      this.cameraTween={from,to,start:mono,duration,input,progress:0};
+      this.cameraTween={from,to,start:mono,duration,input,progress:0,fromAnchor:interruptedAnchor};
       if(to.focus)this.prepareCloseup(to.focus);
       if(direction)this.pendingAutoRotation={direction,generation};
       this.cameraChangeAt=mono;this.dirty=true;return true;
@@ -767,7 +768,7 @@
     }
     resetCamera() {
       const mono=performance.now(),direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
-      this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.camera={...DEFAULT_CAMERA};
+      this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.camera={...DEFAULT_CAMERA};this.trackingAnchor=null;
       if(direction)this.beginAutoRotation(direction,mono,generation);
       this.projectionAnchor=null;this.dirty=true;
     }
@@ -1078,12 +1079,13 @@
       if(move){
         const from=move.from.focus?this.currentFrameItem(move.from.focus):null;
         const to=move.to.focus?this.currentFrameItem(move.to.focus):null;
-        const a=from?.world||{x:0,y:0,z:0},b=to?.world||{x:0,y:0,z:0},p=move.progress||0;
+        const a=move.fromAnchor||from?.world||{x:0,y:0,z:0},b=to?.world||{x:0,y:0,z:0},p=move.progress||0;
         anchor={x:mix(a.x,b.x,p),y:mix(a.y,b.y,p),z:mix(a.z,b.z,p)};
       }else{
         const target=this.currentFrameItem(this.camera.focus);
         if(target)anchor=target.world;
       }
+      this.trackingAnchor={...anchor};
       const perspectiveActive=Math.abs((this.camera.dolly??1)-1)>1e-8;
       if(perspectiveActive){
         // Camera travel uses the tracked body as its ray target. The mode button

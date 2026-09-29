@@ -1,4 +1,4 @@
-/* Solar Time v0.67 — app implementation owner. */
+/* Solar Time v0.68 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -214,7 +214,7 @@
         lucida:'"Lucida Console",Consolas,monospace'
       });
       const CLOCK_FONT_ORDER=Object.freeze(Object.keys(CLOCK_FONTS));
-      let clockFont='georgia',savedRotationMode=FACTORY_AUTO_ROTATE,overviewCamera=renderer.defaultCameraSnapshot();
+      let clockFont='georgia',savedRotationMode=FACTORY_AUTO_ROTATE,overviewCamera=renderer.defaultCameraSnapshot(),keyboardTrackingReturn=null;
       renderer.options.twinkle=true;
       const validKeys={actualScale:'actual-scale',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',earthNightLights:'earth-night-lights',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
       try {
@@ -260,7 +260,7 @@
       renderer.setSite(activeRegion());
        if(savedRotationMode==='random')renderer.setRandomRotate(true,performance.now());
        else if(savedRotationMode)renderer.setAutoRotate(savedRotationMode,performance.now());
-      timerController=Modules.TimerController.create({document,UI,Preferences,translate:t,notify:toast,shutdownBridge:Modules.WindowsShutdown.create(document),onAlarmStart:()=>setMusicEnabled(false),onOpen:()=>{settings(false);closeBody();},shouldKeepOpen:event=>$('help-dialog').open||$('help-button').contains(event.target)});
+      timerController=Modules.TimerController.create({document,UI,Preferences,translate:t,notify:toast,shutdownBridge:Modules.WindowsShutdown.create(document),onAlarmStart:()=>setMusicEnabled(false),onOpen:()=>{closeLanguageMenu();settings(false);closeBody();},shouldKeepOpen:event=>$('help-dialog').open||$('help-button').contains(event.target)});
       translateStatic();
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
@@ -381,6 +381,7 @@
         if(satellite&&!renderer.options.moon){renderer.setOption('moon',true);$('show-moon').checked=true;navVisibility();}
         if(value.focus==='pluto'&&!renderer.options.pluto){renderer.setOption('pluto',true);$('show-pluto').checked=true;navVisibility();}
         if(!renderer.animateCamera(value,performance.now(),1100)){toast(t('hiddenBody'));return;}
+        keyboardTrackingReturn=null;
         cameraUi();
         // Persist only after the single renderer-owned transition has completed.
         if(!renderer.cameraTween)persist();
@@ -449,6 +450,7 @@
       // uses the same parent relationship for the actual scene hierarchy.
       const satellites=A.SATELLITES||[A.MOON];
       const bodies=[A.SUN,...A.BODIES.flatMap(body=>[body,...satellites.filter(satellite=>satellite.parent===body.id)])];
+      const planetIds=new Set(A.BODIES.map(body=>body.id));
       const navButtons=new Map();
       for(const b of bodies) {
         const button=document.createElement('button');button.type='button';button.dataset.body=b.id;button.style.setProperty('--planet',b.color);
@@ -477,6 +479,29 @@
         if(renderer.selected!==next.id)selectBody(next.id);
         if(keepTracking)focusBody(next.id);
         wakePointer();
+      }
+      function nearestAvailablePlanet(available){
+        const allowed=new Set(available.map(body=>body.id));
+        const candidates=(renderer.projected||[]).filter(item=>planetIds.has(item.body.id)&&allowed.has(item.body.id)&&!item.screen?.behind);
+        const visible=candidates.filter(item=>renderer.visible(item.screen,item.r||0)),pool=visible.length?visible:candidates;
+        const cx=renderer.w*.5,cy=renderer.h*.5;
+        let nearest=null,distance=Infinity;
+        for(const item of pool){
+          const next=Math.max(0,Math.hypot(item.screen.x-cx,item.screen.y-cy)-Math.max(0,item.r||0));
+          if(next<distance){nearest=item.body;distance=next;}
+        }
+        return nearest||available.find(body=>body.id==='earth')||available.find(body=>planetIds.has(body.id))||available[0]||null;
+      }
+      function toggleKeyboardTracking(){
+        const mono=performance.now();
+        if(keyboardTrackingReturn){
+          const previous=keyboardTrackingReturn;keyboardTrackingReturn=null;cancelGesture();
+          renderer.animateCamera(previous,mono,900);cameraUi();wakePointer();return;
+        }
+        const available=bodies.filter(body=>!navButtons.get(body.id)?.hidden);
+        let id=renderer.selected;
+        if(!id){const nearest=nearestAvailablePlanet(available);if(!nearest)return;id=nearest.id;selectBody(id);}
+        keyboardTrackingReturn={...renderer.cameraInputState(mono)};focusBody(id);wakePointer();
       }
       function syncBodySizeControl(body=bodies.find(value=>value.id===renderer.selected)) {
         if(!body)return;
@@ -666,7 +691,7 @@
       const updateSettingsScrollCues=bindScrollCues(settingsPanel,settingsScroll);
       const updateBodyScrollCues=bindScrollCues($('body-panel'),$('body-scroll'));
       bindScrollCues($('kakao-pay-dialog'),$('kakao-pay-scroll'));
-      function settings(open) {const next=open===undefined?!uiElementVisible(settingsPanel):open;if(next){timerController?.close();showFading(settingsPanel);updateSettingsScrollCues();requestAnimationFrame(updateSettingsScrollCues);}else hideFading(settingsPanel);$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
+      function settings(open) {const next=open===undefined?!uiElementVisible(settingsPanel):open;if(next){closeLanguageMenu();timerController?.close();showFading(settingsPanel);updateSettingsScrollCues();requestAnimationFrame(updateSettingsScrollCues);}else hideFading(settingsPanel);$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
       UI.bindPopup(settingsPanel,()=>settings(false));
       UI.bindPopup($('body-panel'),closeBody);
       UI.bindPopup($('toast'),()=>{clearTimeout(toastTimer);hideFading($('toast'));});
@@ -699,7 +724,7 @@
         for(const [key,value] of Object.entries(FACTORY_OPTIONS))renderer.setOption(key,value,false);
         window.SolarVisualEffects?.regenerateStars?.(renderer.sky);
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
-        renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();
+        renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();keyboardTrackingReturn=null;
         A.calibrateAt(Date.now());clock.now(mono);eclipseTargets.clear();alignmentTarget=null;renderer.setAlignmentGuide(null);renderer.invalidateSurfaces();
         timezone='local';showSeconds=false;hourCycle='12';clockSize=1;clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;
         renderer.setSite(activeRegion());for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
@@ -710,13 +735,19 @@
       $('reset-defaults').addEventListener('click',()=>{showFading(resetDefaultsDialog,()=>resetDefaultsDialog.showModal());$('reset-defaults-no').focus({preventScroll:true});});
       $('reset-defaults-no').addEventListener('click',()=>closeResetDefaults());$('reset-defaults-yes').addEventListener('click',()=>applyFactoryDefaults().catch(fatal));
       UI.bindDialog(resetDefaultsDialog,options=>closeResetDefaults(options?.restoreFocus!==false));
-      function reset() {cancelGesture();renderer.animateHome(performance.now(),1100);cameraUi();}
+      function reset() {keyboardTrackingReturn=null;cancelGesture();renderer.animateHome(performance.now(),1100);cameraUi();}
       $('fit-view').addEventListener('click',reset);
       $('camera-mode-toggle').addEventListener('click',()=>{renderer.setDollyMode(!renderer.options.dollyZoom,true);cameraUi();persist();});
-      function zoom(factor) {
-        const mono=performance.now(),state=renderer.cameraInputState(mono);
+      function zoom(factor,mono=performance.now()) {
+        const state=renderer.cameraInputState(mono);
         if(renderer.options.dollyZoom)renderer.smoothDolly((state.dolly??1)*factor,renderer.selected,mono);
         else renderer.smoothZoom(state.zoom*factor,null,mono);
+        cameraUi();
+      }
+      function keyboardZoom(factor,mono=performance.now()) {
+        const state=renderer.cameraInputState(mono);
+        if(renderer.options.dollyZoom)renderer.setDolly((state.dolly??1)*factor,renderer.selected);
+        else renderer.setZoom(state.zoom*factor);
         cameraUi();
       }
       function focusBody(id) {
@@ -813,22 +844,31 @@
       kakaoPayDialog.querySelector('form').addEventListener('submit',event=>{event.preventDefault();closeKakaoPay();});
       UI.bindDialog(kakaoPayDialog,options=>closeKakaoPay(options?.restoreFocus!==false));
       const updateHelpScrollCues=bindScrollCues(helpDialog,helpScroll);
-      let releaseNotesApi=null,releaseNotesNavigator=null;
+      let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=92a614c44f49','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=021970c5e4f1','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
         if(!releaseNotesApi||!releaseNotesNavigator)return;const release=state?.release;if(!release)return;
+        releaseNotesArchive=false;
         $('release-notes-version').textContent='v'+release.version;
         $('release-notes-date').textContent=release.date||'';
         $('release-notes-size').textContent=formatReleaseNotesBytes(releaseNotesApi.SOURCE_BYTES);
+        $('release-notes-list').hidden=false;$('release-notes-all').hidden=true;
         const fragment=document.createDocumentFragment();
         for(const item of releaseNotesApi.itemsFor(release,copyLanguage()).slice(0,10)){const row=document.createElement('li');row.textContent=item;fragment.append(row);}
         $('release-notes-list').replaceChildren(fragment);
         $('release-notes-position').textContent=`${state.index+1} / ${state.total}`;
-        $('release-notes-newer').disabled=!state.hasNewer;$('release-notes-older').disabled=!state.hasOlder;
+        $('release-notes-newer').disabled=!state.hasNewer;$('release-notes-older').disabled=false;
+        requestAnimationFrame(updateHelpScrollCues);
+      }
+      function renderReleaseNotesArchive(){
+        if(!releaseNotesNavigator)return;releaseNotesArchive=true;
+        $('release-notes-version').textContent=t('releaseNotesAll');$('release-notes-date').textContent='';$('release-notes-size').textContent='';
+        $('release-notes-list').replaceChildren();$('release-notes-list').hidden=true;$('release-notes-all').hidden=false;
+        $('release-notes-position').textContent='10+';$('release-notes-newer').disabled=false;$('release-notes-older').disabled=true;
         requestAnimationFrame(updateHelpScrollCues);
       }
       function setReleaseNotes(open){
@@ -841,8 +881,8 @@
         if(next)try{await loadReleaseNotes();if(releaseNotesNavigator)renderReleaseNotes(releaseNotesNavigator.reset());}catch(error){toast(error.message);return;}
         setReleaseNotes(next);
       });
-      $('release-notes-newer').addEventListener('click',()=>renderReleaseNotes(releaseNotesNavigator?.newer()));
-      $('release-notes-older').addEventListener('click',()=>renderReleaseNotes(releaseNotesNavigator?.older()));
+      $('release-notes-newer').addEventListener('click',()=>renderReleaseNotes(releaseNotesArchive?releaseNotesNavigator?.current():releaseNotesNavigator?.newer()));
+      $('release-notes-older').addEventListener('click',()=>{const state=releaseNotesNavigator?.current();if(!state)return;if(state.hasOlder)renderReleaseNotes(releaseNotesNavigator.older());else renderReleaseNotesArchive();});
       function help(open){
         const next=open===undefined?!uiElementVisible(helpDialog):open;
         if(next&&!helpDialog.open){
@@ -878,6 +918,7 @@
       const languageControl=$('language-control'),languageMenu=$('language-menu'),languageScroll=$('language-scroll'),languageToggle=$('language-toggle');
       const updateLanguageScrollCues=bindScrollCues(languageMenu,languageScroll);
       function openLanguageMenu(){
+        settings(false);timerController?.close();
         showFading(languageMenu);languageToggle.setAttribute('aria-expanded','true');updateLanguageScrollCues();requestAnimationFrame(updateLanguageScrollCues);
         const current=languageMode==='auto'?languageMenu.querySelector('[data-language-auto]'):languageMenu.querySelector(`[data-language="${language}"]`);requestAnimationFrame(()=>{if(current&&languageScroll.contains(current))current.scrollIntoView({block:'nearest'});current?.focus({preventScroll:true});updateLanguageScrollCues();});
       }
@@ -894,8 +935,10 @@
         event.preventDefault();options[next].focus({preventScroll:true});if(languageScroll.contains(options[next]))options[next].scrollIntoView({block:'nearest'});updateLanguageScrollCues();
       });
       document.addEventListener('pointerdown',event=>{if(uiElementVisible(languageMenu)&&!languageControl.contains(event.target))closeLanguageMenu();});
-      const canvas=$('universe'),pointers=new Map();
+      const canvas=$('universe'),pointers=new Map(),heldZoomKeys=new Set();
       let drag=null,pinchDistance=0,pinchLevel=1,pinchOrigin=null,pinched=false,clickGestures=0;
+      const keyboardZoomDirection=()=>Number(heldZoomKeys.has('arrowup'))-Number(heldZoomKeys.has('arrowdown'));
+      const clearKeyboardZoom=()=>heldZoomKeys.clear();
       function cancelGesture() {
         const ids=[...pointers.keys()];pointers.clear();drag=null;pinched=false;clickGestures=0;pinchDistance=0;pinchOrigin=null;
         for(const id of ids)if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
@@ -970,7 +1013,14 @@
           if(!event.repeat){if(presetDialog.open)closePresetDialog(false);recallPreset(Number(digit)-1);wakePointer();}
           return;
         }
-        if(event.repeat||editing)return;
+        if(editing)return;
+        if(key==='arrowup'||key==='arrowdown'){
+          if(UI.topDialog())return;
+          event.preventDefault();event.stopPropagation();heldZoomKeys.add(key);
+          if(!event.repeat)keyboardZoom(key==='arrowup'?1.04:1/1.04);
+          return;
+        }
+        if(event.repeat)return;
         if(key==='f'||key==='h'||key==='0'){
           event.preventDefault();event.stopPropagation();
           if(key==='f')fullscreen();else if(key==='h')setZen(!zen);else reset();return;
@@ -980,16 +1030,14 @@
           event.preventDefault();event.stopPropagation();navigateBody(key==='arrowright'?1:-1);return;
         }
         if(event.target.closest?.('button,a'))return;
-        if(key===' '){event.preventDefault();pause();}
+        if(key==='enter'){event.preventDefault();event.stopPropagation();toggleKeyboardTracking();}
+        else if(key===' '){event.preventDefault();pause();}
         else if(key==='r')now();
         else if(key==='+'||key==='='){event.preventDefault();zoom(1.15);}
         else if(key==='-'){event.preventDefault();zoom(1/1.15);}
-        else if(event.target===canvas&&(key==='arrowup'||key==='arrowdown')) {
-          event.preventDefault();let elevation=renderer.camera.elevation;
-          if(key==='arrowup')elevation+=3*A.DEG;if(key==='arrowdown')elevation-=3*A.DEG;
-          renderer.setOrbitView(renderer.camera.azimuth,elevation);cameraUi();persist();
-        }
       },{capture:true});
+      window.addEventListener('keyup',event=>{const key=event.key.toLowerCase();if(key==='arrowup'||key==='arrowdown')heldZoomKeys.delete(key);},{capture:true});
+      window.addEventListener('blur',clearKeyboardZoom,{passive:true});
       // Fill every initially visible sphere with its small baseline map under
       // the loading cover. Detail LODs are requested only after this returns, so
       // a slow 2K/4K response cannot leave later planets blank in Edge/Chrome.
@@ -1048,13 +1096,15 @@
       function frame(mono) {
         if(disposed||document.hidden){raf=0;return;}
         raf=requestAnimationFrame(frame);
+        const heldZoom=keyboardZoomDirection();
         const activeMotion=!!drag||pointers.size>0||!!renderer.cameraTween||!!renderer.autoRotation||
-          mono-(renderer.cameraChangeAt??-Infinity)<180||(!clock.live&&!clock.paused);
+          heldZoom!==0||mono-(renderer.cameraChangeAt??-Infinity)<180||(!clock.live&&!clock.paused);
         const frameInterval=window.SolarPerformance?.frameInterval(window.innerWidth,window.innerHeight,activeMotion)??(1000/(activeMotion&&window.innerWidth>=680?60:30));
         const frameDelta=lastFrame?Math.max(0,mono-lastFrame):frameInterval;
         if(!frameGate(mono,frameInterval,!lastFrame))return;
         const dt=lastFrame?frameDelta/1000:0;lastFrame=mono;
         window.SolarPerformance?.reportFrameTiming?.(frameDelta,frameInterval);
+        if(heldZoom&&dt>0)keyboardZoom(Math.exp(heldZoom*1.35*dt),mono);
         if(!clock.paused)effectTime+=dt;
         const wall=Date.now(),ms=clock.value(mono,wall);
         if(!clock.paused&&!clock.live&&ms>=A.MAX_TIME){clock.anchorMs=A.MAX_TIME;clock.anchorMono=mono;clock.paused=true;toast(t('yearLimit'));}
@@ -1072,7 +1122,7 @@
         } catch(error){disposed=true;setMusicEnabled(false);timerController?.dispose();UI.dispose();music.dispose();renderer.dispose();materials.dispose();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
       }
       document.addEventListener('visibilitychange',()=>{
-        if(document.hidden){closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
+        if(document.hidden){clearKeyboardZoom();closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
         else if(!disposed){
           renderer.resume();
           refreshAutomaticContext();
@@ -1080,11 +1130,11 @@
           if(!raf){lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
         }
       });
-      window.addEventListener('pagehide',event=>{closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;timerController?.dispose();UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);cancelAnimationFrame(clockFitFrame);resizeFrame=0;clockFitFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);materialRefreshTimer=0;});
+      window.addEventListener('pagehide',event=>{clearKeyboardZoom();closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;timerController?.dispose();UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);cancelAnimationFrame(clockFitFrame);resizeFrame=0;clockFitFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);materialRefreshTimer=0;});
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.67',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.68',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

@@ -3,6 +3,7 @@ Thumbs.db
 node_modules/
 assets/*.zip
 assets/*.png
+!assets/mouse-wheel-zoom.png
 assets/*.webp
 assets/music/
 .cloudflare/

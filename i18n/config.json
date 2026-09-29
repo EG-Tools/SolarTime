@@ -108,6 +108,7 @@
     }
   },
   "legacyFileKeys": [
+    "releaseNotesAll",
     "helpIntroTitle",
     "helpIntroPurpose",
     "helpIntroExperience",
@@ -131,7 +132,15 @@
     "cookieReject",
     "cookieAccept",
     "earthNightLights",
-    "clockSize"
+    "clockSize",
+    "defaultCamera",
+    "savedCameras",
+    "planetSwitch",
+    "trackBody",
+    "zoomInOut",
+    "cameraRotate",
+    "cameraTravel",
+    "screenPan"
   ],
   "invariantKeys": [
     "timer.helperChecksumLabel"

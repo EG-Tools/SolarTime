@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'..'),api=require('../tools/i18n.cjs'),gold=re
 const read=(file,dir=root)=>fs.readFileSync(path.join(dir,file),'utf8');
 const data=(file,dir=root)=>JSON.parse(read(file,dir));
 const write=(file,value,dir)=>fs.writeFileSync(path.join(dir,file),JSON.stringify(value,null,2)+'\n');
-function sandbox(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'solar-i18n-'));fs.cpSync(path.join(root,'i18n'),path.join(dir,'i18n'),{recursive:true});fs.mkdirSync(path.join(dir,'src'));fs.cpSync(path.join(root,'src/locales'),path.join(dir,'src/locales'),{recursive:true});for(const f of ['language-data.js','release-notes.js'])fs.copyFileSync(path.join(root,'src',f),path.join(dir,'src',f));return dir;}
+function sandbox(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'solar-i18n-'));fs.cpSync(path.join(root,'i18n'),path.join(dir,'i18n'),{recursive:true});fs.mkdirSync(path.join(dir,'src'));fs.cpSync(path.join(root,'src/locales'),path.join(dir,'src/locales'),{recursive:true});for(const f of ['language-data.js','release-notes.js'])fs.copyFileSync(path.join(root,'src',f),path.join(dir,'src',f));fs.copyFileSync(path.join(root,'CHANGELOG_KO.md'),path.join(dir,'CHANGELOG_KO.md'));return dir;}
 function runtime({protocol='https:',fetch:fetchFn}={}){
  const requests=[],location={protocol,href:protocol==='file:'?'file:///D:/SolarTime/index.html':'https://solar.test/'},window={};
  const context={window,location,document:{currentScript:{src:new URL('src/language-data.js',location.href).href}},URL,AbortSignal,fetch:async url=>{requests.push(String(url));if(fetchFn)return fetchFn(url);const code=/\/([a-z]+)\.json/.exec(String(url))[1];return {ok:true,json:async()=>data('src/locales/'+code+'.json')};}};
@@ -19,7 +19,7 @@ test('all 13 web and file-language bundles preserve the previous effective inter
  const compiled=api.compile(root);
  for(const protocol of ['https:','file:']){
   const {loader}=runtime({protocol});
-  for(const code of compiled.codes){const bundle=await loader.load(code);const previous={...bundle,copy:{...bundle.copy}};for(const key of ['cookieSettings','cookieDismiss','cookieChoiceNote'])delete previous.copy[key];assert.equal(api.fingerprint(previous),gold[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
+  for(const code of compiled.codes){const bundle=await loader.load(code);const previous={...bundle,copy:{...bundle.copy}};for(const key of ['cookieSettings','cookieDismiss','cookieChoiceNote','defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan','releaseNotesAll'])delete previous.copy[key];assert.equal(api.fingerprint(previous),gold[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
  }
 });
 test('all retained historical release translations are unchanged',()=>{
@@ -36,6 +36,8 @@ test('direct file launches overlay the current localized help introduction on an
  const {loader}=runtime({protocol:'file:'}),old={copy:{helpIntroPurpose:'Old public fallback'},bodies:{},phases:{}};
  const bundle=loader.resolveBundle(old,'kor',{local:true}),current=data('src/locales/kor.json').copy;
  for(const key of ['helpIntroTitle','helpIntroPurpose','helpIntroExperience','helpIntroDesktop','helpFeatures','helpFeatureSolar','helpFeatureTime','helpFeatureMusic','helpFeatureTimer'])assert.equal(bundle.copy[key],current[key],key);
+ for(const key of ['defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan'])assert.equal(bundle.copy[key],current[key],key);
+ assert.deepEqual(['defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan'].map(key=>bundle.copy[key]),['기본 시점','저장된 시점','행성 전환','천체 추적','줌인·아웃','회전','전진·후진','이동']);
  assert.equal(current.helpIntroTitle,'우주 속 한순간');
  assert.equal(current.helpIntroPurpose,'Solar Time은 현재 시각과 행성의 움직임을 담은 웹 기반 태양계 시계입니다.\n일과 공부중 잠시 쉬고 싶을때 감상하는 화면보호기 용도로 만들어졌습니다.');
  assert.equal(current.helpIntroExperience,'잔잔한 배경음악과 함께 태양계를 감상하고,\n카메라를 이용해서 나만의 우주 풍경을 만들어 보세요.');

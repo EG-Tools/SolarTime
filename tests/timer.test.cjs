@@ -8,6 +8,19 @@ test('top actions follow music, language, timer, settings, help and fullscreen o
  let previous=-1;for(const id of ids){const index=html.indexOf('id="'+id+'"');assert.ok(index>previous,id);previous=index;}
 });
 
+test('language, timer and display-settings cards are mutually exclusive',()=>{
+ const app=read('src/app.js');
+ assert.match(app,/onOpen:\(\)=>\{closeLanguageMenu\(\);settings\(false\);closeBody\(\);\}/);
+ assert.match(app,/function settings\(open\)[^{]+\{[^}]*if\(next\)\{closeLanguageMenu\(\);timerController\?\.close\(\);/);
+ assert.match(app,/function openLanguageMenu\(\)\{\s*settings\(false\);timerController\?\.close\(\);/);
+});
+
+test('help feature and shortcut descriptions use the original left alignment',()=>{
+ const css=read('styles.css');
+ assert.match(css,/\.shortcut-item\{[^}]*justify-content:flex-start[^}]*text-align:left/);
+ assert.doesNotMatch(css,/\.modal \.help-feature-list li\{[^}]*text-align:center/);
+});
+
 test('timer provides exclusive sound choices, alarm actions and a zen-safe shutdown countdown',()=>{
  const html=read('index.html'),code=read('src/timer-controller.js');
  assert.match(html,/name="alarm-sound-mode" value="default" checked/);

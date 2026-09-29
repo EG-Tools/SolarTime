@@ -110,7 +110,7 @@ test('texture payload bytes, compression, shader and helper stay unchanged',()=>
   // every texture manifest, shader and web runtime remains byte-for-byte.
   if(name.endsWith('.cmd'))bytes=Buffer.from(bytes.toString('utf8').replace(/\r\n/g,'\n'));
   // v0.66 adds only scoped cookie-control layout; preserve every older style.
-  if(name==='styles.css')bytes=Buffer.from(bytes.toString('utf8').replace(/\/\* Consent controls share the existing card surface; reserve space for X\. \*\/[\s\S]*?(?=@media\(max-width:760px\)\{\.cookie-consent)/,''));
+  if(name==='styles.css')bytes=Buffer.from(bytes.toString('utf8').replace(/\/\* Consent controls share the existing card surface; reserve space for X\. \*\/[\s\S]*?(?=@media\(max-width:760px\)\{\.cookie-consent)/,'').replace(/\/\* Help shortcut guide and CSS mouse controls\. \*\/[\s\S]*?\/\* End help shortcut guide\. \*\/\r?\n/,'').replace(/\/\* Release archive link\. \*\/[\s\S]*?\/\* End release archive link\. \*\/\r?\n/,''));
   // Only the revision diagnostic may follow a release; all layout rules
   // still match the unchanged v0.62 baseline hash after normalization.
   if(name==='src/runtime-optimizations.css'){

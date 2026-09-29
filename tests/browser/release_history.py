@@ -23,6 +23,7 @@ def navigate_to_release(page,version,check,label):
 def verify_current_release(page,root,label,language,check):
  expected=json.loads((root/'version.json').read_text(encoding='utf8'))['version']
  versions=catalog(page)
+ check(len(versions)==10,label+' app keeps only the latest ten releases')
  check(versions[0]==expected,label+' catalog agrees with version.json')
  check(page.locator('#release-notes-version').inner_text()=='v'+expected,label+' visible current version')
  check(page.locator('#release-notes-newer').is_disabled(),label+' current release newer boundary')
@@ -38,6 +39,12 @@ def verify_history(page,root,label,language,check):
   navigate_to_release(page,version,check,label)
   verify_items(page,language,check,label+' v'+version)
   if version in anchors:check(anchors[version].lower() in page.locator('#release-notes-list').inner_text().lower(),label+' historical content '+version)
- check(page.locator('#release-notes-older').is_disabled(),label+' oldest release boundary')
+ check(not page.locator('#release-notes-older').is_disabled(),label+' archive entry follows the tenth release')
+ page.locator('#release-notes-older').click()
+ check(page.locator('#release-notes-all').is_visible(),label+' complete Korean archive link')
+ check(page.locator('#release-notes-all').get_attribute('href')=='https://github.com/EG-Tools/SolarTime/blob/main/CHANGELOG_KO.md',label+' archive points to the GitHub history')
+ check(page.locator('#release-notes-older').is_disabled(),label+' archive terminal boundary')
+ page.locator('#release-notes-newer').click()
+ check(page.locator('#release-notes-version').inner_text()=='v'+versions[-1],label+' archive returns to the tenth release')
  navigate_to_release(page,versions[0],check,label)
  verify_current_release(page,root,label,language,check)
