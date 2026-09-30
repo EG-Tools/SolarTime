@@ -10,6 +10,7 @@ from regression_diagnostics import BrowserDiagnostics
 from region_menu import verify_region_menu
 from translation_source import verify_translation_source
 from closeup_textures import verify_closeup_textures
+from cloud_weather import verify_cloud_weather
 from release_history import verify_history, navigate_to_release, verify_current_release, verify_items
 
 def png(w=32,h=16):
@@ -341,6 +342,7 @@ def main():
    verify_google_tag(browser,root,check,diagnostics)
    verify_usage_analytics(browser,root,check,diagnostics,load)
    verify_closeup_textures(browser,root,check,diagnostics)
+   verify_cloud_weather(browser,root,check,diagnostics)
    # Browser contexts isolate storage, clocks and WebGL state. Reusing one
    # Chromium process avoids paying its launch cost for every viewport.
    for size,installed in [((1280,800),False),((390,844),False),((844,390),False),((390,844),True),((844,390),True)]:

@@ -16,6 +16,19 @@ The ambient background tracks are created by Lyrikey with Suno AI.
 
 - Maryan Dembitskyi — Soft Morning: https://pixabay.com/ko/users/marmixer-6762941/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=484625
 
+## Venus surface and atmosphere
+
+The cloud-free surface is NASA's Magellan radar mosaic, with gaps filled by a global texture. It is a radar-based visualization, not a natural-colour photograph. The 1440×720 NASA source is resampled to a power-of-two 4096×2048 master for WebGL; this does not add measured detail. `tools/prepare-venus-surface.cjs` verifies the original checksum and builds 256/512/1024/2048/4096 LOD tiers. Its explicit `--publish` option uploads only these immutable textures and verifies public bytes before connecting the local runtime to R2.
+
+- NASA / JPL-Caltech: https://science.nasa.gov/3d-resources/venus/
+- Original: https://assets.science.nasa.gov/content/dam/science/cds/3d/resources/image/venus/Venus.tif
+
+The existing Solar System Scope / INOVE Venus atmosphere map (CC BY 4.0) remains the cloud layer. This local visual mode intentionally co-rotates clouds with the surface (not the observed atmospheric superrotation), with a slightly raised projected shell at 1.02 times the surface radius. The shell height is visually exaggerated and the slider adjusts uniform opacity without fractal weather. These are illustrative controls, not reconstructed observations; Venus does not naturally clear to reveal its surface in visible light.
+
+- Cloud texture: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_4k_venus_atmosphere.jpg
+- NASA cloud motion: https://science.nasa.gov/photojournal/venus-multiple-views-of-high-level-clouds/
+- NASA cloud height: https://science.nasa.gov/photojournal/venus-from-mariner-10/
+
 ## Earth maps
 
 ### Daylight map
@@ -29,6 +42,15 @@ The Earth surface uses NASA Earth Observatory’s Blue Marble Next Generation. T
 The night-light layer is derived from NASA Earth Observatory’s official 2016 Black Marble 3 km VIIRS map. Solar Time resizes the measured light-only source and applies a warm colour tone. The layer appears only on the solar night side and is partially obscured by clouds. It is a yearly composite, not a live view of electric-light activity.
 
 - NASA Earth Observatory — Earth at Night: https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/
+
+### Atmospheric clouds
+
+The atmospheric cloud layer is derived from NASA Visible Earth’s Blue Marble global cloud composite. Solar Time converts the official 8192×4096 luminance map into a 4096×2048 grayscale master, then generates independent LOD tiers with a softly matched longitude seam. It is a fixed multi-day composite, not live weather.
+
+- NASA Visible Earth — Blue Marble: Clouds: https://visibleearth.nasa.gov/images/57747/blue-marble-clouds/77558l
+- NASA source image: https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57747/cloud_combined_8192.tif
+
+The previous Solar Time cloud map remains an optional secondary pattern (A, `clouds-alt`), referenced from its existing immutable media URLs at up to 2048×1024. Its edges are feathered once on upload and it repeats twice horizontally and vertically; the newer NASA composite (B, `clouds`) retains its whole-map 4096×2048 scale. Both patterns are blended regionally on one atmospheric shell, with independent illustrative birth/death cycles. This is not a weather forecast or simulation of measured winds.
 
 ## Solar System Scope textures
 
@@ -60,7 +82,7 @@ The prompts used to create these reconstructions and the Earth night-light palet
 
 ## Project-authored visual material
 
-Clouds, fallback maps, relief effects, rings, the solar corona and other supporting visual materials are authored or procedurally rendered for Solar Time unless another source is listed above.
+Fallback maps, relief effects, rings, the solar corona and other supporting visual materials are authored or procedurally rendered for Solar Time unless another source is listed above.
 
 The space background is an artistic panorama assembled from project-owner-supplied AI artwork and procedural stars, dust and haze. It is not a measured all-sky atlas or an accurate star catalogue. The current package does not redistribute a third-party stock Saturn photograph or an unknown-license planetary screenshot.
 

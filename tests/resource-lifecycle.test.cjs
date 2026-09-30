@@ -66,7 +66,7 @@ test('a usable low-resolution fallback does not trigger a request every frame',a
  assert.equal(requests,2);assert.ok(r.textures.get('earth').retryAt>Date.now());
 });
 test('visible bodies finish baseline textures before detailed upgrades',()=>{
- const h=harness(),r=renderer(h);r.desired.set('earth',{});r.desired.set('jupiter',{});
+ const h=harness(),r=renderer(h);r.desired.set('earth',{id:'earth'});r.desired.set('jupiter',{id:'jupiter'});
  r.textureFor('earth',2048);r.textureFor('jupiter',1024);
  assert.deepEqual(r.queued.map(q=>[q.name,q.target]),[['earth',256],['jupiter',256]]);
  assert.equal(r.visibleTexturesReady(),false);

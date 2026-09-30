@@ -13,7 +13,7 @@ function runtime({protocol='https:',fetch:fetchFn}={}){
 test('all generated translations are deterministic and current',()=>{
  const a=api.sync(root);assert.deepEqual(a.changed,[]);assert.equal(a.report.languages,13);assert.deepEqual(api.sync(root).changed,[]);
  const version=data('version.json');assert.equal(api.compile(root).releases[0].version,version.version);
- const archive=api.compile(root).archive;assert.equal(archive[0].version,'0.39');assert.equal(archive.at(-1).version,'0.01');
+ const compiled=api.compile(root),archive=compiled.archive;assert.ok(Number(archive[0].version)<Number(compiled.releases.at(-1).version));assert.equal(archive.at(-1).version,'0.01');
  assert.match(read('changelog.html'),/전체 업데이트 내역/);assert.match(read('changelog.html'),/id="v0\.01"/);
  for(const file of ['tools/build-pages.cjs','tools/cloudflare-site.cjs'])assert.match(read(file),/require\('\.\/i18n\.cjs'\)\.sync\(root\)/);
 });
@@ -72,7 +72,7 @@ test('directly editing generated output fails checks until rebuilt from the sour
  const dir=sandbox();try{fs.appendFileSync(path.join(dir,'src/locales/fr.json'),' ');assert.throws(()=>api.sync(dir),/Generated translation files differ/);assert.deepEqual(api.sync(dir,{write:true}).changed,['src/locales/fr.json']);assert.deepEqual(api.sync(dir).changed,[]);}finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 test('known inherited translations remain reported, not counted as complete, and source changes invalidate allowances',()=>{
- const compiled=api.compile(root);assert.equal(compiled.report.fullyTranslated,false);assert.equal(compiled.report.fallbacks.filter(x=>x.key.startsWith('timer.')).length,133);assert.equal(compiled.report.fallbacks.filter(x=>x.key.startsWith('release.')).length,28);assert.equal(compiled.report.placeholderVariantCount,4);
+ const compiled=api.compile(root);assert.equal(compiled.report.fullyTranslated,false);assert.equal(compiled.report.fallbacks.filter(x=>x.key.startsWith('timer.')).length,133);assert.equal(compiled.report.fallbacks.filter(x=>x.key.startsWith('release.')).length,0);assert.equal(compiled.report.placeholderVariantCount,4);
  assert.throws(()=>api.sync(root,{strict:true}),/not completed translations/);
  const dir=sandbox();try{const en=data('i18n/locales/en.json',dir);en.timer.shutdownUnknown+=' Updated meaning.';write('i18n/locales/en.json',en,dir);assert.throws(()=>api.compile(dir),/missing translation|changed fallback/);}finally{fs.rmSync(dir,{recursive:true,force:true});}
 });

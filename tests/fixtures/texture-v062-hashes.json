@@ -1,11 +1,11 @@
 {
-  "assets/manifest.json": "d5c16c132bcf5ef7e9837c9180ed81bce3645400dd07a40b822675b577afb441",
-  "assets/revision.json": "8d8672e48577f10d933fa552ce7353c04b9c4bc9112e5c60df30c8a7b77df924",
-  "src/assets.js": "81c670bb7357fc5555bfd505a8b76c70c9b5d8e92bcdacf4626fcd82b9d3396d",
+  "assets/manifest.json": "ff75aaf2b9251f1cca27db67cc5a7878ba141cbf334458d261d1b5f8facb6543",
+  "assets/revision.json": "ea58c5eb6bb0f1df5e80ac2df384d3d766901020e5c3d49160b2ff7bfe81f8bb",
+  "src/assets.js": "30d2b020ec9ebd775c3c1cc1c18048ab92d0b82f1b0fd66ae53535a982b21ef2",
   "src/surface-style.js": "88d7e16327c73b63ac7147fe364b72230153df823c411aaadf49c59eee18d4be",
   "windows/SolarTimeShutdownHelper.cmd": "6388c8c6a8f397c2a0a3763a0ddb4960f61c4bc4db76899246027e7f581c4b37",
   "src/windows-shutdown.js": "3109e303c919cf6bbb4490bd74423595958854d0b2d4275d4bd000fd7705070a",
   "src/sky.js": "7f6731d11c8ae2c1457621d4200202c0a9c70502e22f923a5baf1f940b132b62",
-  "styles.css": "c55b4efc19784b0020d3b9c1191d4b9465805dab3470c44df7ca6c75ab9d0202",
+  "styles.css": "90ab085cf63fc1f33eff0400273be2a3c842be2d05f69efde22d822756e5a27f",
   "src/runtime-optimizations.css": "2e2600ed28fb9dd97237c738a9814f674917b3abc44dc62e1971c4fbbdc3a9f1"
 }

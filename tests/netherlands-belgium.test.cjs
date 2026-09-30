@@ -59,8 +59,10 @@ test('both regional clocks use DST, roll dates correctly and have distinct Earth
  assert.ok(Math.abs(regions.nl.latitude-(52+22/60))<1e-8);assert.equal(regions.nl.longitude,4.9);
  assert.ok(Math.abs(regions.be.latitude-(50+50/60))<1e-8);assert.ok(Math.abs(regions.be.longitude-(4+20/60))<1e-8);
 });
-test('current Dutch release notes explain the addition without duplicating historical history',()=>{
- const api=require('../src/release-notes.js'),release=api.RELEASES.find(r=>r.version==='0.47');assert.equal(release.version,'0.47');
- const rows=api.itemsFor(release,'nl');assert.equal(rows.length,8);assert.ok(rows.some(s=>s.includes('België en Nederland')));
- assert.notEqual(rows,api.itemsFor(release,'en'));assert.equal(api.itemsFor(api.RELEASES.find(r=>r.version==='0.46'),'nl'),api.itemsFor(api.RELEASES.find(r=>r.version==='0.46'),'en'));
+test('Dutch is present in recent notes and its historical addition is preserved in Korean',()=>{
+ const api=require('../src/release-notes.js'),archive=require('../i18n/releases-archive-ko.json');
+ assert.equal(api.RELEASES.length,10);assert.ok(api.RELEASES.every(r=>Array.isArray(r.localized.nl)&&r.localized.nl!==r.localized.en));
+ const release=archive.find(r=>r.version==='0.47');assert.equal(release.items.length,8);
+ assert.ok(release.items.some(s=>s.includes('벨기에')&&s.includes('네덜란드')));
+ assert.ok(!api.RELEASES.some(r=>r.version==='0.47'));
 });

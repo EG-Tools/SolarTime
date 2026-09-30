@@ -46,8 +46,10 @@
   }
   function protectTexture(renderer,name){
     const desired=renderer.desired;
+    if(name==='venus-surface')return !!desired?.has('venus')&&(desired.get('venus').cloudAmount<1||desired.get('venus').venusSurfacePreviewWidth>0);
+    if(name==='venus')return !!desired?.has('venus')&&(desired.get('venus').cloudAmount!==0||(!renderer.textures?.get('venus-surface')?.texture&&!!renderer.textures?.get('venus')?.texture));
     if(desired?.has(name))return true;
-    if(name==='clouds'&&desired?.has('earth')&&desired.get('earth').cloudAmount!==0)return true;
+    if((name==='clouds'||name==='clouds-alt')&&desired?.has('earth')&&desired.get('earth').cloudAmount!==0)return true;
     if(name==='earth-night'&&desired?.get('earth')?.nightLights)return true;
     if(name.endsWith('-relief')&&desired?.has(name.slice(0,-7)))return true;
     return false;
@@ -58,8 +60,13 @@
     const entries=[];
     const add=(name,width,priority)=>{if(assets?.[name])entries.push({name,width:Math.max(128,Math.min(maxWidth,width)),priority});};
     for(const job of jobs){
-      add(job.id,job.textureWidth,job.priority||0);
+      if(job.id==='venus'){
+        if(job.cloudAmount<1)add('venus-surface',job.textureWidth,job.priority||0);
+        else if(job.venusSurfacePreviewWidth>0)add('venus-surface',256,job.priority||0);
+        if(job.cloudAmount!==0)add('venus',job.cloudTextureWidth||job.textureWidth,job.priority||0);
+      }else add(job.id,job.textureWidth,job.priority||0);
       if(job.id==='earth'&&job.cloudAmount!==0)add('clouds',Math.min(4096,job.cloudTextureWidth||job.textureWidth),job.priority||0);
+      if(job.id==='earth'&&job.cloudAmount!==0)add('clouds-alt',Math.min(2048,job.cloudTextureWidth||job.textureWidth),job.priority||0);
       if(job.id==='earth'&&job.nightLights)add('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth),job.priority||0);
       add(job.id+'-relief',job.textureWidth,job.priority||0);
     }

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
   <meta name="solar-time-version" content="0.69">
-  <meta name="solar-time-revision" content="r2">
+  <meta name="solar-time-revision" content="r3">
   <meta name="google-adsense-account" content="ca-pub-5773171100052324">
   <meta name="solar-time-ad-slot" content="">
   <meta id="meta-description" name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주." data-i18n-content="metaDescription">
@@ -23,8 +23,8 @@
   <script src="src/usage-analytics.js?v=889c5a4755d5"></script>
   <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
   <script src="src/page-runtime.js?v=1d8a9a92e549"></script>
-  <link rel="stylesheet" href="styles.css?v=d6de6dd26205">
-  <link rel="stylesheet" href="src/runtime-optimizations.css?v=a0341de0e0e2">
+  <link rel="stylesheet" href="styles.css?v=2bed8298b40a">
+  <link rel="stylesheet" href="src/runtime-optimizations.css?v=5a7edaea7f01">
 </head>
 <body>
   <div id="solar-viewport">
@@ -252,13 +252,17 @@
     </div>
     <!-- Every body-specific option switch belongs in this final card section. -->
     <div id="body-card-options" class="body-card-options">
+      <div id="earth-cloud-control" class="body-option-range" hidden>
+        <div class="body-size-heading"><label for="earth-cloud-amount" data-i18n="atmosphericClouds">대기권 구름</label><output id="earth-cloud-amount-output" for="earth-cloud-amount">100%</output></div>
+        <input id="earth-cloud-amount" class="solar-range" type="range" min="0" max="100" step="1" value="100" aria-label="대기권 구름" data-i18n-aria="atmosphericClouds">
+      </div>
       <div id="earth-night-lights-control" class="setting-row body-option-row" hidden>
         <label for="earth-night-lights" data-i18n="earthNightLights">야간 불빛</label>
         <input id="earth-night-lights" type="checkbox" role="switch" checked aria-label="지구 야간 불빛" data-i18n-aria="earthNightLights">
       </div>
-      <div id="earth-cloud-control" class="body-option-range" hidden>
-        <div class="body-size-heading"><label for="earth-cloud-amount" data-i18n="atmosphericClouds">대기권 구름</label><output id="earth-cloud-amount-output" for="earth-cloud-amount">100%</output></div>
-        <input id="earth-cloud-amount" class="solar-range" type="range" min="0" max="200" step="1" value="100" aria-label="대기권 구름" data-i18n-aria="atmosphericClouds">
+      <div id="venus-cloud-control" class="body-option-range" hidden>
+        <div class="body-size-heading"><label for="venus-cloud-amount" data-i18n="atmosphericClouds">대기권 구름</label><output id="venus-cloud-amount-output" for="venus-cloud-amount">80%</output></div>
+        <input id="venus-cloud-amount" class="solar-range" type="range" min="0" max="100" step="1" value="80" aria-label="대기권 구름" data-i18n-aria="atmosphericClouds">
       </div>
       <div id="sun-shine-control" class="setting-row body-option-row" hidden>
         <label for="show-activity" data-i18n="sunShine">태양 샤인</label>
@@ -424,17 +428,26 @@
         <div class="shortcut-row"><span class="shortcut-item"><kbd class="shortcut-arrows">← →</kbd><span data-i18n="planetSwitch">행성 전환</span></span><span class="shortcut-item"><kbd class="shortcut-arrows">↑ ↓</kbd><span data-i18n="zoomInOut">줌인·아웃</span></span><span class="shortcut-item"><kbd>Enter</kbd><span data-i18n="trackBody">천체 추적</span></span></div>
         <div class="shortcut-row shortcut-mouse-row"><span class="shortcut-item"><span class="mouse-control-icon mouse-left-click" aria-hidden="true"><i></i></span><span data-i18n="cameraRotate">회전</span></span><span class="shortcut-item"><span class="mouse-control-icon mouse-right-click" aria-hidden="true"><i></i></span><span data-i18n="cameraTravel">전진·후진</span></span><span class="shortcut-item"><span class="mouse-control-icon mouse-middle-click" aria-hidden="true"><i></i></span><span data-i18n="screenPan">이동</span></span><span class="shortcut-item"><img class="mouse-wheel-zoom-icon" src="assets/mouse-wheel-zoom.svg" width="34" height="32" alt="" aria-hidden="true"><span data-i18n="zoomInOut">줌인·아웃</span></span></div>
       </div>
-      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="alarm-music-credit" class="music-credit support-credit">Alram Music - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.69 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
+      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="wechat-pay-link" class="support-link" href="wechat-pay-qr.svg" aria-haspopup="dialog" aria-controls="wechat-pay-dialog">WeChat</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="alarm-music-credit" class="music-credit support-credit">Alram Music - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.69 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </dialog>
-  <dialog id="kakao-pay-dialog" class="modal card-surface kakao-pay-dialog" aria-labelledby="kakao-pay-title">
+  <dialog id="kakao-pay-dialog" class="modal card-surface support-qr-dialog kakao-pay-dialog" aria-labelledby="kakao-pay-title">
     <form method="dialog"><button class="close-button" aria-label="KakaoPay QR 닫기">×</button></form>
     <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
     <div id="kakao-pay-scroll" class="modal-scroll card-scroll kakao-pay-scroll">
     <h2 id="kakao-pay-title">KakaoPay QR</h2>
     <img src="kakao-pay-qr.svg" width="240" height="240" alt="KakaoPay 송금 QR 코드">
     <a class="support-link kakao-pay-open" href="https://qr.kakaopay.com/FC1GBtXGB" target="_blank" rel="noopener noreferrer" data-i18n="openKakaoPay">카카오페이 열기</a>
+    </div>
+    <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
+  </dialog>
+  <dialog id="wechat-pay-dialog" class="modal card-surface support-qr-dialog" aria-labelledby="wechat-pay-title">
+    <form method="dialog"><button class="close-button" aria-label="Close WeChat QR">×</button></form>
+    <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+    <div id="wechat-pay-scroll" class="modal-scroll card-scroll support-qr-scroll">
+    <h2 id="wechat-pay-title">WeChat Pay QR</h2>
+    <img src="wechat-pay-qr.svg" width="240" height="240" alt="WeChat Pay QR code">
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </dialog>
@@ -473,17 +486,17 @@
     <div class="cookie-consent-copy"><p><strong id="cookie-consent-title" data-i18n="cookieTitle">쿠키 사용</strong><span id="cookie-consent-message" data-i18n="cookieMessage">방문 분석과 광고 측정을 위해 쿠키 사용 여부를 선택해 주세요.</span></p><p id="cookie-choice-note" class="cookie-choice-note" data-i18n="cookieChoiceNote">허용·거부는 6개월간 기억합니다. X는 선택을 바꾸지 않으며, 미선택 상태에서는 다음 접속 때 다시 묻습니다.</p></div>
     <div class="cookie-consent-actions"><a href="privacy.html" target="_blank" rel="noopener" data-i18n="cookiePrivacy">개인정보</a><button id="cookie-reject" type="button" data-i18n="cookieReject">거부</button><button id="cookie-accept" class="primary" type="button" data-i18n="cookieAccept">허용</button><button id="cookie-dismiss" type="button" class="close-button cookie-consent-close" aria-label="선택을 변경하지 않고 닫기" title="선택을 변경하지 않고 닫기" data-i18n-aria="cookieDismiss" data-i18n-title="cookieDismiss">×</button></div>
   </section>
-  <script id="solar-assets" src="src/assets.js?v=81c670bb7357"></script>
+  <script id="solar-assets" src="src/assets.js?v=30d2b020ec9e"></script>
   <script src="src/sky-asset.js?v=1b5d12dccbad"></script>
   <script src="src/materials.js?v=16d6c207252b"></script>
   <script src="src/astronomy-engine.min.js?v=f41139a87941"></script>
   <script src="src/astro.js?v=53249e5308fe"></script>
   <script src="src/surface-style.js?v=88d7e16327c7"></script>
-  <script src="src/surface.js?v=3122fb2da922"></script>
+  <script src="src/surface.js?v=91e4645d490f"></script>
   <script src="src/sky.js?v=7f6731d11c8a"></script>
   <script src="src/visual-effects.js?v=44159ae6ea99"></script>
-  <script src="src/renderer.js?v=4ffc6dfec9ff"></script>
-  <script src="src/performance.js?v=b9e24a9b9327"></script>
+  <script src="src/renderer.js?v=680b24e4d7ee"></script>
+  <script src="src/performance.js?v=43c59da52b7a"></script>
   <script src="src/language-data.js?v=49cc3e836eae"></script>
   <script src="src/localization.js?v=bb6782c68730"></script>
   <script src="src/preferences.js?v=1f334598a53a"></script>
@@ -495,7 +508,7 @@
   <script src="src/music-player.js?v=0bc5bc270288"></script>
   <script src="src/adsense.js?v=4f3eb62dffcc"></script>
   <script src="src/cookie-consent.js?v=1494a5b88bc9"></script>
-  <script src="src/app.js?v=a8f503d4bdae"></script>
+  <script src="src/app.js?v=04f812bccfca"></script>
   <!-- Cloudflare Web Analytics -->
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}'></script>
   <!-- End Cloudflare Web Analytics -->

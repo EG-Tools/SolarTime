@@ -1,7 +1,5 @@
 {
   "baselineCommit": "94fa46401571dcb6363d153dab3b66030f91830c",
-  "notes": "506606c3fc2b087dd4aa4968e3da1227e343733962e6ba5a199adc9984d6e587",
-  "releaseCount": 6,
   "languages": [
     "kor",
     "en",
@@ -15,9 +13,7 @@
     "it",
     "id"
   ],
-  "planetShader": "2736010bdaf5c71623a5f8284f2922c11fafd9bcdef0728d6878ec8ae0942fec",
+  "planetShader": "e0aaf78b2806e539c69c31ae76ea6d0421395cdc93e319d2475e7d3fc8824454",
   "starVertex": "2b9bc202451f4bb768707910e19de3ea031c01bafa92fcd6b8bfc9ab06a1242b",
-  "starFragment": "39c06459d1b2512b342ffa1caa4cda6136c527c39ae6cd835bb16ed84034e5c4",
-  "notesBaselineCommit": "20204d2d1bbcbe96af85c4a276b6d270637d5a4c",
-  "notesPrunedInVersion": "0.64"
+  "starFragment": "39c06459d1b2512b342ffa1caa4cda6136c527c39ae6cd835bb16ed84034e5c4"
 }

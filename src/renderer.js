@@ -42,7 +42,7 @@
       this.gpu=null;this.gpuError=null;
       const gpuCanvas=typeof document==='object'&&typeof document.getElementById==='function'?document.getElementById('planet-layer'):null;
       if(gpuCanvas&&window.SolarSurface?.DirectRenderer){try{this.gpu=new window.SolarSurface.DirectRenderer(gpuCanvas);}catch(error){this.gpuError=error.message;}}
-      this.options={actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,earthNightLights:true,earthCloudAmount:.5,earthCloudSeed:0,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
+      this.options={actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
       this.bodyScales=Object.create(null);this.satelliteOrbitScales=Object.create(null);
       this.camera={...DEFAULT_CAMERA};
       this.site={label:'KOREA',latitude:37.5665,longitude:126.978};
@@ -81,6 +81,14 @@
       const p=clamp((mono-this.orbitRevealStart)/ORBIT_REVEAL.duration,0,1);
       return p*p*(3-2*p);
     }
+    cloudRevealProgress(mono=performance.now()) {
+      if(!(this.options.earthCloudAmount>0))return 0;
+      if(this.cloudRevealSeed!==this.options.earthCloudSeed){
+        this.cloudRevealSeed=this.options.earthCloudSeed;this.cloudRevealStart=mono;
+        this.invalidatePresentation(3600,mono);
+      }
+      return clamp((mono-this.cloudRevealStart)/3600,0,1);
+    }
     resourceSignature(){
       const surface=this.gpu||this.surface,sky=this.sky;
       return [surface?.stats?.accepted||0,surface?.stats?.discarded||0,surface?.stats?.recoveries||0,
@@ -93,7 +101,7 @@
     needsDraw(mono=performance.now()){
       return this.dirty||this.presentationDirty||this.resourceSignature()!==this.presentedResources||
         !!this.cameraTween||!!this.autoRotation||!!this.actualScaleTween||this.orbitRevealAlpha(mono)<.9999||
-        mono<this.presentationUntil||mono-(this.cameraChangeAt??-Infinity)<400;
+        mono<this.presentationUntil||mono<(this.gpu?.cloudBlendUntil||0)||mono-(this.cameraChangeAt??-Infinity)<400;
     }
     starGlow(c,x,y,r,alpha) {
       if(!(r>0)||!(alpha>0))return;
@@ -503,12 +511,17 @@
       }
       if(key==='orbitBrightness'){
         const numeric=Number(value);
-        this.options.orbitBrightness=clamp(Number.isFinite(numeric)?numeric:1,0,1);
+        this.options.orbitBrightness=clamp(Number.isFinite(numeric)?numeric:.8,0,1);
         this.dirty=true;return;
       }
       if(key==='earthCloudAmount'){
         const numeric=Number(value);
-        this.options.earthCloudAmount=clamp(Number.isFinite(numeric)?numeric:.5,0,1);
+        this.options.earthCloudAmount=clamp(Number.isFinite(numeric)?numeric:1,0,1);
+        if(this.options.earthCloudAmount===0)this.cloudRevealSeed=null;
+        this.lastSurfaceSubmit=-Infinity;this.dirty=true;return;
+      }
+      if(key==='venusCloudAmount'){
+        const numeric=Number(value);this.options.venusCloudAmount=clamp(Number.isFinite(numeric)?numeric:.8,0,1);
         this.lastSurfaceSubmit=-Infinity;this.dirty=true;return;
       }
       if(key==='earthCloudSeed'){
@@ -862,7 +875,7 @@
       c.restore();c.setLineDash([]);
     }
     // All bodies submit to the same bounded surface owner; no CPU pixel loop here.
-    surfaceJob(body,physical,r,ms,seconds,direct=false,target=null) {
+    surfaceJob(body,physical,r,ms,seconds,direct=false,target=null,mono=performance.now()) {
       const focused=body.id===this.camera.focus,selected=body.id===this.selected,priority=focused||selected;
       const screenDiameter=Math.max(32,r*2*this.dpr),apparentDiameter=Math.max(16,r*2);
       const nativeWidth=window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth;
@@ -887,7 +900,18 @@
       const lightVector=this.viewDirection({x:-physical.x,y:-physical.y,z:-physical.z}),len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
       const activity=body.id==='sun'&&this.options.activity,spin=A.rotationAt(body,ms),job=direct&&target?target:{};
       job.id=body.id;job.textureWidth=textureWidth;job.frame=frame;job.phase=spin/TAU;job.activity=activity;job.seconds=activity?seconds:0;job.nightLights=body.id==='earth'&&this.options.earthNightLights!==false;job.nightTextureWidth=job.nightLights?Math.min(SURFACE.detailWidth,nightTextureWidth):0;job.cloudAmount=body.id==='earth'?clamp(Number(this.options.earthCloudAmount),0,1)*cloudVisibility:0;job.cloudTextureWidth=job.cloudAmount>0?Math.min(SURFACE.detailWidth,cloudTextureWidth):0;job.cloudSeed=body.id==='earth'?this.options.earthCloudSeed:0;job.weatherDay=body.id==='earth'?ms/86400000:0;
+      job.cloudSpinDays=body.id==='earth'?body.spinSeconds/86400:1;
+      job.venusSurfacePreviewWidth=body.id==='venus'&&apparentDiameter>=96?256:0;
+      if(body.id==='venus'){
+        // Opposite of Earth: an unresolved Venus is always cloud-covered.
+        // Stored user preference is unchanged; it returns on approaching.
+        const near=clamp((apparentDiameter-64)/96,0,1),surfaceVisibility=near*near*(3-2*near);
+        job.cloudAmount=1-(1-clamp(this.options.venusCloudAmount,0,1))*surfaceVisibility;
+        job.cloudTextureWidth=job.cloudAmount>0?cloudTextureWidth:0;
+        job.textureWidth=job.cloudAmount>=1?cloudTextureWidth:textureWidth;
+      }
       job.priority=focused?2:selected?1:0;
+      job.cloudReveal=body.id==='earth'&&job.cloudAmount>0?this.cloudRevealProgress(mono):1;
       const light=direct?(job.light||(job.light=[0,0,0])):[0,0,0];
       light[0]=lightVector.x/len;light[1]=lightVector.y/len;light[2]=lightVector.z/len;job.light=light;
       if(direct)return job;
@@ -1148,7 +1172,7 @@
       const directBodies=this.directBodies;directBodies.length=0;
       if(direct){
         const jobs=this.compatSurfaceJobs;jobs.length=0;
-        for(const p of surfaceBodies){this.surfaceJob(p.body,p.physical,p.r,ms,seconds,true,p.directJob);p.directReady=true;jobs.push(p.directJob);}
+        for(const p of surfaceBodies){this.surfaceJob(p.body,p.physical,p.r,ms,seconds,true,p.directJob,mono);p.directReady=true;jobs.push(p.directJob);}
         this.gpu.prepare(jobs);
         const sun=this.currentFrameItem('sun');
         if(sun&&this.options.activity&&this.visible(sun.screen,sun.r*5.1+16))this.gpu.corona(this.coronaSource(sun.r),sun.screen,sun.r,seconds);
@@ -1163,7 +1187,7 @@
         const surfaceInterval=moving?40:simRate>1000?34:90;
         if(mono-this.lastSurfaceSubmit>=surfaceInterval){
           this.lastSurfaceSubmit=mono;this.lastSurfaceSimMs=ms;this.lastSurfaceMono=mono;
-          const jobs=this.compatSurfaceJobs;jobs.length=0;for(const p of surfaceBodies)jobs.push(this.surfaceJob(p.body,p.physical,p.r,ms,seconds,false));
+          const jobs=this.compatSurfaceJobs;jobs.length=0;for(const p of surfaceBodies)jobs.push(this.surfaceJob(p.body,p.physical,p.r,ms,seconds,false,null,mono));
           this.surface.update(jobs,mono);
         }
       }

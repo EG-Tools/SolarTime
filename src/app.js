@@ -115,7 +115,7 @@
     catch{value=Math.random();}
     return Math.abs(value-previous)<1e-6?(value+.5)%1:value;
   }
-  const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,starDensity:1,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,earthNightLights:true,earthCloudAmount:.5,earthCloudSeed:0,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
+  const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,starDensity:1,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
   const FACTORY_BODY_SCALES=Object.freeze({sun:1.54,mercury:3.79,venus:3.06,earth:5.05,mars:4.28,jupiter:2,saturn:2.42,uranus:3.04,neptune:2.32,pluto:5.23,moon:3.7,europa:3.44});
   const FACTORY_ORBIT_SCALES=Object.freeze({sun:.16,earth:.43,jupiter:1});
   const FACTORY_AUTO_ROTATE=1;
@@ -229,6 +229,7 @@
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
           if(Number.isFinite(saved.earthCloudAmount))renderer.options.earthCloudAmount=A.clamp(saved.earthCloudAmount,0,1);
           else if(Number.isFinite(saved.earthCloudOpacity))renderer.options.earthCloudAmount=A.clamp(saved.earthCloudOpacity,0,1);
+          if(Number.isFinite(saved.venusCloudAmount))renderer.options.venusCloudAmount=A.clamp(saved.venusCloudAmount,0,1);
           if(Number.isFinite(saved.orbitBrightness))renderer.options.orbitBrightness=A.clamp(saved.orbitBrightness,0,1);
           else if(typeof saved.orbits==='boolean')renderer.options.orbitBrightness=saved.orbits?.5:0;
           if(Number.isFinite(saved.starDensity))renderer.options.starDensity=A.clamp(saved.starDensity,0,3);
@@ -521,9 +522,11 @@
         $('body-orbit-label').textContent=t(solar?'solarOrbitSpacing':'satelliteOrbitSpacing');orbitSlider.setAttribute('aria-label',t(solar?'solarOrbitSpacingAria':'satelliteOrbitSpacingAria'));
         $('body-size-slider').disabled=locked;$('body-size-reset').disabled=locked||(value===100&&(!hasOrbitControl||orbitValue===100));
         $('body-size-lock').hidden=!locked;$('body-size-control').classList.toggle('locked',locked);
-        const earth=body.id==='earth',cloudValue=Math.round(A.clamp(Number(renderer.options.earthCloudAmount) || 0,0,1)*200);
+        const earth=body.id==='earth',cloudValue=Math.round(A.clamp(Number(renderer.options.earthCloudAmount) || 0,0,1)*100);
         $('earth-night-lights-control').hidden=!earth;$('earth-night-lights').checked=renderer.options.earthNightLights!==false;
         $('earth-cloud-control').hidden=!earth;$('earth-cloud-amount').value=String(cloudValue);$('earth-cloud-amount-output').textContent=cloudValue+'%';
+        const venusCloudValue=Math.round(renderer.options.venusCloudAmount*100);
+        $('venus-cloud-control').hidden=body.id!=='venus';$('venus-cloud-amount').value=String(venusCloudValue);$('venus-cloud-amount-output').textContent=venusCloudValue+'%';
         $('sun-shine-control').hidden=body.id!=='sun';$('show-activity').checked=renderer.options.activity!==false;
       }
       $('body-size-slider').addEventListener('input',()=>{
@@ -539,9 +542,14 @@
       $('earth-cloud-amount').addEventListener('input',()=>{
         const value=Number($('earth-cloud-amount').value),previous=renderer.options.earthCloudAmount;
         if(value>0&&previous<=0)renderer.setOption('earthCloudSeed',randomCloudSeed(renderer.options.earthCloudSeed));
-        renderer.setOption('earthCloudAmount',value/200);$('earth-cloud-amount-output').textContent=value+'%';
+        renderer.setOption('earthCloudAmount',value/100);$('earth-cloud-amount-output').textContent=value+'%';
       });
       $('earth-cloud-amount').addEventListener('change',persist);
+      $('venus-cloud-amount').addEventListener('input',()=>{
+        const value=Number($('venus-cloud-amount').value);
+        renderer.setOption('venusCloudAmount',value/100);$('venus-cloud-amount-output').textContent=value+'%';
+      });
+      $('venus-cloud-amount').addEventListener('change',persist);
       $('body-size-reset').addEventListener('click',()=>{
         const body=bodies.find(value=>value.id===renderer.selected);if(!body)return;
         const sizeReset=renderer.resetBodyScale(body.id),orbitReset=renderer.resetSatelliteOrbitScale(body.id);
@@ -706,7 +714,6 @@
       const settingsPanel=$('settings-panel'),settingsScroll=$('settings-scroll');
       const updateSettingsScrollCues=bindScrollCues(settingsPanel,settingsScroll);
       const updateBodyScrollCues=bindScrollCues($('body-panel'),$('body-scroll'));
-      bindScrollCues($('kakao-pay-dialog'),$('kakao-pay-scroll'));
       function settings(open) {const next=open===undefined?!uiElementVisible(settingsPanel):open;if(next){closeLanguageMenu();timerController?.close();showFading(settingsPanel);updateSettingsScrollCues();requestAnimationFrame(updateSettingsScrollCues);}else hideFading(settingsPanel);$('settings-button').setAttribute('aria-expanded',String(next));if(next)closeBody();}
       UI.bindPopup(settingsPanel,()=>settings(false));
       UI.bindPopup($('body-panel'),closeBody);
@@ -855,16 +862,23 @@
       for(const event of ['pointermove','pointerdown','pointerup','pointercancel','wheel','keydown','focusin'])document.addEventListener(event,wakePointer,{passive:true});
       const helpDialog=$('help-dialog');
       const helpScroll=$('help-scroll');
-      const kakaoPayDialog=$('kakao-pay-dialog');
-      function closeKakaoPay(restoreFocus=true){if(kakaoPayDialog.open)hideFading(kakaoPayDialog,()=>kakaoPayDialog.close());if(restoreFocus)$('kakao-pay-link').focus({preventScroll:true});}
-      $('kakao-pay-link').addEventListener('click',event=>{event.preventDefault();if(!kakaoPayDialog.open)showFading(kakaoPayDialog,()=>kakaoPayDialog.showModal());});
-      kakaoPayDialog.querySelector('form').addEventListener('submit',event=>{event.preventDefault();closeKakaoPay();});
-      UI.bindDialog(kakaoPayDialog,options=>closeKakaoPay(options?.restoreFocus!==false));
+      // Both payment QR cards use the same surface, dismissal and focus lifecycle.
+      for(const provider of ['kakao-pay','wechat-pay']){
+        const dialog=$(provider+'-dialog'),link=$(provider+'-link');
+        const close=(restoreFocus=true)=>{
+          if(!dialog.open)return;
+          hideFading(dialog,()=>{dialog.close();if(restoreFocus)link.focus({preventScroll:true});});
+        };
+        bindScrollCues(dialog,$(provider+'-scroll'));
+        link.addEventListener('click',event=>{event.preventDefault();if(!dialog.open)showFading(dialog,()=>dialog.showModal());});
+        dialog.querySelector('form').addEventListener('submit',event=>{event.preventDefault();close();});
+        UI.bindDialog(dialog,options=>close(options?.restoreFocus!==false));
+      }
       const updateHelpScrollCues=bindScrollCues(helpDialog,helpScroll);
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=8ebcb6da3e37','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=892833ebb7cf','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1151,7 +1165,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.69',revision:'r2',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.69',revision:'r3',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

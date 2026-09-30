@@ -28,6 +28,13 @@ test('clock size is restored, persisted, reset and applied through one CSS scale
  assert.match(runtimeCss,/\.clock-face \.scene-status\{position:static;left:auto;transform:none;justify-content:center;margin-top:12px\}/);
 });
 
+test('slogan to clock gap is halved once and inherited by mobile',()=>{
+ const css=read('styles.css');
+ const rules=[...css.matchAll(/\.clock-face \.eyebrow\{([^}]+)\}/g)].map(match=>match[1]);
+ assert.equal(rules.filter(rule=>/margin:0 0 4\.5px(?:;|$)/.test(rule)).length,1);
+ assert.equal(rules.filter(rule=>/margin(?:-bottom)?:/.test(rule)).length,1,'mobile inherits the same gap');
+});
+
 test('every supported locale translates clock size',()=>{
  for(const file of fs.readdirSync(path.join(root,'src','locales')).filter(name=>name.endsWith('.json'))){
   const data=JSON.parse(read(path.join('src','locales',file)));assert.equal(typeof data.copy.clockSize,'string',file);assert.ok(data.copy.clockSize.trim(),file);

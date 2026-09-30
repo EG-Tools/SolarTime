@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "revision": "assetpack-20260922-r3",
-  "generatedAt": "2026-09-23T09:28:41.377Z",
+  "revision": "assetpack-20260930-r1",
+  "generatedAt": "2026-09-30T00:25:02.437Z",
   "materials": {
-    "clouds": {
-      "source": "clouds.webp",
-      "width": 4096,
-      "height": 2048,
+    "clouds-alt": {
+      "remoteOnly": true,
+      "width": 2048,
+      "height": 1024,
       "seamBaked": true,
       "tiers": [
         {
@@ -36,13 +36,49 @@
           "path": "releases/content/textures/clouds-2048.e7cf1dd793cbca2f.webp",
           "bytes": 138480,
           "sha256": "e7cf1dd793cbca2fbb57b33e161cfaeb2b0b0d08f84768ed4c6c8dd40f8be650"
+        }
+      ]
+    },
+    "clouds": {
+      "source": "clouds.webp",
+      "width": 4096,
+      "height": 2048,
+      "seamBaked": true,
+      "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/clouds-256.f1f1b6e16a0a490f.webp",
+          "bytes": 17208,
+          "sha256": "f1f1b6e16a0a490fc9bee0c9c5c0a3b86078aa75ea4c98e3c35ddb92e1e23a89"
+        },
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/clouds-512.cf75f2e779d734b3.webp",
+          "bytes": 62174,
+          "sha256": "cf75f2e779d734b3185fd19f3a06fe3d9d1a4fd3ea19f38e8d64bb4496d7a2ee"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/clouds-1024.e1aadd905c743a41.webp",
+          "bytes": 223230,
+          "sha256": "e1aadd905c743a41c27f7f538eeeb3c08204f5d30a148befbea82f40a8129677"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/clouds-2048.a34b3e0827ccff7f.webp",
+          "bytes": 845508,
+          "sha256": "a34b3e0827ccff7f93bec292ff31715e43db6a77a90d653dbf2f14e5cb1c3b5d"
         },
         {
           "width": 4096,
           "height": 2048,
-          "path": "releases/content/textures/clouds-4096.86fc88ee6263ad09.webp",
-          "bytes": 265854,
-          "sha256": "86fc88ee6263ad096986a14263b9bc488fd22c09c7b4a607ce5b1e84f14ba6ae"
+          "path": "releases/content/textures/clouds-4096.8f7963cb1246bbbd.webp",
+          "bytes": 3088026,
+          "sha256": "8f7963cb1246bbbdc6799906c680c2e8dc9cfe66cfea203dadf7e1c8c72e4edf"
         }
       ]
     },
@@ -588,6 +624,49 @@
           "path": "releases/content/textures/venus-4096.f99eb4784693f56b.webp",
           "bytes": 377774,
           "sha256": "f99eb4784693f56b7390540627ecffc9543885b673dd115d04412246e350b49b"
+        }
+      ]
+    },
+    "venus-surface": {
+      "source": "venus-surface.webp",
+      "width": 4096,
+      "height": 2048,
+      "seamBaked": true,
+      "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/venus-surface-256.464edd8caf560e23.webp",
+          "bytes": 17454,
+          "sha256": "464edd8caf560e23448ac9285df4e8ec511425963279d32a2fb97526f14e0316"
+        },
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/venus-surface-512.4ef7e317eae1c850.webp",
+          "bytes": 65108,
+          "sha256": "4ef7e317eae1c8500e455a96e535075c27ac1a08777bcf7b153b21d9b8c1fd95"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/venus-surface-1024.2c358a861929e101.webp",
+          "bytes": 224046,
+          "sha256": "2c358a861929e101a0f7719f462b78808f00099703a7a633614e6a17bff6f538"
+        },
+        {
+          "width": 2048,
+          "height": 1024,
+          "path": "releases/content/textures/venus-surface-2048.f6e561e13e5ac220.webp",
+          "bytes": 655476,
+          "sha256": "f6e561e13e5ac2205d60dc3928ce0230b7142f459f6a4cede952e572bd07de8a"
+        },
+        {
+          "width": 4096,
+          "height": 2048,
+          "path": "releases/content/textures/venus-surface-4096.91dd29f4610e542f.webp",
+          "bytes": 1555546,
+          "sha256": "91dd29f4610e542fd3d04646b5140da8627e142b9a68a5aecdee5a17fc2257e9"
         }
       ]
     }

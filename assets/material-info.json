@@ -39,6 +39,16 @@
     "credit": "Solar System Scope / INOVE · CC BY 4.0",
     "feature": null
   },
+  "venus-surface": {
+    "revision": "nasa-magellan-surface-v1",
+    "url": "https://science.nasa.gov/3d-resources/venus/",
+    "width": 4096,
+    "height": 2048,
+    "sourceWidth": 1440,
+    "sourceHeight": 720,
+    "credit": "NASA / JPL-Caltech · Magellan radar mosaic (simulated colour)",
+    "feature": null
+  },
   "mars": {
     "revision": "embedded-sss-4k-v035",
     "url": "https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_mars.jpg",

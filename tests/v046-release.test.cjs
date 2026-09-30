@@ -4,7 +4,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function notesApi(){return require('../src/release-notes.js');}
 const priorRegionOrder=order=>Array.from(order).filter(c=>!require('./fixtures/regions-v061.json').some(r=>r.code===c));
-const notesFor=version=>{const api=notesApi();return api.itemsFor(api.RELEASES.find(r=>r.version===version),'kor').join(' ');};
+const notesFor=version=>{const api=notesApi(),recent=api.RELEASES.find(r=>r.version===version);return (recent?api.itemsFor(recent,'kor'):require('../i18n/releases-archive-ko.json').find(r=>r.version===version)?.items||[]).join(' ');};
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
 test('v0.46 page build stays consistent while unchanged coordinator keeps its bundle revision',()=>{
@@ -70,7 +70,7 @@ test('right mouse drag temporarily dollies the camera without changing the wheel
 });
 
 test('v0.43 notes no longer advertise the discarded Jupiter shader experiment',()=>{
-  const api=notesApi(),release=api.RELEASES.find(r=>r.version==='0.43');for(const code of ['kor','en','chn','jpn','es','de','fr'])assert.doesNotMatch(api.itemsFor(release,code).join(' '),/대적점|Great Red Spot|大红斑|大赤斑|Gran Mancha Roja|Großen Roten Fleck|Grande Tache rouge/);assert.match(notesFor('0.43'),/GPU에 한 번 올린 뒤 슬라이더 값에 따라 그리는 개수만 바꾸도록/);
+  assert.doesNotMatch(notesFor('0.43'),/대적점|Great Red Spot/);assert.match(notesFor('0.43'),/GPU에 한 번 올린 뒤 슬라이더 값에 따라 그리는 개수만 바꾸도록/);
 });
 
 test('v0.45 notes include the right-drag dolly control',()=>{
@@ -145,7 +145,7 @@ test('r10 removes the extra WebGL star canvas while keeping the safe r9 optimiza
   assert.match(effects,/function buildNaturalStarData/);
   assert.match(effects,/SolarAssets\.starData=data/);
   assert.match(sky,/source instanceof Float32Array/);
-  assert.match(surface,/materialCanvas\(bitmap,w,h,readPixels=false,seamBaked=false\)/);
+  assert.match(surface,/materialCanvas\(bitmap,w,h,readPixels=false,seamBaked=false,tile=false\)/);
   assert.match(surface,/this\.attribute=g\.getAttribLocation\(program,'a'\)/);
   assert.match(performance,/stats\?\.texturePixels\|\|0\)\*4/);
   assert.match(performance,/__solarLastTextureTrim/);
@@ -267,7 +267,7 @@ test('r16 removes avoidable renderer hot-path work and restores the watermark',(
   assert.ok(app.includes("window.SolarAssets?.materials?.earth?.base"));
   assert.match(renderer,/this\.frameBodies=\[\];this\.surfaceBodies=\[\];this\.directBodies=\[\];this\.labelBodies=\[\]/);
   assert.match(renderer,/displayPhysicalPoint\(physical,out\)/);
-  assert.match(renderer,/surfaceJob\(body,physical,r,ms,seconds,direct=false,target=null\)/);
+  assert.match(renderer,/surfaceJob\(body,physical,r,ms,seconds,direct=false,target=null,mono=performance\.now\(\)\)/);
   assert.match(renderer,/if\(direct\)return job/);
   assert.doesNotMatch(renderer,/directJobs=new Map/);
   assert.doesNotMatch(renderer,/surfaceBodies\.map\(p=>this\.surfaceJob/);
@@ -297,7 +297,7 @@ assert.ok(html.includes(cacheUrl('src/runtime-optimizations.css')));
 test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js'),pipeline=read('tools/asset-pipeline.cjs');
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
- const notes=notesApi();assert.equal(notes.RELEASES[0].version,JSON.parse(read('version.json')).version);assert.deepEqual(notes.RELEASES.filter(r=>['0.58','0.57','0.56','0.55','0.54','0.53','0.52'].includes(r.version)).map(r=>r.version),['0.58','0.57','0.56','0.55','0.54','0.53','0.52']);
+ const notes=notesApi();assert.equal(notes.RELEASES[0].version,JSON.parse(read('version.json')).version);assert.equal(notes.RELEASES.length,10);const archive=require('../i18n/releases-archive-ko.json');for(const version of ['0.58','0.57','0.56','0.55','0.54','0.53','0.52'])assert.ok(archive.some(r=>r.version===version&&r.items.length),version);
   for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(notes.itemsFor(notes.RELEASES[0],code).length>0,code);
  assert.ok(app.includes(cacheUrl('src/release-notes.js')));assert.ok(html.includes('<h3 id="release-notes-version">v'+JSON.parse(read('version.json')).version+'</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
 
@@ -306,14 +306,14 @@ test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
  for(const file of ['surface','performance'])assert.ok(html.includes(cacheUrl('src/'+file+'.js')),file);
  assert.ok(html.includes(cacheUrl('src/renderer.js')),'renderer');
   assert.ok(html.includes(cacheUrl('src/app.js')));
-  assert.deepEqual(assetRevision,{version:'assetpack-20260922-r3'});
-  assert.equal(manifest.revision,'assetpack-20260922-r3');
+  assert.deepEqual(assetRevision,{version:'assetpack-20260930-r1'});
+  assert.equal(manifest.revision,'assetpack-20260930-r1');
   for(const entry of Object.values(manifest.materials))assert.equal(entry.seamBaked,true,entry.source);
   assert.match(pipeline,/async function seamBakedVariant/);
   assert.match(pipeline,/seamBaked:group==='textures'/);
   assert.match(pipeline,/rightPixel=y\*width\+\(width-1-x\)/);
   assert.match(surface,/seamBaked:!!asset\.seamBaked/);
-  assert.match(surface,/if\(!source\.seamBaked\|\|bitmap\.width!==width\|\|bitmap\.height!==height\)/);
+  assert.match(surface,/if\(name==='clouds-alt'\|\|!source\.seamBaked\|\|bitmap\.width!==width\|\|bitmap\.height!==height\)/);
   assert.match(surface,/g\.pixelStorei\(g\.UNPACK_FLIP_Y_WEBGL,false\)/);
   assert.match(surface,/this\.orbitState=\{valid:false\}/);
   assert.match(surface,/if\(!s\.valid\|\|s\.centerX!==centerX/);
