@@ -84,22 +84,6 @@
       "Taal"
     ]
   },
-  "releases": {
-    "0.61": {
-      "kor": "507bc391247f68c63cabb7f3118b6e9386875df1f4e0d927caf61bc15cabf854",
-      "en": "434988fc6c1276ee7de162d3ec600e62da415054b514ffcd381b3de3cb752a3d",
-      "chn": "863726d253755e8965d67d60dc310417d0f7be2321ccb4afdd4880dd603d19d8",
-      "zht": "a4deea4d69c2972e8444e1f8d53d27bf55d1dfbf981442d4568f49a791ec4ece",
-      "jpn": "878cea945594d6a318e25ef3899c5eaed38738bbc9ba481e65df50e56a357d44",
-      "hi": "894e5a9d21c75baa80723a6b81c99e50f5b64b8272c4aaeda835875494be186d",
-      "es": "32dc8a289408b446d2c7107b91bdd11bd1f932a3f5ca17f1c8b9d748ff7c3875",
-      "de": "be201af9e6d8794ea66a355bc5fdcc5fcd79ef26113daa5778e8be06d2e838c7",
-      "fr": "ceefdfecead0cb2d9a21f70140983930691cd7149cf7d2c9b99d84cced175833",
-      "pt": "d05ff2a011da3d6e8ef7061a4e22d2c2f74b83dd0fabe794000dc5ce23ab0dd3",
-      "it": "051381974434c24a03cb2bc3091fa9c6bfef3fb1d709f7ce39bb553d17229c9b",
-      "id": "a68b2c108742a55aea6526b87d13c9c4fe1b757e0d2ab8dfd6555f8fa6ad2031",
-      "nl": "98c3f862410ead39ab54a5f1a95a1d0f622d30029f61ac35047e3f8368f57e7d"
-    }
-  },
+  "releases": {},
   "koreanBodyProvenance": "Korean body text previously came from unchanged SolarAstro body.ko/description, and phase labels from identity mapping in app.js."
 }

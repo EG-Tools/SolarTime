@@ -11,7 +11,7 @@ test('Packaged catalog covers every visual body without third-party runtime down
 test('Manifest assets require bounded resolution tiers and a cloud fallback',()=>{
  assert.ok(valid(asset()));assert.ok(valid('data:image/webp;base64,dGVzdA=='));
  for(const bad of [{...asset(),fallback:''},{...asset(),tiers:[]},{...asset(),tiers:[{width:128,path:'tiny.webp'}]},{...asset(),tiers:[{width:512,path:7}]},'https://example.org/map.webp'])assert.equal(valid(bad),false);
- for(const entry of Object.values(manifest.materials)){assert.ok(valid({base:'https://assets.example/',fallback:new URL(entry.tiers[0].path,'https://assets.example/').href,tiers:entry.tiers}));assert.ok(entry.tiers.length>=3);for(const tier of entry.tiers){assert.equal(tier.height,tier.width/2);assert.match(tier.path,/\.[a-f0-9]{16}\.webp$/);}}
+ for(const [id,entry] of Object.entries(manifest.materials)){assert.ok(valid({base:'https://assets.example/',fallback:new URL(entry.tiers[0].path,'https://assets.example/').href,tiers:entry.tiers}));assert.ok(entry.tiers.length>=3);if(id==='saturn-ring')assert.equal(entry.layout,'radial');for(const tier of entry.tiers){assert.equal(tier.height,id==='saturn-ring'?1:tier.width/2);assert.match(tier.path,/\.[a-f0-9]{16}\.webp$/);}}
 });
 test('Background comet is a bounded curved cubic, with exact endpoint directions',()=>{
  const sandbox={window:{}};vm.runInNewContext(fs.readFileSync(require.resolve('../src/sky.js'),'utf8'),sandbox);

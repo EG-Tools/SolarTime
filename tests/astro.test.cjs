@@ -36,6 +36,13 @@ test('Normal overview orbit anchors have one equal gap from Mercury through Plut
   for(const body of A.BODIES){close(A.displayDistance(body.base[0]),body.overviewOrbit);close(A.displayDistance(body.base[0],1,200),body.base[0]*A.TRUE_SCALE_UNITS_PER_AU);}
 });
 
+test('expanded display gaps keep the Mercury anchor, full control range and physical distances',()=>{
+ for(const gap of [50,100,300,400])for(const [i,body] of A.BODIES.entries()){
+  close(A.displayDistance(body.base[0],0,gap,1.5),190+gap*1.5*i);
+  close(A.displayDistance(body.base[0],1,gap,1.5),body.base[0]*A.TRUE_SCALE_UNITS_PER_AU);
+ }
+});
+
 test('true-scale distance is linear in AU, independent of overview anchors and gap settings',()=>{
   for(const gap of [50,90,200,400])for(const au of [0,.00256955529,.387,1,5.2,30,39.5,100]){
     close(A.displayDistance(au,1,gap),au*A.TRUE_SCALE_UNITS_PER_AU,1e-9);

@@ -7,11 +7,12 @@ const all=[...A.BODIES,A.MOON,A.SUN];
 const close=(x,y,eps=1e-8)=>assert.ok(Math.abs(x-y)<eps,`${x} != ${y}`);
 const signed=x=>A.wrap(x+Math.PI)-Math.PI;
 
-test('Earth and Sun start at their original display radii',()=>{
- close(earth.size,11.5);close(earth.orbit,198);
- const original={mercury:6.5,venus:10.5,mars:8.5,jupiter:29,saturn:24,uranus:16.5,neptune:16,pluto:5};
- for(const b of A.BODIES)if(b.id!=='earth')close(b.size,original[b.id]);
- close(A.MOON.size,3.9);close(A.SUN.size,28);
+test('100% ordinary body sizes follow the user-defined Sun and parent ratios',()=>{
+ close(A.SUN.size,28);close(earth.orbit,198);
+ const ratios={mercury:.25,venus:.25,earth:.25,mars:.25,jupiter:.5,saturn:.5,uranus:.5,neptune:.5,pluto:.0625};
+ for(const b of A.BODIES)close(b.size/A.SUN.size,ratios[b.id]);
+ close(A.MOON.size/earth.size,.25);close(A.EUROPA.size/A.BODIES.find(b=>b.id==='jupiter').size,.25);
+ close(A.MOON.size,A.BODIES.find(b=>b.id==='pluto').size);
 });
 test('Every body completes one turn per its own sidereal period, not a display loop',()=>{
  for(const b of all)for(const t of [A.J2000,Date.UTC(2026,8,11),A.MIN_TIME,A.MAX_TIME-300*A.DAY]) {
@@ -73,10 +74,10 @@ test('Saturn and Uranus use the documented Cassini/Hubble representative periods
  close(A.BODIES.find(b=>b.id==='uranus').spin*86400,-62092,1e-7);
 });
 
-test('Lunar display orbit stays compact with the original Earth size',()=>{
+test('Lunar display orbit and physical period remain independent of display body sizes',()=>{
  close(A.MOON.displayOrbit,30);
- assert.ok(A.MOON.displayOrbit/earth.size>2.5&&A.MOON.displayOrbit/earth.size<2.7);
- close(A.MOON.period,27.321661);close(earth.size,11.5);
+ assert.ok(A.MOON.displayOrbit>earth.size+A.MOON.size);
+ close(A.MOON.period,27.321661);close(earth.size,7);
  for(const t of [A.J2000,A.J2000+7*A.DAY,A.MAX_TIME]) {
   const p=A.moonAt(t,A.MOON.displayOrbit);
    const distance=Math.hypot(p.x,p.y,p.z);assert.ok(distance>=28.2&&distance<=31.8);

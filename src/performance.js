@@ -46,6 +46,7 @@
   }
   function protectTexture(renderer,name){
     const desired=renderer.desired;
+    if(name==='saturn-ring')return !!desired?.has('saturn');
     if(name==='venus-surface')return !!desired?.has('venus')&&(desired.get('venus').cloudAmount<1||desired.get('venus').venusSurfacePreviewWidth>0);
     if(name==='venus')return !!desired?.has('venus')&&(desired.get('venus').cloudAmount!==0||(!renderer.textures?.get('venus-surface')?.texture&&!!renderer.textures?.get('venus')?.texture));
     if(desired?.has(name))return true;
@@ -65,16 +66,18 @@
         else if(job.venusSurfacePreviewWidth>0)add('venus-surface',256,job.priority||0);
         if(job.cloudAmount!==0)add('venus',job.cloudTextureWidth||job.textureWidth,job.priority||0);
       }else add(job.id,job.textureWidth,job.priority||0);
+      if(job.id==='saturn')add('saturn-ring',job.textureWidth,job.priority||0);
       if(job.id==='earth'&&job.cloudAmount!==0)add('clouds',Math.min(4096,job.cloudTextureWidth||job.textureWidth),job.priority||0);
       if(job.id==='earth'&&job.cloudAmount!==0&&job.cloudDetail!==0)add('clouds-alt',Math.min(2048,job.cloudTextureWidth||job.textureWidth),job.priority||0);
       if(job.id==='earth'&&job.nightLights)add('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth),job.priority||0);
       add(job.id+'-relief',job.textureWidth,job.priority||0);
     }
-    const budget=Math.max(0,textureBudget()-Math.max(0,reserveBytes))*.8;let bytes=entries.reduce((sum,e)=>sum+e.width*e.width*2,0),constrained=bytes>budget;
+    const entryBytes=e=>e.name==='saturn-ring'?e.width*4:e.width*e.width*2;
+    const budget=Math.max(0,textureBudget()-Math.max(0,reserveBytes))*.8;let bytes=entries.reduce((sum,e)=>sum+entryBytes(e),0),constrained=bytes>budget;
     while(bytes>budget){
       const candidate=entries.filter(e=>e.width>128).sort((a,b)=>a.priority-b.priority||b.width-a.width)[0];
       if(!candidate)break;
-      bytes-=candidate.width*candidate.width*1.5;candidate.width/=2;
+      bytes-=entryBytes(candidate);candidate.width/=2;bytes+=entryBytes(candidate);
     }
     return {targets:new Map(entries.map(e=>[e.name,e.width])),bytes,constrained};
   }

@@ -63,6 +63,7 @@ async function main(){
       console.log(JSON.stringify({orbitMorph:morph}));
       assert.equal(morph.error,0);assert.equal(morph.coldUploads,9);assert.equal(morph.transitionUploads,0);assert.equal(morph.transitionBuilds,0);
       assert.ok(morph.cases>=100);assert.ok(morph.maxRelativeDifference<.03,JSON.stringify(morph));assert.ok(morph.minVisiblePixels>100);
+      assert.equal(morph.satelliteCases,6);
     }
     if(process.argv.includes('--visual')){
       // Sources are consumed by the real renderer for QA, never image-edited.
@@ -105,9 +106,12 @@ async function main(){
       const support=await require('./support_qr.cjs')({root,evaluate,send,session});
       console.log(JSON.stringify({support}));
     }
+    if(process.argv.includes('--saturn-rings'))console.log(JSON.stringify({saturnRings:await require('./saturn_rings.cjs')({root,evaluate})}));
     if(process.argv.includes('--venus-app'))console.log(JSON.stringify({venusApp:await require('./venus_app.cjs')({root,evaluate,send,session})}));
     if(process.argv.includes('--opening-app'))console.log(JSON.stringify({openingApp:await require('./opening_camera.cjs')({root,evaluate,send,session})}));
     if(process.argv.includes('--alignment-app'))console.log(JSON.stringify({alignmentApp:await require('./alignment_app.cjs')({root,evaluate,send,session})}));
+    if(process.argv.includes('--orbit-spacing-app'))console.log(JSON.stringify({orbitSpacingApp:await require('./orbit_spacing_app.cjs')({root,evaluate,send,session})}));
+    if(process.argv.includes('--keyboard-camera-app'))console.log(JSON.stringify({keyboardCameraApp:await require('./keyboard_camera.cjs')({root,evaluate,send,session})}));
     await send('Target.closeTarget',{targetId:target});target=null;
     await send('Browser.close').catch(()=>{});
   }finally{

@@ -55,6 +55,72 @@ test('opening accelerates more gently over 40% and decelerates over 60% into the
  r.advanceCamera(2800);const late=(target.dolly-r.camera.dolly)/(target.dolly-opening.dolly);assert.ok(late<.02,'arrival stops gently');
  r.advanceCamera(3000);for(const key of ['azimuth','elevation','zoom','dolly','panX','panY'])close(r.camera[key],target[key]);assert.equal(r.cameraTween,null);
 });
+test('opening ramps saved left/right/random rotation into arrival without an angular or velocity jump',()=>{
+ for(const mode of [-1,1,'random']){
+  const {r}=renderer(),target=r.cameraSnapshot();r.restoreCamera({...target,dolly:.001});
+  if(mode==='random')r.setRandomRotate(true,0);else r.setAutoRotate(mode,0);
+  r.animateOpeningCamera(target,0,5000);
+  const difference=(a,b)=>A.wrap(a-b+Math.PI)-Math.PI;
+  r.advanceCamera(3500);close(r.camera.azimuth,target.azimuth);close(r.camera.elevation,target.elevation);
+  r.advanceCamera(4000);const early=plain(r.camera);
+  r.advanceCamera(4999);const before=plain(r.camera),path=r.randomRotation;
+  r.advanceCamera(5000);const at=plain(r.camera);
+  assert.equal(r.cameraTween,null);assert.equal(r.pendingAutoRotation,null);assert.ok(r.autoRotation);
+  const yaw=mode==='random'?path.yawRate:mode*1.8*A.DEG,pitch=mode==='random'?path.pitchRate:0;
+  close(difference(at.azimuth,target.azimuth),yaw*.75);close(difference(at.elevation,target.elevation),pitch*.75);
+  assert.ok(Math.hypot(difference(early.azimuth,target.azimuth),difference(early.elevation,target.elevation))<1.8*A.DEG*.2);
+  r.advanceAutoRotate(5001);
+  for(const key of ['azimuth','elevation'])close(difference(at[key],before[key])*1000,difference(r.camera[key],at[key])*1000,1e-6);
+  if(mode==='random')assert.equal(r.randomRotation,path,'random heading survives the hand-off');
+ }
+});
+
+test('opening rotation blend is frame-rate independent and preserves its angle when switched off',()=>{
+ for(const mode of [-1,1,'random']){
+  const results=[];
+  for(const fps of [30,60,144]){
+   const {r}=renderer(),target=r.cameraSnapshot();r.restoreCamera({...target,dolly:.001});
+   if(mode==='random')r.setRandomRotate(true,0);else r.setAutoRotate(mode,0);
+   r.animateOpeningCamera(target,0,5000);
+   for(let i=1;i<=5*fps;i++)r.advanceCamera(i*1000/fps);
+   results.push(plain(r.camera));
+  }
+  for(const camera of results.slice(1))for(const key of ['azimuth','elevation'])close(camera[key],results[0][key]);
+  const {r}=renderer(),target=r.cameraSnapshot();r.restoreCamera({...target,dolly:.001});
+  if(mode==='random')r.setRandomRotate(true,0);else r.setAutoRotate(mode,0);
+  r.animateOpeningCamera(target,0,5000);r.advanceCamera(4400);const before=plain(r.camera);
+  r.setAutoRotate(0,4400);r.advanceCamera(5000);r.advanceAutoRotate(6000);
+  close(r.camera.azimuth,before.azimuth);close(r.camera.elevation,before.elevation);assert.equal(r.rotationIntent,0);
+ }
+});
+
+test('orbit spacing eases within 0–10% for 100ms and follows other changes in 70ms without jumping',()=>{
+ const {r,now}=renderer();r.options.actualScale=true;r.actualScaleMix=1;
+ r.setOption('actualOrbitSpacing',0,false);r.setOption('actualOrbitSpacing',.1);
+ close(r.actualOrbitSpacing(),.1);close(r.orbitScaleMix(),0);
+ r.advanceActualScale(25);close(r.orbitScaleMix(),.0015625);
+ r.advanceActualScale(50);close(r.orbitScaleMix(),.005);
+ r.advanceActualScale(99);assert.ok(r.orbitScaleMix()<.01);assert.ok(r.orbitSpacingTween);
+ r.advanceActualScale(100);close(r.orbitScaleMix(),.01);assert.equal(r.orbitSpacingTween,null);
+ now(1000);r.setOption('actualOrbitSpacing',0);r.advanceActualScale(1050);close(r.orbitScaleMix(),.005);
+ now(1050);r.setOption('actualOrbitSpacing',.2);close(r.orbitScaleMix(),.005);
+ now(1070);r.setOption('actualOrbitSpacing',.2);assert.equal(r.orbitSpacingTween.started,1050,'repeated input must not restart easing');
+ r.advanceActualScale(1085);close(r.orbitScaleMix(),.0375);
+ r.advanceActualScale(1120);close(r.orbitScaleMix(),.12);assert.equal(r.orbitSpacingTween,null);
+ now(2500);r.setOption('actualOrbitSpacing',0);r.setOption('actualOrbitSpacing',1,false);
+ close(r.orbitScaleMix(),1);assert.equal(r.orbitSpacingTween,null,'reset cancels the visual transition');
+ r.setOption('actualOrbitSpacing',.1,false);r.setOption('actualOrbitSpacing',1);
+ close(r.orbitScaleMix(),.01);r.advanceActualScale(2535);close(r.orbitScaleMix(),.505);
+ r.advanceActualScale(2570);close(r.orbitScaleMix(),1);assert.equal(r.orbitSpacingTween,null);
+ now(3500);r.setOption('actualOrbitSpacing',.4);r.advanceActualScale(3535);close(r.orbitScaleMix(),.67);
+ r.advanceActualScale(3570);close(r.orbitScaleMix(),.34);assert.equal(r.orbitSpacingTween,null);
+ for(const [from,to] of [[0,.01],[.04,.08],[.08,.04],[.1,.09]]){
+  now(4000);r.setOption('actualOrbitSpacing',from,false);r.setOption('actualOrbitSpacing',to);
+  assert.equal(r.orbitSpacingTween.duration,100);r.advanceActualScale(4050);close(r.orbitScaleMix(),(from+to)/20);
+  r.advanceActualScale(4100);close(r.orbitScaleMix(),to/10);assert.equal(r.orbitSpacingTween,null);
+ }
+});
+
 test('opening uses a different random departure without changing its destination',()=>{
  const {r}=renderer(),target=r.defaultCameraSnapshot(),a=r.openingCameraSnapshot(target,()=>.1),b=r.openingCameraSnapshot(target,()=>.9);
  assert.notEqual(a.azimuth,b.azimuth);assert.notEqual(a.elevation,b.elevation);
@@ -79,7 +145,7 @@ test('focus never changes a body size or overrides its user-set scale',()=>{
 
 test('camera travel enlarges the Moon by its own depth instead of pinning it to overview size',()=>{
  const {r}=renderer(),earth=A.BODIES.find(body=>body.id==='earth'),base=r.defaultCameraSnapshot();
- r.projectionAnchor={x:0,y:0,z:0};r.lensStretch=1;
+ r.projectionAnchor={x:0,y:0,z:0};
  for(const moonDepth of [-400,0,400]){
   let previous=0;
   for(const dolly of [1,2,4,6]){
@@ -88,7 +154,7 @@ test('camera travel enlarges the Moon by its own depth instead of pinning it to 
    const expected=dolly*5000/(5000-moonDepth*(dolly-1));
    const baseline=r.bodyRadiusForState(A.MOON,{...base,dolly:1}),visibleRadius=r.bodyRadiusAtZoom(A.MOON)*perspective;
    close(visibleRadius/baseline,expected);assert.ok(visibleRadius>previous);previous=visibleRadius;
-   if(moonDepth===0)close(visibleRadius/r.bodyRadiusAtZoom(earth),baseline/r.bodyRadiusForState(earth,base));
+   if(moonDepth===0)close(visibleRadius/r.bodyRadiusAtZoom(earth),baseline/r.bodyRadiusForState(earth,{...base,dolly:1}));
   }
  }
 });
@@ -116,7 +182,7 @@ test('ordinary tracking preserves the lens and approaches its target with camera
 test('tracking follows the direct screen path without first pushing the destination away',()=>{
  for(const targetId of ['earth','moon'])for(const z of [-240,0,240])for(const sourceDolly of [.4,1,4]){
   const {r}=renderer(),world={x:180,y:-95,z};
-  r.frameItems=new Map([[targetId,{world,frameSerial:1}]]);r.frameSerial=1;r.fitScale=.25;r.lensStretch=1.6;
+  r.frameItems=new Map([[targetId,{world,frameSerial:1}]]);r.frameSerial=1;r.fitScale=.25;
   Object.assign(r.camera,{azimuth:.7,elevation:.4,panX:.12,panY:.08,dolly:sourceDolly});
   const project=()=>{
    const anchor=r.trackingAnchorForFrame(),active=Math.abs((r.camera.dolly??1)-1)>1e-8;
@@ -182,7 +248,7 @@ test('tracked opening has one movement timeline and no lateral arc or arrival ha
 });
 
 test('opening duration follows arrival coverage and annotations follow its actual end',()=>{
- const {r}=renderer(),base=r.defaultCameraSnapshot(),body=A.BODIES.find(body=>body.id==='earth');
+ const {r}=renderer(),base={...r.defaultCameraSnapshot(),dolly:1},body=A.BODIES.find(body=>body.id==='earth');
  const radius=r.bodyRadiusForState(body,base);
  assert.equal(r.openingCameraDuration(base),5000);
  for(const [coverage,duration] of [[.02,5000],[.1,5000],[.2,6000],[.3,7000],[.5,7000],[3,7000]]){
@@ -500,7 +566,7 @@ test('even the smallest enabled planet and major moons can be inspected at true 
 
 test('actual mode keeps physical diameter ratios and moon proportions on the same distance scale',()=>{
  const {r,R}=renderer(),base=r.defaultCameraSnapshot(),bodies=[A.SUN,...A.BODIES,...A.SATELLITES];
- r.actualScaleMix=1;r.lensStretch=1.72;r.satelliteOrbitScales={sun:10,earth:9,jupiter:7};r.bodyScales.moon=8;
+ r.actualScaleMix=1;r.satelliteOrbitScales={sun:10,earth:9,jupiter:7};r.bodyScales.moon=8;
  for(const zoom of [.1,1,4,250])for(const dolly of [.002,1,12,1e6]){
   r.camera={...base,zoom,dolly};r.fitScale=r.actualScaleFit();r.scale=r.fitScale*zoom*dolly;r.bodyScale=r.bodyScaleAtZoom();
   for(const body of bodies){
@@ -508,16 +574,16 @@ test('actual mode keeps physical diameter ratios and moon proportions on the sam
    close(r.bodyRadiusAtZoom(body)/r.scale,A.BODY_RADIUS_KM[body.id]/A.AU_KM*A.TRUE_SCALE_UNITS_PER_AU);
   }
   for(const body of A.BODIES){
-   const p=A.positionAt(body,ms),world={};r.displayPhysicalPoint(p,world);
-   const factor=r.displaySolarRadius(Math.hypot(p.x,p.y,p.z))/Math.hypot(p.x,p.y,p.z);
+   const p=A.positionAt(body,ms),world={};r.displayPhysicalPoint(p,world,body);
+   const factor=A.TRUE_SCALE_UNITS_PER_AU;
    for(const key of ['x','y','z'])close(world[key],p[key]*factor,1e-9);
   }
   for(const moon of A.SATELLITES){
-   const parent=A.BODIES.find(body=>body.id===moon.parent),pr=r.bodyRadiusAtZoom(parent),mr=r.bodyRadiusAtZoom(moon);
-   const orbit=r.satelliteOrbitRadius(pr,mr,moon,parent);
+   const parent=A.BODIES.find(body=>body.id===moon.parent),pr=r.bodyRadiusAtZoom(parent);
+   const orbit=r.satelliteOrbitRadius(moon,parent);
    close(orbit*r.scale/(2*pr),A.SATELLITE_MEAN_AU[moon.id]*A.AU_KM/(2*A.BODY_RADIUS_KM[parent.id]));
   }
-  assert.equal(r.projectionLensStretch(),1);assert.equal(r.gpuOrbitCamera().lens,1);
+  assert.equal(r.gpuOrbitCamera().lens,1);
  }
  for(const body of bodies){
   const to=r.trackingMoveState(body.id,base);assert.ok(R.validCamera(to));
@@ -526,17 +592,17 @@ test('actual mode keeps physical diameter ratios and moon proportions on the sam
 });
 
 test('actual-scale transitions invalidate frame scale and restoring overview preserves user preferences',()=>{
- const {r,now}=renderer(),before=plain(r.bodyScales),state=r.cameraSnapshot();r.lensStretch=1.72;
+ const {r,now}=renderer(),before=plain(r.bodyScales),state=r.cameraSnapshot();
  r.dirty=false;now(0);r.setOption('actualScale',true);r.dirty=false;r.advanceActualScale(1000);
- assert.equal(r.dirty,true);close(r.actualScaleMix,.5);close(r.projectionLensStretch(),1.36);
+ assert.equal(r.dirty,true);close(r.actualScaleMix,.5);close(r.gpuOrbitCamera().lens,1);
  r.advanceActualScale(2000);assert.equal(r.actualScaleMix,1);assert.equal(r.actualScaleTween,null);
  now(2000);r.setOption('actualScale',false);r.advanceActualScale(4000);
  assert.equal(r.actualScaleMix,0);assert.deepEqual(plain(r.bodyScales),before);assert.deepEqual(plain(r.cameraSnapshot()),plain(state));
- close(r.projectionLensStretch(),1.72);
+ close(r.gpuOrbitCamera().lens,1);
 });
 
 test('true-scale close-ups do not inflate distant bodies with a minimum perspective multiplier',()=>{
- const {r}=renderer();r.actualScaleMix=1;r.lensStretch=1.72;r.projectionAnchor={x:0,y:0,z:0};
+ const {r}=renderer();r.actualScaleMix=1;r.projectionAnchor={x:0,y:0,z:0};
  r.camera={...r.defaultCameraSnapshot(),azimuth:0,elevation:0,focus:'earth',dolly:1e6};
  const distant=r.projectView({x:5,y:20,z:0});
  assert.ok(distant.perspective<.002);close(distant.perspective,5000/(5000+20*(1e6-1)));
@@ -556,8 +622,22 @@ test('all supported country coordinates use the same 250x camera command',()=>{
  const regions=vm.runInNewContext(app.slice(start,end)+';REGIONS');
  for(const region of Object.values(regions)) {const {r}=renderer();assert.ok(r.animateFeature('earth',region.latitude,region.longitude,ms,0,1000),region.label);assert.equal(r.cameraTween.to.zoom,250);}
 });
-test('ordinary planet focus and Jupiter feature view do not inherit the country zoom',()=>{
- const {r}=renderer();r.animateFeature('jupiter',-22,70,ms,0,1000);assert.ok(r.cameraTween.to.zoom<=64);r.advanceCamera(1000);r.animateFocus('mars',1100,1000);assert.ok(r.cameraTween.to.zoom<=64);
+test('ordinary planet focus and Jupiter feature view derive framing from the current baseline sizes',()=>{
+ const {r}=renderer(),jupiter=A.BODIES.find(b=>b.id==='jupiter'),mars=A.BODIES.find(b=>b.id==='mars'),radius=Math.min(r.w,r.h)*.25;
+ r.animateFeature('jupiter',-22,70,ms,0,1000);const feature=r.cameraTween.to;
+ close(r.bodyRadiusForState(jupiter,feature),radius,1e-4);assert.notEqual(feature.zoom,250,'country inspection zoom is Earth-only');
+ r.advanceCamera(1000);r.animateFocus('mars',1100,1000);const follow=r.cameraTween.to;
+ close(follow.zoom,feature.zoom);assert.equal(follow.mode,'move');close(r.bodyRadiusForState(mars,follow),radius);
+});
+
+test('default view, reset and home share the user-framed camera captured on 2026-10-02',()=>{
+ const {r}=renderer(),home=r.defaultCameraSnapshot();
+ assert.deepEqual(plain(home),{azimuth:6.24870825667827,elevation:.25293208858658467,zoom:1.1853048513203654,dolly:1.4049475905635938,focus:null,panY:.033915866075961185,panX:0,mode:'move'});
+ r.bodyScales={};assert.equal(r.openingCameraDuration(home),5000);
+ Object.assign(r.camera,{elevation:1,zoom:5,dolly:3,focus:'earth'});
+ assert.ok(r.animateHome(0,1100));assert.deepEqual(plain(r.cameraTween.to),plain(home));
+ r.advanceCamera(1100);assert.deepEqual(plain(r.cameraSnapshot()),plain(home));
+ r.restoreCamera({...home,azimuth:2,elevation:1,dolly:3});r.resetCamera();assert.deepEqual(plain(r.cameraSnapshot()),plain(home));
 });
 test('repeated satellite focus always keeps the same close-up framing',()=>{
  for(const dollyZoom of [false,true]){
@@ -588,8 +668,7 @@ test('Moon and Europa display size never changes their orbital spacing',()=>{
   const spacing=[];
   for(const scale of [1,2,8]){
    r.bodyScales[satellite.id]=scale;
-   const parentRadius=r.bodyRadiusAtZoom(parent),satelliteRadius=r.bodyRadiusAtZoom(satellite);
-   spacing.push(r.satelliteOrbitRadius(parentRadius,satelliteRadius,satellite,parent));
+   spacing.push(r.satelliteOrbitRadius(satellite,parent));
   }
   close(spacing[1],spacing[0]);close(spacing[2],spacing[0]);
  }

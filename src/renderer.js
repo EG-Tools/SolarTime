@@ -3,8 +3,18 @@
   'use strict';
   const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
   const OVERVIEW_ORBIT=A.OVERVIEW_ORBIT||Object.freeze({gap:90,minGap:50,maxGap:400});
+  const ACTUAL_ORBIT_SPACING=Object.freeze({normalBlendEnd:.1,minimumMix:.01});
+  const OVERVIEW_GAP_MULTIPLIER=1.5;
   function random(seed) { return function() { let t=seed+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
   const mix=(a,b,t)=>a+(b-a)*t;
+  // The ordinary endpoint is a parent-centered circle. Only Pluto retains
+  // inclination there; the physical endpoint always keeps its full 3D vector.
+  function blendOrbitPoint(point,normal,actual,depthNormal,depthActual,inclined,out){
+    const planar=Math.hypot(point.x,point.y),flatten=inclined?1:Math.hypot(point.x,point.y,point.z)/Math.max(1e-12,planar);
+    out.x=point.x*(normal*flatten+actual);out.y=point.y*(normal*flatten+actual);out.z=point.z*((inclined?normal:0)+actual);
+    out.depthX=point.x*(depthNormal*flatten+depthActual);out.depthY=point.y*(depthNormal*flatten+depthActual);out.depthZ=point.z*((inclined?depthNormal:0)+depthActual);
+    return out;
+  }
   const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
   // One timing source: camera/particles share duration; annotations are always
   // relative to arrival, never a separately maintained absolute timestamp.
@@ -34,7 +44,9 @@
   const TEXTURE_TIERS=Object.freeze([128,256,512,1024,2048,4096]);
   // User-approved normal-view baseline. Horizontal pan is intentionally zero;
   // the vertical composition, lens and orbit angle come from the approved view.
-  const DEFAULT_CAMERA=Object.freeze({azimuth:5.393597172693909,elevation:.620064911444322,zoom:1.1853048513203654,dolly:1,focus:null,panY:.033915866075961185,panX:0});
+  // User-framed overview captured on 2026-10-02. Startup, reset and Home/0
+  // all use this one pose; returning users may still restore their last view.
+  const DEFAULT_CAMERA=Object.freeze({azimuth:6.24870825667827,elevation:.25293208858658467,zoom:1.1853048513203654,dolly:1.4049475905635938,focus:null,panY:.033915866075961185,panX:0});
   const REGION_INSPECTION_ZOOM=250; // UI lens scale is ×, not percent; wheel limits are independent.
   const RANDOM_ROTATION=2;
   const AUTO_ROTATE_SPEED=1.8*DEG; // radians per real second; independent of orbital time
@@ -42,8 +54,7 @@
   const ORBIT_SCAN=Object.freeze({duration:1000,stagger:1000});
   const PRECISION_ORBIT=Object.freeze({bucketYears:5,cacheEntries:6});
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
-  const DISPLAY_SAFETY=Object.freeze({bodyOverview:.52,satelliteOverview:.50,fullSizeZoom:4,satelliteShell:.60,localGap:.8});
-  const LARGE_BODIES=new Set(['sun','jupiter','saturn']);
+  const DISPLAY_SAFETY=Object.freeze({satelliteShell:.60,localGap:.8});
   const SATELLITE_ORBIT_PARENTS=new Set(SATELLITES.map(body=>body.parent));
   const ORBIT_HIERARCHY_PARENTS=new Set(['sun',...SATELLITE_ORBIT_PARENTS]);
   const normalizeElevation=value=>A.wrap(value+Math.PI)-Math.PI;
@@ -60,11 +71,11 @@
       this.gpu=null;this.gpuError=null;
       const gpuCanvas=typeof document==='object'&&typeof document.getElementById==='function'?document.getElementById('planet-layer'):null;
       if(gpuCanvas&&window.SolarSurface?.DirectRenderer){try{this.gpu=new window.SolarSurface.DirectRenderer(gpuCanvas);}catch(error){this.gpuError=error.message;}}
-      this.options={actualScale:false,overviewOrbitGap:86,actualOrbitSpacing:1,orbitBrightness:.5,dollyZoom:true,labels:true,avoidLabels:false,twinkle:true,activity:true,alignmentGuideVisible:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
+      this.options={actualScale:false,overviewOrbitGap:100,actualOrbitSpacing:1,orbitBrightness:.5,dollyZoom:true,labels:true,avoidLabels:false,twinkle:true,activity:true,alignmentGuideVisible:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
       this.bodyScales=Object.create(null);this.satelliteOrbitScales=Object.create(null);
       this.camera={...DEFAULT_CAMERA};
       this.site={label:'KOREA',latitude:37.5665,longitude:126.978};
-      this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.rotationGeneration=0;this.actualScaleMix=0;this.actualScaleTween=null;this.projectionAnchor=null;this.trackingAnchor=null;
+      this.cameraTween=null;this.autoRotation=null;this.pendingAutoRotation=null;this.rotationGeneration=0;this.actualScaleMix=0;this.actualScaleTween=null;this.orbitSpacingTween=null;this.projectionAnchor=null;this.trackingAnchor=null;
       this.surface=this.gpu||new window.SolarSurface.Service();this.cameraChangeAt=-Infinity;this.coronaTexture=null;this.paths=[];this.hitTargets=[];this.projected=[];
       this.labelStates=new Map();this.lastLabelMono=null;this.labelWidths=new Map();this.labelBodyMap=new Map();this.labelOrdered=[];this.labelReserved=[];this.labelActive=new Set();this.labelObstacleMap=new Map();this.labelCandidateMap=new Map();
       this.orbitCache=new WeakMap();this.orbitModelCache=new WeakMap();this.satelliteOrbitCache=new Map();this.precisionOrbitPathCache=new Map();this.frameCache=new Map();this.starSprites=new Map();
@@ -84,8 +95,6 @@
       const dpr=window.SolarPerformance?.pixelRatio(w,h,this.options.quality)??Math.min(window.devicePixelRatio||1,this.options.quality==='low'?1:2);
       if(w===this.w&&h===this.h&&Math.abs(dpr-this.dpr)<.001)return;
       this.w=w;this.h=h;this.dpr=dpr;this.starSprites?.clear();this.labelWidths?.clear();
-      // Anamorphic presentation: widen projected orbital positions, keep planet icons round.
-      this.lensStretch=clamp(this.w/this.h,1,1.72);
       this.canvas.width=Math.round(this.w*this.dpr);this.canvas.height=Math.round(this.h*this.dpr);
       this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
       this.stats.adaptiveDpr=this.dpr;this.gpu?.resize(this.w,this.h,this.dpr);
@@ -125,7 +134,7 @@
     }
     needsDraw(mono=performance.now()){
       return this.dirty||this.presentationDirty||this.resourceSignature()!==this.presentedResources||
-        !!this.cameraTween||!!this.openingParticles||!!this.autoRotation||!!this.actualScaleTween||this.orbitRevealAlpha(mono)<.9999||
+        !!this.cameraTween||!!this.openingParticles||!!this.autoRotation||!!this.actualScaleTween||!!this.orbitSpacingTween||this.orbitRevealAlpha(mono)<.9999||
         mono<this.presentationUntil||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
     }
     starGlow(c,x,y,r,alpha) {
@@ -163,8 +172,8 @@
       const x=p.x*ca-p.y*sa,y=p.x*sa+p.y*ca;
       return {x,y:-(y*se+p.z*ce),z:-y*ce+p.z*se};
     }
-    projectionLensStretch() {return mix(this.lensStretch||1,1,this.actualScaleMix||0);}
-    view(p) {const v=this.viewDirection(p);v.x*=this.projectionLensStretch();return v;}
+    // Both viewing modes use the same undistorted camera projection.
+    view(p) {return this.viewDirection(p);}
     viewDepth(p,anchor={x:0,y:0,z:0}) {
       const {sa,ca,ce,se}=this.cameraBasis();
       const x=(p.depthX??p.x)-(anchor.depthX??anchor.x),y=(p.depthY??p.y)-(anchor.depthY??anchor.y),z=(p.depthZ??p.z)-(anchor.depthZ??anchor.z);
@@ -231,32 +240,31 @@
     bodyScaleLimits(bodyOrId) {
       const body=typeof bodyOrId==='string'?this.allBodies().find(value=>value.id===bodyOrId):bodyOrId;
       if(!body)return {min:1,max:1};
-      const earthSize=A.BODIES.find(value=>value.id==='earth')?.size??11.5;
-      const jupiterSize=A.BODIES.find(value=>value.id==='jupiter')?.size??29;
-      const min=body.id==='sun'?1:LARGE_BODIES.has(body.id)?Math.ceil(earthSize/body.size*100)/100:1;
-      // Every planet can reach the same visual ceiling as Jupiter at 200%.
-      // The Sun retains its dedicated 300% range because it is not a planet.
-      const max=body.id==='sun'?3:Math.ceil(jupiterSize*2/body.size*100)/100;
-      return {min,max};
+      if(body.id==='sun')return {min:1,max:3};
+      // The minimum is the Moon/Pluto baseline, never the user's enlarged Moon.
+      // Planets can reach the current Sun; moons can reach their current parent.
+      const parent=body.parent?A.BODIES.find(value=>value.id===body.parent):A.SUN;
+      const min=A.MOON.size/body.size,max=parent.size*this.bodySizeScale(parent)/body.size;
+      return {min,max:Math.max(min,max)};
     }
     effectiveBodySizeScale(body) {const p=Number.isFinite(this.actualScaleMix)?this.actualScaleMix:0;return body.id==='sun'?Math.max(1,this.bodySizeScale(body)):mix(this.bodySizeScale(body),1,p);}
     setBodyScale(id,value) {
       const body=this.allBodies().find(value=>value.id===id);
       if((this.options.actualScale&&id!=='sun')||!body||!Number.isFinite(value))return false;
-      const limits=this.bodyScaleLimits(body),next=clamp(Math.round(value*100)/100,limits.min,limits.max);
-      this.bodyScales||(this.bodyScales=Object.create(null));
-      if(Math.abs(next-1)<1e-6)delete this.bodyScales[id];else this.bodyScales[id]=next;
-      this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.clearLabels();return true;
+      this.setBodyScales({[id]:value});return true;
     }
     setBodyScales(values) {
       if(!values||typeof values!=='object')return;
       this.bodyScales||(this.bodyScales=Object.create(null));
-      const bodies=new Map(this.allBodies().map(body=>[body.id,body]));
-      for(const [id,value] of Object.entries(values))if(bodies.has(id)&&Number.isFinite(value)){
-        const limits=this.bodyScaleLimits(bodies.get(id)),next=clamp(Math.round(value*100)/100,limits.min,limits.max);
+      // One parent-first transaction for live sliders, loading and reset. A
+      // smaller Sun/planet also clamps existing children; JSON key order cannot
+      // change the result. Keep 0.1% precision so the 12.5% giant floor is exact.
+      for(const body of this.allBodies()){
+        const id=body.id,value=Number.isFinite(values[id])?values[id]:this.bodySizeScale(body);
+        const limits=this.bodyScaleLimits(body),next=clamp(Math.round(value*1000)/1000,limits.min,limits.max);
         if(Math.abs(next-1)<1e-6)delete this.bodyScales[id];else this.bodyScales[id]=next;
       }
-      this.dirty=true;this.clearLabels();
+      this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.clearLabels();
     }
     resetBodyScale(id) {return this.setBodyScale(id,1);}
     getBodyScales() {return Object.fromEntries(this.allBodies().map(body=>[body.id,this.bodySizeScale(body)]));}
@@ -266,14 +274,11 @@
     }
     satelliteOrbitScaleLimits(parentOrId) {
       const id=typeof parentOrId==='string'?parentOrId:parentOrId?.id;
-      return ORBIT_HIERARCHY_PARENTS.has(id)?{min:0,max:1}:{min:1,max:1};
+      return ORBIT_HIERARCHY_PARENTS.has(id)?{min:.01,max:1}:{min:1,max:1};
     }
     setSatelliteOrbitScale(id,value) {
       if(this.options.actualScale||!ORBIT_HIERARCHY_PARENTS.has(id)||!Number.isFinite(value))return false;
-      const limits=this.satelliteOrbitScaleLimits(id),next=clamp(Math.round(value*100)/100,limits.min,limits.max);
-      this.satelliteOrbitScales||(this.satelliteOrbitScales=Object.create(null));
-      if(Math.abs(next-1)<1e-6)delete this.satelliteOrbitScales[id];else this.satelliteOrbitScales[id]=next;
-      this.dirty=true;this.clearLabels();return true;
+      this.setSatelliteOrbitScales({[id]:value});return true;
     }
     setSatelliteOrbitScales(values) {
       if(!values||typeof values!=='object')return;
@@ -314,12 +319,6 @@
       // the wheel controls therefore leaves the current view untouched.
       return this.bodyScaleForZoom(this.camera.zoom)*(this.camera.dolly??1);
     }
-    overviewBodyFactor(body,zoom) {
-      if(body.id==='sun')return 1;
-      const base=(body.parent?DISPLAY_SAFETY.satelliteOverview:DISPLAY_SAFETY.bodyOverview)*Math.sqrt(Math.min(1,zoom));
-      const p=clamp((Math.sqrt(zoom)-1)/(Math.sqrt(DISPLAY_SAFETY.fullSizeZoom)-1),0,1),e=p*p*(3-2*p);
-      return mix(base,1,e);
-    }
     bodyRadiusForState(body,state,displayScale=this.effectiveBodySizeScale(body)) {
       const zoom=state.zoom,dolly=state.dolly??1;
       const designed=body.size*displayScale,physical=this.trueSizeRadiusForState(body,state);
@@ -327,7 +326,9 @@
       // Focus selects the camera anchor, never a different body-size formula.
       // Preserve each size slider, apply the same travel multiplier to every
       // body, then let projectView supply its own depth-dependent perspective.
-      const illustrative=designed*this.overviewBodyFactor(body,zoom)*this.bodyScaleForZoom(zoom)*dolly;
+      // All ordinary bodies share one camera multiplier, so their 100% ratios
+      // cannot change when zooming, travelling or entering tracking mode.
+      const illustrative=designed*this.bodyScaleForZoom(zoom)*dolly;
       return this.actualScaleMix>0?mix(illustrative,physical,this.actualScaleMix):illustrative;
     }
     bodyRadiusAtZoom(body,displayScale=this.effectiveBodySizeScale(body)) {
@@ -336,43 +337,45 @@
       return this.bodyRadiusForState(body,this.camera,displayScale);
     }
 
-    satelliteOrbitRadius(parentRadius,satelliteRadius,satellite,parent,layout=null) {
+    ordinaryOrbitClearance(parent,child,parentScale=this.bodySizeScale(parent),childScale=this.bodySizeScale(child)) {
+      const parentRadius=parent.size*parentScale,childRadius=child.size*childScale;
+      return (parentRadius+childRadius+Math.max(DISPLAY_SAFETY.localGap,parentRadius*.08))*this.bodyScaleAtZoom();
+    }
+    satelliteOrbitRadius(satellite,parent,layout=null) {
       // Calculate both endpoints independently, in screen units. Using the
       // in-between fit/body sizes here makes the ordinary clearance jump as
       // soon as a true-scale transition begins (especially Moon and Europa).
       const p=this.actualScaleMix||0,actualPx=this.trueSizeRadiusForState(parent,this.camera)*A.SATELLITE_MEAN_AU[satellite.id]*A.AU_KM/A.BODY_RADIUS_KM[parent.id];
-      if(p===1){if(layout)layout.orbitDepthRadius=actualPx/this.scale;return actualPx/this.scale;}
+      if(p===1){
+        if(layout){
+          const actualScale=(this.actualFitScale||this.actualScaleFit())*this.camera.zoom*(this.camera.dolly??1);
+          layout.orbitDepthRadius=actualPx/actualScale;const shape=layout.orbitShape||(layout.orbitShape=[]);
+          shape[0]=shape[2]=0;shape[1]=actualPx/this.scale;shape[3]=layout.orbitDepthRadius;
+        }
+        return actualPx/this.scale;
+      }
       const parentCustom=this.bodySizeScale(parent),bodyScale=this.bodyScaleAtZoom();
       const normalScale=p>0?(this.overviewFitScale||this.fitScale)*this.camera.zoom*(this.camera.dolly??1):this.scale;
       const fullDesiredPx=satellite.displayOrbit*bodyScale;
       const index=A.BODIES.indexOf(parent),inner=index>0?parent.orbit-A.BODIES[index-1].orbit:Infinity;
       const outer=index>=0&&index<A.BODIES.length-1?A.BODIES[index+1].orbit-parent.orbit:Infinity;
       const neighborGapPx=Math.min(inner,outer)*normalScale,overviewLimit=neighborGapPx*DISPLAY_SAFETY.satelliteShell;
-      // Clearance is measured with both bodies at their original 100% display
-      // size. A tracked body's close-up radius is deliberately viewport-based,
-      // so dividing that radius by its custom scale made Moon/Europa size changes
-      // incorrectly expand or contract their orbit. Keep appearance and orbit
-      // layout as two independent controls.
-      const baseParentRadius=parent.size*this.overviewBodyFactor(parent,this.camera.zoom)*bodyScale;
-      const baseSatelliteRadius=satellite.size*this.overviewBodyFactor(satellite,this.camera.zoom)*bodyScale;
-      const localGap=Math.max(DISPLAY_SAFETY.localGap,baseParentRadius*.08);
-      const clearancePx=baseParentRadius+baseSatelliteRadius+localGap;
-      // Zero percent means the orbit used at the parent's original 100% size.
-      // One hundred percent links the whole local orbit to the parent's current
-      // display scale. Deliberately do not add collision prevention: with a very
-      // large parent, zero percent may place the unchanged orbit inside its disk.
+      // The requested orbit starts from the 100% baseline; the same clearance
+      // rule below then protects the current (possibly enlarged) bodies.
+      const clearancePx=this.ordinaryOrbitClearance(parent,satellite,1,1);
+      // Keep the expanded 100% orbit, but the current sizes of BOTH bodies set
+      // the minimum separation. Growing either body cannot bury its orbit.
       const baseOrbitPx=Math.max(clearancePx,Math.min(fullDesiredPx,overviewLimit));
-      const hierarchyScale=mix(1,parentCustom,this.satelliteOrbitScale(parent));
-      const linkedOrbitPx=baseOrbitPx*hierarchyScale;
+      const hierarchyScale=mix(1,parentCustom*2,this.satelliteOrbitScale(parent));
+      const linkedOrbitPx=Math.max(baseOrbitPx*hierarchyScale,this.ordinaryOrbitClearance(parent,satellite));
       if(layout){
         const actualScale=(this.actualFitScale||this.actualScaleFit())*this.camera.zoom*(this.camera.dolly??1);
         layout.orbitDepthRadius=mix(linkedOrbitPx/normalScale,actualPx/actualScale,p);
+        const shape=layout.orbitShape||(layout.orbitShape=[]);
+        shape[0]=(1-p)*linkedOrbitPx/this.scale;shape[1]=p*actualPx/this.scale;
+        shape[2]=(1-p)*linkedOrbitPx/normalScale;shape[3]=p*actualPx/actualScale;
       }
       return mix(linkedOrbitPx,actualPx,p)/this.scale;
-    }
-    moonOrbitRadius(earthRadius,moonRadius) {
-      const earth=A.BODIES.find(body=>body.id==='earth');
-      return this.satelliteOrbitRadius(earthRadius,moonRadius,A.MOON,earth);
     }
     solarOrbitHierarchyScale() {
       // The Sun treats Mercury as the first child of one solar-orbit hierarchy.
@@ -380,39 +383,32 @@
       // relative layout instead of moving Mercury alone.
       return mix(1,this.bodySizeScale(A.SUN),this.satelliteOrbitScale('sun'));
     }
-    displaySolarRadius(distance) {
-      if(!(distance>0))return 0;
-      const ordinary=A.displayDistance(distance,0,this.options.overviewOrbitGap??OVERVIEW_ORBIT.gap)*this.solarOrbitHierarchyScale();
-      const p=this.actualScaleMix||0;if(!p)return ordinary;
-      const actual=distance*A.TRUE_SCALE_UNITS_PER_AU*this.actualOrbitDistanceScale();
-      if(p===1)return actual;
-      // Interpolate projected distance once. Blending both world distance and
-      // its scale independently makes orbits overshoot before settling.
-      return mix(ordinary*(this.overviewFitScale||this.fitScale),actual*(this.actualFitScale||this.actualScaleFit()),p)/this.fitScale;
+    solarOrbitClearanceScale() {
+      const mercury=A.BODIES[0],fit=this.overviewFitScale||this.fitScale;
+      if(!(fit>0))return 1;
+      const orbit=this.overviewSolarRadius(mercury.base[0],mercury)*fit*this.camera.zoom*(this.camera.dolly??1);
+      return Math.max(1,this.ordinaryOrbitClearance(A.SUN,mercury)/Math.max(1e-12,orbit));
+    }
+    overviewSolarRadius(distance,body=null) {
+      // 100% now has the previous 150% interval. Keep the camera's reference
+      // fit unchanged; otherwise auto-fitting would cancel the extra spacing.
+      return A.displayDistance(body?.base?.[0]??distance,0,this.options.overviewOrbitGap??OVERVIEW_ORBIT.gap,OVERVIEW_GAP_MULTIPLIER)*this.solarOrbitHierarchyScale();
     }
     actualOrbitSpacing() {
-      const value=this.options.actualOrbitSpacing;return clamp(Number.isFinite(value)?value:1,.01,1);
+      const value=this.options.actualOrbitSpacing;return clamp(Number.isFinite(value)?value:1,0,1);
     }
-    actualOrbitDistanceScale() {
-      // Keep the UI/persisted 1–100% range. Its minimum now means the former
-      // 2% distance, clearing Mercury from the Sun; 100% remains true spacing.
-      return mix(.02,1,(this.actualOrbitSpacing()-.01)/.99);
+    displayedOrbitSpacing() {return this.orbitSpacingTween?.value??this.actualOrbitSpacing();}
+    orbitScaleMix() {
+      // 10–100% covers the former 1–100% spacing. The lower 0–10% blends
+      // from the saved ordinary layout; body size and lens stay independent.
+      const value=this.displayedOrbitSpacing(),{normalBlendEnd,minimumMix}=ACTUAL_ORBIT_SPACING;
+      const spacing=value<=normalBlendEnd?minimumMix*value/normalBlendEnd:mix(minimumMix,1,(value-normalBlendEnd)/(1-normalBlendEnd));
+      return (this.actualScaleMix||0)*spacing;
     }
-    solarDepthScale(distance,displayRadius) {
-      const p=this.actualScaleMix||0;
-      if(!(p>0&&p<1)||!(displayRadius>0)||!Number.isFinite(distance))return 1;
-      // Screen extent and perspective depth have different units during a
-      // scale-mode morph. Blend depth endpoints independently: dividing it by
-      // the rapidly changing fit made orbits dip at departure and snap back.
-      const ordinary=A.displayDistance(distance,0,this.options.overviewOrbitGap??OVERVIEW_ORBIT.gap)*this.solarOrbitHierarchyScale();
-      const actual=distance*A.TRUE_SCALE_UNITS_PER_AU*this.actualOrbitDistanceScale();
-      return mix(ordinary,actual,p)/displayRadius;
-    }
-    displaySolarPoint(point) {
+    displaySolarPoint(point,body=null) {
       const radius=Math.hypot(point.x,point.y,point.z);if(!(radius>1e-9))return point;
-      const displayRadius=Number.isFinite(point.physicalDistance)?this.displaySolarRadius(point.physicalDistance):radius*this.solarOrbitHierarchyScale();
-      const scale=displayRadius/radius,depthScale=this.solarDepthScale(point.physicalDistance,displayRadius);
-      return {...point,x:point.x*scale,y:point.y*scale,z:point.z*scale,depthX:point.x*scale*depthScale,depthY:point.y*scale*depthScale,depthZ:point.z*scale*depthScale,depthScale};
+      const scale=(point.physicalDistance??radius)/radius;
+      return this.displayPhysicalPoint({x:point.x*scale,y:point.y*scale,z:point.z*scale},{},body);
     }
     project(p,out=null) {
       const v=this.projectView(p),result=out||{};
@@ -499,13 +495,17 @@
       c.globalAlpha=alpha;c.fillStyle='#f2cb7a';c.beginPath();c.arc(ax,ay,2.2,0,TAU);c.fill();
       c.restore();
     }
-    displayPhysicalPoint(physical,out) {
+    displayPhysicalPoint(physical,out,body=null) {
       const radius=Math.hypot(physical.x,physical.y,physical.z);
       if(!(radius>1e-9)){out.depthX=out.x=physical.x;out.depthY=out.y=physical.y;out.depthZ=out.z=physical.z;return out;}
-      const displayRadius=this.displaySolarRadius(radius),scale=displayRadius/radius;
-      const depthScale=this.solarDepthScale(radius,displayRadius);
-      out.x=physical.x*scale;out.y=physical.y*scale;out.z=physical.z*scale;
-      out.depthX=out.x*depthScale;out.depthY=out.y*depthScale;out.depthZ=out.z*depthScale;return out;
+      const normal=this.overviewSolarRadius(radius,body)/radius,actual=A.TRUE_SCALE_UNITS_PER_AU,m=this.solarOrbitMorph();
+      return blendOrbitPoint(physical,normal*m[0],actual*m[1],normal*m[2],actual*m[3],body?.id==='pluto',out);
+    }
+    displaySatellitePoint(point,layout,parent,out={}) {
+      const inverse=1/Math.max(1e-12,Math.hypot(point.x,point.y,point.z)),m=layout.orbitShape;
+      blendOrbitPoint(point,m[0]*inverse,m[1],m[2]*inverse,m[3],false,out);
+      for(const key of ['x','y','z']){out[key]+=parent[key];const depth='depth'+key.toUpperCase();out[depth]+=parent[depth]??parent[key];}
+      return out;
     }
     orbitPath(body,ms,count=360) {
       if(body.id!=='pluto')return {body,points:A.orbitAt(body,ms,count)};
@@ -529,7 +529,7 @@
       // Keep the overview scale invariant while orbiting the camera. Previously
       // every elevation change re-fit the projected ellipse, which felt like an
       // unwanted zoom-in/zoom-out during a vertical drag or auto rotation.
-      const fitKey=[pathKey,this.w,this.h,this.lensStretch].join(':');
+      const fitKey=[pathKey,this.w,this.h].join(':');
       if(this.fitKey!==fitKey){
         const a=25*DEG,e=45*DEG,ca=Math.cos(a),sa=Math.sin(a),ce=Math.cos(e),se=Math.sin(e);
         // Cache the ordinary fit once per viewport/model. Camera rotation must
@@ -537,8 +537,9 @@
         const fit=()=>{
           let maxX=0,maxY=0;
           for(const path of this.paths)for(const p of path.points){
-            const x=(p.x*ca-p.y*sa)*this.lensStretch,y=p.x*sa+p.y*ca;
-            maxX=Math.max(maxX,Math.abs(x));maxY=Math.max(maxY,Math.abs(y*se+p.z*ce));
+            const inclined=path.body.id==='pluto',length=Math.hypot(p.x,p.y,inclined?p.z:0),factor=path.body.overviewOrbit/Math.max(1e-12,length);
+            const x=(p.x*ca-p.y*sa)*factor,y=(p.x*sa+p.y*ca)*factor,z=inclined?p.z*factor:0;
+            maxX=Math.max(maxX,Math.abs(x));maxY=Math.max(maxY,Math.abs(y*se+z*ce));
           }
           return Math.max(.05,Math.min((right-left)/(2*maxX),fitY/(2*maxY)));
         };
@@ -546,17 +547,24 @@
         this.fitKey=fitKey;
       }
       this.actualFitScale=this.actualScaleFit();
-      this.fitScale=mix(this.overviewFitScale,this.actualFitScale,this.actualScaleMix||0);
+      this.fitScale=mix(this.overviewFitScale,this.actualFitScale,this.orbitScaleMix());
       this.scale=this.fitScale*this.camera.zoom*(this.camera.dolly??1);
       this.centerX=(left+right)/2+this.w*(this.camera.panX||0);this.centerY=baseY+this.h*this.camera.panY;
       this.cx=this.centerX;this.homeCx=this.centerX;this.homeCy=this.centerY;this.cy=this.homeCy;
       this.bodyScale=this.bodyScaleAtZoom();this.lastPathMs=ms;this.pathYear=A.modelYear(ms);this.dirty=false;
     }
     advanceActualScale(mono=performance.now()){
+      this.advanceOrbitSpacing(mono);
       const tween=this.actualScaleTween;if(!tween)return;
       const p=clamp((mono-tween.started)/tween.duration,0,1),e=p*p*(3-2*p);this.actualScaleMix=mix(tween.from,tween.to,e);
       this.dirty=true;
       if(p>=1){this.actualScaleMix=tween.to;this.actualScaleTween=null;}
+    }
+    advanceOrbitSpacing(mono=performance.now()){
+      const tween=this.orbitSpacingTween;if(!tween)return;
+      const p=clamp((mono-tween.started)/tween.duration,0,1);
+      tween.value=mix(tween.from,tween.to,p*p*(3-2*p));this.dirty=true;
+      if(p>=1)this.orbitSpacingTween=null;
     }
     setDollyMode(enabled,animate=true,mono=performance.now()){
       // This is an input-mode switch only. FOV, camera travel, projection,
@@ -572,7 +580,16 @@
         this.dirty=true;return;
       }
       if(key==='actualOrbitSpacing'){
-        const numeric=Number(value);this.options.actualOrbitSpacing=clamp(Number.isFinite(numeric)?numeric:1,.01,1);
+        const numeric=Number(value),target=clamp(Number.isFinite(numeric)?numeric:1,0,1),previous=this.actualOrbitSpacing(),mono=performance.now();
+        this.advanceOrbitSpacing(mono);
+        if(animate&&target===previous)return;
+        const from=this.displayedOrbitSpacing(),smooth=animate&&this.options.actualScale;
+        const duration=Math.max(previous,target)<=ACTUAL_ORBIT_SPACING.normalBlendEnd?100:70;
+        // Store the user's target immediately; rendering eases across the full
+        // slider range. The 0–10% band uses longer easing; other input follows
+        // promptly, continuing from the current picture on every re-drag.
+        this.options.actualOrbitSpacing=target;
+        this.orbitSpacingTween=smooth&&from!==target?{from,to:target,value:from,started:mono,duration}:null;
         this.dirty=true;return;
       }
       if(key==='orbitBrightness'){
@@ -696,6 +713,7 @@
       const resolvedTiming=timing==='opening'?'opening':'smooth';
       const openingPath=resolvedTiming==='opening'?{from,to,arc:to.focus===null?this.openingCameraArc():null,points:[]}:null;
       this.cameraTween={from,to,start:mono,duration,input,timing:resolvedTiming,openingPath,progress:0,fromAnchor:interruptedAnchor};
+      if(resolvedTiming==='opening')this.cameraTween.rotationBlend={seconds:0,yaw:0,pitch:0};
       if(to.focus)this.prepareCloseup(to.focus);
       if(direction)this.pendingAutoRotation={direction,generation};
       this.cameraChangeAt=mono;this.dirty=true;return true;
@@ -706,7 +724,7 @@
       const coverage=Math.max(0,...(focused?[focused]:bodies).map(body=>this.bodyRadiusForState(body,state)*2/Math.max(1,Math.min(this.w,this.h))));
       // Use arrival framing, not today's frame or the mere existence of focus.
       // Small/distant bodies keep 5s; a close-up (>=30% of the short edge) gets
-      // 6s, with a smooth transition between 10% and 30% screen coverage.
+      // 7s, with a smooth transition between 10% and 30% screen coverage.
       return Math.round(OPENING_TIMING.duration+OPENING_TIMING.closeupExtra*ease((coverage-.1)/.2));
     }
     animateOpeningCamera(state,mono=performance.now(),duration=this.openingCameraDuration(state)) {
@@ -908,6 +926,21 @@
         zoom:mix(from.zoom,to.zoom,p),dolly:mix(from.dolly??1,to.dolly??1,p)};
       if(state.zoom<=1&&state.dolly===1&&to.focus===null)state.focus=null;
       this.camera=t>=1?{azimuth:to.azimuth,elevation:to.elevation,zoom:to.zoom,dolly:to.dolly??1,focus:to.focus,panX:to.panX,panY:to.panY}:state;
+      const blend=move.rotationBlend;
+      if(blend){
+        // Integrate a smooth velocity ramp during the last part of arrival.
+        // The accumulated offset belongs to this tween, so its final frame
+        // hands the same angles and full turn rate to ordinary auto-rotation.
+        const duration=Math.min(1500,move.duration*.3),u=clamp((mono-move.start-move.duration+duration)/duration,0,1);
+        const seconds=duration/1000*(u*u*u-.5*u*u*u*u),dt=Math.max(0,seconds-blend.seconds),pending=this.pendingAutoRotation;
+        if(pending&&dt>0){
+          const rates=this.rotationRates(pending.direction,pending.generation);
+          blend.yaw+=rates.yawRate*dt;blend.pitch+=rates.pitchRate*dt;
+        }
+        blend.seconds=seconds;
+        this.camera.azimuth=A.wrap(this.camera.azimuth+blend.yaw);
+        this.camera.elevation=normalizeElevation(this.camera.elevation+blend.pitch);
+      }
       if(t>=1){
         this.cameraTween=null;
         const pending=this.pendingAutoRotation;this.pendingAutoRotation=null;
@@ -945,8 +978,15 @@
       this.camera.elevation=normalizeElevation(this.camera.elevation+path.pitchRate*dt);
       this.dirty=true;return true;
     }
+    rotationRates(direction,generation) {
+      if(direction===RANDOM_ROTATION){
+        if(this.randomRotation?.generation!==generation)this.randomRotation=this.newRandomRotation(generation);
+        return this.randomRotation;
+      }
+      return {yawRate:direction*AUTO_ROTATE_SPEED,pitchRate:0};
+    }
     beginAutoRotation(direction,mono,generation=(this.rotationGeneration||0)+1) {
-      if(direction===RANDOM_ROTATION&&this.randomRotation?.generation!==generation)this.randomRotation=this.newRandomRotation(generation);
+      this.rotationRates(direction,generation);
       this.autoRotation={direction,azimuth:this.camera.azimuth,mono,generation};
       this.rotationGeneration=generation;this.cameraChangeAt=-Infinity;this.dirty=true;return true;
     }
@@ -960,6 +1000,7 @@
       return this.setRotationIntent(enabled?RANDOM_ROTATION:0,mono);
     }
     setRotationIntent(direction,mono) {
+      if(this.cameraTween?.timing==='opening')this.advanceCamera(mono);
       const current=this.rotationIntent;
       if(!direction||current===direction){
         // This is the sole normal OFF path: only an explicit click on the active
@@ -1000,40 +1041,40 @@
       this.projectionAnchor=null;this.dirty=true;
     }
     projectOrbit(path) {
-      const {azimuth:a,elevation:e}=this.camera,lens=this.projectionLensStretch();
+      const {azimuth:a,elevation:e}=this.camera;
       const dolly=this.camera.dolly??1,active=Math.abs(dolly-1)>1e-8,anchor=this.projectionAnchor||{x:0,y:0,z:0};
       const cache=this.orbitCache||(this.orbitCache=new WeakMap());let item=cache.get(path);
       const cameraKey=active?[this.camera.zoom,dolly,anchor.x,anchor.y,anchor.z,anchor.depthX??anchor.x,anchor.depthY??anchor.y,anchor.depthZ??anchor.z].map(v=>Number(v).toFixed(5)).join(':'):'flat';
-      const projectionKey=cameraKey+':'+Number(this.solarOrbitHierarchyScale()).toFixed(5)+':'+Number(this.actualScaleMix||0).toFixed(5)+':'+(this.options.overviewOrbitGap??OVERVIEW_ORBIT.gap)+':'+this.actualOrbitSpacing()+':'+this.orbitScaleTransitionKey();
-      if(item&&item.a===a&&item.e===e&&item.lens===lens&&item.projectionKey===projectionKey&&item.source===path.points)return item;
+      const projectionKey=cameraKey+':'+Number(this.solarOrbitHierarchyScale()).toFixed(5)+':'+this.solarOrbitClearanceScale()+':'+Number(this.actualScaleMix||0).toFixed(5)+':'+(this.options.overviewOrbitGap??OVERVIEW_ORBIT.gap)+':'+this.displayedOrbitSpacing()+':'+this.orbitScaleTransitionKey();
+      if(item&&item.a===a&&item.e===e&&item.projectionKey===projectionKey&&item.source===path.points)return item;
       const xyz=new Float64Array(path.points.length*3);
       let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
       for(let i=0;i<path.points.length;i++){
-        const q=this.projectView(this.displaySolarPoint(path.points[i]));xyz[i*3]=q.x;xyz[i*3+1]=q.y;xyz[i*3+2]=q.behind?NaN:q.z;
+        const q=this.projectView(this.displaySolarPoint(path.points[i],path.body));xyz[i*3]=q.x;xyz[i*3+1]=q.y;xyz[i*3+2]=q.behind?NaN:q.z;
         if(!q.behind){minX=Math.min(minX,q.x);maxX=Math.max(maxX,q.x);minY=Math.min(minY,q.y);maxY=Math.max(maxY,q.y);}
       }
-      item={a,e,lens,projectionKey,source:path.points,xyz,minX,maxX,minY,maxY,scale:NaN,passes:null};cache.set(path,item);
+      item={a,e,projectionKey,source:path.points,xyz,minX,maxX,minY,maxY,scale:NaN,passes:null};cache.set(path,item);
       if(this.stats)this.stats.orbitProjections+=path.points.length;return item;
     }
     orbitModel(path) {
-      const hierarchy=this.solarOrbitHierarchyScale(),gap=this.options.overviewOrbitGap??OVERVIEW_ORBIT.gap,spacing=this.actualOrbitDistanceScale();
+      const hierarchy=this.solarOrbitHierarchyScale(),gap=this.options.overviewOrbitGap??OVERVIEW_ORBIT.gap;
       // Cache both collinear endpoints: normal xyz + actual/normal radius.
       // Progress, fit, zoom and reveal are draw uniforms, never buffer keys.
-      const key=[hierarchy,gap,spacing].join(':');
+      const key=[hierarchy,gap].join(':');
       let item=this.orbitModelCache.get(path);
       if(item&&item.source===path.points&&item.key===key)return item.xyz;
       const xyz=new Float32Array(path.points.length*4);
       for(let i=0;i<path.points.length;i++){
         const p=path.points[i],radius=Math.hypot(p.x,p.y,p.z),physical=Number.isFinite(p.physicalDistance);
-        const normal=physical?A.displayDistance(p.physicalDistance,0,gap)*hierarchy:radius*hierarchy;
-        const actual=physical?p.physicalDistance*A.TRUE_SCALE_UNITS_PER_AU*spacing:normal;
+        const normal=physical?this.overviewSolarRadius(p.physicalDistance,path.body):radius*hierarchy;
+        const actual=physical?p.physicalDistance*A.TRUE_SCALE_UNITS_PER_AU:normal;
         const factor=radius>1e-9?normal/radius:1;
         xyz[i*4]=p.x*factor;xyz[i*4+1]=p.y*factor;xyz[i*4+2]=p.z*factor;xyz[i*4+3]=normal>1e-9?actual/normal:1;
       }
       this.orbitModelCache.set(path,{source:path.points,key,xyz});this.stats.orbitBufferBuilds+=path.points.length;return xyz;
     }
     orbitScaleTransitionKey() {
-      return this.actualScaleMix>0&&this.actualScaleMix<1?[this.overviewFitScale,this.actualFitScale,this.fitScale].join(':'):'';
+      const p=this.orbitScaleMix();return p>0&&p<1?[this.overviewFitScale,this.actualFitScale,this.fitScale].join(':'):'';
     }
     satelliteOrbitPoints(body,ms) {
       // Cache one normalized precision orbit per body/date/model. Display size
@@ -1046,20 +1087,27 @@
     }
     satelliteOrbitModel(body,ms) {
       const entry=this.satelliteOrbitPoints(body,ms);if(entry.xyz)return entry.xyz;
-      const {points}=entry,xyz=new Float32Array(points.length*3);
-      for(let i=0;i<points.length;i++){xyz[i*3]=points[i].x;xyz[i*3+1]=points[i].y;xyz[i*3+2]=points[i].z;}
+      const {points}=entry,xyz=new Float32Array(points.length*4);
+      for(let i=0;i<points.length;i++){const p=points[i],radius=Math.hypot(p.x,p.y,p.z)||1;xyz[i*4]=p.x/radius;xyz[i*4+1]=p.y/radius;xyz[i*4+2]=p.z/radius;xyz[i*4+3]=radius;}
       entry.xyz=xyz;this.stats.orbitBufferBuilds+=points.length;return xyz;
     }
-    gpuOrbitCamera() {
-      const {ca,sa,ce,se}=this.cameraBasis(),active=Math.abs((this.camera.dolly??1)-1)>1e-8;
-      const p=this.actualScaleMix||0,solarMorph=[1-p,p,1-p,p];
+    solarOrbitMorph() {
+      const p=this.orbitScaleMix(),solarMorph=this.solarMorph||(this.solarMorph=[]);
+      // Clearance expands the complete ordinary hierarchy uniformly, preserving
+      // equal gaps. It is a draw weight, not a camera-dependent buffer rebuild;
+      // CPU bodies and GPU paths therefore share the same protected orbit.
+      solarMorph[0]=solarMorph[2]=(1-p)*this.solarOrbitClearanceScale();solarMorph[1]=solarMorph[3]=p;
       if(p>0&&p<1){
-        // Match displaySolarRadius/solarDepthScale: projected extent uses fit
+        // Match CPU body/path positions: projected extent uses fit
         // weights while perspective depth blends unscaled world endpoints.
         solarMorph[0]*=(this.overviewFitScale||this.fitScale)/this.fitScale;
         solarMorph[1]*=(this.actualFitScale||this.actualScaleFit())/this.fitScale;
       }
-      return {ca,sa,ce,se,lens:this.projectionLensStretch(),travel:active?(this.camera.dolly??1)-1:0,anchor:active?(this.projectionAnchor||{x:0,y:0,z:0}):{x:0,y:0,z:0},solarMorph};
+      return solarMorph;
+    }
+    gpuOrbitCamera() {
+      const {ca,sa,ce,se}=this.cameraBasis(),active=Math.abs((this.camera.dolly??1)-1)>1e-8;
+      return {ca,sa,ce,se,lens:1,travel:active?(this.camera.dolly??1)-1:0,anchor:active?(this.projectionAnchor||{x:0,y:0,z:0}):{x:0,y:0,z:0},solarMorph:this.solarOrbitMorph()};
     }
     orbitInk(id,progress,origin=null) {
       if(progress>=1||(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches))return null;
@@ -1435,18 +1483,17 @@
       for(const body of this.getBodies()){
         const physical=this.physicalAt(body,ms),item=this.frameItem(body);
         item.physical.x=physical.x;item.physical.y=physical.y;item.physical.z=physical.z;
-        this.displayPhysicalPoint(item.physical,item.world);item.r=this.bodyRadiusAtZoom(body);bodies.push(item);
+        this.displayPhysicalPoint(item.physical,item.world,body);item.r=this.bodyRadiusAtZoom(body);bodies.push(item);
       }
       const sunItem=this.frameItem(A.SUN);sunItem.physical.x=sunItem.physical.y=sunItem.physical.z=0;sunItem.world.x=sunItem.world.y=sunItem.world.z=0;sunItem.r=this.bodyRadiusAtZoom(A.SUN);bodies.push(sunItem);
       const satelliteLayouts=this.satelliteLayouts;satelliteLayouts.length=0;
       if(this.options.moon) {
         for(const satellite of SATELLITES){
           const parent=this.currentFrameItem(satellite.parent);if(!parent)continue;
-          const item=this.frameItem(satellite),r=this.bodyRadiusAtZoom(satellite),orbitRadius=this.satelliteOrbitRadius(parent.r,r,satellite,parent.body,item);
+          const item=this.frameItem(satellite),r=this.bodyRadiusAtZoom(satellite),orbitRadius=this.satelliteOrbitRadius(satellite,parent.body,item);
           const unit=this.satelliteUnitAt(satellite,ms),physicalRadius=A.SATELLITE_MEAN_AU[satellite.id];
           item.parent=parent;item.orbitRadius=orbitRadius;item.r=r;
-          item.world.x=parent.world.x+unit.x*orbitRadius;item.world.y=parent.world.y+unit.y*orbitRadius;item.world.z=parent.world.z+unit.z*orbitRadius;
-          item.world.depthX=parent.world.depthX+unit.x*item.orbitDepthRadius;item.world.depthY=parent.world.depthY+unit.y*item.orbitDepthRadius;item.world.depthZ=parent.world.depthZ+unit.z*item.orbitDepthRadius;
+          this.displaySatellitePoint(unit,item,parent.world,item.world);
           item.physical.x=parent.physical.x+unit.x*physicalRadius;item.physical.y=parent.physical.y+unit.y*physicalRadius;item.physical.z=parent.physical.z+unit.z*physicalRadius;
           bodies.push(item);satelliteLayouts.push(item);
         }
@@ -1470,18 +1517,19 @@
         if(direct){
           const origin=this.orbitOrigin||(this.orbitOrigin={x:0,y:0,z:0});
           for(const path of this.paths){const selected=this.selected===path.body.id;
+            camera.orbitPlane=path.body.id==='pluto'?1:0;
             const localReveal=this.openingOrbitOpacity(mono,path.body.id),ink=this.orbitInk(path.body.id,localReveal,this.currentFrameItem(path.body.id)?.world),alpha=ink?1:localReveal;
             this.gpu.orbit('solar:'+path.body.id,this.orbitModel(path),origin,camera,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],clamp((selected?.64:.22)*alpha*orbitStrength,0,1),1,1,4,ink);}
         }else if(!this.gpu)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id,this.openingOrbitOpacity(mono,path.body.id),orbitStrength);
         for(const satellite of satelliteLayouts) {
           const points=direct?null:this.satelliteOrbitPoints(satellite.body,ms).points,parent=satellite.parent.world;
           const localReveal=this.openingOrbitOpacity(mono,satellite.body.id),ink=this.orbitInk(satellite.body.id,localReveal,{x:satellite.world.x-parent.x,y:satellite.world.y-parent.y}),opacity=ink?1:localReveal;
-          if(direct){this.gpu.orbit('satellite:'+satellite.body.id,this.satelliteOrbitModel(satellite.body,ms),parent,camera,this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],clamp(.26*opacity*orbitStrength,0,1),satellite.orbitRadius,satellite.orbitDepthRadius,3,ink);}
+          if(direct){this.gpu.orbit('satellite:'+satellite.body.id,this.satelliteOrbitModel(satellite.body,ms),parent,{...camera,solarMorph:satellite.orbitShape,orbitPlane:0},this.scale,this.cx,this.cy,satellite.body.id==='moon'?[.45,.61,.74]:[.67,.62,.46],clamp(.26*opacity*orbitStrength,0,1),1,1,4,ink);}
           else if(!this.gpu){
             c.save();c.globalAlpha*=ink?1:opacity;const baseAlpha=c.globalAlpha,alpha=clamp(.26*orbitStrength,0,1),strokeAlpha=ink?1:alpha;
             c.strokeStyle=satellite.body.id==='moon'?`rgba(115,155,189,${strokeAlpha})`:`rgba(171,158,117,${strokeAlpha})`;c.lineWidth=.65;c.beginPath();let previous=null;
             for(let i=0;i<points.length;i++){
-              const p=points[i],s=this.project({x:parent.x+p.x*satellite.orbitRadius,y:parent.y+p.y*satellite.orbitRadius,z:parent.z+p.z*satellite.orbitRadius,depthX:parent.depthX+p.x*satellite.orbitDepthRadius,depthY:parent.depthY+p.y*satellite.orbitDepthRadius,depthZ:parent.depthZ+p.z*satellite.orbitDepthRadius});
+              const p=points[i],s=this.project(this.displaySatellitePoint(p,satellite,parent));
               if(ink){
                 if(previous&&!previous.behind&&!s.behind){const q=points[i-1];c.globalAlpha=Math.min(1,baseAlpha*this.orbitInkOpacity(p.x+q.x,p.y+q.y,ink,alpha));c.beginPath();c.moveTo(previous.x,previous.y);c.lineTo(s.x,s.y);c.stroke();}
               }else if(!s.behind){previous&&!previous.behind?c.lineTo(s.x,s.y):c.moveTo(s.x,s.y);}

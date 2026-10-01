@@ -217,7 +217,7 @@ module.exports=async({root,evaluate,send,session})=>{
     })()`);
     for(const [i,row] of spacingControls.rows.entries()){
       const on=![0,4].includes(i),value=on?(i===1?100:i===2?1:37):173;
-      assert.equal(row.mode,on);assert.equal(row.min,on?'1':'50');assert.equal(row.max,on?'100':'400');assert.equal(row.value,String(value));assert.equal(row.output,String(value)+(on?'%':''));assert.equal(row.disabled,false);assert.equal(row.normal,173);
+      assert.equal(row.mode,on);assert.equal(row.min,on?'0':'50');assert.equal(row.max,on?'100':'400');assert.equal(row.value,String(value));assert.equal(row.output,value+'%');assert.equal(row.disabled,false);assert.equal(row.normal,173);
       assert.equal(row.label,'궤도 간격');
     }
     assert.deepEqual(spacingControls.saved,{actual:.37,normal:173});
@@ -233,7 +233,7 @@ module.exports=async({root,evaluate,send,session})=>{
           for(const axis of ['x','y','z'])maxDistanceError=Math.max(maxDistanceError,Math.abs(item.world[axis]-item.physical[axis]*A.TRUE_SCALE_UNITS_PER_AU));
           if(!item.screen.behind)maxRadiusError=Math.max(maxRadiusError,Math.abs(item.r/(r.scale*item.screen.perspective)-A.BODY_RADIUS_KM[item.body.id]/A.AU_KM*A.TRUE_SCALE_UNITS_PER_AU));
         }
-        const earthR=r.bodyRadiusAtZoom(earth.body),earthMoonRadius=r.satelliteOrbitRadius(earthR,r.bodyRadiusAtZoom(moon.body),moon.body,earth.body);
+        const earthR=r.bodyRadiusAtZoom(earth.body),earthMoonRadius=r.satelliteOrbitRadius(moon.body,earth.body);
         rows.push({zoom,dolly,maxDistanceError,maxRadiusError,moonDistanceInEarthDiameters:earthMoonRadius*r.scale/(2*earthR),lens:r.gpuOrbitCamera().lens});
       }
       const sunScales=[],oldSunScale=r.bodySizeScale('sun');
@@ -254,20 +254,20 @@ module.exports=async({root,evaluate,send,session})=>{
       return {rows,sunScales,sunUi,earthLocked,earthFill,openingDuration,valid,preferencesUnchanged:before===JSON.stringify(r.getBodyScales()),restoredLens:r.gpuOrbitCamera().lens};
     })()`);
     for(const row of actualScale.rows){assert.ok(row.maxDistanceError<1e-9,JSON.stringify(row));assert.ok(row.maxRadiusError<1e-9,JSON.stringify(row));close(row.moonDistanceInEarthDiameters,30.17,.02);assert.equal(row.lens,1);}
-    close(actualScale.earthFill,.5);close(actualScale.openingDuration,7000);assert.ok(actualScale.valid&&actualScale.preferencesUnchanged);assert.ok(actualScale.restoredLens>1);
+    close(actualScale.earthFill,.5);close(actualScale.openingDuration,7000);assert.ok(actualScale.valid&&actualScale.preferencesUnchanged);assert.equal(actualScale.restoredLens,1);
     assert.deepEqual(actualScale.sunUi,{min:'100',max:'300',disabled:false,orbitDisabled:true});assert.equal(actualScale.earthLocked,true);
     for(const row of actualScale.sunScales){close(row.ratio,109.197784,.001);close(row.sunDiameter,actualScale.sunScales[0].sunDiameter*row.size);close(row.earthDiameter,actualScale.sunScales[0].earthDiameter*row.size);close(row.units,actualScale.sunScales[0].units*row.size);}
-    const normalReturn=await evaluate(`(()=>{
+    const scaleCameraPreserved=await evaluate(`(()=>{
       const r=SolarTime.renderer,button=document.getElementById('camera-mode-toggle'),ms=Date.parse('2026-10-01T00:00:00Z');
       const normal={...r.defaultCameraSnapshot(),azimuth:2.1,elevation:.51,zoom:1.4,dolly:1.7,panX:.06,panY:.1};
       r.setOption('actualScale',false,false);r.restoreCamera(normal);button.click();
       r.draw(ms,0,r.actualScaleTween.started+2000);
-      r.restoreCamera({...normal,zoom:.1,dolly:.002,focus:null});button.click();
-      const saved=JSON.parse(localStorage.getItem('eg.solar-time.v0.01')),start=Math.max(r.actualScaleTween.started,r.cameraTween.start);
+      r.restoreCamera({...normal,zoom:.1,dolly:.002,focus:null});const moved=r.cameraSnapshot();button.click();
+      const saved=JSON.parse(localStorage.getItem('eg.solar-time.v0.01')),start=r.actualScaleTween.started;
       for(let step=0;step<=20;step++)r.draw(ms,0,start+step*100);
-      return {normal,returned:r.cameraSnapshot(),saved:saved.normalViewCamera,pendingSaved:saved.camera,mix:r.actualScaleMix,glError:r.gpu.gl.getError()};
+      return {moved,current:r.cameraSnapshot(),saved:saved.camera,tween:!!r.cameraTween,mix:r.actualScaleMix,glError:r.gpu.gl.getError()};
     })()`);
-    assert.deepEqual(normalReturn.returned,normalReturn.normal);assert.deepEqual(normalReturn.saved,normalReturn.normal);assert.deepEqual(normalReturn.pendingSaved,normalReturn.normal);assert.equal(normalReturn.mix,0);assert.equal(normalReturn.glError,0);
+    assert.deepEqual(scaleCameraPreserved.current,scaleCameraPreserved.moved);assert.deepEqual(scaleCameraPreserved.saved,scaleCameraPreserved.moved);assert.equal(scaleCameraPreserved.tween,false);assert.equal(scaleCameraPreserved.mix,0);assert.equal(scaleCameraPreserved.glError,0);
     const scaleDepth=await evaluate(`(()=>{
       const r=SolarTime.renderer,ms=Date.parse('2026-10-01T00:00:00Z'),saved=r.cameraSnapshot(),spacing=r.options.actualOrbitSpacing,gap=r.options.overviewOrbitGap,rows=[];
       try{
@@ -280,7 +280,7 @@ module.exports=async({root,evaluate,send,session})=>{
           const centers=[];
           for(const dt of [0,16,32,64,500,1000,1500,1936,1968,1984,2000]){
             r.draw(ms,0,start+dt);
-            const path=r.paths.find(p=>p.body.id==='neptune'),ys=path.points.map(p=>r.project(r.displaySolarPoint(p)).y);
+            const path=r.paths.find(p=>p.body.id==='neptune'),ys=path.points.map(p=>r.project(r.displaySolarPoint(p,path.body)).y);
             centers.push({dt,y:(Math.min(...ys)+Math.max(...ys))/2});
           }
           rows.push({enabled,centers,uploads:r.gpu.stats.orbitUploads-uploads,builds:r.stats.orbitBufferBuilds-builds,glError:r.gpu.gl.getError(),finite:r.frameBodies.every(b=>['x','y','z'].every(k=>Number.isFinite(b.world[k])))});

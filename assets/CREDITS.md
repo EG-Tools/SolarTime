@@ -63,11 +63,14 @@ Mercury, Venus’s atmosphere, the Moon, Mars, Jupiter, Saturn and Neptune use m
 - Mars: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_mars.jpg
 - Jupiter: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_jupiter.jpg
 - Saturn: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_8k_saturn.jpg
+- Saturn rings: https://www.solarsystemscope.com/textures/download/8k_saturn_ring_alpha.png
 - Neptune: https://commons.wikimedia.org/wiki/File:Solarsystemscope_texture_2k_neptune.jpg
 
 Textures courtesy of Solar System Scope, developed by INOVE.
 
 License: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
+
+The Saturn ring colour/alpha map is supplied by Solar System Scope / INOVE. Solar Time preserves the original 8192×500 PNG in immutable R2 storage and averages the strip height into an axisymmetric radial profile, with lossless 256/512/1024/2048/4096×1 WebP tiers. Inner and outer edges are not longitude-wrapped or seam-blended. The standard GPU renderer samples the source's colour and transparency; a procedural approximation remains available while loading, offline, or in the non-WebGL compatibility renderer. `tools/prepare-saturn-rings.cjs --publish` uploads and verifies only the new ring files, without deploying the app.
 
 ## AI-assisted artistic reconstructions
 

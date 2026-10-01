@@ -1,0 +1,21 @@
+%% General-view rules. Runtime authority: src/astro.js and src/renderer.js.
+%% Percentages are saved settings; limits, clearance and draw weights are derived.
+flowchart TD
+  B["100% 기준 크기 · astro.js size<br/>태양 1 / 암석행성 ¼ / 거대행성 ½<br/>달·명왕성 ¹⁄₁₆ / 유로파 ⅛"]
+  I["슬라이더 · 저장 복원 · 리셋"] --> T["setBodyScales<br/>태양 → 행성 → 위성 순서로 한 번 적용"]
+  B --> L["bodyScaleLimits<br/>최소: 달·명왕성 기준 크기<br/>최대: 현재 태양 또는 부모 크기<br/>태양 자체는 100–300%"]
+  L --> T
+  T --> S["renderer.bodyScales<br/>크기 설정의 단일 소유자"]
+  S -. 동일 트랜잭션에서 먼저 적용한 부모 크기 .-> L
+  S --> U["카드 표시와 저장<br/>범위·표시·실제 값 일치"]
+  S --> R["일반보기 천체 반지름<br/>기준 크기 × 설정 배율 × 공통 카메라 배율"]
+  B --> R
+  R --> C["ordinaryOrbitClearance<br/>부모 반지름 + 자식 반지름 + 여유"]
+  O["궤도 설정 · renderer 소유<br/>카드는 setSatelliteOrbitScales로 단일 적용<br/>카드 1–100% · 일반 간격 100% = 종전 150%"] --> N["요청한 일반 궤도 거리"]
+  C --> F["안전 하한 적용<br/>요청 거리와 안전 거리 중 큰 값"]
+  N --> F
+  F --> H["태양계: 전체 궤도에 동일 확대율<br/>달·유로파: 각 부모 기준 거리"]
+  H --> M["공유 위치·깊이 보간값<br/>solarOrbitMorph / orbitShape"]
+  P["실제보기<br/>BODY_RADIUS_KM · AU 실제 데이터"] --> M
+  M --> CPU["천체 위치 · CPU 궤도"]
+  M --> GPU["GPU 궤도선<br/>기존 버퍼 재사용 · 보간값만 갱신"]

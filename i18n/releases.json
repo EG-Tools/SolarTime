@@ -1,5 +1,76 @@
 [
   {
+    "version": "0.71",
+    "date": "2026.10.02",
+    "localized": {
+      "kor": [
+        "일반·실제 보기의 크기·궤도 간격과 초기화 기준을 정리했습니다.",
+        "기본 시점과 카메라 전환·저장 동작을 개선했습니다.",
+        "토성 고리에 새 텍스처와 거리별 LOD를 적용했습니다."
+      ],
+      "en": [
+        "Refined sizes, orbit spacing, and reset defaults in normal and true-scale views.",
+        "Improved the default view, camera transitions, and saved camera settings.",
+        "Added a new Saturn ring texture with distance-based LOD."
+      ],
+      "chn": [
+        "调整普通视图和真实比例视图的大小、轨道间距及重置默认值。",
+        "改进默认视角、相机切换和相机设置保存。",
+        "为土星环添加新纹理和基于距离的细节层级。"
+      ],
+      "zht": [
+        "調整一般視圖和真實比例視圖的大小、軌道間距及重設預設值。",
+        "改善預設視角、相機切換和相機設定儲存。",
+        "為土星環加入新紋理和依距離調整的細節層級。"
+      ],
+      "jpn": [
+        "通常表示と実寸比率表示のサイズ・軌道間隔・リセット時の初期値を整理しました。",
+        "基本視点、カメラ切り替え、カメラ設定の保存を改善しました。",
+        "土星の環に新しいテクスチャと距離に応じたLODを適用しました。"
+      ],
+      "hi": [
+        "सामान्य और वास्तविक पैमाने वाले दृश्यों में आकार, कक्षाओं की दूरी और रीसेट के डिफ़ॉल्ट मान बेहतर किए।",
+        "डिफ़ॉल्ट दृश्य, कैमरा बदलाव और कैमरा सेटिंग सहेजने में सुधार किया।",
+        "शनि के छल्लों में नई टेक्सचर और दूरी के अनुसार विवरण स्तर जोड़ा।"
+      ],
+      "es": [
+        "Ajustamos los tamaños, la separación orbital y los valores de restablecimiento en las vistas normal y a escala real.",
+        "Mejoramos la vista predeterminada, las transiciones de cámara y el guardado de sus ajustes.",
+        "Añadimos una nueva textura a los anillos de Saturno con nivel de detalle según la distancia."
+      ],
+      "de": [
+        "Größen, Bahnabstände und Rücksetzwerte in der normalen und maßstabsgetreuen Ansicht überarbeitet.",
+        "Standardansicht, Kameraübergänge und das Speichern der Kameraeinstellungen verbessert.",
+        "Neue Textur für Saturns Ringe mit entfernungsabhängiger Detailstufe hinzugefügt."
+      ],
+      "fr": [
+        "Ajustement des tailles, de l’espacement orbital et des valeurs de réinitialisation en vues normale et à l’échelle réelle.",
+        "Amélioration de la vue par défaut, des transitions de caméra et de l’enregistrement de ses réglages.",
+        "Ajout d’une nouvelle texture aux anneaux de Saturne avec un niveau de détail adapté à la distance."
+      ],
+      "pt": [
+        "Ajustamos os tamanhos, o espaçamento orbital e os padrões de redefinição nas visualizações normal e em escala real.",
+        "Melhoramos a vista padrão, as transições de câmera e o salvamento de suas configurações.",
+        "Adicionamos uma nova textura aos anéis de Saturno com nível de detalhe conforme a distância."
+      ],
+      "it": [
+        "Rivisti dimensioni, distanza tra le orbite e valori di ripristino nelle viste normale e in scala reale.",
+        "Migliorati la vista predefinita, le transizioni della camera e il salvataggio delle sue impostazioni.",
+        "Aggiunta una nuova texture agli anelli di Saturno con livello di dettaglio in base alla distanza."
+      ],
+      "id": [
+        "Menyempurnakan ukuran, jarak orbit, dan nilai bawaan saat reset dalam tampilan normal dan skala sebenarnya.",
+        "Meningkatkan tampilan awal, transisi kamera, dan penyimpanan pengaturan kamera.",
+        "Menambahkan tekstur baru pada cincin Saturnus dengan tingkat detail berdasarkan jarak."
+      ],
+      "nl": [
+        "Groottes, baanafstanden en herstelwaarden in de normale weergave en op werkelijke schaal verfijnd.",
+        "De standaardweergave, cameraovergangen en het opslaan van camera-instellingen verbeterd.",
+        "Een nieuwe textuur voor de ringen van Saturnus toegevoegd met afstandsafhankelijk detailniveau."
+      ]
+    }
+  },
+  {
     "version": "0.70",
     "date": "2026.10.01",
     "localized": {
@@ -700,77 +771,6 @@
         "Vertalingen voor de interface, timers en versiegeschiedenis worden in één systeem beheerd, dat automatisch de taalbestanden voor de app genereert.",
         "Controles vinden ontbrekende tekst, fouten in variabelen, dubbele sleutels en verouderde gegenereerde bestanden; bestaande Engelse terugvalteksten blijven apart geregistreerd.",
         "Teksten, tijdzones en het gedrag van alarmen, muziek en weergave blijven behouden voor alle 48 landen en regio’s."
-      ]
-    }
-  },
-  {
-    "version": "0.61",
-    "date": "2026.09.27",
-    "localized": {
-      "kor": [
-        "언어 선택의 자동 항목을 고정해 국가 목록만 스크롤되도록 변경했습니다.",
-        "영어를 공유하는 11개국과 스페인어를 공유하는 도미니카공화국·과테말라를 추가하고 지역 시간과 지구 위치를 연결했습니다.",
-        "국가별 시간대와 일광절약시간, 자동 지역 인식과 기존 선택 저장을 검증했습니다."
-      ],
-      "en": [
-        "Pinned the automatic language option so only the country list scrolls.",
-        "Added 11 regions sharing English plus the Dominican Republic and Guatemala sharing Spanish, with regional clocks and Earth locations.",
-        "Verified time zones, daylight-saving transitions, automatic region detection, and saved selections."
-      ],
-      "es": [
-        "La opción de idioma automático queda fija mientras se desplaza la lista de países.",
-        "Se añadieron 11 regiones que comparten el inglés y la República Dominicana y Guatemala con la traducción española, vinculadas a la hora regional y su ubicación en la Tierra.",
-        "Se verificaron las zonas horarias, los cambios de horario estacional, la detección automática de región y las selecciones guardadas."
-      ],
-      "chn": [
-        "固定自动语言选项，仅让国家列表滚动。",
-        "新增11个共用英语的地区，以及共用西班牙语的多米尼加共和国和危地马拉，并关联当地时间与地球位置。",
-        "验证了时区、夏令时切换、自动地区识别和已保存的选择。"
-      ],
-      "zht": [
-        "固定自動語言選項，僅讓國家清單捲動。",
-        "新增11個共用英語的地區，以及共用西班牙語的多明尼加共和國和瓜地馬拉，並連結當地時間與地球位置。",
-        "驗證了時區、日光節約時間切換、自動地區辨識及已儲存的選擇。"
-      ],
-      "jpn": [
-        "言語の自動選択項目を固定し、国の一覧だけがスクロールするようにしました。",
-        "英語を共有する11地域と、スペイン語を共有するドミニカ共和国・グアテマラを追加し、現地時刻と地球上の位置を連携しました。",
-        "タイムゾーン、夏時間の切り替え、自動地域判定、選択内容の保存を検証しました。"
-      ],
-      "hi": [
-        "स्वचालित भाषा विकल्प को स्थिर रखा गया ताकि केवल देशों की सूची स्क्रॉल हो।",
-        "अंग्रेज़ी साझा करने वाले 11 क्षेत्र और स्पेनिश साझा करने वाले डोमिनिकन गणराज्य तथा ग्वाटेमाला जोड़े गए, साथ में क्षेत्रीय समय और पृथ्वी पर स्थान जोड़े गए।",
-        "समय क्षेत्रों, डेलाइट सेविंग बदलावों, स्वचालित क्षेत्र पहचान और सहेजे गए चयन की जाँच की गई।"
-      ],
-      "de": [
-        "Die automatische Sprachauswahl wurde fixiert, sodass nur die Länderliste scrollt.",
-        "Elf Regionen mit Englisch sowie die Dominikanische Republik und Guatemala mit Spanisch wurden hinzugefügt und mit regionalen Uhren und Erdpositionen verknüpft.",
-        "Zeitzonen, Sommerzeitwechsel, automatische Regionserkennung und gespeicherte Auswahlen wurden überprüft."
-      ],
-      "fr": [
-        "L’option de langue automatique reste fixe pendant le défilement de la liste des pays.",
-        "Ajout de onze régions partageant l’anglais, ainsi que de la République dominicaine et du Guatemala partageant l’espagnol, avec leurs heures locales et positions sur Terre.",
-        "Vérification des fuseaux horaires, des changements d’heure saisonniers, de la détection automatique de région et des choix enregistrés."
-      ],
-      "pt": [
-        "A opção de idioma automático fica fixa enquanto apenas a lista de países rola.",
-        "Foram adicionadas 11 regiões que compartilham o inglês, além da República Dominicana e da Guatemala com espanhol, vinculadas ao horário regional e à posição na Terra.",
-        "Foram verificados os fusos horários, as mudanças de horário de verão, a detecção automática de região e as escolhas salvas."
-      ],
-      "it": [
-        "L’opzione della lingua automatica resta fissa mentre scorre solo l’elenco dei paesi.",
-        "Aggiunte undici regioni che condividono l’inglese, più la Repubblica Dominicana e il Guatemala con lo spagnolo, collegandole all’ora locale e alla posizione sulla Terra.",
-        "Verificati fusi orari, cambi dell’ora legale, rilevamento automatico della regione e scelte salvate."
-      ],
-      "id": [
-        "Opsi bahasa otomatis dibuat tetap sehingga hanya daftar negara yang bergulir.",
-        "Menambahkan 11 wilayah yang memakai bahasa Inggris serta Republik Dominika dan Guatemala yang memakai bahasa Spanyol, dengan waktu regional dan posisi di Bumi.",
-        "Memverifikasi zona waktu, pergantian waktu musim panas, deteksi wilayah otomatis, dan pilihan tersimpan."
-      ],
-      "nl": [
-        "De automatische taaloptie staat vast, zodat alleen de landenlijst scrolt.",
-        "Elf regio’s met Engels en de Dominicaanse Republiek en Guatemala met Spaans zijn toegevoegd, met koppelingen naar hun lokale tijd en positie op aarde.",
-        "Tijdzones, zomertijdovergangen, automatische regioherkenning en opgeslagen keuzes zijn gecontroleerd."
       ]
     }
   }

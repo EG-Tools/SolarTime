@@ -272,7 +272,7 @@ test('r16 removes avoidable renderer hot-path work and restores the watermark',(
   assert.ok(app.includes('releases/content/ui/life-user-watermark.webp'));
   assert.ok(app.includes("window.SolarAssets?.materials?.earth?.base"));
   assert.match(renderer,/this\.frameBodies=\[\];this\.surfaceBodies=\[\];this\.directBodies=\[\];this\.labelBodies=\[\]/);
-  assert.match(renderer,/displayPhysicalPoint\(physical,out\)/);
+  assert.match(renderer,/displayPhysicalPoint\(physical,out,body=null\)/);
   assert.match(renderer,/surfaceJob\(body,physical,r,ms,seconds,direct=false,target=null,mono=performance\.now\(\)\)/);
   assert.match(renderer,/if\(direct\)return job/);
   assert.doesNotMatch(renderer,/directJobs=new Map/);
@@ -314,12 +314,12 @@ test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   assert.ok(html.includes(cacheUrl('src/app.js')));
   assert.deepEqual(assetRevision,{version:'assetpack-20260930-r1'});
   assert.equal(manifest.revision,'assetpack-20260930-r1');
-  for(const entry of Object.values(manifest.materials))assert.equal(entry.seamBaked,true,entry.source);
+  for(const [id,entry] of Object.entries(manifest.materials))assert.equal(entry.seamBaked,id!=='saturn-ring',entry.source);
   assert.match(pipeline,/async function seamBakedVariant/);
   assert.match(pipeline,/seamBaked:group==='textures'/);
   assert.match(pipeline,/rightPixel=y\*width\+\(width-1-x\)/);
   assert.match(surface,/seamBaked:!!asset\.seamBaked/);
-  assert.match(surface,/if\(name==='clouds-alt'\|\|!source\.seamBaked\|\|bitmap\.width!==width\|\|bitmap\.height!==height\)/);
+  assert.match(surface,/if\(name==='clouds-alt'\|\|\(!radial&&!source\.seamBaked\)\|\|bitmap\.width!==width\|\|bitmap\.height!==height\)/);
   assert.match(surface,/g\.pixelStorei\(g\.UNPACK_FLIP_Y_WEBGL,false\)/);
   assert.match(surface,/this\.orbitState=\{valid:false\}/);
   assert.match(surface,/if\(!s\.valid\|\|s\.centerX!==centerX/);

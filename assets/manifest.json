@@ -669,6 +669,58 @@
           "sha256": "91dd29f4610e542fd3d04646b5140da8627e142b9a68a5aecdee5a17fc2257e9"
         }
       ]
+    },
+    "saturn-ring": {
+      "source": "8k_saturn_ring_alpha.png",
+      "sourceUrl": "https://www.solarsystemscope.com/textures/download/8k_saturn_ring_alpha.png",
+      "sourceSha256": "f1f826933c9ff87d64ecf0518d6256b8ed990b003722794f67e96e3d2b876ae4",
+      "sourceArchive": {
+        "path": "releases/content/originals/saturn-ring-8192.f1f826933c9ff87d.png",
+        "bytes": 64790,
+        "sha256": "f1f826933c9ff87d64ecf0518d6256b8ed990b003722794f67e96e3d2b876ae4"
+      },
+      "width": 4096,
+      "height": 1,
+      "layout": "radial",
+      "remoteOnly": true,
+      "seamBaked": false,
+      "tiers": [
+        {
+          "width": 256,
+          "height": 1,
+          "path": "releases/content/textures/saturn-ring-256.63758b4611297a4d.webp",
+          "bytes": 784,
+          "sha256": "63758b4611297a4d7fe65d6740745abb9362ff1abfddd7105a17c989fa1b226b"
+        },
+        {
+          "width": 512,
+          "height": 1,
+          "path": "releases/content/textures/saturn-ring-512.1c4eae64eae8624a.webp",
+          "bytes": 1278,
+          "sha256": "1c4eae64eae8624a8c18ffd01712e33a77103f1a5e70154de385a6c5205c9e74"
+        },
+        {
+          "width": 1024,
+          "height": 1,
+          "path": "releases/content/textures/saturn-ring-1024.bda1d3500e2c6d22.webp",
+          "bytes": 2310,
+          "sha256": "bda1d3500e2c6d2241718d42eee486d8e674d3d12505b1e0d9e2a85619a978c3"
+        },
+        {
+          "width": 2048,
+          "height": 1,
+          "path": "releases/content/textures/saturn-ring-2048.54a512b884220478.webp",
+          "bytes": 3804,
+          "sha256": "54a512b884220478e6862288af357760267cd4da2b892b63f7cb870aec90e4a9"
+        },
+        {
+          "width": 4096,
+          "height": 1,
+          "path": "releases/content/textures/saturn-ring-4096.b7bc54b4b8511166.webp",
+          "bytes": 5914,
+          "sha256": "b7bc54b4b8511166827c0a48bf858b374053b3e643080f6d2c3704467145fc58"
+        }
+      ]
     }
   },
   "sky": {

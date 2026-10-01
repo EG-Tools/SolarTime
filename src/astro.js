@@ -46,32 +46,34 @@
   // Signed sidereal rotation periods in Earth days, not solar-day lengths.
   // Saturn: Cassini ring-seismology representative period (NASA, 2019).
   // Uranus: Hubble auroral period (NASA, 2025). See README.md for sources.
+  // Illustrative 100% radii, independent of BODY_RADIUS_KM: Sun 28; rocky
+  // planets 1/4, giants 1/2, Moon/Pluto 1/16, Europa 1/8 of that reference.
   const defs = [
-    ['mercury','수성','MERCURY', 95, 6.5,'#baa999',87.9691,58.646,0.034,
+    ['mercury','수성','MERCURY', 95, 7,'#baa999',87.9691,58.646,0.034,
       [0.38709843,.20563661,7.00559432,252.25166724,77.45771895,48.33961819],
       [0,.00002123,-.00590158,149472.67486623,.15940013,-.12214182]],
-    ['venus','금성','VENUS',143,10.5,'#e3bd7c',224.701,-243.025,177.36,
+    ['venus','금성','VENUS',143,7,'#e3bd7c',224.701,-243.025,177.36,
       [.72332102,.00676399,3.39777545,181.97970850,131.76755713,76.67261496],
       [-.00000026,-.00005107,.00043494,58517.81560260,.05679648,-.27274174]],
-    ['earth','지구','EARTH',198,11.5,'#73b9ec',365.256,0.99726968,23.439,
+    ['earth','지구','EARTH',198,7,'#73b9ec',365.256,0.99726968,23.439,
       [1.00000018,.01673163,-.00054346,100.46691572,102.93005885,-5.11260389],
       [-.00000003,-.00003661,-.01337178,35999.37306329,.31795260,-.24123856]],
-    ['mars','화성','MARS',254,8.5,'#d88762',686.98,1.025957,25.19,
+    ['mars','화성','MARS',254,7,'#d88762',686.98,1.025957,25.19,
       [1.52371243,.09336511,1.85181869,-4.56813164,-23.91744784,49.71320984],
       [.00000097,.00009149,-.00724757,19140.29934243,.45223625,-.26852431]],
-    ['jupiter','목성','JUPITER',344,29,'#d7b59a',4332.589,.41354,3.13,
+    ['jupiter','목성','JUPITER',344,14,'#d7b59a',4332.589,.41354,3.13,
       [5.20248019,.04853590,1.29861416,34.33479152,14.27495244,100.29282654],
       [-.00002864,.00018026,-.00322699,3034.90371757,.18199196,.13024619],[-.00012452,.06064060,-.35635438,38.35125]],
-    ['saturn','토성','SATURN',440,24,'#dbc59b',10759.22,(10*3600+33*60+38)/86400,26.73,
+    ['saturn','토성','SATURN',440,14,'#dbc59b',10759.22,(10*3600+33*60+38)/86400,26.73,
       [9.54149883,.05550825,2.49424102,50.07571329,92.86136063,113.63998702],
       [-.00003065,-.00032044,.00451969,1222.11494724,.54179478,-.25015002],[.00025899,-.13434469,.87320147,38.35125]],
-    ['uranus','천왕성','URANUS',533,16.5,'#9ed7dc',30685.4,-(17*3600+14*60+52)/86400,97.77,
+    ['uranus','천왕성','URANUS',533,14,'#9ed7dc',30685.4,-(17*3600+14*60+52)/86400,97.77,
       [19.18797948,.04685740,.77298127,314.20276625,172.43404441,73.96250215],
       [-.00020455,-.00001550,-.00180155,428.49512595,.09266985,.05739699],[.00058331,-.97731848,.17689245,7.67025]],
-    ['neptune','해왕성','NEPTUNE',625,16,'#5389ef',60189,.67125,28.32,
+    ['neptune','해왕성','NEPTUNE',625,14,'#5389ef',60189,.67125,28.32,
       [30.06952752,.00895439,1.77005520,304.22289287,46.68158724,131.78635853],
       [.00006447,.00000818,.00022400,218.46515314,.01009938,-.00606302],[-.00041348,.68346318,-.10162547,7.67025]],
-    ['pluto','명왕성','PLUTO',718,5,'#c8ada0',90560,-6.38723,119.51,
+    ['pluto','명왕성','PLUTO',718,1.75,'#c8ada0',90560,-6.38723,119.51,
       [39.482,.2488,17.14,238.929,224.069,110.304],
       [0,0,0,360*36525/90560,0,0]]
   ];
@@ -115,10 +117,12 @@
     Object.freeze({distance:0,index:-1}),
     ...BODIES.map((body,index)=>Object.freeze({distance:body.base[0],index}))
   ]);
-  function displayDistance(distance,actualMix=0,overviewGap=OVERVIEW_ORBIT.gap){
+  function displayDistance(distance,actualMix=0,overviewGap=OVERVIEW_ORBIT.gap,gapMultiplier=1){
     if(!Number.isFinite(distance)||distance<0)throw new RangeError('Display distance must be finite and nonnegative.');
     if(actualMix===1)return distance*TRUE_SCALE_UNITS_PER_AU;
-    const gap=clamp(Number.isFinite(overviewGap)?overviewGap:OVERVIEW_ORBIT.gap,OVERVIEW_ORBIT.minGap,OVERVIEW_ORBIT.maxGap);
+    // Scale the displayed interval after clamping the UI percentage, so the
+    // full slider range remains effective. The Mercury anchor stays fixed.
+    const gap=clamp(Number.isFinite(overviewGap)?overviewGap:OVERVIEW_ORBIT.gap,OVERVIEW_ORBIT.minGap,OVERVIEW_ORBIT.maxGap)*(Number.isFinite(gapMultiplier)&&gapMultiplier>0?gapMultiplier:1);
     let upper=DISPLAY_ORBIT_ANCHORS.findIndex(anchor=>distance<=anchor.distance);
     if(upper<0)upper=DISPLAY_ORBIT_ANCHORS.length-1;
     else if(upper<1)upper=1;
@@ -140,9 +144,9 @@
   // Satellite display-orbit radii are reference-screen values. The renderer keeps
   // them illustrative normally and scales each local system with its parent when
   // actual-size presentation is enabled.
-  const MOON = Object.freeze({id:'moon',ko:'달',en:'MOON',size:3.9,displayOrbit:30,color:'#d0ced0',period:2360591.51/86400,periodSeconds:2360591.51,spin:2360591.51/86400,spinSeconds:2360591.51,referenceSpinDays:27.321661,tilt:6.68,
+  const MOON = Object.freeze({id:'moon',ko:'달',en:'MOON',size:1.75,displayOrbit:30,color:'#d0ced0',period:2360591.51/86400,periodSeconds:2360591.51,spin:2360591.51/86400,spinSeconds:2360591.51,referenceSpinDays:27.321661,tilt:6.68,
     parent:'earth',description:'규산염 암석으로 된 지구의 자연 위성. 물은 주로 영구 그늘의 극지 토양과 분화구에 얼음으로 존재합니다.'});
-  const EUROPA = Object.freeze({id:'europa',ko:'유로파',en:'EUROPA',size:3.8,displayOrbit:45,color:'#d8c89c',period:3.551181,periodSeconds:306822.04,spin:3.551181,spinSeconds:306822.04,referenceSpinDays:3.551181,tilt:.1,
+  const EUROPA = Object.freeze({id:'europa',ko:'유로파',en:'EUROPA',size:3.5,displayOrbit:45,color:'#d8c89c',period:3.551181,periodSeconds:306822.04,spin:3.551181,spinSeconds:306822.04,referenceSpinDays:3.551181,tilt:.1,
     parent:'jupiter',description:'물얼음 지각으로 덮인 목성의 갈릴레이 위성. 얼음 아래에는 염분을 포함한 거대한 액체 바다가 있을 가능성이 큽니다.'});
   const SATELLITES=Object.freeze([MOON,EUROPA]);
   // One local reference owner. A frame does not numerically integrate its predecessor:

@@ -1,4 +1,4 @@
-/* Solar Time v0.70 — app implementation owner. */
+/* Solar Time v0.71 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -115,8 +115,8 @@
     catch{value=Math.random();}
     return Math.abs(value-previous)<1e-6?(value+.5)%1:value;
   }
-  const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,actualOrbitSpacing:1,orbitBrightness:.5,starDensity:1,dollyZoom:true,labels:true,avoidLabels:false,twinkle:true,activity:true,alignmentGuideVisible:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
-  const FACTORY_BODY_SCALES=Object.freeze({sun:1.54,mercury:3.79,venus:3.06,earth:5.05,mars:4.28,jupiter:2,saturn:2.42,uranus:3.04,neptune:2.32,pluto:5.23,moon:3.7,europa:3.44});
+  const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:100,actualOrbitSpacing:1,orbitBrightness:.5,starDensity:1,dollyZoom:true,labels:true,avoidLabels:false,twinkle:true,activity:true,alignmentGuideVisible:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
+  const FACTORY_BODY_SCALES=Object.freeze(Object.fromEntries([A.SUN,...A.BODIES,...A.SATELLITES].map(body=>[body.id,1])));
   const FACTORY_ORBIT_SCALES=Object.freeze({sun:.16,earth:.43,jupiter:1});
   const FACTORY_AUTO_ROTATE=1;
   const MUSIC_TRACKS=Object.freeze([
@@ -220,7 +220,7 @@
         lucida:'"Lucida Console",Consolas,monospace'
       });
       const CLOCK_FONT_ORDER=Object.freeze(Object.keys(CLOCK_FONTS));
-      let clockFont='georgia',savedRotationMode=FACTORY_AUTO_ROTATE,overviewCamera=renderer.defaultCameraSnapshot(),normalViewCamera=renderer.defaultCameraSnapshot(),keyboardTrackingReturn=null;
+      let clockFont='georgia',savedRotationMode=FACTORY_AUTO_ROTATE,overviewCamera=renderer.defaultCameraSnapshot(),keyboardTrackingReturn=null;
       renderer.options.twinkle=true;
       const validKeys={actualScale:'actual-scale',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',alignmentGuideVisible:'show-alignment',earthNightLights:'earth-night-lights',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
       try {
@@ -237,7 +237,7 @@
            else if(saved.randomRotateEnabled===true)savedRotationMode='random';
            else if([-1,0,1].includes(saved.autoRotateDirection))savedRotationMode=saved.autoRotateDirection;
           if(Number.isFinite(saved.overviewOrbitGap))renderer.options.overviewOrbitGap=A.clamp(Math.round(saved.overviewOrbitGap),A.OVERVIEW_ORBIT.minGap,A.OVERVIEW_ORBIT.maxGap);
-          if(Number.isFinite(saved.actualOrbitSpacing))renderer.options.actualOrbitSpacing=A.clamp(saved.actualOrbitSpacing,.01,1);
+          if(Number.isFinite(saved.actualOrbitSpacing))renderer.options.actualOrbitSpacing=A.clamp(saved.actualOrbitSpacing,0,1);
           if(saved.languageMode==='auto'){languageMode='auto';language=detectedLanguage();}
           else if(LANG_ORDER.includes(saved.language)){language=saved.language;languageMode='manual';}
           if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
@@ -255,8 +255,6 @@
           // Retain old viewpoints, but never restore their retired input mode.
           const savedOverview=saved.overviewCamera&&{...saved.overviewCamera,focus:null,mode:'move'};
           if(window.SolarRenderer.validCamera(savedOverview))overviewCamera={...savedOverview};
-          const savedNormal=saved.normalViewCamera&&{...saved.normalViewCamera,mode:'move'};
-          if(window.SolarRenderer.validCamera(savedNormal))normalViewCamera={...savedNormal};
           const savedCamera=saved.camera&&{...saved.camera,mode:'move'};
           if(!(window.SolarRenderer.validCamera(savedCamera)&&renderer.restoreCamera(savedCamera))){
             if(Number.isFinite(saved.elevation))renderer.setOrbitView(renderer.camera.azimuth,saved.elevation*A.DEG);
@@ -270,7 +268,6 @@
       await hydrateLanguage(language,activeCopyCode);
       const openingCameraTarget={...renderer.cameraSnapshot()};
       if(openingCameraTarget.focus===null)overviewCamera={...openingCameraTarget};
-      if(!renderer.options.actualScale)normalViewCamera={...openingCameraTarget};
       renderer.restoreCamera(renderer.openingCameraSnapshot(openingCameraTarget));
       const loading=$('loading'),OPENING_UNLOCK_BEFORE_END=1000;
       let openingActive=true,openingControlsLocked=true,openingStartedAt=null,openingDuration=0;
@@ -300,8 +297,8 @@
       $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
       function syncOrbitSpacingControl(){
         const input=$('overview-orbit-gap'),actual=renderer.options.actualScale;
-        const value=Math.round(actual?renderer.actualOrbitSpacing()*100:renderer.options.overviewOrbitGap),text=actual?value+'%':String(value);
-        input.min=actual?1:A.OVERVIEW_ORBIT.minGap;input.max=actual?100:A.OVERVIEW_ORBIT.maxGap;input.step=1;
+        const value=Math.round(actual?renderer.actualOrbitSpacing()*100:renderer.options.overviewOrbitGap),text=value+'%';
+        input.min=actual?0:A.OVERVIEW_ORBIT.minGap;input.max=actual?100:A.OVERVIEW_ORBIT.maxGap;input.step=1;
         input.value=value;input.disabled=false;input.setAttribute('aria-valuetext',text);
         $('overview-orbit-gap-output').textContent=text;$('overview-orbit-gap-control').classList.remove('locked');
       }
@@ -365,8 +362,7 @@
         // every in-flight frame are temporary, not the user's last viewpoint.
         const camera=openingActive?{...openingCameraTarget}:renderer.cameraTween?{...renderer.cameraTween.to}:renderer.cameraSnapshot(),rotationMode=renderer.randomRotateEnabled?'random':renderer.autoRotateDirection;
         if(camera.focus===null)overviewCamera={...camera,focus:null};
-        if(!renderer.options.actualScale)normalViewCamera={...camera};
-        Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),rotationMode,autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockSize,clockFont,speedMode,speedValues,language,languageMode,camera,overviewCamera,normalViewCamera,cameraControlVersion:4,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});
+        Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),rotationMode,autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockSize,clockFont,speedMode,speedValues,language,languageMode,camera,overviewCamera,cameraControlVersion:4,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});
       }
       let cameraUiSignature='';
       function cameraUi(force=false) {
@@ -547,13 +543,15 @@
       }
       function syncBodySizeControl(body=bodies.find(value=>value.id===renderer.selected)) {
         if(!body)return;
-        const orbitLocked=renderer.options.actualScale,locked=orbitLocked&&body.id!=='sun',value=Math.round(renderer.bodySizeScale(body)*100),limits=renderer.bodyScaleLimits(body),hasOrbitControl=['sun','earth','jupiter'].includes(body.id);
-        $('body-size-slider').min=Math.round(limits.min*100);$('body-size-slider').max=Math.round(limits.max*100);
+        const percent=value=>Math.round(value*1000)/10;
+        const limits=renderer.bodyScaleLimits(body),orbitLimits=renderer.satelliteOrbitScaleLimits(body);
+        const orbitLocked=renderer.options.actualScale,locked=orbitLocked&&body.id!=='sun',value=percent(renderer.bodySizeScale(body)),resetValue=percent(A.clamp(1,limits.min,limits.max)),hasOrbitControl=orbitLimits.min<orbitLimits.max;
+        $('body-size-slider').min=percent(limits.min);$('body-size-slider').max=percent(limits.max);
         $('body-size-slider').value=value;$('body-size-output').textContent=value+'%';
         const orbitControl=$('satellite-orbit-control'),orbitSlider=$('satellite-orbit-slider'),orbitValue=Math.round(renderer.satelliteOrbitScale(body)*100),solar=body.id==='sun';
-        orbitControl.hidden=!hasOrbitControl;orbitSlider.value=orbitValue;$('satellite-orbit-output').textContent=orbitValue+'%';orbitSlider.disabled=orbitLocked;
+        orbitControl.hidden=!hasOrbitControl;orbitSlider.min=Math.round(orbitLimits.min*100);orbitSlider.max=Math.round(orbitLimits.max*100);orbitSlider.value=orbitValue;$('satellite-orbit-output').textContent=orbitValue+'%';orbitSlider.disabled=orbitLocked;
         $('body-orbit-label').textContent=t(solar?'solarOrbitSpacing':'satelliteOrbitSpacing');orbitSlider.setAttribute('aria-label',t(solar?'solarOrbitSpacingAria':'satelliteOrbitSpacingAria'));
-        $('body-size-slider').disabled=locked;$('body-size-reset').disabled=locked||(value===100&&(orbitLocked||!hasOrbitControl||orbitValue===100));
+        $('body-size-slider').disabled=locked;$('body-size-reset').disabled=locked||(value===resetValue&&(orbitLocked||!hasOrbitControl||orbitValue===100));
         $('body-size-lock').hidden=!locked;$('body-size-control').classList.toggle('locked',locked);
         const earth=body.id==='earth',cloudValue=Math.round(A.clamp(Number(renderer.options.earthCloudAmount) || 0,0,1)*100);
         $('earth-night-lights-control').hidden=!earth;$('earth-night-lights').checked=renderer.options.earthNightLights!==false;
@@ -755,15 +753,9 @@
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
       function setActualScale(enabled){
         if(!claimOpeningControl()){$('actual-scale').checked=renderer.options.actualScale;return;}
-        enabled=!!enabled;const changed=enabled!==renderer.options.actualScale,mono=performance.now();
-        if(changed&&enabled)normalViewCamera={...(renderer.cameraTween?.to||renderer.cameraSnapshot())};
-        renderer.setOption('actualScale',enabled);$('actual-scale').checked=renderer.options.actualScale;
-        if(changed&&!enabled){
-          // A true-scale retreat can be thousands of times farther away. It
-          // must not replace the user's last ordinary viewing composition.
-          keyboardTrackingReturn=null;cancelGesture();
-          if(!renderer.animateCamera(normalViewCamera,mono,2000))renderer.animateHome(mono,2000);
-        }
+        // Layout changes share the current camera, including tracking and any
+        // in-flight input/rotation. Never restore a separate mode's viewpoint.
+        renderer.setOption('actualScale',!!enabled);$('actual-scale').checked=renderer.options.actualScale;
         syncOrbitSpacingControl();if(renderer.selected)syncBodySizeControl();cameraUi();persist();
       }
       for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{if(key==='actualScale'){setActualScale($(id).checked);return;}renderer.setOption(key,$(id).checked);if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
@@ -795,7 +787,7 @@
         renderer.setOption('earthCloudSeed',randomCloudSeed(renderer.options.earthCloudSeed),false);
         window.SolarVisualEffects?.regenerateStars?.(renderer.sky);
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
-        renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();normalViewCamera=renderer.defaultCameraSnapshot();keyboardTrackingReturn=null;
+        renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();keyboardTrackingReturn=null;
         A.calibrateAt(Date.now());clock.now(mono);eclipseTargets.clear();alignmentTarget=null;renderer.setAlignmentGuide(null);renderer.invalidateSurfaces();
         timezone='local';showSeconds=false;hourCycle='12';clockSize=1;clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;
         renderer.setSite(activeRegion());for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
@@ -925,7 +917,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=ceb15be7d0b8','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=e89058b0abe2','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1016,7 +1008,7 @@
       const canvas=$('universe'),pointers=new Map(),heldZoomKeys=new Set();
       let drag=null,pinchDistance=0,pinchLevel=1,pinchOrigin=null,pinched=false,clickGestures=0;
       const keyboardZoomDirection=()=>Number(heldZoomKeys.has('arrowup'))-Number(heldZoomKeys.has('arrowdown'));
-      const clearKeyboardZoom=()=>heldZoomKeys.clear();
+      const clearKeyboardZoom=()=>{if(!heldZoomKeys.size)return;heldZoomKeys.clear();persist();};
       function cancelGesture() {
         const ids=[...pointers.keys()];pointers.clear();drag=null;pinched=false;clickGestures=0;pinchDistance=0;pinchOrigin=null;
         for(const id of ids)if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
@@ -1120,7 +1112,9 @@
         else if(key==='r')now();
         else if(key==='-'){event.preventDefault();zoom(1/1.15);}
       },{capture:true});
-      window.addEventListener('keyup',event=>{const key=event.key.toLowerCase();if(key==='arrowup'||key==='arrowdown')heldZoomKeys.delete(key);},{capture:true});
+      // Keyboard travel has no tween-completion save. Commit once when the
+      // gesture ends; blur/visibility/pagehide also cover a missing keyup.
+      window.addEventListener('keyup',event=>{const key=event.key.toLowerCase();if((key==='arrowup'||key==='arrowdown')&&heldZoomKeys.delete(key)&&!heldZoomKeys.size)persist();},{capture:true});
       window.addEventListener('blur',clearKeyboardZoom,{passive:true});
       // Fill every initially visible sphere with its small baseline map under
       // the loading cover. Detail LODs are requested only after this returns, so
@@ -1224,7 +1218,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.70',revision:'r3',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.71',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

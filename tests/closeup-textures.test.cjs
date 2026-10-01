@@ -106,6 +106,17 @@ test('texture payload bytes, compression, shader and helper stay unchanged',()=>
  const baseline=JSON.parse(read('tests/fixtures/texture-v062-hashes.json'));
  for(const [name,hash] of Object.entries(baseline)){
   let bytes=fs.readFileSync(path.join(root,name));
+  // The explicitly added Saturn ring is independently pinned/validated by
+  // saturn-rings.test.cjs. Keep every pre-existing media entry and all runtime
+  // URL generation byte-for-byte against the original texture baseline.
+  if(name==='assets/manifest.json'){
+   const manifest=JSON.parse(bytes);delete manifest.materials['saturn-ring'];
+   bytes=Buffer.from(JSON.stringify(manifest,null,2)+'\n');
+  }
+  if(name==='src/assets.js')bytes=Buffer.from(bytes.toString('utf8').replace(/const manifest=(\{[^\r\n]+\}),configuredBase=/,(_,json)=>{
+   const manifest=JSON.parse(json);delete manifest.materials['saturn-ring'];
+   return 'const manifest='+JSON.stringify(manifest)+',configuredBase=';
+  }));
   // Windows checks out CMD as CRLF; compare its canonical source, while
   // every texture manifest, shader and web runtime remains byte-for-byte.
   if(name.endsWith('.cmd'))bytes=Buffer.from(bytes.toString('utf8').replace(/\r\n/g,'\n'));
