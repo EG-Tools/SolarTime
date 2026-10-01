@@ -83,7 +83,7 @@
     "speedSlider": "Tiempo avanzado por segundo",
     "sources": "Fuentes",
     "bodySelect": "Seleccionar cuerpo",
-    "scaleNoteLineOne": "Escala de tamaño y distancia ajustada · Órbita media aproximada",
+    "scaleNoteLineOne": "Órbita media aproximada\nEscala de tamaño y distancia ajustada",
     "scaleNoteLineTwo": "Rotación y órbita vinculadas al tiempo",
     "apply": "Mover",
     "save": "Guardar",

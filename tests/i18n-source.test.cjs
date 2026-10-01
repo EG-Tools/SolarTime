@@ -29,6 +29,17 @@ test('all 13 web and file-language bundles preserve approved interface, timer, b
 test('all retained historical release translations are unchanged',()=>{
  const notes=require('../src/release-notes.js');for(const [version,languages] of Object.entries(gold.releases))for(const [code,digest] of Object.entries(languages)){const release=notes.RELEASES.find(r=>r.version===version);assert.ok(release,version);assert.equal(api.fingerprint(notes.itemsFor(release,code)),digest,version+' '+code);}
 });
+
+test('footer shows mean orbit first and size-distance scale second in every language',()=>{
+ const compiled=api.compile(root);
+ for(const code of compiled.codes){
+  const lines=compiled.bundles[code].copy.scaleNoteLineOne.split('\n');
+  assert.equal(lines.length,2,code);assert.ok(lines.every(line=>line.trim()),code);
+ }
+ assert.equal(compiled.bundles.kor.copy.scaleNoteLineOne,'평균 궤도 근사\n크기 거리 측정 조정');
+ assert.equal(compiled.bundles.en.copy.scaleNoteLineOne,'Mean orbit approximation\nAdjusted size and distance scale');
+ assert.ok(read('styles.css').includes('.signature [data-i18n="scaleNoteLineOne"]{white-space:pre-line}'));
+});
 test('English fallback is independent of previously visited languages, and does not mutate network data',async()=>{
  const input={copy:{timer:'Un minuteur',settings:'',alarmRinging:null},bodies:{earth:['Terre']},phases:{}};
  const snapshot=JSON.stringify(input),{loader}=runtime({fetch:async()=>({ok:true,json:async()=>input})});

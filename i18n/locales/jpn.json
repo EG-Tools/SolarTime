@@ -83,7 +83,7 @@
     "speedSlider": "1秒あたりに進む時間",
     "sources": "出典",
     "bodySelect": "天体を選択",
-    "scaleNoteLineOne": "大きさ・距離の縮尺を調整 · 平均軌道による近似",
+    "scaleNoteLineOne": "平均軌道による近似\n大きさ・距離の縮尺を調整",
     "scaleNoteLineTwo": "自転と公転を時間に連動",
     "apply": "移動",
     "save": "保存",

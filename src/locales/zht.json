@@ -83,7 +83,7 @@
     "speedSlider": "每秒推進的時間",
     "sources": "來源",
     "bodySelect": "選擇天體",
-    "scaleNoteLineOne": "大小與距離比例已調整 · 平均軌道近似",
+    "scaleNoteLineOne": "平均軌道近似\n大小與距離比例已調整",
     "scaleNoteLineTwo": "自轉和公轉與時間聯動",
     "apply": "移動",
     "save": "儲存",

@@ -83,7 +83,7 @@
     "speedSlider": "Time advanced per second",
     "sources": "Sources",
     "bodySelect": "Select body",
-    "scaleNoteLineOne": "Adjusted size and distance scale · Mean orbit approximation",
+    "scaleNoteLineOne": "Mean orbit approximation\nAdjusted size and distance scale",
     "scaleNoteLineTwo": "Rotation and orbit linked to time",
     "apply": "Move",
     "save": "Save",

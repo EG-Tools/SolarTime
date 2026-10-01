@@ -83,7 +83,7 @@
     "speedSlider": "Temps écoulé par seconde",
     "sources": "Sources",
     "bodySelect": "Sélectionner un astre",
-    "scaleNoteLineOne": "Échelle de taille et de distance ajustée · Orbite moyenne approximative",
+    "scaleNoteLineOne": "Orbite moyenne approximative\nÉchelle de taille et de distance ajustée",
     "scaleNoteLineTwo": "Rotation et orbite liées au temps",
     "apply": "Déplacer",
     "save": "Enregistrer",

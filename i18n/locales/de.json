@@ -83,7 +83,7 @@
     "speedSlider": "Fortschritt pro Sekunde",
     "sources": "Quellen",
     "bodySelect": "Himmelskörper auswählen",
-    "scaleNoteLineOne": "Angepasster Größen- und Entfernungsmaßstab · Mittlere Bahnnäherung",
+    "scaleNoteLineOne": "Mittlere Bahnnäherung\nAngepasster Größen- und Entfernungsmaßstab",
     "scaleNoteLineTwo": "Rotation und Umlauf an Zeit gekoppelt",
     "apply": "Bewegen",
     "save": "Speichern",

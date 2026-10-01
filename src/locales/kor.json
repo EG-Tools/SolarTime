@@ -83,7 +83,7 @@
     "speedSlider": "1초당 진행하는 시간",
     "sources": "출처",
     "bodySelect": "천체 선택",
-    "scaleNoteLineOne": "크기·거리 축척 조정 · 평균 궤도 근사",
+    "scaleNoteLineOne": "평균 궤도 근사\n크기 거리 측정 조정",
     "scaleNoteLineTwo": "자전·공전 시간 연동",
     "apply": "이동",
     "save": "저장",
