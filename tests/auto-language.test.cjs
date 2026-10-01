@@ -42,7 +42,7 @@ test('automatic time uses the validated device zone while manual countries retai
 
 test('new users and factory reset use automatic mode while old saved countries remain manual',()=>{
  const app=read('src/app.js');
- assert.match(app,/language=detectedLanguage\(\),languageMode='auto'/);assert.match(app,/language,languageMode,camera:/);
+ assert.match(app,/language=detectedLanguage\(\),languageMode='auto'/);assert.match(app,/language,languageMode,camera,overviewCamera/);
  assert.match(app,/language=nextLanguage;languageMode='auto'/);
  assert.match(app,/saved\.languageMode==='auto'/);assert.match(app,/languageMode='manual'/);
  assert.match(app,/activeCopyCode=languageMode==='auto'\?detectedCopyLanguage\(\)/);

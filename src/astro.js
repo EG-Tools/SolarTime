@@ -17,6 +17,10 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (Astronomy) {
   'use strict';
   const DAY = 86400000, TAU = Math.PI * 2, DEG = Math.PI / 180;
+  // One distance unit for true-scale radii, heliocentric orbits and satellites.
+  // IAU astronomical unit; mean planetary radii: ssd.jpl.nasa.gov/planets/phys_par.html.
+  const AU_KM=149597870.7,TRUE_SCALE_UNITS_PER_AU=20;
+  const BODY_RADIUS_KM=Object.freeze({sun:695700,mercury:2439.4,venus:6051.8,earth:6371.0084,mars:3389.5,jupiter:69911,saturn:58232,uranus:25362,neptune:24622,pluto:1188.3,moon:1737.4,europa:1560.8});
   const J2000 = Date.UTC(2000, 0, 1, 12), MIN_TIME = Date.UTC(1800, 0, 1), MAX_TIME = Date.UTC(2999, 11, 31, 23, 59, 59);
   const CURRENT_START=Date.UTC(1800,0,1),CURRENT_END=Date.UTC(2051,0,1),HAS_PRECISION=!!(Astronomy?.GeoMoon&&Astronomy?.JupiterMoons&&Astronomy?.HelioVector&&Astronomy?.SearchGlobalSolarEclipse);
   const round2 = value => Math.round(value*100)/100;
@@ -108,11 +112,12 @@
   // these anchors prevents Pluto's large eccentricity from being multiplied by
   // the compressed 718 px orbit and falsely reaching the Uranus track.
   const DISPLAY_ORBIT_ANCHORS=Object.freeze([
-    Object.freeze({distance:0,index:-1,actualOrbit:0}),
-    ...BODIES.map((body,index)=>Object.freeze({distance:body.base[0],index,actualOrbit:body.orbit}))
+    Object.freeze({distance:0,index:-1}),
+    ...BODIES.map((body,index)=>Object.freeze({distance:body.base[0],index}))
   ]);
   function displayDistance(distance,actualMix=0,overviewGap=OVERVIEW_ORBIT.gap){
     if(!Number.isFinite(distance)||distance<0)throw new RangeError('Display distance must be finite and nonnegative.');
+    if(actualMix===1)return distance*TRUE_SCALE_UNITS_PER_AU;
     const gap=clamp(Number.isFinite(overviewGap)?overviewGap:OVERVIEW_ORBIT.gap,OVERVIEW_ORBIT.minGap,OVERVIEW_ORBIT.maxGap);
     let upper=DISPLAY_ORBIT_ANCHORS.findIndex(anchor=>distance<=anchor.distance);
     if(upper<0)upper=DISPLAY_ORBIT_ANCHORS.length-1;
@@ -122,7 +127,7 @@
     const overviewA=a.index<0?0:OVERVIEW_ORBIT.start+gap*a.index;
     const overviewB=OVERVIEW_ORBIT.start+gap*b.index;
     const overview=overviewA+(overviewB-overviewA)*position;
-    const actual=a.actualOrbit+(b.actualOrbit-a.actualOrbit)*position;
+    const actual=distance*TRUE_SCALE_UNITS_PER_AU;
     return overview+(actual-overview)*clamp(Number.isFinite(actualMix)?actualMix:0,0,1);
   }
   function displayPoint(point){
@@ -362,7 +367,7 @@
     moon:Object.freeze({step:DAY/4,span:DAY*550,limit:1.25*DEG}),
     europa:Object.freeze({step:DAY/48,span:DAY*8,limit:6.5*DEG})
   });
-  const AU_KM=Astronomy?.KM_PER_AU||149597870.7,SUN_RADIUS_AU=695700/AU_KM,JUPITER_RADIUS_AU=(Astronomy?.JUPITER_EQUATORIAL_RADIUS_KM||71492)/AU_KM,EUROPA_RADIUS_AU=(Astronomy?.EUROPA_RADIUS_KM||1560.8)/AU_KM;
+  const SUN_RADIUS_AU=BODY_RADIUS_KM.sun/AU_KM,JUPITER_RADIUS_AU=(Astronomy?.JUPITER_EQUATORIAL_RADIUS_KM||71492)/AU_KM,EUROPA_RADIUS_AU=(Astronomy?.EUROPA_RADIUS_KM||BODY_RADIUS_KM.europa)/AU_KM;
   function eclipseAlignment(bodyOrId,ms){
     const body=typeof bodyOrId==='string'?SATELLITES.find(value=>value.id===bodyOrId):bodyOrId,spec=body&&ECLIPSE_SEARCH[body.id];
     if(!spec||!Number.isFinite(ms))throw new RangeError('Eclipse alignment requires Moon or Europa and a finite timestamp.');
@@ -504,5 +509,5 @@
     }
     now(mono,wall=Date.now()) { this.travel=null;this.anchorMs=wall; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false; }
   }
-  return Object.freeze({DAY,TAU,DEG,J2000,MIN_TIME,MAX_TIME,CURRENT_START,CURRENT_END,OVERVIEW_ORBIT,BODIES,SUN,MOON,EUROPA,SATELLITES,SATELLITE_EPOCH,PLANETARY_ALIGNMENT_EVENTS,wrap,clamp,ephemerisTier,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,displayDistance,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,eclipseAlignment,europaShadowGeometry,eclipseEvent,planetaryAlignmentEvent,SimulationClock});
+  return Object.freeze({DAY,TAU,DEG,AU_KM,TRUE_SCALE_UNITS_PER_AU,BODY_RADIUS_KM,SATELLITE_MEAN_AU,J2000,MIN_TIME,MAX_TIME,CURRENT_START,CURRENT_END,OVERVIEW_ORBIT,BODIES,SUN,MOON,EUROPA,SATELLITES,SATELLITE_EPOCH,PLANETARY_ALIGNMENT_EVENTS,wrap,clamp,ephemerisTier,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,displayDistance,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,eclipseAlignment,europaShadowGeometry,eclipseEvent,planetaryAlignmentEvent,SimulationClock});
 });

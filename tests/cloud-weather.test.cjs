@@ -188,7 +188,7 @@ test('direct, worker and fallback share the spherical mask implementation',()=>{
   assert.ok(api.kernel().shaderSources.fragment.includes('texture2D(cloudWeatherMap'));
   assert.match(source,/job\.id==='earth'&&cloudAmount>0\?\(this\.cloudWeather\|\|=new materialSource\.CloudWeather\(\)\):null/);
   assert.match(source,/this\.cloudWeather\?\.dispose\(\);this\.cloudWeather=null/);
-  assert.match(source,/cover=weather\.coverage\(sourceCloud,mapU,cloudV,cloudAmount,cloudReveal,alternate,cloudsAlt\?1:0\)/);
+  assert.match(source,/cover=weather\.coverage\(sourceCloud,mapU,cloudV,cloudAmount,cloudReveal,alternate,cloudsAlt\?1:0,job\.cloudDetail\?\?1\)/);
 });
 
 test('dual sources have independent life and a bounded, seamless alpha-over mix',()=>{

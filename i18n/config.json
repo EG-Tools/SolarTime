@@ -108,6 +108,9 @@
     }
   },
   "legacyFileKeys": [
+    "universeAria",
+    "orbitSpacing",
+    "orbitSpacingAria",
     "releaseNotesAll",
     "helpIntroTitle",
     "helpIntroPurpose",

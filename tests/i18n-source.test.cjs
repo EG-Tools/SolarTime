@@ -17,7 +17,9 @@ test('all generated translations are deterministic and current',()=>{
  assert.match(read('changelog.html'),/전체 업데이트 내역/);assert.match(read('changelog.html'),/id="v0\.01"/);
  for(const file of ['tools/build-pages.cjs','tools/cloudflare-site.cjs'])assert.match(read(file),/require\('\.\/i18n\.cjs'\)\.sync\(root\)/);
 });
-test('all 13 web and file-language bundles preserve the previous effective interface, timer, body and phase text',async()=>{
+test('all 13 web and file-language bundles preserve approved interface, timer, body and phase text',async()=>{
+ // UI fingerprints include the approved orbit label, + shortcut and current mouse accessibility guidance.
+ // Historical release and automatic-language baselines remain unchanged.
  const compiled=api.compile(root);
  for(const protocol of ['https:','file:']){
   const {loader}=runtime({protocol});
@@ -47,6 +49,15 @@ test('direct file launches overlay the current localized help introduction on an
  for(const code of api.compile(root).codes){const copy=data('src/locales/'+code+'.json').copy;assert.doesNotMatch(copy.helpIntroTitle,/^Solar Time - /,code);for(const key of ['helpIntroPurpose','helpIntroExperience','helpFeatureTime','helpFeatureMusic','helpFeatureTimer'])assert.ok(copy[key].includes('\n'),`${code} ${key}`);}
  assert.match(read('styles.css'),/\[data-i18n="helpIntroPurpose"\],[^}]+\.help-feature-list li\{white-space:pre-line\}/);
 });
+test('all language accessibility instructions override the obsolete remote wheel-mode toggle',()=>{
+ const {loader}=runtime({protocol:'file:'});
+ for(const code of api.compile(root).codes){
+  const bundle=loader.resolveBundle({copy:{universeAria:'Obsolete Zoom/Move control'},bodies:{},phases:{}},code,{local:true});
+  assert.equal(bundle.copy.universeAria,data('src/locales/'+code+'.json').copy.universeAria,code);
+ }
+ assert.match(data('src/locales/kor.json').copy.universeAria,/휠로 전진·후진.*우클릭 드래그로 광각·망원/);
+});
+
 test('parallel requests and repeated region reuse load only the chosen shared language once',async()=>{
  const {loader,requests}=runtime();const [a,b]=await Promise.all([loader.load('en'),loader.load('en')]);assert.equal(a,b);assert.equal(await loader.load('en'),a);assert.equal(requests.length,1);assert.equal(loader.loaded('fr'),false);
  assert.equal(fs.existsSync(path.join(root,'src/timer-copy.js')),false);assert.doesNotMatch(read('index.html'),/src\/timer-copy\.js/);

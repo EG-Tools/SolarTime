@@ -12,6 +12,9 @@ test('Sun card keeps alignment navigation before the final body-option section',
   assert.match(html,/id="alignment-previous" class="step-previous"/);
   assert.match(html,/id="alignment-next" class="step-next"/);
   assert.match(html,/class="step-navigation eclipse-navigation"/);
+  assert.match(html,/label for="show-alignment" data-i18n="alignmentView"/);
+  assert.match(html,/id="show-alignment"[^>]*role="switch"[^>]*checked/);
+  assert.ok(html.indexOf('id="show-alignment"')<html.indexOf('id="alignment-previous"'));
 });
 
 test('alignment catalog keeps Earth-sky dates and strict space-axis dates distinct',()=>{
@@ -55,7 +58,8 @@ test('every locale carries full alignment labels and long names wrap without abb
     for(const key of ['alignmentView','alignmentPrevious','alignmentNext','alignmentUnavailable'])assert.ok(copy[key],`${file}: ${key}`);
   }
   assert.equal(JSON.parse(read('src/locales/en.json')).copy.alignmentView,'Planetary alignment');
-  const css=read('styles.css');assert.match(css,/\.alignment-control>span\{[^}]*white-space:normal[^}]*overflow-wrap:anywhere/);
+  const css=read('styles.css');assert.match(css,/\.alignment-control label\{[^}]*white-space:normal[^}]*overflow-wrap:anywhere/);
+  assert.match(css,/\.alignment-control label\{[^}]*text-align:center/);
   assert.match(css,/\.eclipse-control\{[^}]*flex-direction:column[^}]*align-items:center/);
   assert.match(css,/\.eclipse-control>span\{[^}]*width:100%[^}]*text-align:center/);
   assert.match(css,/\.alignment-control output\.space-alignment\{[^}]*color:#e7bd70/);
@@ -67,4 +71,29 @@ test('viewport alignment guide is anchored to Earth or Sun and drawn for either 
   assert.match(renderer,/guide\.kind==='space'\?'sun':'earth'/);
   assert.match(renderer,/this\.drawAlignmentGuide\(c,ms\)/);
   assert.match(renderer,/strokeStyle='#e9bd67'/);
+});
+
+test('alignment visibility uses the persisted setting and resets with appearance defaults',()=>{
+  const app=read('src/app.js');
+  assert.match(app,/FACTORY_OPTIONS=Object\.freeze\(\{[^\n]*alignmentGuideVisible:true/);
+  assert.match(app,/alignmentGuideVisible:'show-alignment'/);
+  assert.match(app,/show-alignment'\)\.checked=renderer\.options\.alignmentGuideVisible!==false/);
+});
+
+test('hidden alignment guide does no drawing and stays hidden across date changes',()=>{
+  const vm=require('node:vm'),window={SolarAstro:A};
+  vm.runInNewContext(read('src/renderer.js'),{window,performance});
+  const r=Object.create(window.SolarRenderer.prototype);
+  Object.assign(r,{options:{alignmentGuideVisible:true},w:1280,h:800});
+  let strokes=0,queries=0;
+  const c={save(){},restore(){},beginPath(){},rect(){},clip(){},moveTo(){},lineTo(){},arc(){},fill(){},stroke(){strokes++;}};
+  r.currentFrameItem=id=>{queries++;return {screen:{x:id==='sun'?500:id==='earth'?620:780,y:id==='earth'?410:380,behind:false},r:10};};
+  const first=A.PLANETARY_ALIGNMENT_EVENTS[0],next=A.PLANETARY_ALIGNMENT_EVENTS[1];
+  r.setAlignmentGuide(first);r.drawAlignmentGuide(c,first.ms);assert.ok(strokes>0);
+  strokes=queries=0;r.setOption('alignmentGuideVisible',false);r.drawAlignmentGuide(c,first.ms);
+  assert.equal(strokes,0);assert.equal(queries,0);assert.equal(r.alignmentGuide,first);
+  r.setAlignmentGuide(next);r.drawAlignmentGuide(c,next.ms);
+  assert.equal(strokes,0);assert.equal(queries,0);assert.equal(r.options.alignmentGuideVisible,false);
+  r.setOption('alignmentGuideVisible',true);r.drawAlignmentGuide(c,next.ms);assert.ok(strokes>0);
+  strokes=0;r.setAlignmentGuide(null);r.drawAlignmentGuide(c,next.ms);assert.equal(strokes,0);
 });

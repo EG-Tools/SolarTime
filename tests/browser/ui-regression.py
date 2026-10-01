@@ -43,7 +43,14 @@ def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seo
  for src in scripts:
   code=(root/src.split('?')[0]).read_text(encoding='utf8')
   page.evaluate("""({code,src})=>{Object.defineProperty(document,'currentScript',{value:{src:'https://solar.test/'+src},configurable:true});try{(0,eval)(code);}finally{delete document.currentScript;}}""",{'code':code,'src':src})
- try:page.wait_for_function('!!window.SolarTime',timeout=15000);page.wait_for_function("document.getElementById('loading').hidden",timeout=10000)
+ try:
+  page.wait_for_function('!!window.SolarTime',timeout=15000)
+  home=page.evaluate("SolarTime.renderer.defaultCameraSnapshot()")
+  opening=page.evaluate("({state:SolarTime.getState().opening,zoom:SolarTime.renderer.camera.zoom,dolly:SolarTime.renderer.camera.dolly,focus:SolarTime.renderer.camera.focus})")
+  assert opening['state'] and abs(opening['zoom']-home['zoom'])<1e-9 and abs(opening['dolly']-.002)<1e-9 and opening['focus'] is None,opening
+  page.wait_for_function("document.getElementById('loading').hidden&&!SolarTime.getState().opening",timeout=12000)
+  arrived=page.evaluate("({state:SolarTime.getState().opening,zoom:SolarTime.renderer.camera.zoom,dolly:SolarTime.renderer.camera.dolly,panX:SolarTime.renderer.camera.panX,panY:SolarTime.renderer.camera.panY})")
+  assert not arrived['state'] and abs(arrived['zoom']-home['zoom'])<1e-9 and abs(arrived['dolly']-home['dolly'])<1e-9 and abs(arrived['panX']-home['panX'])<1e-9 and abs(arrived['panY']-home['panY'])<1e-9,(arrived,home)
  except Exception:
   print('BOOT FAILURE',root,size,errors,page.locator('#fatal-message').inner_text());raise
  return context,page,page.evaluate('__fixtureRequests'),errors

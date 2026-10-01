@@ -33,7 +33,15 @@ test('Normal overview orbit anchors have one equal gap from Mercury through Plut
   const gaps=A.BODIES.slice(1).map((body,index)=>body.overviewOrbit-A.BODIES[index].overviewOrbit);
   close(A.BODIES[0].overviewOrbit,190);for(const gap of gaps)close(gap,90);
   for(const gap of [50,90,200,400])for(const [index,body] of A.BODIES.entries())close(A.displayDistance(body.base[0],0,gap),190+gap*index);
-  for(const body of A.BODIES){close(A.displayDistance(body.base[0]),body.overviewOrbit);close(A.displayDistance(body.base[0],1,200),body.orbit);}
+  for(const body of A.BODIES){close(A.displayDistance(body.base[0]),body.overviewOrbit);close(A.displayDistance(body.base[0],1,200),body.base[0]*A.TRUE_SCALE_UNITS_PER_AU);}
+});
+
+test('true-scale distance is linear in AU, independent of overview anchors and gap settings',()=>{
+  for(const gap of [50,90,200,400])for(const au of [0,.00256955529,.387,1,5.2,30,39.5,100]){
+    close(A.displayDistance(au,1,gap),au*A.TRUE_SCALE_UNITS_PER_AU,1e-9);
+    close(A.displayDistance(au,.5,gap),(A.displayDistance(au,0,gap)+au*A.TRUE_SCALE_UNITS_PER_AU)/2,1e-9);
+  }
+  close(A.AU_KM,149597870.7);close(A.BODY_RADIUS_KM.earth,6371.0084);
 });
 test('Pluto overview keeps its real Neptune crossing without falsely reaching Uranus',()=>{
   const uranus=A.BODIES.find(body=>body.id==='uranus'),neptune=A.BODIES.find(body=>body.id==='neptune'),pluto=A.BODIES.find(body=>body.id==='pluto');

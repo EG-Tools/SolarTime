@@ -108,6 +108,13 @@ class Sky{
   this.initialize();
  }
  invalidate(){this.lastPose=null;this.lastKey='';this.lastGPU=-Infinity;this.starPose=null;}
+ memoryUsage(){
+  const active=!!this.gl&&!this.disposed&&this.ready;
+  const textures=active&&this.texture?(this.stats.textureSize?.[0]||0)*(this.stats.textureSize?.[1]||0)*4:0;
+  const buffers=active?(this.buffer?48:0)+(this.starBuffer?this.starCount*24:0):0;
+  const framebufferEstimate=active?this.canvas.width*this.canvas.height*4:0;
+  return {textures,buffers,framebufferEstimate,knownBytes:textures+buffers,totalEstimate:textures+buffers+framebufferEstimate};
+ }
  uploadSkyImage(image){
   const g=this.gl;if(!g||g.isContextLost()||!image)return false;
   const max=g.getParameter(g.MAX_TEXTURE_SIZE),width=2**Math.floor(Math.log2(Math.min(image.width,max))),height=width/2;

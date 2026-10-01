@@ -3,8 +3,8 @@
   "src/consent.js": "69c07b6623d762e0f21be391e9d955a93a1127e3ea934b972b1f35ecaf426531",
   "src/windows-shutdown.js": "3109e303c919cf6bbb4490bd74423595958854d0b2d4275d4bd000fd7705070a",
   "src/alarm-sound.js": "924225d8b735221f1b466919ecfd2daafcbaca7a4549185c22a50bb85169c7e5",
-  "src/renderer.js": "680b24e4d7ee8f5c7997db3a9d2a676661a74c2b9d839be1b0a87acd2f98b2be",
-  "src/surface.js": "91e4645d490f273ca7ad23ff3ca1382b89f5076bca6b24871336b07df9fcfe54",
+  "src/renderer.js": "fb8fe5b71cd15bceb8123149d230c5d8c22dcb5f1158c604b569bf5bbbbc88c4",
+  "src/surface.js": "9a6bd713ee474abedd54771a77c78fa29e89cb6e6b0d6a899d028eeb35fb2e2a",
   "src/assets.js": "30d2b020ec9ebd775c3c1cc1c18048ab92d0b82f1b0fd66ae53535a982b21ef2",
-  "styles.css": "90ab085cf63fc1f33eff0400273be2a3c842be2d05f69efde22d822756e5a27f"
+  "styles.css": "48ce4b90d1da56cfbed5516facaa0236fa12028b3e51e71f07c15bc5d47f9283"
 }

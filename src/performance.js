@@ -49,14 +49,14 @@
     if(name==='venus-surface')return !!desired?.has('venus')&&(desired.get('venus').cloudAmount<1||desired.get('venus').venusSurfacePreviewWidth>0);
     if(name==='venus')return !!desired?.has('venus')&&(desired.get('venus').cloudAmount!==0||(!renderer.textures?.get('venus-surface')?.texture&&!!renderer.textures?.get('venus')?.texture));
     if(desired?.has(name))return true;
-    if((name==='clouds'||name==='clouds-alt')&&desired?.has('earth')&&desired.get('earth').cloudAmount!==0)return true;
+    if((name==='clouds'||name==='clouds-alt')&&desired?.has('earth')&&desired.get('earth').cloudAmount!==0)return name==='clouds'||desired.get('earth').cloudDetail!==0;
     if(name==='earth-night'&&desired?.get('earth')?.nightLights)return true;
     if(name.endsWith('-relief')&&desired?.has(name.slice(0,-7)))return true;
     return false;
   }
   // Allocate before uploading. Reserve room for the sky and a texture swap;
   // lower-priority visible bodies yield detail before the tracked body does.
-  function planTextures(jobs,assets,maxWidth=4096){
+  function planTextures(jobs,assets,maxWidth=4096,reserveBytes=0){
     const entries=[];
     const add=(name,width,priority)=>{if(assets?.[name])entries.push({name,width:Math.max(128,Math.min(maxWidth,width)),priority});};
     for(const job of jobs){
@@ -66,11 +66,11 @@
         if(job.cloudAmount!==0)add('venus',job.cloudTextureWidth||job.textureWidth,job.priority||0);
       }else add(job.id,job.textureWidth,job.priority||0);
       if(job.id==='earth'&&job.cloudAmount!==0)add('clouds',Math.min(4096,job.cloudTextureWidth||job.textureWidth),job.priority||0);
-      if(job.id==='earth'&&job.cloudAmount!==0)add('clouds-alt',Math.min(2048,job.cloudTextureWidth||job.textureWidth),job.priority||0);
+      if(job.id==='earth'&&job.cloudAmount!==0&&job.cloudDetail!==0)add('clouds-alt',Math.min(2048,job.cloudTextureWidth||job.textureWidth),job.priority||0);
       if(job.id==='earth'&&job.nightLights)add('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth),job.priority||0);
       add(job.id+'-relief',job.textureWidth,job.priority||0);
     }
-    const budget=textureBudget()*.8;let bytes=entries.reduce((sum,e)=>sum+e.width*e.width*2,0),constrained=bytes>budget;
+    const budget=Math.max(0,textureBudget()-Math.max(0,reserveBytes))*.8;let bytes=entries.reduce((sum,e)=>sum+e.width*e.width*2,0),constrained=bytes>budget;
     while(bytes>budget){
       const candidate=entries.filter(e=>e.width>128).sort((a,b)=>a.priority-b.priority||b.width-a.width)[0];
       if(!candidate)break;
@@ -81,7 +81,7 @@
   function trimTextures(renderer,reserveBytes=0){
     renderer.trimRecent?.(reserveBytes);
     const textures=renderer.textures;if(!textures?.size||!renderer.gl)return;
-    const budget=Math.max(0,textureBudget()-Math.max(0,reserveBytes));let bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);
+    const budget=Math.max(0,textureBudget()-Math.max(0,reserveBytes)-(renderer.auxiliaryTextureBytes?.()||0));let bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);
     renderer.stats.textureBudgetBytes=textureBudget();renderer.stats.textureBytes=bytes;if(bytes<=budget)return;
     const candidates=[...textures.entries()].filter(([name,record])=>record?.texture&&!record.pending&&!protectTexture(renderer,name)).sort((a,b)=>(a[1].lastUsed||0)-(b[1].lastUsed||0));
     for(const [name,record] of candidates){
@@ -93,6 +93,6 @@
     renderer.stats.textureBytes=Math.max(0,bytes);
   }
   function touchTexture(renderer,name){const record=renderer.textures?.get(name);if(record)record.lastUsed=(renderer.__solarTextureUseSerial=(renderer.__solarTextureUseSerial||0)+1);}
-  function enforceTextureBudget(renderer){const budget=textureBudget(),bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);renderer.stats.textureBudgetBytes=budget;renderer.stats.textureBytes=bytes;if(bytes>budget){const now=performance.now();if(now-(renderer.__solarLastTextureTrim||0)>500){renderer.__solarLastTextureTrim=now;trimTextures(renderer);}}}
+  function enforceTextureBudget(renderer){const budget=textureBudget(),bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);renderer.stats.textureBudgetBytes=budget;renderer.stats.textureBytes=bytes;if(bytes+(renderer.auxiliaryTextureBytes?.()||0)>budget){const now=performance.now();if(now-(renderer.__solarLastTextureTrim||0)>500){renderer.__solarLastTextureTrim=now;trimTextures(renderer);}}}
   root.SolarPerformance=Object.freeze({pixelRatio,frameInterval,createFrameGate,reportRenderCost,reportFrameTiming,textureBudget,planTextures,protectTexture,trimTextures,touchTexture,enforceTextureBudget,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
 })(window);

@@ -35,6 +35,35 @@ async function main(){
     assert.equal(result.backend,'gpu');assert.ok(result.difference<=3);assert.ok(result.visible>80);
     assert.ok(result.disabled&&result.cached&&result.disposed);assert.deepEqual(result.errors,[0,0]);
     assert.ok(result.workerFrame.backend==='worker'&&result.workerFrame.ready);
+    if(process.argv.includes('--render-perf')){
+      for(const file of ['src/astronomy-engine.min.js','src/astro.js','src/renderer.js'])await evaluate(fs.readFileSync(path.join(root,file),'utf8'));
+      const report=await evaluate(fs.readFileSync(path.join(__dirname,'render_perf.js'),'utf8'));
+      console.log(JSON.stringify({renderPerformance:report}));
+      assert.ok(report.weatherIdentical&&report.coronaIdentical&&report.cancelled);assert.equal(report.weatherBytes,32768);
+      assert.ok(report.weatherYields>1&&report.coronaYields>1);assert.equal(report.previewSize,64);
+      assert.equal(report.memoryAfterDispose,0);assert.equal(report.error,0);assert.equal(report.depthBuffer,false);
+    }
+    if(process.argv.includes('--orbit-reveal')){
+      const ink=await evaluate(fs.readFileSync(path.join(__dirname,'orbit_reveal.js'),'utf8'));
+      const file=path.join(os.tmpdir(),'solartime-orbit-reveal.png');fs.writeFileSync(file,Buffer.from(ink.image.split(',')[1],'base64'));delete ink.image;
+      console.log(JSON.stringify({orbitReveal:{...ink,file}}));
+      assert.equal(ink.error,0);assert.equal(ink.difference,0);assert.equal(ink.uploads,1);assert.equal(ink.counts[0],0);
+      assert.deepEqual(ink.drawCalls,[0,4,4,4,1],'subpixel sampling is confined to the moving scanner');
+      assert.equal(ink.brightness[0],0,'zero user brightness also hides the animated orbit');
+      assert.ok(ink.brightness[1]>0&&ink.brightness[1]<ink.brightness[2],'animated brightness follows the user preference');
+      assert.ok(ink.counts[1]>0&&ink.counts[1]<ink.counts.at(-1));
+      assert.ok(ink.counts[2]>ink.counts[1]&&ink.counts[3]>ink.counts[2],'the moving sweep grows before completion');
+      // Four subpixel samples can touch more pixels than the final single
+      // crisp line; exact completed-vs-normal pixel parity is checked above.
+      assert.ok(ink.counts.at(-1)>0);
+    }
+    if(process.argv.includes('--orbit-morph')){
+      for(const file of ['src/astronomy-engine.min.js','src/astro.js','src/renderer.js'])await evaluate(fs.readFileSync(path.join(root,file),'utf8'));
+      const morph=await evaluate(fs.readFileSync(path.join(__dirname,'orbit_morph.js'),'utf8'));
+      console.log(JSON.stringify({orbitMorph:morph}));
+      assert.equal(morph.error,0);assert.equal(morph.coldUploads,9);assert.equal(morph.transitionUploads,0);assert.equal(morph.transitionBuilds,0);
+      assert.ok(morph.cases>=100);assert.ok(morph.maxRelativeDifference<.03,JSON.stringify(morph));assert.ok(morph.minVisiblePixels>100);
+    }
     if(process.argv.includes('--visual')){
       // Sources are consumed by the real renderer for QA, never image-edited.
       await evaluate(fs.readFileSync(path.join(root,'src/performance.js'),'utf8'));
@@ -77,6 +106,8 @@ async function main(){
       console.log(JSON.stringify({support}));
     }
     if(process.argv.includes('--venus-app'))console.log(JSON.stringify({venusApp:await require('./venus_app.cjs')({root,evaluate,send,session})}));
+    if(process.argv.includes('--opening-app'))console.log(JSON.stringify({openingApp:await require('./opening_camera.cjs')({root,evaluate,send,session})}));
+    if(process.argv.includes('--alignment-app'))console.log(JSON.stringify({alignmentApp:await require('./alignment_app.cjs')({root,evaluate,send,session})}));
     await send('Target.closeTarget',{targetId:target});target=null;
     await send('Browser.close').catch(()=>{});
   }finally{

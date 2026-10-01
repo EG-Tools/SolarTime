@@ -50,6 +50,10 @@ def verify_cloud_weather(browser, root, check, diagnostics=None):
             }
             direct.resetTextureBindings();direct.texture=id=>textures[id];
             direct.cloudBlendUntil=1; // Compare fully blended frames, not the loading fade.
+            direct.cloudWeather=new kernel.CloudWeather();direct.cloudWeather.prepare(job.cloudSeed);
+            const weatherDeadline=performance.now()+5000;
+            while(direct.cloudWeather.pending){if(performance.now()>weatherDeadline)throw Error('Weather preparation timeout');await new Promise(resolve=>setTimeout(resolve,5));}
+            direct.cloudWeather.readyAt=-Infinity; // Compare completed detailed frames after cooperative preparation.
             direct.begin();direct.planet(job,{id:'earth'},{x:64,y:64},64,0,false);
             const directPixels=new Uint8Array(128*128*4);gl.readPixels(0,0,128,128,gl.RGBA,gl.UNSIGNED_BYTE,directPixels);
             await gpu.render(job);const gpuPixels=new Uint8Array(128*128*4);

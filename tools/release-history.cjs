@@ -30,6 +30,14 @@ function run(root,{write=false}={}){
   ['i18n/releases-archive-ko.json',json(p.archived)],
   ['i18n/releases.json',json(p.recent)],[legacyFile,json(legacy)],...outputs
  ]);
+ // Retired translations must also leave the historical test fingerprints.
+ // Preserve every remaining digest; never regenerate approved baselines.
+ const fixtureFile='tests/fixtures/i18n-v061.json';
+ if(fs.existsSync(path.join(root,fixtureFile))){
+  const fixture=JSON.parse(fs.readFileSync(path.join(root,fixtureFile),'utf8')),retained=new Set(p.recent.map(r=>r.version));
+  for(const version of Object.keys(fixture.releases))if(!retained.has(version))delete fixture.releases[version];
+  changes.set(fixtureFile,json(fixture));
+ }
  const changed=[...changes].filter(([file,text])=>fs.readFileSync(path.join(root,file),'utf8')!==text);
  if(changed.length){
   const dir=path.join(root,'.cloudflare/release-history-backups');fs.mkdirSync(dir,{recursive:true});

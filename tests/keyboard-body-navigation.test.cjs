@@ -28,8 +28,8 @@ test('Enter follows the selected or nearest visible planet and restores the prio
 
 test('Help uses three keyboard columns, four mouse columns and two columns on phones',()=>{
   const html=read('index.html'),css=read('styles.css');
-  assert.match(html,/← →[^]*↑ ↓[^]*<kbd>Enter<\/kbd><span data-i18n="trackBody">천체 추적/);
-  assert.match(html,/shortcut-row shortcut-mouse-row[^]*cameraRotate[^]*cameraTravel[^]*screenPan[^]*zoomInOut/);
+  assert.match(html,/← →[^]*↑ ↓<\/kbd><span data-i18n="cameraTravel">전진·후진[^]*<kbd>\+<\/kbd><span data-i18n="actualScaleShortcut">실제 비율/);
+  assert.match(html,/shortcut-row shortcut-mouse-row[^]*cameraRotate[^]*zoomInOut[^]*screenPan[^]*cameraTravel/);
   assert.match(css,/\.shortcut-row\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(css,/\.shortcut-mouse-row\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(css,/@media\(max-width:520px\)[^]*\.shortcut-row\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);

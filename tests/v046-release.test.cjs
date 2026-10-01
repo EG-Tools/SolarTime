@@ -59,14 +59,20 @@ test('v0.45 release notes match the calmer stars, softer Sun and restored Jupite
   const notes=notesFor('0.45');for(const text of ['황색 별 비중을 줄였습니다','5~25초','5~10초','약 5% 더 낮춰','기본 가스행성 셰이더로 완전히 복원'])assert.ok(notes.includes(text),text);
 });
 
-test('right mouse drag temporarily dollies the camera without changing the wheel mode',()=>{
+test('default wheel travels while right drag controls lens zoom without changing the wheel mode',()=>{
   const app=read('src/app.js');
+  assert.match(app,/FACTORY_OPTIONS=Object\.freeze\(\{[^}]*dollyZoom:true/);
   assert.match(app,/event\.button!==0&&event\.button!==1&&event\.button!==2/);
-  assert.match(app,/dolly=event\.pointerType==='mouse'&&event\.button===2/);
-  assert.match(app,/startDolly:renderer\.camera\.dolly\?\?1/);
-  assert.match(app,/drag\.mode==='dolly'\)renderer\.setDolly\(drag\.startDolly\*Math\.exp\(\(drag\.startY-p\.y\)\*\.006\),renderer\.selected\)/);
+  assert.match(app,/right=event\.pointerType==='mouse'&&event\.button===2/);
+  assert.match(app,/startZoom:renderer\.camera\.zoom/);
+  assert.match(app,/mode:pan\?'pan':right\?'zoom':'orbit'/);
+  assert.match(app,/drag\.mode==='zoom'\)renderer\.setZoom\(drag\.startZoom\*Math\.exp\(\(drag\.startY-p\.y\)\*\.006\)\)/);
+  assert.doesNotMatch(app,/drag\.mode==='dolly'/);
+  assert.match(app,/\$\('camera-mode-toggle'\)\.addEventListener\('click',\(\)=>setActualScale\(!renderer\.options\.actualScale\)\)/);
+  assert.match(read('index.html'),/id="camera-mode-toggle"[^>]*data-mode="normal"/);
+  assert.match(read('styles.css'),/camera-mode-toggle\[data-mode=actual\] \.mode-icon-actual/);
   assert.match(app,/canvas\.addEventListener\('contextmenu',event=>event\.preventDefault\(\)\)/);
-  assert.doesNotMatch(app,/drag\.mode==='dolly'[\s\S]{0,200}setDollyMode/);
+  assert.doesNotMatch(app,/drag\.mode==='(?:dolly|zoom)'[\s\S]{0,200}setDollyMode/);
 });
 
 test('v0.43 notes no longer advertise the discarded Jupiter shader experiment',()=>{
@@ -202,7 +208,7 @@ test('r12 simplifies and reorders the right-side view controls',()=>{
   assert.ok(!app.includes("'zoom-out'"));
   const start=html.indexOf('<div id="view-controls"'),end=html.indexOf('<section class="playback ui"',start),block=html.slice(start,end);
   assert.ok(block.includes('id="zoom-value"'));
-  const ordered=['id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="camera-mode-toggle"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
+  const ordered=['id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
   let cursor=-1;
   for(const token of ordered){const next=block.indexOf(token);assert.ok(next>cursor,token+' order');cursor=next;}
   assert.ok(app.includes("key==='+'||key==='='"));
@@ -243,7 +249,7 @@ test('r13 removes unused sky reference images from the repository',()=>{
 test('r14 moves the scale readout to the top and enlarges it by one pixel',()=>{
   const html=read('index.html'),css=read('styles.css');
   const start=html.indexOf('<div id="view-controls"'),end=html.indexOf('<section class="playback ui"',start),block=html.slice(start,end);
-  const ordered=['id="zoom-value"','id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="camera-mode-toggle"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
+  const ordered=['id="zoom-value"','id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
   let cursor=-1;
   for(const token of ordered){const next=block.indexOf(token);assert.ok(next>cursor,token+' order');cursor=next;}
   assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1(?:;margin-bottom:5px)?\}/);

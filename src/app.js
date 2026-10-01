@@ -1,4 +1,4 @@
-/* Solar Time v0.69 — app implementation owner. */
+/* Solar Time v0.70 — app implementation owner. */
 (function () {
   'use strict';
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
@@ -115,7 +115,7 @@
     catch{value=Math.random();}
     return Math.abs(value-previous)<1e-6?(value+.5)%1:value;
   }
-  const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,orbitBrightness:.5,starDensity:1,dollyZoom:false,labels:true,avoidLabels:false,twinkle:true,activity:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
+  const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:86,actualOrbitSpacing:1,orbitBrightness:.5,starDensity:1,dollyZoom:true,labels:true,avoidLabels:false,twinkle:true,activity:true,alignmentGuideVisible:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'});
   const FACTORY_BODY_SCALES=Object.freeze({sun:1.54,mercury:3.79,venus:3.06,earth:5.05,mars:4.28,jupiter:2,saturn:2.42,uranus:3.04,neptune:2.32,pluto:5.23,moon:3.7,europa:3.44});
   const FACTORY_ORBIT_SCALES=Object.freeze({sun:.16,earth:.43,jupiter:1});
   const FACTORY_AUTO_ROTATE=1;
@@ -220,9 +220,9 @@
         lucida:'"Lucida Console",Consolas,monospace'
       });
       const CLOCK_FONT_ORDER=Object.freeze(Object.keys(CLOCK_FONTS));
-      let clockFont='georgia',savedRotationMode=FACTORY_AUTO_ROTATE,overviewCamera=renderer.defaultCameraSnapshot(),keyboardTrackingReturn=null;
+      let clockFont='georgia',savedRotationMode=FACTORY_AUTO_ROTATE,overviewCamera=renderer.defaultCameraSnapshot(),normalViewCamera=renderer.defaultCameraSnapshot(),keyboardTrackingReturn=null;
       renderer.options.twinkle=true;
-      const validKeys={actualScale:'actual-scale',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',earthNightLights:'earth-night-lights',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
+      const validKeys={actualScale:'actual-scale',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',alignmentGuideVisible:'show-alignment',earthNightLights:'earth-night-lights',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
       try {
         const saved=Preferences.read(STORAGE_KEY);
         if(saved&&typeof saved==='object') {
@@ -233,11 +233,11 @@
           if(Number.isFinite(saved.orbitBrightness))renderer.options.orbitBrightness=A.clamp(saved.orbitBrightness,0,1);
           else if(typeof saved.orbits==='boolean')renderer.options.orbitBrightness=saved.orbits?.5:0;
           if(Number.isFinite(saved.starDensity))renderer.options.starDensity=A.clamp(saved.starDensity,0,3);
-           if(typeof saved.dollyZoom==='boolean')renderer.options.dollyZoom=saved.dollyZoom;
            if(['random',-1,0,1].includes(saved.rotationMode))savedRotationMode=saved.rotationMode;
            else if(saved.randomRotateEnabled===true)savedRotationMode='random';
            else if([-1,0,1].includes(saved.autoRotateDirection))savedRotationMode=saved.autoRotateDirection;
           if(Number.isFinite(saved.overviewOrbitGap))renderer.options.overviewOrbitGap=A.clamp(Math.round(saved.overviewOrbitGap),A.OVERVIEW_ORBIT.minGap,A.OVERVIEW_ORBIT.maxGap);
+          if(Number.isFinite(saved.actualOrbitSpacing))renderer.options.actualOrbitSpacing=A.clamp(saved.actualOrbitSpacing,.01,1);
           if(saved.languageMode==='auto'){languageMode='auto';language=detectedLanguage();}
           else if(LANG_ORDER.includes(saved.language)){language=saved.language;languageMode='manual';}
           if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
@@ -251,9 +251,14 @@
             if(Number.isFinite(saved.speedValues.year))speedValues.year=A.clamp(Math.round(saved.speedValues.year),1,20);
           }
           renderer.setBodyScales(saved.bodyScales);renderer.setSatelliteOrbitScales(saved.satelliteOrbitScales);
-          const savedCamera=saved.camera&&{...saved.camera,focus:null,mode:saved.dollyZoom?'move':'zoom'};
-          if(window.SolarRenderer.validCamera(savedCamera))renderer.restoreCamera(savedCamera);
-          else{
+          // Wheel/pinch always travel; right drag always changes the lens.
+          // Retain old viewpoints, but never restore their retired input mode.
+          const savedOverview=saved.overviewCamera&&{...saved.overviewCamera,focus:null,mode:'move'};
+          if(window.SolarRenderer.validCamera(savedOverview))overviewCamera={...savedOverview};
+          const savedNormal=saved.normalViewCamera&&{...saved.normalViewCamera,mode:'move'};
+          if(window.SolarRenderer.validCamera(savedNormal))normalViewCamera={...savedNormal};
+          const savedCamera=saved.camera&&{...saved.camera,mode:'move'};
+          if(!(window.SolarRenderer.validCamera(savedCamera)&&renderer.restoreCamera(savedCamera))){
             if(Number.isFinite(saved.elevation))renderer.setOrbitView(renderer.camera.azimuth,saved.elevation*A.DEG);
             if(Number.isFinite(saved.panY))renderer.setPanY(saved.panY);
             if(Number.isFinite(saved.panX))renderer.setPan(saved.panX);
@@ -263,7 +268,24 @@
       activeCopyCode=languageMode==='auto'?detectedCopyLanguage():(LANG_META[language]?.copy||'kor');
       if(languageMode==='auto')autoTimeZone=detectedTimeZone()||activeRegion().timeZone;
       await hydrateLanguage(language,activeCopyCode);
-      overviewCamera={...renderer.cameraSnapshot(),focus:null};
+      const openingCameraTarget={...renderer.cameraSnapshot()};
+      if(openingCameraTarget.focus===null)overviewCamera={...openingCameraTarget};
+      if(!renderer.options.actualScale)normalViewCamera={...openingCameraTarget};
+      renderer.restoreCamera(renderer.openingCameraSnapshot(openingCameraTarget));
+      const loading=$('loading'),OPENING_UNLOCK_BEFORE_END=1000;
+      let openingActive=true,openingControlsLocked=true,openingStartedAt=null,openingDuration=0;
+      function lockOpeningControls(){openingControlsLocked=true;loading.hidden=false;loading.classList.add('opening');document.body.setAttribute('aria-busy','true');}
+      function unlockOpeningControls(){if(!openingControlsLocked)return;openingControlsLocked=false;loading.classList.add('done');loading.classList.remove('opening');loading.hidden=true;document.body.removeAttribute('aria-busy');cameraUi(true);}
+      lockOpeningControls();
+      loading.addEventListener('contextmenu',event=>{if(openingControlsLocked)event.preventDefault();});
+      function finishOpening(){
+        if(!openingActive)return;
+        openingActive=false;openingStartedAt=null;unlockOpeningControls();cameraUi(true);
+      }
+      function beginOpening(mono=performance.now()){
+        lockOpeningControls();const animated=renderer.animateOpeningCamera(openingCameraTarget,mono);openingStartedAt=animated?mono:null;if(animated){openingDuration=renderer.cameraTween.duration;loading.classList.add('done');}return animated;
+      }
+      function claimOpeningControl(){if(openingControlsLocked)return false;if(openingActive)finishOpening();return true;}
       renderer.setOption('actualScale',renderer.options.actualScale,false);
       renderer.setOption('dollyZoom',renderer.options.dollyZoom,false);
       renderer.setSite(activeRegion());
@@ -277,8 +299,11 @@
       $('ampm').hidden=false;syncHourCycleUi();
       $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
       function syncOrbitSpacingControl(){
-        const input=$('overview-orbit-gap'),value=Math.round(renderer.options.overviewOrbitGap),locked=renderer.options.actualScale;
-        input.value=value;input.disabled=locked;$('overview-orbit-gap-output').textContent=String(value);$('overview-orbit-gap-control').classList.toggle('locked',locked);
+        const input=$('overview-orbit-gap'),actual=renderer.options.actualScale;
+        const value=Math.round(actual?renderer.actualOrbitSpacing()*100:renderer.options.overviewOrbitGap),text=actual?value+'%':String(value);
+        input.min=actual?1:A.OVERVIEW_ORBIT.minGap;input.max=actual?100:A.OVERVIEW_ORBIT.maxGap;input.step=1;
+        input.value=value;input.disabled=false;input.setAttribute('aria-valuetext',text);
+        $('overview-orbit-gap-output').textContent=text;$('overview-orbit-gap-control').classList.remove('locked');
       }
       syncOrbitSpacingControl();
       function syncOrbitBrightnessControl(){
@@ -335,29 +360,37 @@
         control.textContent=twentyFour?'24H':(control.dataset.period||'AM');
         control.setAttribute('aria-pressed',String(twentyFour));scheduleClockFit();
       }
-      function persist() {const camera=renderer.cameraSnapshot(),rotationMode=renderer.randomRotateEnabled?'random':renderer.autoRotateDirection;if(camera.focus===null)overviewCamera={...camera,focus:null};Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),rotationMode,autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockSize,clockFont,speedMode,speedValues,language,languageMode,camera:overviewCamera,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});}
+      function persist() {
+        // Focus/pageshow/language changes also save settings. The departure and
+        // every in-flight frame are temporary, not the user's last viewpoint.
+        const camera=openingActive?{...openingCameraTarget}:renderer.cameraTween?{...renderer.cameraTween.to}:renderer.cameraSnapshot(),rotationMode=renderer.randomRotateEnabled?'random':renderer.autoRotateDirection;
+        if(camera.focus===null)overviewCamera={...camera,focus:null};
+        if(!renderer.options.actualScale)normalViewCamera={...camera};
+        Preferences.write(STORAGE_KEY,{...renderer.options,bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),rotationMode,autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockSize,clockFont,speedMode,speedValues,language,languageMode,camera,overviewCamera,normalViewCamera,cameraControlVersion:4,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});
+      }
       let cameraUiSignature='';
       function cameraUi(force=false) {
         const controlState=renderer.cameraTween?.input?renderer.cameraTween.to:renderer.camera;
-        const move=renderer.options.dollyZoom,level=move?(controlState.dolly??1):controlState.zoom,levelText=level.toFixed(1)+'×';
-        const mode=$('camera-mode-toggle'),modeLabel=t(move?'moveMode':'zoomMode'),zoomLabel=t(move?'moveValue':'zoomValue');
+        const level=controlState.zoom,levelText=level.toFixed(1)+'×',zoomLabel=t('zoomValue');
         const rotateRight=t('rotateRight'),rotateLeft=t('rotateLeft'),direction=renderer.autoRotateDirection;
-        const signature=[levelText,move,direction,renderer.randomRotateEnabled,language,zoomLabel,modeLabel,rotateRight,rotateLeft].join('|');
+        const actual=renderer.options.actualScale,modeLabel=t(actual?'actualScale':'normalMode'),nextModeLabel=t(actual?'normalMode':'actualScale');
+        const signature=[levelText,direction,renderer.randomRotateEnabled,language,zoomLabel,rotateRight,rotateLeft,actual,modeLabel,nextModeLabel].join('|');
         if(!force&&signature===cameraUiSignature)return;
         cameraUiSignature=signature;
         const zoomValue=$('zoom-value');if(zoomValue.textContent!==levelText)zoomValue.textContent=levelText;
-        zoomValue.setAttribute('aria-label',zoomLabel);
-        mode.dataset.mode=move?'move':'zoom';mode.setAttribute('aria-pressed',String(move));
-        mode.setAttribute('aria-label',t('cameraModeAria',{mode:modeLabel}));mode.title=t('cameraMode',{mode:modeLabel});
+        zoomValue.setAttribute('aria-label',zoomLabel);zoomValue.title=zoomLabel;
+        const mode=$('camera-mode-toggle');mode.dataset.mode=actual?'actual':'normal';mode.setAttribute('aria-pressed',String(actual));
+        mode.setAttribute('aria-label',t('actualScale'));mode.title=t(actual?'normalMode':'actualScaleShortcut')+' · +';
+        $('actual-scale').checked=actual;
         for(const [id,turn,label] of [['rotate-left',-1,rotateRight],['rotate-right',1,rotateLeft]]){
           const active=direction===turn,b=$(id);
           b.setAttribute('aria-pressed',String(active));b.setAttribute('aria-label',label+' '+t(active?'stop':'start'));
-          b.title=t(active?'rotateRunning':'rotateRate',{direction:label});
+          b.title=label;
         }
         const randomButton=$('random-rotate'),randomEnabled=renderer.randomRotateEnabled;
         randomButton.setAttribute('aria-pressed',String(randomEnabled));
         randomButton.setAttribute('aria-label',t('randomRotate'));
-        randomButton.title=t('randomRotate')+' · '+t(randomEnabled?'stop':'start');
+        randomButton.title=t('randomRotate');
       }
       cameraUi();
       const PRESETS_KEY='solar-time.camera-presets.v1';
@@ -366,7 +399,7 @@
       try {
         const saved=Preferences.read(PRESETS_KEY);
         if([1,2].includes(saved?.schema)&&Array.isArray(saved.slots))cameraPresets=cameraPresets.map((_,i)=>{
-          const legacy=saved.slots[i],value=legacy&&{...legacy,dolly:Number.isFinite(legacy.dolly)?legacy.dolly:1,mode:legacy.mode||'zoom'};
+          const legacy=saved.slots[i],value=legacy&&{...legacy,dolly:Number.isFinite(legacy.dolly)?legacy.dolly:1,mode:'move'};
           return window.SolarRenderer.validCamera(value)?value:null;
         });
       }catch(_){/* Corrupt or inaccessible settings never affect the running camera. */}
@@ -374,7 +407,7 @@
         cameraPresets.forEach((value,i)=>{
           const b=$('camera-preset-'+(i+1));b.classList.toggle('saved',!!value);b.dataset.saved=String(!!value);
           const mode=value?t(value.mode==='move'?'moveMode':'zoomMode'):'';
-          b.title=t('presetButtonTitle',{n:i+1})+(mode?' · '+mode:'');
+          b.title=t('savedViews')+' · '+(i+1);
           b.setAttribute('aria-label',t('presetAria',{n:i+1,state:t(value?'saved':'empty')})+(mode?' · '+mode:''));
         });
       }
@@ -514,13 +547,13 @@
       }
       function syncBodySizeControl(body=bodies.find(value=>value.id===renderer.selected)) {
         if(!body)return;
-        const locked=renderer.options.actualScale,value=Math.round(renderer.bodySizeScale(body)*100),limits=renderer.bodyScaleLimits(body),hasOrbitControl=['sun','earth','jupiter'].includes(body.id);
+        const orbitLocked=renderer.options.actualScale,locked=orbitLocked&&body.id!=='sun',value=Math.round(renderer.bodySizeScale(body)*100),limits=renderer.bodyScaleLimits(body),hasOrbitControl=['sun','earth','jupiter'].includes(body.id);
         $('body-size-slider').min=Math.round(limits.min*100);$('body-size-slider').max=Math.round(limits.max*100);
         $('body-size-slider').value=value;$('body-size-output').textContent=value+'%';
         const orbitControl=$('satellite-orbit-control'),orbitSlider=$('satellite-orbit-slider'),orbitValue=Math.round(renderer.satelliteOrbitScale(body)*100),solar=body.id==='sun';
-        orbitControl.hidden=!hasOrbitControl;orbitSlider.value=orbitValue;$('satellite-orbit-output').textContent=orbitValue+'%';orbitSlider.disabled=locked;
+        orbitControl.hidden=!hasOrbitControl;orbitSlider.value=orbitValue;$('satellite-orbit-output').textContent=orbitValue+'%';orbitSlider.disabled=orbitLocked;
         $('body-orbit-label').textContent=t(solar?'solarOrbitSpacing':'satelliteOrbitSpacing');orbitSlider.setAttribute('aria-label',t(solar?'solarOrbitSpacingAria':'satelliteOrbitSpacingAria'));
-        $('body-size-slider').disabled=locked;$('body-size-reset').disabled=locked||(value===100&&(!hasOrbitControl||orbitValue===100));
+        $('body-size-slider').disabled=locked;$('body-size-reset').disabled=locked||(value===100&&(orbitLocked||!hasOrbitControl||orbitValue===100));
         $('body-size-lock').hidden=!locked;$('body-size-control').classList.toggle('locked',locked);
         const earth=body.id==='earth',cloudValue=Math.round(A.clamp(Number(renderer.options.earthCloudAmount) || 0,0,1)*100);
         $('earth-night-lights-control').hidden=!earth;$('earth-night-lights').checked=renderer.options.earthNightLights!==false;
@@ -579,6 +612,7 @@
       function syncAlignmentControl(bodyId=renderer.selected) {
         const available=bodyId==='sun',output=$('alignment-date');
         $('alignment-control').hidden=!available;
+        $('show-alignment').checked=renderer.options.alignmentGuideVisible!==false;
         output.textContent=available&&alignmentTarget?compactDay(alignmentTarget.ms):'—';
         output.classList.toggle('space-alignment',available&&alignmentTarget?.kind==='space');
         output.classList.toggle('sky-alignment',available&&alignmentTarget?.kind==='sky');
@@ -719,8 +753,21 @@
       UI.bindPopup($('body-panel'),closeBody);
       UI.bindPopup($('toast'),()=>{clearTimeout(toastTimer);hideFading($('toast'));});
       $('settings-button').addEventListener('click',()=>settings());$('settings-close').addEventListener('click',()=>{settings(false);$('settings-button').focus();});
-      for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{renderer.setOption(key,$(id).checked);if(key==='actualScale'){syncOrbitSpacingControl();if(renderer.selected)syncBodySizeControl();}if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
-      $('overview-orbit-gap').addEventListener('input',()=>{renderer.setOption('overviewOrbitGap',$('overview-orbit-gap').value);syncOrbitSpacingControl();});
+      function setActualScale(enabled){
+        if(!claimOpeningControl()){$('actual-scale').checked=renderer.options.actualScale;return;}
+        enabled=!!enabled;const changed=enabled!==renderer.options.actualScale,mono=performance.now();
+        if(changed&&enabled)normalViewCamera={...(renderer.cameraTween?.to||renderer.cameraSnapshot())};
+        renderer.setOption('actualScale',enabled);$('actual-scale').checked=renderer.options.actualScale;
+        if(changed&&!enabled){
+          // A true-scale retreat can be thousands of times farther away. It
+          // must not replace the user's last ordinary viewing composition.
+          keyboardTrackingReturn=null;cancelGesture();
+          if(!renderer.animateCamera(normalViewCamera,mono,2000))renderer.animateHome(mono,2000);
+        }
+        syncOrbitSpacingControl();if(renderer.selected)syncBodySizeControl();cameraUi();persist();
+      }
+      for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{if(key==='actualScale'){setActualScale($(id).checked);return;}renderer.setOption(key,$(id).checked);if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
+      $('overview-orbit-gap').addEventListener('input',()=>{const actual=renderer.options.actualScale;renderer.setOption(actual?'actualOrbitSpacing':'overviewOrbitGap',Number($('overview-orbit-gap').value)/(actual?100:1));syncOrbitSpacingControl();});
       $('overview-orbit-gap').addEventListener('change',persist);
       $('orbit-brightness').addEventListener('input',()=>{renderer.setOption('orbitBrightness',Number($('orbit-brightness').value)/100);syncOrbitBrightnessControl();});
       $('orbit-brightness').addEventListener('change',persist);
@@ -748,7 +795,7 @@
         renderer.setOption('earthCloudSeed',randomCloudSeed(renderer.options.earthCloudSeed),false);
         window.SolarVisualEffects?.regenerateStars?.(renderer.sky);
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
-        renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();keyboardTrackingReturn=null;
+        renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();normalViewCamera=renderer.defaultCameraSnapshot();keyboardTrackingReturn=null;
         A.calibrateAt(Date.now());clock.now(mono);eclipseTargets.clear();alignmentTarget=null;renderer.setAlignmentGuide(null);renderer.invalidateSurfaces();
         timezone='local';showSeconds=false;hourCycle='12';clockSize=1;clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;
         renderer.setSite(activeRegion());for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
@@ -761,17 +808,17 @@
       UI.bindDialog(resetDefaultsDialog,options=>closeResetDefaults(options?.restoreFocus!==false));
       function reset() {keyboardTrackingReturn=null;cancelGesture();renderer.animateHome(performance.now(),1100);cameraUi();}
       $('fit-view').addEventListener('click',reset);
-      $('camera-mode-toggle').addEventListener('click',()=>{renderer.setDollyMode(!renderer.options.dollyZoom,true);cameraUi();persist();});
+      $('camera-mode-toggle').addEventListener('click',()=>setActualScale(!renderer.options.actualScale));
       function zoom(factor,mono=performance.now()) {
+        if(!claimOpeningControl())return;
         const state=renderer.cameraInputState(mono);
-        if(renderer.options.dollyZoom)renderer.smoothDolly((state.dolly??1)*factor,renderer.selected,mono);
-        else renderer.smoothZoom(state.zoom*factor,null,mono);
+        renderer.smoothDolly((state.dolly??1)*factor,renderer.selected,mono);
         cameraUi();
       }
       function keyboardZoom(factor,mono=performance.now()) {
+        if(!claimOpeningControl())return;
         const state=renderer.cameraInputState(mono);
-        if(renderer.options.dollyZoom)renderer.setDolly((state.dolly??1)*factor,renderer.selected);
-        else renderer.setZoom(state.zoom*factor);
+        renderer.setDolly((state.dolly??1)*factor,renderer.selected);
         cameraUi();
       }
       function focusBody(id) {
@@ -878,7 +925,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=892833ebb7cf','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=ceb15be7d0b8','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -977,31 +1024,32 @@
       }
       function pointerPosition(event) {const r=canvas.getBoundingClientRect();return {x:event.clientX-r.left,y:event.clientY-r.top};}
       canvas.addEventListener('pointerdown',event=>{
+        if(!claimOpeningControl()){event.preventDefault();return;}
         if(event.pointerType==='mouse'&&event.button!==0&&event.button!==1&&event.button!==2)return;
         // Preserve the active rotation mode. Manual deltas add to its current view.
         renderer.cancelCameraTween(performance.now());
-        const pan=event.pointerType==='mouse'&&event.button===1,dolly=event.pointerType==='mouse'&&event.button===2;
-        if(pan||dolly)event.preventDefault();
+        const pan=event.pointerType==='mouse'&&event.button===1,right=event.pointerType==='mouse'&&event.button===2;
+        if(pan||right)event.preventDefault();
         const p=pointerPosition(event);pointers.set(event.pointerId,p);canvas.setPointerCapture(event.pointerId);
-        if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,startDolly:renderer.camera.dolly??1,mode:pan?'pan':dolly?'dolly':'orbit',moved:false};pinched=false;}
+        if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,startZoom:renderer.camera.zoom,mode:pan?'pan':right?'zoom':'orbit',moved:false};pinched=false;}
         if(zen&&pointers.size===3){setZen(false);pinched=true;if(drag)drag.moved=true;return;}
-        if(pointers.size===2){clickGestures=0;const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchLevel=renderer.options.dollyZoom?(renderer.camera.dolly??1):renderer.camera.zoom;pinchOrigin={x:(a.x+b.x)/2,y:(a.y+b.y)/2,panX:renderer.camera.panX,panY:renderer.camera.panY};pinched=true;}
+        if(pointers.size===2){clickGestures=0;const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchLevel=renderer.camera.dolly??1;pinchOrigin={x:(a.x+b.x)/2,y:(a.y+b.y)/2,panX:renderer.camera.panX,panY:renderer.camera.panY};pinched=true;}
       });
       canvas.addEventListener('pointermove',event=>{
         const p=pointerPosition(event);
         if(!pointers.has(event.pointerId)) {const hover=zen?null:renderer.hit(p.x,p.y);if(renderer.hover!==hover){renderer.hover=hover;renderer.invalidatePresentation();}canvas.style.cursor=renderer.hover?'pointer':'grab';return;}
         pointers.set(event.pointerId,p);
         if(pointers.size>=2) {
-          const [a,b]=[...pointers.values()];if(pinchDistance>0){const level=pinchLevel*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance;if(renderer.options.dollyZoom)renderer.setDolly(level,renderer.selected);else renderer.setZoom(level);}if(pinchOrigin){const centerX=(a.x+b.x)/2,centerY=(a.y+b.y)/2;renderer.setPan(pinchOrigin.panX+(centerX-pinchOrigin.x)/renderer.w,pinchOrigin.panY+(centerY-pinchOrigin.y)/renderer.h);}cameraUi();if(drag)drag.moved=true;return;
+          const [a,b]=[...pointers.values()];if(pinchDistance>0){const level=pinchLevel*Math.hypot(a.x-b.x,a.y-b.y)/pinchDistance;renderer.setDolly(level,renderer.selected);}if(pinchOrigin){const centerX=(a.x+b.x)/2,centerY=(a.y+b.y)/2;renderer.setPan(pinchOrigin.panX+(centerX-pinchOrigin.x)/renderer.w,pinchOrigin.panY+(centerY-pinchOrigin.y)/renderer.h);}cameraUi();if(drag)drag.moved=true;return;
         }
         if(!drag)return;
         const wasMoved=drag.moved,dx=p.x-drag.x,dy=p.y-drag.y;
         if(Math.hypot(p.x-drag.startX,p.y-drag.startY)>4)drag.moved=true;
         if(drag.moved&&!pinched){
           if(drag.mode==='pan')renderer.setPan(drag.startPanX+(p.x-drag.startX)/renderer.w,drag.startPanY+(p.y-drag.startY)/renderer.h);
-          else if(drag.mode==='dolly')renderer.setDolly(drag.startDolly*Math.exp((drag.startY-p.y)*.006),renderer.selected);
+          else if(drag.mode==='zoom')renderer.setZoom(drag.startZoom*Math.exp((drag.startY-p.y)*.006));
           else renderer.rotateViewBy((wasMoved?dx:p.x-drag.startX)*.004,(wasMoved?dy:p.y-drag.startY)*.003,performance.now());
-          cameraUi();canvas.classList.add('dragging');canvas.style.cursor=drag.mode==='pan'?'move':drag.mode==='dolly'?'ns-resize':'grabbing';
+          cameraUi();canvas.classList.add('dragging');canvas.style.cursor=drag.mode==='pan'?'move':drag.mode==='zoom'?'ns-resize':'grabbing';
         }
         drag.x=p.x;drag.y=p.y;
       });
@@ -1023,7 +1071,7 @@
       canvas.addEventListener('lostpointercapture',event=>{pointers.delete(event.pointerId);if(!pointers.size){drag=null;canvas.classList.remove('dragging');wakePointer();}});
       canvas.addEventListener('pointerleave',()=>{if(!pointers.size&&renderer.hover!==null){renderer.hover=null;renderer.invalidatePresentation();}});
       canvas.addEventListener('wheel',event=>{event.preventDefault();zoom(Math.exp(-A.clamp(event.deltaY,-120,120)*.0017));},{passive:false});
-      canvas.addEventListener('dblclick',event=>{if(event.button!==0||clickGestures<2)return;clickGestures=0;const p=pointerPosition(event),id=renderer.hit(p.x,p.y);if(id)focusBody(id);});
+      canvas.addEventListener('dblclick',event=>{if(openingControlsLocked||event.button!==0||clickGestures<2)return;if(openingActive)finishOpening();clickGestures=0;const p=pointerPosition(event),id=renderer.hit(p.x,p.y);if(id)focusBody(id);});
       window.addEventListener('keydown',event=>{
         if(disposed)return;
         if(event.key==='Escape'||event.code==='Escape'){
@@ -1034,6 +1082,8 @@
         }
         // Do not take OS/browser shortcut combinations or interrupt an IME composition.
         if(event.ctrlKey||event.metaKey||event.altKey||event.isComposing)return;
+        if(openingControlsLocked){event.preventDefault();event.stopImmediatePropagation();return;}
+        if(openingActive)finishOpening();
         const physical=event.code||'',key=/^Key[A-Z]$/.test(physical)?physical.slice(3).toLowerCase():event.key.toLowerCase();
         const digit=/^(?:Digit|Numpad)[123]$/.test(physical)?physical.slice(-1):/^[123]$/.test(key)?key:null;
         const editing=!!event.target.closest?.('input,select,textarea,[contenteditable]:not([contenteditable="false"])');
@@ -1060,11 +1110,14 @@
         if(key==='arrowleft'||key==='arrowright'){
           event.preventDefault();event.stopPropagation();navigateBody(key==='arrowright'?1:-1);return;
         }
+        if(key==='+'||key==='='||physical==='NumpadAdd'){
+          if(languageMenu.contains(event.target))return;
+          event.preventDefault();event.stopPropagation();setActualScale(!renderer.options.actualScale);return;
+        }
         if(event.target.closest?.('button,a'))return;
         if(key==='enter'){event.preventDefault();event.stopPropagation();toggleKeyboardTracking();}
         else if(key===' '){event.preventDefault();pause();}
         else if(key==='r')now();
-        else if(key==='+'||key==='='){event.preventDefault();zoom(1.15);}
         else if(key==='-'){event.preventDefault();zoom(1/1.15);}
       },{capture:true});
       window.addEventListener('keyup',event=>{const key=event.key.toLowerCase();if(key==='arrowup'||key==='arrowdown')heldZoomKeys.delete(key);},{capture:true});
@@ -1127,6 +1180,7 @@
       function frame(mono) {
         if(disposed||document.hidden){raf=0;return;}
         raf=requestAnimationFrame(frame);
+        if(openingActive&&openingControlsLocked&&openingStartedAt!==null&&mono-openingStartedAt>=openingDuration-OPENING_UNLOCK_BEFORE_END)unlockOpeningControls();
         const heldZoom=keyboardZoomDirection();
         const activeMotion=!!drag||pointers.size>0||!!renderer.cameraTween||!!renderer.autoRotation||
           heldZoom!==0||mono-(renderer.cameraChangeAt??-Infinity)<180||(!clock.live&&!clock.paused);
@@ -1147,7 +1201,11 @@
             const renderStarted=performance.now();renderer.draw(ms,effectTime,mono);
             window.SolarPerformance?.reportRenderCost(performance.now()-renderStarted);
             if(wasTransitioning||renderer.cameraTween)cameraUi();
-            if(wasTransitioning&&!renderer.cameraTween)persist();
+            // Resize settling can draw the final frame outside this loop.
+            // Completion must not depend on observing the previous tween here.
+            const openingFinished=openingActive&&openingStartedAt!==null&&!renderer.cameraTween;
+            if(openingFinished)finishOpening();
+            if((openingFinished||wasTransitioning)&&!renderer.cameraTween)persist();
           }
           if(mono-lastUi>200){lastUi=mono;updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);}
         } catch(error){disposed=true;setMusicEnabled(false);timerController?.dispose();UI.dispose();music.dispose();renderer.dispose();materials.dispose();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
@@ -1157,19 +1215,20 @@
         else if(!disposed){
           renderer.resume();
           refreshAutomaticContext();
+          if(openingActive)beginOpening(performance.now());
           if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();
           if(!raf){lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
         }
       });
       window.addEventListener('pagehide',event=>{clearKeyboardZoom();closePresetDialog(false);setMusicEnabled(false);materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;timerController?.dispose();UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);cancelAnimationFrame(clockFitFrame);resizeFrame=0;clockFitFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);materialRefreshTimer=0;});
-      window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
+      window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.69',revision:'r3',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({version:'0.70',revision:'r3',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:'native',opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();
-      if(!disposed){const revealMono=performance.now();renderer.startOrbitReveal(revealMono);renderer.draw(clock.value(revealMono),0,revealMono);$('loading').classList.add('done');setTimeout(()=>$('loading').hidden=true,450);renderer.sky?.startDetailUpgrade?.();scheduleMaterialRefresh();}
+      if(!disposed){const revealMono=performance.now();renderer.startOrbitReveal(revealMono);renderer.draw(clock.value(revealMono),0,revealMono);const animated=beginOpening(revealMono);if(!animated){renderer.restoreCamera(openingCameraTarget);finishOpening();}renderer.sky?.startDetailUpgrade?.();scheduleMaterialRefresh();}
       if(!document.hidden&&!disposed)raf=requestAnimationFrame(frame);
     } catch(error){fatal(error);}
   }

@@ -20,8 +20,10 @@ test('satellite orbit geometry is normalized and zoom is a draw transform',()=>{
   assert.match(renderer,/satelliteOrbitPoints\(body,ms\)/);
   assert.match(renderer,/A\.satelliteOrbit\(body,ms,1,90\)/);
   assert.doesNotMatch(renderer,/const key=Number\(radius\)/);
-  assert.match(renderer,/satellite\.orbitRadius\);/);
-  assert.match(surface,/vec3 p=a\*localScale\+worldOffset-anchor/);
+  assert.match(renderer,/satellite\.orbitRadius,satellite\.orbitDepthRadius,3,ink\);/);
+  assert.match(surface,/vec3 p=a\.xyz\*\(orbitMorph\.x\+a\.w\*orbitMorph\.y\)\*localScale\+worldOffset-anchor/);
+  assert.match(surface,/vec3 dp=a\.xyz\*\(orbitMorph\.z\+a\.w\*orbitMorph\.w\)\*depthLocalScale\+depthOffset-depthAnchor/);
+  assert.match(surface,/const morph=components===4\?camera\.solarMorph:null/);
   assert.match(surface,/uniform1f\(p\.u\.localScale,localScale\)/);
   const window={SolarAstro:A};vm.runInNewContext(renderer,{window,performance});
   const instance=Object.create(window.SolarRenderer.prototype);instance.satelliteOrbitCache=new Map();instance.stats={orbitBufferBuilds:0};
@@ -83,5 +85,7 @@ test('one simulation timestamp reuses planetary and satellite precision vectors'
   assert.equal(renderer.satelliteUnitAt(A.MOON,ms),renderer.satelliteUnitAt(A.MOON,ms));
   assert.equal(bodyCalls,1);assert.equal(satelliteCalls,1);
   renderer.physicalAt(earth,ms+1);renderer.satelliteUnitAt(A.MOON,ms+1);
-  assert.equal(bodyCalls,2);assert.equal(satelliteCalls,2);
+  assert.equal(bodyCalls,3);assert.equal(satelliteCalls,3,'one exact first frame plus two interpolation endpoints');
+  renderer.physicalAt(earth,ms+17);renderer.satelliteUnitAt(A.MOON,ms+17);
+  assert.equal(bodyCalls,3);assert.equal(satelliteCalls,3,'subsequent frames reuse both endpoints');
 });
