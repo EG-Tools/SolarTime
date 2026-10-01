@@ -38,7 +38,7 @@ test('footer shows mean orbit first and size-distance scale second in every lang
  }
  assert.equal(compiled.bundles.kor.copy.scaleNoteLineOne,'평균 궤도 근사\n크기 거리 측정 조정');
  assert.equal(compiled.bundles.en.copy.scaleNoteLineOne,'Mean orbit approximation\nAdjusted size and distance scale');
- assert.ok(read('styles.css').includes('.signature [data-i18n="scaleNoteLineOne"]{white-space:pre-line}'));
+ assert.ok(read('styles.css').includes('.signature [data-i18n="scaleNoteLineOne"]{white-space:pre}'));
 });
 test('English fallback is independent of previously visited languages, and does not mutate network data',async()=>{
  const input={copy:{timer:'Un minuteur',settings:'',alarmRinging:null},bodies:{earth:['Terre']},phases:{}};

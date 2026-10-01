@@ -6,6 +6,6 @@
   "windows/SolarTimeShutdownHelper.cmd": "6388c8c6a8f397c2a0a3763a0ddb4960f61c4bc4db76899246027e7f581c4b37",
   "src/windows-shutdown.js": "3109e303c919cf6bbb4490bd74423595958854d0b2d4275d4bd000fd7705070a",
   "src/sky.js": "e87175802b9460c6435db3c2d6c5e245e4218c5d18991c527a1b58d95a92fd5d",
-  "styles.css": "f84639602ebdd7f98ea830085eaa003c680c37ef3d04a117e22cd6b0dde81986",
+  "styles.css": "acbedcd9bab870160c3426e010050a24561ec241b69c9e78127c1a1c240fc380",
   "src/runtime-optimizations.css": "2e2600ed28fb9dd97237c738a9814f674917b3abc44dc62e1971c4fbbdc3a9f1"
 }
