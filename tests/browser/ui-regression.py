@@ -47,7 +47,7 @@ def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seo
   page.wait_for_function('!!window.SolarTime',timeout=15000)
   home=page.evaluate("SolarTime.renderer.defaultCameraSnapshot()")
   opening=page.evaluate("({state:SolarTime.getState().opening,zoom:SolarTime.renderer.camera.zoom,dolly:SolarTime.renderer.camera.dolly,focus:SolarTime.renderer.camera.focus})")
-  assert opening['state'] and abs(opening['zoom']-home['zoom'])<1e-9 and abs(opening['dolly']-.002)<1e-9 and opening['focus'] is None,opening
+  assert opening['state'] and abs(opening['zoom']-home['zoom'])<1e-9 and abs(opening['dolly']-.001)<1e-9 and opening['focus'] is None,opening
   page.wait_for_function("document.getElementById('loading').hidden&&!SolarTime.getState().opening",timeout=12000)
   arrived=page.evaluate("({state:SolarTime.getState().opening,zoom:SolarTime.renderer.camera.zoom,dolly:SolarTime.renderer.camera.dolly,panX:SolarTime.renderer.camera.panX,panY:SolarTime.renderer.camera.panY})")
   assert not arrived['state'] and abs(arrived['zoom']-home['zoom'])<1e-9 and abs(arrived['dolly']-home['dolly'])<1e-9 and abs(arrived['panX']-home['panX'])<1e-9 and abs(arrived['panY']-home['panY'])<1e-9,(arrived,home)
@@ -251,17 +251,19 @@ def suite(browser,root,size,installed):
   navigate_to_release(page,json.loads((root/'version.json').read_text())['version'],check,tag+' '+country)
   page.locator('#help-dialog .close-button').first.click()
  check(len([u for u in page.evaluate('__fixtureRequests') if '/locales/nl.json' in u])==1,tag+' one shared Dutch request')
- # Country Zoom reference and shared random toggle, including compact installed simulations.
+ # Country inspection keeps the 250x equivalent disk size via camera travel,
+ # while the lens readout and wheel input remain independent.
  page.evaluate("SolarTime.renderer.setAutoRotate(0,performance.now())")
  page.locator('#timezone-button').click()
  page.wait_for_function('!SolarTime.renderer.cameraTween',timeout=7000)
- check(page.evaluate('SolarTime.renderer.camera.zoom')==250,tag+' country initial 250x')
- check(page.locator('#zoom-value').inner_text()=='250.0×',tag+' zoom readout is 250x not 250 percent')
+ country=page.evaluate("""()=>{const r=SolarTime.renderer,c=r.camera,b=r.sceneBodies().find(b=>b.id==='earth');return {zoom:c.zoom,dolly:c.dolly,radius:r.bodyRadiusForState(b,c),reference:r.bodyRadiusForState(b,{...c,zoom:250,dolly:1})}}""")
+ check(country['zoom']==1 and country['dolly']>1 and abs(country['radius']-country['reference'])<1e-6,tag+' country retains 250x equivalent size through travel')
+ check(page.locator('#zoom-value').inner_text()=='1.0×',tag+' lens readout excludes travel magnification')
  page.mouse.move(size[0]*.6,size[1]*.55);page.mouse.wheel(0,-120)
  page.wait_for_timeout(350)
- check(page.evaluate('SolarTime.renderer.camera.zoom')>250,tag+' wheel can approach beyond country preset')
+ check(page.evaluate('SolarTime.renderer.camera.dolly')>country['dolly'] and page.evaluate('SolarTime.renderer.camera.zoom')==country['zoom'],tag+' wheel approaches without changing lens')
  page.mouse.wheel(0,120);page.mouse.wheel(0,120);page.wait_for_timeout(350)
- check(page.evaluate('SolarTime.renderer.camera.zoom')<250,tag+' wheel can move away')
+ check(page.evaluate('SolarTime.renderer.camera.dolly')<country['dolly'] and page.evaluate('SolarTime.renderer.camera.zoom')==country['zoom'],tag+' wheel moves away without changing lens')
  left=box(page,'#rotate-right');random_box=box(page,'#random-rotate')
  check(random_box['y']>left['y']+left['height'],tag+' random below visual left rotation')
  check(page.locator('#random-rotate svg ellipse').count()==2,tag+' crossed circle icon')

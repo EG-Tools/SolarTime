@@ -70,7 +70,7 @@ module.exports=async({root,evaluate,send,session})=>{
     const expected=[false,true,true,true,true,true,true,true,false,true,false];
     assert.equal(shortcuts.rows.length,expected.length);
     shortcuts.rows.forEach((row,i)=>{
-      assert.equal(row.actual,expected[i]);assert.equal(row.checked,expected[i]);assert.equal(row.pressed,String(expected[i]));assert.equal(row.saved,expected[i]);assert.ok(row.title.endsWith(' (+)'));
+      assert.equal(row.actual,expected[i]);assert.equal(row.checked,expected[i]);assert.equal(row.pressed,String(expected[i]));assert.equal(row.saved,expected[i]);assert.ok(row.title.endsWith(' · +'));assert.ok(!row.title.includes('→'));
       close(row.zoom,shortcuts.rows[0].zoom);close(row.dolly,shortcuts.rows[0].dolly);
     });
     await evaluate(`document.getElementById('reset-defaults').click();document.getElementById('reset-defaults-yes').click()`);
