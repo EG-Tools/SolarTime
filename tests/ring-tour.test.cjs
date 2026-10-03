@@ -57,7 +57,7 @@ test('virtual locator pitch plane inherits camera roll and remains frozen',()=>{
   const ring=T.planWarp(from,[0,.5,0]);vectorNear(ring.entryUp,from.up);vectorNear(ring.normal,from.right);
   vectorNear(ring.center.map((x,i)=>(x-from.eye[i])/(ring.radius*ring.side)),from.up);
   const path=T.warpPath(from,[0,.5,0],ring),before=JSON.stringify(ring);
-  vectorNear(T.jumpPose(path,5).forward,from.up.map(x=>x*ring.side),1e-8);
+  vectorNear(T.jumpPose(path,5).forward,from.forward.map((x,i)=>(x+from.up[i]*ring.side)/Math.sqrt(2)),1e-8);
   T.jumpPose(path,10);assert.equal(JSON.stringify(ring),before);
  }
 });
@@ -71,6 +71,27 @@ test('virtual locator inherits actual velocity, speed and projected camera tilt'
  const p=T.warpPath(from,velocity,ring),h=1e-5;
  vectorNear(T.warpPosition(p,h).map((x,i)=>(x-from.eye[i])/h),velocity,.001);
  vectorNear(T.planWarp(from,[0,0,0]).entryForward,from.forward);
+});
+
+test('all eight warp departures limit visible heading to 45 degrees with opposite scene parallax',()=>{
+ const T=window.SolarRingTour,dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0);
+ const from={eye:[0,0,0],forward:[0,1,0],up:[0,0,1],right:[-1,0,0]};
+ const selected=new Set();
+ for(let wanted=0;wanted<8;wanted++){
+  let choice=0;const ring=T.planWarp(from,[0,0,0],[],4.3,()=>choice++===wanted?0:1);
+  selected.add(ring.direction);near(ring.viewTurnAngle,Math.PI/4);
+  const path=T.warpPath(from,[0,0,0],ring),steering=ring.viewTurnUp.map(x=>x*ring.side);
+  let previous=0;
+  for(let t=0;t<12;t+=.02){
+   const pose=T.jumpPose(path,t),angle=Math.acos(Math.max(-1,Math.min(1,dot(pose.forward,from.forward))));
+   assert.ok(angle<=Math.PI/4+1e-8);assert.ok(angle>=previous-1e-8);
+   assert.ok(angle-previous<.007,'gentle turn, under 20 degrees per second');previous=angle;
+  }
+  const end=T.jumpPose(path,4.3);near(dot(end.forward,from.forward),Math.SQRT1_2);
+  assert.ok(dot(end.eye,steering)>0,'camera translation adds opposite scene parallax');
+  vectorNear(from.eye,[0,0,0]);vectorNear(from.forward,[0,1,0]);
+ }
+ assert.equal(selected.size,8);
 });
 
 test('resting warp accelerates for 7.5 seconds while an already fast camera peaks earlier',()=>{

@@ -161,7 +161,9 @@
         const heading=(direction%4)*Math.PI/4,side=direction<4?1:-1;
         const planeUp=up.map((v,i)=>v*Math.cos(heading)+right[i]*Math.sin(heading)),normal=unit(cross(planeUp,forward));
         const steering=planeUp.map(v=>v*side),radius=Math.max(scale*reach,speed*duration*1.25/angle),center=from.eye.map((x,i)=>x+steering[i]*radius);
-        const ring={virtual:true,orbit:'virtual',retreat:from.retreat,center,normal,u:forward,entryForward:forward,entryUp:planeUp,viewUp:up,direction,turnAngle:angle,side,bankSide:Math.abs(bankIntent)>1e-4?Math.sign(bankIntent):side,radius,speed:speed||radius*.08,duration,accelerationDuration};
+        const viewRight=unit(cross(from.up,from.forward));
+        const viewTurnUp=from.up.map((v,i)=>v*Math.cos(heading)+viewRight[i]*Math.sin(heading));
+        const ring={virtual:true,orbit:'virtual',retreat:from.retreat,center,normal,u:forward,entryForward:forward,entryUp:planeUp,viewUp:up,direction,turnAngle:angle,viewTurnAngle:Math.PI/4,viewTurnUp,side,bankSide:Math.abs(bankIntent)>1e-4?Math.sign(bankIntent):side,radius,speed:speed||radius*.08,duration,accelerationDuration};
         if(!from.retreat&&obstacles.some(b=>{const d=b.center.map((x,i)=>x-center[i]),height=dot(d,normal),radial=Math.sqrt(Math.max(0,dot(d,d)-height*height));return Math.hypot(radial-radius,height)<b.radius*1.18;}))continue;
         const path=warpPath(from,velocity,ring,duration),pose=warpArcPose(path,duration);
         let exposure=0,crowding=0;
@@ -206,10 +208,14 @@
     return a.eye.map((x,i)=>(2*u**3-3*u*u+1)*x+(u**3-2*u*u+u)*step*a.velocity[i]+(-2*u**3+3*u*u)*b.eye[i]+(u**3-u*u)*step*b.velocity[i]+(ring.retreat?.[i]||0)*retreat);
   }
   function warpArcPose(path,age){
-    const t=Math.max(0,age),{angle}=warpArcMotion(path,t),f=path.ring.entryForward,u=path.ring.entryUp;
+    const t=Math.max(0,age),limited=Number.isFinite(path.ring.viewTurnAngle);
+    const angle=limited?path.ring.side*path.ring.viewTurnAngle*ease(t/path.duration):warpArcMotion(path,t).angle;
+    const f=limited?path.from.forward:path.ring.entryForward,u=limited?path.ring.viewTurnUp:path.ring.entryUp;
     const base=axes(f,path.ring.viewUp||u),source=path.previous||path.from,previous=axes(source.forward,source.up),start=axes(path.from.forward,path.from.up),carry=t*Math.exp(-t/.6);
     const headingAngle=Math.acos(clamp(dot(start.forward,base.forward),-1,1)),alignDuration=Math.max(2.5,headingAngle/(Math.PI/6));
-    const frame=orientation(orientation(previous,start,1+carry/.001),base,transition(t,0,alignDuration));
+    // Keep the swept translation for subtle opposite scene parallax, but
+    // turn the visible camera only 45 degrees from the user's starting view.
+    const frame=orientation(orientation(previous,start,1+carry/.001),limited?start:base,transition(t,0,alignDuration));
     // One transported pitch axis stays continuous even through the vertical.
     const axis=unit(cross(u,f)),c=Math.cos(angle),s=Math.sin(angle);
     const rotate=v=>{const k=cross(axis,v),a=dot(axis,v);return v.map((x,i)=>x*c-k[i]*s+axis[i]*a*(1-c));};

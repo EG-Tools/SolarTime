@@ -856,7 +856,7 @@
         const solarUp=[axes.u.z,axes.pole.z,axes.v.z];
         const saturn=this.currentFrameItem('saturn'),units=tour.worldUnits||this.bodyRadiusAtZoom(saturn.body)/this.scale;
         const local=v=>[axes.u,axes.pole,axes.v].map(axis=>axis.x*v[0]+axis.y*v[1]+axis.z*v[2]);
-        const warp={...ring,retreat:ring.retreat?local(ring.retreat.map(value=>value/units)):undefined,duration:REPLAY_TRANSITION.departure/1000,center:local(ring.center.map((v,i)=>(v-saturn.world[['x','y','z'][i]])/units)),normal:local(ring.normal),u:local(ring.u),entryForward:local(ring.entryForward),entryUp:local(ring.entryUp),viewUp:ring.viewUp?local(ring.viewUp):undefined,radius:ring.radius/units,speed:ring.speed/units};
+        const warp={...ring,retreat:ring.retreat?local(ring.retreat.map(value=>value/units)):undefined,duration:REPLAY_TRANSITION.departure/1000,center:local(ring.center.map((v,i)=>(v-saturn.world[['x','y','z'][i]])/units)),normal:local(ring.normal),u:local(ring.u),entryForward:local(ring.entryForward),entryUp:local(ring.entryUp),viewUp:ring.viewUp?local(ring.viewUp):undefined,viewTurnUp:ring.viewTurnUp?local(ring.viewTurnUp):undefined,radius:ring.radius/units,speed:ring.speed/units};
         tour.startTakeoff(mono,Infinity,turn,solarUp,null,[],warp);
         tour.returnTarget=null;tour.returnTargetApplied=true;tour.annotationReveal=false;
       }
