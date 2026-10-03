@@ -143,3 +143,22 @@ test('latest release uses reviewed translations; explicit Korean-only fixtures r
   assert.throws(()=>api.compile(dir),/Missing release base text/);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('loading bootstrap uses canonical saved-region or AUTO copy before fetching a bundle',()=>{
+ const {loader,requests}=runtime(),app=read('src/app.js');
+ const regions=vm.runInNewContext(app.slice(app.indexOf("  const LANG_ORDER="),app.indexOf("  const REGIONS="))+';({LANG_ORDER,LANG_META})');
+ const bootstrap=app.match(/function showLoadingLanguage\(\)\{[\s\S]*?\n  \}/)[0];
+ for(const [region,meta]of Object.entries(regions.LANG_META)){
+  const label={style:{visibility:'hidden'}},document={documentElement:{},querySelector:()=>label};
+  vm.runInNewContext('('+bootstrap+')()',{...regions,Preferences:{read:()=>({language:region,languageMode:'manual'})},STORAGE_KEY:'test',detectedCopyLanguage:()=>{throw Error('Manual choice must win');},LanguageData:loader,COPY_META:loader.metadata,document});
+  assert.equal(label.textContent,data('src/locales/'+meta.copy+'.json').copy.loading,region);
+  assert.equal(label.style.visibility,'');assert.equal(document.documentElement.lang,loader.metadata[meta.copy].html);
+ }
+ for(const saved of [null,{language:'kor',languageMode:'auto'},{language:'invalid',languageMode:'manual'}]){
+  const label={style:{visibility:'hidden'}},document={documentElement:{},querySelector:()=>label};
+  vm.runInNewContext('('+bootstrap+')()',{...regions,Preferences:{read:()=>saved},STORAGE_KEY:'test',detectedCopyLanguage:()=> 'fr',LanguageData:loader,COPY_META:loader.metadata,document});
+  assert.equal(label.textContent,loader.loadingText.fr);
+ }
+ assert.deepEqual(requests,[],'boot message never waits on a translation request');
+ assert.match(read('index.html'),/data-i18n="loading" style="visibility:hidden"/);
+});

@@ -133,6 +133,16 @@
   // automatic mode they may deliberately differ (for example an English
   // browser in Seoul still tracks Korea, but reads an English interface).
   const COPY_META=LanguageData.metadata;
+  function showLoadingLanguage(){
+    const saved=Preferences.read(STORAGE_KEY);
+    const code=saved?.languageMode!=='auto'&&LANG_ORDER.includes(saved?.language)?LANG_META[saved.language].copy:detectedCopyLanguage();
+    const label=document.querySelector('#loading [data-i18n="loading"]');
+    if(!label)return;
+    label.textContent=LanguageData.loadingText[code]||LanguageData.loadingText.en;
+    document.documentElement.lang=(COPY_META[code]||COPY_META.en).html;label.style.visibility='';
+  }
+  // Use canonical loading copy before renderer initialization or any locale fetch.
+  showLoadingLanguage();
   const COPY=Object.create(null),BODY_COPY=Object.create(null),PHASE_COPY=Object.create(null);
   async function hydrateLanguage(region,copyCode=LANG_META[region]?.copy||'kor'){
     const code=copyCode,bundle=await LanguageData.load(code);

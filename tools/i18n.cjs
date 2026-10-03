@@ -154,6 +154,7 @@ function outputs(root,data=compile(root)){
   '  const metadata=deepFreeze('+JSON.stringify(d.metadata)+');',
   '  const browserLanguagePatterns=deepFreeze('+JSON.stringify(d.config.browserLanguageRules)+'.map(([pattern,code])=>[new RegExp(pattern),code]));',
   '  const automaticLabels=deepFreeze('+JSON.stringify(d.automaticLabels)+');',
+  '  const loadingText=Object.freeze('+JSON.stringify(Object.fromEntries(d.codes.map(code=>[code,d.bundles[code].copy.loading])))+');',
   '  const emptyCopyKeys=Object.freeze('+JSON.stringify(d.config.allowEmptyKeys.filter(k=>k.startsWith('ui.')||k.startsWith('timer.')).map(k=>k.slice(k.indexOf('.')+1)))+');',
   '  const fallback=deepFreeze('+JSON.stringify(d.bundles.en)+');',
   '  const legacyFileCopy=deepFreeze('+JSON.stringify(d.legacyFileCopy)+');',
