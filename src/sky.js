@@ -269,18 +269,24 @@ class Sky{
    const a=previous.axes[key],b=stars[key];
    spin[0]+=(a[1]*b[2]-a[2]*b[1])/(2*dt);spin[1]+=(a[2]*b[0]-a[0]*b[2])/(2*dt);spin[2]+=(a[0]*b[1]-a[1]*b[0])/(2*dt);
   }
-  return {stars,spin};
+  return {stars,spin,time:this.skySample?.time};
  }
  updateStarAxes(replay){
   const keys=['right','down','forward'],dot=(a,b)=>a.reduce((n,v,i)=>n+v*b[i],0);
   if(replay?.reveal&&replay.from&&this.starBridge!==replay.from){
    this.starBridge=replay.from;
-   this.starRemap={from:replay.from.stars,to:this.panAxes,spin:replay.from.spin||[0,0,0],carry:0,elapsed:0,start:replay.clock};
+   // The captured orientation belongs to the last rendered frame, not the
+   // reset boundary between frames. Preserve that fractional frame as well;
+   // dropping it briefly brakes the sky regardless of the blend duration.
+   const timed=Number.isFinite(replay.from.time)&&Number.isFinite(replay.clock);
+   const sampleAge=timed?Math.max(0,(replay.clock-replay.from.time)/1000):0;
+   const carryOffset=timed?sampleAge-(Number.isFinite(replay.carry)?replay.carry:0):0;
+   this.starRemap={from:replay.from.stars,to:this.panAxes,spin:replay.from.spin||[0,0,0],carry:0,elapsed:0,carryOffset,start:replay.clock-sampleAge*1000};
   }
   if(!this.starRemap){this.starAxes=this.panAxes;return;}
   // The carry clock belongs to THIS remap, not the next T animation. Reusing
   // a new departure's negative carry used to rewind the entire sky instantly.
-  const elapsed=replay?.from===this.starBridge&&Number.isFinite(replay?.carry)?replay.carry:
+  const elapsed=replay?.from===this.starBridge&&Number.isFinite(replay?.carry)?replay.carry+this.starRemap.carryOffset:
    Number.isFinite(this.starRemap.start)?((replay?.clock??performance.now())-this.starRemap.start)/1000:REPLAY_MOMENTUM_SECONDS;
   // Overlap the carried warp rotation with more of the incoming opening.
   // The integrated quintic ease preserves velocity and acceleration at both

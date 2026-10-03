@@ -439,6 +439,16 @@ test('T captures only sky orientation once with no second sky bitmap',()=>{
  assert.equal(captures,1);assert.equal(p.skyFrom,basis);assert.equal(p.skySnapshot,undefined);
 });
 
+test('Space resume shifts sky sampling clocks so a paused handoff cannot catch up the pause',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ r.sky.skySample={time:980};r.sky.skyPrevious={time:960};r.sky.starRemap={start:700};
+ r.cameraTween.replay.skyFrom={time:980};
+ r.setAnimationPaused(true,1000);r.setAnimationPaused(false,4000);
+ close(r.sky.skySample.time,3980);close(r.sky.skyPrevious.time,3960);close(r.sky.starRemap.start,3700);
+ close(r.cameraTween.replay.skyFrom.time,3980);
+ close(4000-r.sky.skySample.time,20);
+});
+
 
 
 test('T restores the GPU layer style after hiding or cancelling without changing body sizes',()=>{

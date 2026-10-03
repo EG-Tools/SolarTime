@@ -33,7 +33,7 @@ test('galaxy and stars carry angular momentum while the opening camera prepares'
  sky.draw(0,{...camera,replaySky:{clock:0}},options);
  sky.draw(0,{...camera,azimuth:.001,replaySky:{clock:20}},options);
  const from=sky.captureReplayBackground();assert.ok(Math.hypot(...from.spin)>.01);
- const reset={azimuth:2,elevation:.7,replaySky:{from,reveal:true,carry:0,clock:40}};
+ const reset={azimuth:2,elevation:.7,replaySky:{from,reveal:true,carry:0,clock:20}};
  sky.draw(0,reset,options);
  for(const k of ['right','down','forward'])for(let i=0;i<3;i++)close(sky.starAxes[k][i],from.stars[k][i]);
  const atReset=JSON.stringify(sky.starAxes);
@@ -54,6 +54,19 @@ test('warp-opening blend preserves fast incoming rotation and releases it over s
   assert.ok(later-middle>speed*dt*.15,'momentum still overlaps the opening after the old four-second cutoff');
   const before=angle(6-dt),end=angle(6),after=angle(6+dt);
   assert.ok(Math.abs(end-before)/dt<1e-6);close(end,after);
+ }
+});
+
+test('camera handoff carries the whole rendered frame rather than dropping the time before the reset boundary',()=>{
+ for(const dt of [1000/60,1000/30,50])for(const boundaryFraction of [0,.2,.8]){
+  const {sky}=fixture(true),speed=.6,previous=1000;
+  sky.draw(0,{...camera,replaySky:{clock:previous-dt}},options);
+  sky.draw(0,{...camera,azimuth:speed*dt/1000,replaySky:{clock:previous}},options);
+  const from=sky.captureReplayBackground(),before=[...sky.starAxes.forward];
+  sky.draw(0,{azimuth:2,elevation:.7,replaySky:{from,reveal:true,carry:dt*boundaryFraction/1000,clock:previous+dt}},options);
+  const dot=before.reduce((sum,value,i)=>sum+value*sky.starAxes.forward[i],0);
+  const angle=Math.acos(Math.max(-1,Math.min(1,dot)));
+  assert.ok(Math.abs(angle/(dt/1000)-speed)<.001,`first frame speed ${angle/(dt/1000)} at ${dt} ms and boundary ${boundaryFraction}`);
  }
 });
 

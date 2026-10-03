@@ -1058,6 +1058,8 @@
       };
       for(const object of [this.cameraTween,this.openingParticles?.replay?.openingMove,this.openingParticles,this.lookRelease,this.bankRelease,this.ringTour?.replayBridge])shift(object,'start');
       shift(this.openingParticles,'exitAt');shift(this.autoRotation,'mono');shift(this.ringTour,'lastMono');shift(this.openingFlight,'mono');
+      for(const sample of [this.sky?.skySample,this.sky?.skyPrevious,this.cameraTween?.replay?.skyFrom])shift(sample,'time');
+      shift(this.sky?.starRemap,'start');
       for(const object of [this.actualScaleTween,this.orbitSpacingTween])shift(object,'started');
       for(const key of ['orbitRevealStart','openingAnnotationStart','openingOrbitStart','cameraChangeAt','presentationUntil'])shift(this,key);
       this.animationPaused=false;this.animationPauseAt=null;this.dirty=true;return delay;
