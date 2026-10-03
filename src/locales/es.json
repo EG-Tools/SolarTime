@@ -1,5 +1,9 @@
 {
   "copy": {
+    "openingTravel": "Viaje de inicio",
+    "openingDefault": "Inicio predeterminado",
+    "openingNone": "Ninguno",
+    "openingReload": "Pulsa T para reproducir la apertura seleccionada.",
     "metaDescription": "Un reloj del sistema solar que fluye con las estrellas: hora real, órbitas planetarias, la Tierra y la Luna en un pequeño cosmos.",
     "cookieTitle": "Uso de cookies",
     "cookieMessage": "Elige si permites cookies para analizar visitas y medir la publicidad.",
@@ -56,6 +60,9 @@
     "selectedBody": "Información del cuerpo",
     "bodyClose": "Cerrar información",
     "focusBody": "Vista cercana · Seguir cuerpo",
+    "ringTravel": "Viajar",
+    "ringTravelStarted": "Viaje por los anillos de Saturno · Arrastra para mirar · ESC para frenar y volver",
+    "ringTravelUnavailable": "El viaje aún no está listo. Elige Vista cercana y espera un momento.",
     "eclipseView": "Eclipse",
     "eclipsePrevious": "Ir al eclipse anterior",
     "eclipseNext": "Ir al eclipse siguiente",
@@ -215,6 +222,7 @@
     "cookieSettings": "Ajustes de cookies",
     "cookieDismiss": "Cerrar sin cambiar tu elección",
     "cookieChoiceNote": "La aceptación y el rechazo se recuerdan durante 6 meses. X no cambia tu elección; si no has elegido, volveremos a preguntar en tu próxima visita.",
+    "music": "Música",
     "timer": "Temporizador",
     "timerClose": "Cerrar temporizador",
     "alarm": "Alarma",

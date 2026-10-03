@@ -1,5 +1,9 @@
 {
   "ui": {
+    "openingTravel": "Openingsreis",
+    "openingDefault": "Standaardopening",
+    "openingNone": "Geen",
+    "openingReload": "Druk op T om de gekozen opening af te spelen.",
     "metaDescription": "Een klok van het zonnestelsel tussen de sterren — de actuele tijd, planeetbanen, de aarde en de maan in een kleine kosmos.",
     "cookieTitle": "Cookiegebruik",
     "cookieMessage": "Kies of cookies voor bezoekersanalyse en advertentiemeting zijn toegestaan.",
@@ -56,6 +60,9 @@
     "selectedBody": "Informatie over het geselecteerde hemellichaam",
     "bodyClose": "Informatie over het hemellichaam sluiten",
     "focusBody": "Van dichtbij · Hemellichaam volgen",
+    "ringTravel": "Reizen",
+    "ringTravelStarted": "Reis door de ringen van Saturnus · Sleep om rond te kijken · ESC om af te remmen en terug te keren",
+    "ringTravelUnavailable": "De reis is nog niet klaar. Kies Van dichtbij en wacht even.",
     "eclipseView": "Eclips",
     "eclipsePrevious": "Naar de vorige eclips",
     "eclipseNext": "Naar de volgende eclips",
@@ -214,7 +221,8 @@
     "starDensityAria": "Dichtheid van de deeltjessterren. Bij nul zijn de deeltjessterren verborgen.",
     "cookieSettings": "Cookie-instellingen",
     "cookieDismiss": "Sluiten zonder uw keuze te wijzigen",
-    "cookieChoiceNote": "Toestemming en weigering worden 6 maanden bewaard. X wijzigt uw keuze niet; zonder keuze vragen we het bij uw volgende bezoek opnieuw."
+    "cookieChoiceNote": "Toestemming en weigering worden 6 maanden bewaard. X wijzigt uw keuze niet; zonder keuze vragen we het bij uw volgende bezoek opnieuw.",
+    "music": "Muziek"
   },
   "timer": {
     "timerClose": "Timer sluiten",

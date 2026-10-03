@@ -8,7 +8,7 @@ const displayedRadius=(r,distance)=>r.displayPhysicalPoint({x:distance,y:0,z:0},
 function fixture(w,h,sun=1,pluto=true){
  const r=Object.create(window.SolarRenderer.prototype),camera=r.defaultCameraSnapshot();
  const mobile=w<680,compact=h<630,top=compact?100:mobile?192:190,bottom=h-(compact?105:mobile?195:190),baseY=(top+bottom)/2+h*.05;
- Object.assign(r,{w,h,camera,bodyScales:{sun},satelliteOrbitScales:{},options:{pluto,moon:true,overviewOrbitGap:86},actualScaleMix:1,overviewFitScale:.25,paths:paths.filter(p=>pluto||p.body.id!=='pluto'),cx:w/2,cy:baseY+h*camera.panY,projectionAnchor:null,stats:{orbitBufferBuilds:0},orbitModelCache:new WeakMap()});
+ Object.assign(r,{w,h,camera,bodyScales:{sun},satelliteOrbitScales:{},options:{pluto,moon:true,overviewOrbitGap:86,actualOrbitSpacing:1},actualScaleMix:1,overviewFitScale:.25,paths:paths.filter(p=>pluto||p.body.id!=='pluto'),cx:w/2,cy:baseY+h*camera.panY,projectionAnchor:null,stats:{orbitBufferBuilds:0},orbitModelCache:new WeakMap()});
  r.fitScale=r.actualFitScale=r.actualScaleFit();r.scale=r.fitScale*camera.zoom*camera.dolly;return {r};
 }
 // Decode the fixed endpoints with the same two independent shader weights.
@@ -144,7 +144,7 @@ test('0–10% blends normal orbits, and 10–100% remaps the former 1–100% wit
   const model=r.orbitModel(r.paths[0]);
   assert.equal(model,initial,'spacing is a shader weight, not a vertex-buffer rebuild');
  }
- for(const [input,expected] of [[0,0],[-1,0],[2,1],[NaN,1],[Infinity,1]]){r.setOption('actualOrbitSpacing',input);close(r.actualOrbitSpacing(),expected);}
+ for(const [input,expected] of [[0,0],[-1,0],[2,1],[NaN,0],[Infinity,0]]){r.setOption('actualOrbitSpacing',input);close(r.actualOrbitSpacing(),expected);}
 });
 
 test('the 10% boundary is continuous and spacing never reverses through either band',()=>{

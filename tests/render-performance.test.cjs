@@ -68,3 +68,28 @@ test('memory counts resident/cached maps, auxiliary resources and both canvases 
  assert.equal(surface.auxiliaryTextureBytes(),64*64*4+32768+4+8192);
  surface.contextLost=true;sky.ready=false;assert.equal(r.memoryUsage().totalEstimate,0);
 });
+
+test('particle policy reuses sustained load with recovery hold and renderer fades without jumps',()=>{
+ let now=0;const window={};vm.runInNewContext(fs.readFileSync(path.join(root,'src/performance.js'),'utf8'),{window,performance:{now:()=>now}});
+ const policy=window.SolarPerformance;
+ assert.equal(policy.particleCapacity(),1);assert.equal(policy.particleCapacity('low'),.5);assert.equal(policy.particleBudget(),1);
+ for(let n=0;n<40;n++)policy.reportRenderCost(30);
+ assert.equal(policy.particleBudget(),.45);
+ for(let n=0;n<80;n++)policy.reportRenderCost(1);
+ assert.equal(policy.particleBudget(),.65);now=5000;assert.equal(policy.particleBudget(),1);
+ const {r,window:host}=fixture();let target=1;host.SolarPerformance={particleBudget:()=>target};
+ assert.equal(r.updateTravelParticleBudget(0),1);target=.45;
+ assert.ok(r.updateTravelParticleBudget(100)>=.975);
+ for(let n=2;n<=40;n++)r.updateTravelParticleBudget(n*100);
+ assert.equal(r.travelParticleBudget.value,.45);target=1;r.updateTravelParticleBudget(1e7);
+ assert.ok(r.travelParticleBudget.value<=.46+1e-9);
+});
+
+test('hidden warp retains only a bounded arrival preview and leaves clearance state intact',()=>{
+ const {r}=fixture();let previews=0;r.prepareCloseup=id=>{assert.equal(id,'saturn');previews++;};
+ const path={brakeAt:4300,resetAt:7000,particleAt:0,inbound:6500,clearSince:123};
+ r.cameraTween={start:0,to:{focus:'saturn'},duration:15500,replay:path};r.sky=null;
+ for(let mono=4400;mono<6800;mono+=100)r.prepareReplayFrame(mono);
+ assert.equal(previews,3);assert.equal(path.clearSince,123);assert.equal(path.resetAt,7000);
+ r.prepareReplayFrame(7200);assert.equal(previews,3);
+});

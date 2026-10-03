@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
-  <meta name="solar-time-version" content="0.71">
+  <meta name="solar-time-version" content="0.72">
   <meta name="solar-time-revision" content="r1">
   <meta name="google-adsense-account" content="ca-pub-5773171100052324">
   <meta name="solar-time-ad-slot" content="">
@@ -15,6 +15,7 @@
   <link rel="canonical" href="https://solartime.app/">
   <title>Solar Time</title>
   <link rel="preconnect" href="https://solar-time.keg0320.workers.dev" crossorigin="anonymous">
+  <link rel="preload" as="image" href="assets/effects/flight-particles-atlas-v1.webp">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23060910'/%3E%3Cellipse cx='32' cy='32' rx='27' ry='12' transform='rotate(-28 32 32)' fill='none' stroke='%23748295' stroke-width='1.4'/%3E%3Ccircle cx='32' cy='32' r='9' fill='%23efbf76'/%3E%3Ccircle cx='54' cy='20' r='3' fill='%23b6d8ed'/%3E%3C/svg%3E">
   <link rel="apple-touch-icon" sizes="180x180" href="https://solar-time.keg0320.workers.dev/media/releases/content/ui/apple-touch-icon.png?v=0.46-r3">
   <link rel="manifest" href="manifest.webmanifest?v=0.46-r3">
@@ -23,7 +24,7 @@
   <script src="src/usage-analytics.js?v=889c5a4755d5"></script>
   <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
   <script src="src/page-runtime.js?v=1d8a9a92e549"></script>
-  <link rel="stylesheet" href="styles.css?v=6131043ee71c">
+  <link rel="stylesheet" href="styles.css?v=42c4ed311284">
   <link rel="stylesheet" href="src/runtime-optimizations.css?v=2e2600ed28fb">
 </head>
 <body>
@@ -45,6 +46,7 @@
         <circle cx="23" cy="20" r="5.5"/>
       </svg>
       <div><h1>SOLAR TIME</h1><p>A LITTLE CLOSER TO THE COSMOS</p></div>
+      <button id="help-button" class="brand-help" type="button" aria-label="사용 방법과 계산 기준" aria-expanded="false" aria-controls="help-dialog" title="사용 방법과 계산 기준" data-i18n-aria="helpLabel" data-i18n-title="helpLabel"></button>
     </div>
     <div class="top-actions">
       <div class="music-control">
@@ -117,14 +119,21 @@
           </div>
         </div>
       </div>
+      <div id="opening-control" class="language-control">
+        <button id="opening-toggle" class="icon-button" type="button" aria-label="오프닝 여행" aria-haspopup="menu" aria-expanded="false" aria-controls="opening-menu" title="오프닝 여행 · 기본 오프닝">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11a5 5 0 0 1 10 0"/><ellipse cx="12" cy="13" rx="10" ry="3.5"/><path d="m7 19-1 2m6-2v3m5-3 1 2M6 13h1m4 1h2m4-1h1"/></svg>
+        </button>
+        <div id="opening-menu" class="language-menu opening-menu card-surface" role="menu" aria-label="오프닝 여행" hidden>
+          <button type="button" role="menuitemradio" data-opening="default" aria-checked="true" data-i18n="openingDefault">기본 오프닝</button>
+          <button type="button" role="menuitemradio" data-opening="saturn" aria-checked="false">토성</button>
+          <button type="button" role="menuitemradio" data-opening="none" aria-checked="false" data-i18n="openingNone">없음</button>
+        </div>
+      </div>
       <button id="timer-button" class="icon-button" type="button" aria-label="타이머" aria-expanded="false" aria-controls="timer-panel" title="타이머" data-i18n-aria="timer" data-i18n-title="timer">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M12 5v2M17.2 7.3l1.5-1.5"/><circle cx="12" cy="13.5" r="7"/><path d="M12 10v3.8l2.7 1.7"/></svg>
       </button>
       <button id="settings-button" class="icon-button" aria-label="화면 설정" aria-expanded="false" aria-controls="settings-panel" title="화면 설정" data-i18n-aria="settings" data-i18n-title="settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5"/><circle cx="15" cy="17" r="2.5"/></svg>
-      </button>
-      <button id="help-button" class="icon-button" aria-label="사용 방법과 계산 기준" aria-expanded="false" aria-controls="help-dialog" title="사용 방법과 계산 기준" data-i18n-aria="helpLabel" data-i18n-title="helpLabel">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.8 9a2.25 2.25 0 0 1 4.4.6c0 1.5-2.2 1.7-2.2 3.4M12 16v.1"/></svg>
       </button>
       <button id="fullscreen-button" class="icon-button" aria-label="전체 화면" title="전체 화면 · F">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg>
@@ -233,6 +242,7 @@
       <p id="body-size-lock" data-i18n="actualSizeLocked" hidden>실제 크기 비율에서는 조절할 수 없습니다.</p>
     </div>
     <button id="focus-body" class="text-button full-width focus-button" data-i18n="focusBody">가까이 보기 · 천체 추적</button>
+    <button id="ring-tour-button" type="button" class="text-button full-width focus-button" data-i18n="ringTravel" hidden disabled>여행</button>
     <div id="eclipse-control" class="eclipse-control" hidden>
       <span data-i18n="eclipseView">일식</span>
       <div class="step-navigation eclipse-navigation" role="group" aria-label="일식" data-i18n-aria="eclipseView">
@@ -323,7 +333,7 @@
 
   <footer class="footer ui">
     <div class="signature">
-      <span class="credit-line">Solar Time v0.71</span>
+      <span class="credit-line">Solar Time v0.72</span>
       <span class="credit-line"><a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
       <span class="credit-line"><span data-i18n="scaleNoteLineOne">평균 궤도 근사
 크기 거리 측정 조정</span></span>
@@ -395,7 +405,7 @@
       <button id="release-notes-toggle" class="release-notes-toggle" type="button" aria-expanded="false" aria-controls="release-notes-panel"><span data-i18n="releaseNotes">업데이트 내역</span><span class="release-notes-toggle-mark" aria-hidden="true"></span></button>
       <section id="release-notes-panel" class="release-notes-panel" hidden>
         <div class="release-notes-header">
-          <div class="release-notes-heading"><h3 id="release-notes-version">v0.71</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
+          <div class="release-notes-heading"><h3 id="release-notes-version">v0.72</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
           <div class="release-notes-navigation step-navigation" aria-label="업데이트 내역 이동">
             <button id="release-notes-newer" class="step-previous" type="button" aria-label="최신 업데이트 내역" data-i18n-aria="releaseNotesNewer"></button>
             <span id="release-notes-position" aria-live="polite">1 / 1</span>
@@ -429,11 +439,12 @@
       <h3 data-i18n="basicControls">빠른 조작 · 데스크톱</h3>
       <div class="shortcuts shortcut-guide">
         <div class="shortcut-row"><span class="shortcut-item"><kbd>Space</kbd><span data-i18n="pause">일시정지</span></span><span class="shortcut-item"><kbd>R</kbd><span data-i18n="realTime">실제 시간</span></span><span class="shortcut-item"><kbd>F</kbd><span data-i18n="fullscreen">전체 화면</span></span></div>
-        <div class="shortcut-row"><span class="shortcut-item"><kbd>H</kbd><span data-i18n="zenMode">감상 모드</span></span><span class="shortcut-item"><kbd>0</kbd><span data-i18n="defaultCamera">기본 시점</span></span><span class="shortcut-item"><kbd>1 · 2 · 3</kbd><span data-i18n="savedCameras">저장된 시점</span></span></div>
-        <div class="shortcut-row"><span class="shortcut-item"><kbd class="shortcut-arrows">← →</kbd><span data-i18n="planetSwitch">행성 전환</span></span><span class="shortcut-item"><kbd class="shortcut-arrows">↑ ↓</kbd><span data-i18n="cameraTravel">전진·후진</span></span><span class="shortcut-item"><kbd>+</kbd><span data-i18n="actualScaleShortcut">실제 비율</span></span></div>
+        <div class="shortcut-row"><span class="shortcut-item"><kbd>M</kbd><span data-i18n="music">배경 음악</span></span><span class="shortcut-item"><kbd>H</kbd><span data-i18n="zenMode">감상 모드</span></span><span class="shortcut-item"><kbd>+</kbd><span data-i18n="actualScaleShortcut">실제 비율</span></span></div>
+        <div class="shortcut-row"><span class="shortcut-item"><kbd>0</kbd><span data-i18n="defaultCamera">기본 시점</span></span><span class="shortcut-item"><kbd>1 · 2 · 3</kbd><span data-i18n="savedCameras">저장된 시점</span></span><span class="shortcut-item"><kbd>T</kbd><span data-i18n="ringTravel">여행</span></span></div>
+        <div class="shortcut-row"><span class="shortcut-item"><kbd class="shortcut-arrows">← →</kbd><span data-i18n="planetSwitch">행성 전환</span></span><span class="shortcut-item"><kbd class="shortcut-arrows">↑ ↓</kbd><span data-i18n="cameraTravel">전진·후진</span></span></div>
         <div class="shortcut-row shortcut-mouse-row"><span class="shortcut-item"><span class="mouse-control-icon mouse-left-click" aria-hidden="true"><i></i></span><span data-i18n="cameraRotate">회전</span></span><span class="shortcut-item"><span class="mouse-control-icon mouse-right-click" aria-hidden="true"><i></i></span><span data-i18n="zoomInOut">줌인·아웃</span></span><span class="shortcut-item"><span class="mouse-control-icon mouse-middle-click" aria-hidden="true"><i></i></span><span data-i18n="screenPan">이동</span></span><span class="shortcut-item"><img class="mouse-wheel-zoom-icon" src="assets/mouse-wheel-zoom.svg" width="34" height="32" alt="" aria-hidden="true"><span data-i18n="cameraTravel">전진·후진</span></span></div>
       </div>
-      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="wechat-pay-link" class="support-link" href="wechat-pay-qr.svg" aria-haspopup="dialog" aria-controls="wechat-pay-dialog">WeChat</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="alarm-music-credit" class="music-credit support-credit">Alram Music - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.71 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
+      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="wechat-pay-link" class="support-link" href="wechat-pay-qr.svg" aria-haspopup="dialog" aria-controls="wechat-pay-dialog">WeChat</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="alarm-music-credit" class="music-credit support-credit">Alram Music - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.72 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
   </dialog>
@@ -496,24 +507,25 @@
   <script src="src/materials.js?v=16d6c207252b"></script>
   <script src="src/astronomy-engine.min.js?v=f41139a87941"></script>
   <script src="src/astro.js?v=4a67df7aa4bf"></script>
-  <script src="src/surface-style.js?v=88d7e16327c7"></script>
-  <script src="src/surface.js?v=3c79393582be"></script>
-  <script src="src/sky.js?v=e87175802b94"></script>
+  <script src="src/surface-style.js?v=c87f2d9734f7"></script>
+  <script src="src/surface.js?v=15b769b1ab2c"></script>
+  <script src="src/sky.js?v=0bb8e8db7a48"></script>
   <script src="src/visual-effects.js?v=44159ae6ea99"></script>
-  <script src="src/renderer.js?v=8f6f6359ac55"></script>
-  <script src="src/performance.js?v=fc25cafe8ded"></script>
-  <script src="src/language-data.js?v=daa598b8be86"></script>
+  <script src="src/ring-tour.js?v=0d36f2ef6e28"></script>
+  <script src="src/renderer.js?v=98b810592a23"></script>
+  <script src="src/performance.js?v=4ac7ad7ac498"></script>
+  <script src="src/language-data.js?v=9e199d694d3d"></script>
   <script src="src/localization.js?v=bb6782c68730"></script>
-  <script src="src/preferences.js?v=1f334598a53a"></script>
-  <script src="src/ui-runtime.js?v=5ddcb5a4fba0"></script>
+  <script src="src/preferences.js?v=292d73007ea4"></script>
+  <script src="src/ui-runtime.js?v=bf194c61550b"></script>
   <script src="src/windows-shutdown.js?v=3109e303c919"></script>
   <script src="src/alarm-sound.js?v=924225d8b735"></script>
   <script src="src/timer-controller.js?v=737e7b336e5f"></script>
   <script src="src/policy-dialog.js?v=4f327ee92740"></script>
-  <script src="src/music-player.js?v=0bc5bc270288"></script>
+  <script src="src/music-player.js?v=59c6928f8573"></script>
   <script src="src/adsense.js?v=4f3eb62dffcc"></script>
   <script src="src/cookie-consent.js?v=1494a5b88bc9"></script>
-  <script src="src/app.js?v=39ca9a962f15"></script>
+  <script src="src/app.js?v=64d134f860a6"></script>
   <!-- Cloudflare Web Analytics -->
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}'></script>
   <!-- End Cloudflare Web Analytics -->

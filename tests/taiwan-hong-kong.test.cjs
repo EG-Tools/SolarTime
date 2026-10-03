@@ -61,5 +61,5 @@ test('Traditional Chinese release history keeps every translated item',()=>{
  const history=notes.RELEASES.map(release=>notes.itemsFor(release,'zht')).flat().join(' ');
  assert.equal(notes.RELEASES.length,10);assert.doesNotMatch(history,/国家|之后|信息|重复/);
  const recent=require('../i18n/releases.json');
- for(const release of notes.RELEASES)assert.deepEqual(notes.itemsFor(release,'zht'),recent.find(r=>r.version===release.version).localized.zht);
+ for(const release of notes.RELEASES)assert.deepEqual(notes.itemsFor(release,'zht'),(release.languagePolicy==='korean-only'?release.items:recent.find(r=>r.version===release.version).localized.zht));
 });

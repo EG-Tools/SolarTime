@@ -3,14 +3,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8'),data=p=>JSON.parse(read(p));
 const baseline=data('tests/fixtures/release-history-v069.json'),api=require('../tools/i18n.cjs'),notes=require('../src/release-notes.js');
 
-test('rolling retention keeps exactly ten complete languages with a unique Korean archive',()=>{
+test('rolling retention keeps exactly ten validated releases with a unique Korean archive',()=>{
  const compiled=api.compile(root),rows=compiled.releases,archive=compiled.archive;
  assert.equal(rows.length,10);assert.equal(compiled.codes.length,13);
  assert.deepEqual(notes.RELEASES.map(r=>r.version),rows.map(r=>r.version));
  const all=[...rows,...archive],versions=all.map(r=>r.version);
  assert.equal(new Set(versions).size,versions.length);
  for(let n=1;n<versions.length;n++)assert.ok(Number(versions[n])<Number(versions[n-1]));
- for(const row of rows)for(const code of compiled.codes)assert.equal(row.localized[code].length,row.localized.kor.length,row.version+' '+code);
+ for(const row of rows)for(const code of compiled.codes){if(row.languagePolicy==='korean-only')assert.deepEqual(Object.keys(row.localized),['kor']);else assert.equal(row.localized[code].length,row.localized.kor.length,row.version+' '+code);}
  for(const row of archive)assert.deepEqual(Object.keys(row).sort(),['date','items','version']);
 });
 

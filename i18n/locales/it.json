@@ -1,5 +1,9 @@
 {
   "ui": {
+    "openingTravel": "Viaggio iniziale",
+    "openingDefault": "Apertura predefinita",
+    "openingNone": "Nessuno",
+    "openingReload": "Premi T per riprodurre l’apertura selezionata.",
     "metaDescription": "Un orologio del Sistema Solare che scorre tra le stelle: ora reale, orbite planetarie, Terra e Luna in un piccolo cosmo.",
     "cookieTitle": "Uso dei cookie",
     "cookieMessage": "Scegli se consentire i cookie per l’analisi delle visite e la misurazione pubblicitaria.",
@@ -56,6 +60,9 @@
     "selectedBody": "Informazioni sul corpo selezionato",
     "bodyClose": "Chiudi informazioni",
     "focusBody": "Vista ravvicinata · Segui corpo",
+    "ringTravel": "Viaggia",
+    "ringTravelStarted": "Viaggio negli anelli di Saturno · Trascina per guardarti intorno · ESC per rallentare e tornare",
+    "ringTravelUnavailable": "Il viaggio non è ancora pronto. Scegli Vista ravvicinata e attendi un momento.",
     "eclipseView": "Eclissi",
     "eclipsePrevious": "Vai all’eclissi precedente",
     "eclipseNext": "Vai all’eclissi successiva",
@@ -214,7 +221,8 @@
     "starDensityAria": "Densità delle stelle particellari. Zero nasconde le stelle particellari.",
     "cookieSettings": "Impostazioni cookie",
     "cookieDismiss": "Chiudi senza modificare la scelta",
-    "cookieChoiceNote": "L’accettazione e il rifiuto vengono ricordati per 6 mesi. X non modifica la scelta; senza una scelta, la richiesta riappare alla prossima visita."
+    "cookieChoiceNote": "L’accettazione e il rifiuto vengono ricordati per 6 mesi. X non modifica la scelta; senza una scelta, la richiesta riappare alla prossima visita.",
+    "music": "Musica"
   },
   "timer": {
     "timerClose": "Chiudi timer",

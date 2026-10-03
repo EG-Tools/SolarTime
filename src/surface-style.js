@@ -24,6 +24,16 @@
     col=base*(1.05+.45*pow(n.z,.5))*gain;
     col+=active*vec3(${sun.glow.map(f).join(',')})*bright*brightCycle*facing;`;
   const seam=Object.freeze({minBand:2,maxBand:32,ratio:.012});
-  const api=Object.freeze({sun,seam,warpGLSL,lightingGLSL});
+  const ringSamplingGLSL=`vec4 ringSample(float f){vec4 c=texture2D(ringMap,vec2(clamp(f,ringTexel*.5,1.-ringTexel*.5),.5));return vec4(c.rgb*c.a,c.a);}
+    vec4 ringFiltered(float f,float aa){vec4 c=(ringSample(f-aa*.5)+2.*ringSample(f)+ringSample(f+aa*.5))*.25;return vec4(c.rgb/max(c.a,.00001),c.a);}`;
+  // Saturn-radius units in the ring frame (Y = pole). Shadow is illumination,
+  // never opacity, and depends on the Sun rather than the camera or tour age.
+  const ringShadowGLSL=`float ringShadow(vec3 point,vec3 sunDirection){
+    float toward=-dot(point,sunDirection);
+    float clearance=length(point+sunDirection*max(toward,0.));
+    // 10% weaker shadow; 50% wider penumbra around the same centre (1.02).
+    return 1.-.702*(1.-smoothstep(.90,1.14,clearance))*smoothstep(0.,.15,toward);
+  }`;
+  const api=Object.freeze({sun,seam,warpGLSL,lightingGLSL,ringSamplingGLSL,ringShadowGLSL});
   if(typeof module==='object'&&module.exports)module.exports=api;else root.SolarSurfaceStyle=api;
 })(typeof window==='object'?window:globalThis);

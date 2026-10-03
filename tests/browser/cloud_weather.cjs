@@ -26,7 +26,7 @@ async function main(){
     send=(method,params={},sessionId)=>new Promise((resolve,reject)=>{const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP timeout: '+method));},45000);pending.set(id,{resolve,reject,timer});socket.send(JSON.stringify({id,method,params,sessionId}));});
     target=(await send('Target.createTarget',{url:'about:blank'})).targetId;
     const session=(await send('Target.attachToTarget',{targetId:target,flatten:true})).sessionId;
-    const evaluate=async expression=>{const result=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true},session);if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value;};
+    const evaluate=async expression=>{const result=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true},session).catch(error=>{throw Error(error.message+' ['+expression.slice(0,160)+']');});if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value;};
     await evaluate('document.body.innerHTML='+JSON.stringify('<canvas id="test" width="128" height="128"></canvas>'));
     for(const file of ['src/surface-style.js','src/surface.js'])await evaluate(fs.readFileSync(path.join(root,file),'utf8'));
     const python=fs.readFileSync(path.join(__dirname,'cloud_weather.py'),'utf8');
@@ -112,6 +112,11 @@ async function main(){
     if(process.argv.includes('--alignment-app'))console.log(JSON.stringify({alignmentApp:await require('./alignment_app.cjs')({root,evaluate,send,session})}));
     if(process.argv.includes('--orbit-spacing-app'))console.log(JSON.stringify({orbitSpacingApp:await require('./orbit_spacing_app.cjs')({root,evaluate,send,session})}));
     if(process.argv.includes('--keyboard-camera-app'))console.log(JSON.stringify({keyboardCameraApp:await require('./keyboard_camera.cjs')({root,evaluate,send,session})}));
+    if(process.argv.includes('--ring-debris')){
+      await evaluate(fs.readFileSync(path.join(root,'src/ring-tour.js'),'utf8'));
+      const debris=await evaluate(fs.readFileSync(path.join(__dirname,'ring_debris.js'),'utf8'));console.log(JSON.stringify({ringDebris:debris}));assert.equal(debris.error,0);
+    }
+    if(['--travel-return','--focus-input','--travel-pause','--travel-optimization','--ring-tour-app','--replay-transition','--flight-atlas','--travel-controls','--opening-settings','--ring-tour-resume','--ring-tour-shortcuts','--ring-tour-card','--ring-tour-fullscreen','--ring-tour-navigation','--help-onboarding'].some(flag=>process.argv.includes(flag)))console.log(JSON.stringify({ringTourApp:await require('./ring_tour.cjs')({root,evaluate,send,session})}));
     await send('Target.closeTarget',{targetId:target});target=null;
     await send('Browser.close').catch(()=>{});
   }finally{

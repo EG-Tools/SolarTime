@@ -14,7 +14,7 @@ test('keyboard body navigation preserves an active tracking camera',()=>{
   assert.match(app,/trackedBodyId\(\)\{return renderer\.cameraTween\?\.to\?\.focus\|\|renderer\.camera\.focus\|\|null;\}/);
   assert.match(app,/keepTracking=!!trackedBodyId\(\)/);
   assert.match(app,/if\(keepTracking\)focusBody\(next\.id\)/);
-  assert.match(app,/if\(UI\.topDialog\(\)\)return;\s*if\(key==='arrowleft'\|\|key==='arrowright'\)/);
+  assert.ok(app.indexOf("if(UI.topDialog())return;")<app.indexOf("if(key==='arrowleft'||key==='arrowright')"));
   assert.ok(app.indexOf("if(key==='arrowleft'||key==='arrowright')")<app.indexOf("if(event.target.closest?.('button,a'))return"));
 });
 
@@ -28,7 +28,7 @@ test('Enter follows the selected or nearest visible planet and restores the prio
 
 test('Help uses three keyboard columns, four mouse columns and two columns on phones',()=>{
   const html=read('index.html'),css=read('styles.css');
-  assert.match(html,/← →[^]*↑ ↓<\/kbd><span data-i18n="cameraTravel">전진·후진[^]*<kbd>\+<\/kbd><span data-i18n="actualScaleShortcut">실제 비율/);
+  assert.deepEqual([...html.matchAll(/<div class="shortcut-row">(.*?)<\/div>/g)].map(row=>[...row[1].matchAll(/data-i18n="([^"]+)"/g)].map(m=>m[1])),[['pause','realTime','fullscreen'],['music','zenMode','actualScaleShortcut'],['defaultCamera','savedCameras','ringTravel'],['planetSwitch','cameraTravel']]);
   assert.match(html,/shortcut-row shortcut-mouse-row[^]*cameraRotate[^]*zoomInOut[^]*screenPan[^]*cameraTravel/);
   assert.match(css,/\.shortcut-row\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(css,/\.shortcut-mouse-row\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
@@ -44,7 +44,7 @@ test('up and down arrows use the shared camera path continuously while held',()=
   assert.match(app,/heldZoom!==0\|\|mono-/);
   assert.match(app,/if\(heldZoom&&dt>0\)keyboardZoom\(Math\.exp\(heldZoom\*1\.35\*dt\),mono\)/);
   assert.match(app,/function keyboardZoom\(factor,mono=performance\.now\(\)\)[^]*renderer\.set(?:Dolly|Zoom)/);
-  assert.match(app,/document\.hidden\)\{clearKeyboardZoom\(\)/);
+  assert.match(app,/document\.hidden\)\{helpReminder\.touch\(true\);clearKeyboardZoom\(\)/);
   assert.doesNotMatch(app,/event\.target===canvas&&\(key==='arrowup'\|\|key==='arrowdown'\)/);
   assert.ok(app.indexOf("if(key==='arrowup'||key==='arrowdown')")<app.indexOf("if(event.target.closest?.('button,a'))return"));
 });

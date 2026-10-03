@@ -2,6 +2,13 @@
 (function(root){'use strict';
 const TAU=Math.PI*2,DRIFT=.22*Math.PI/180,COS30=Math.sqrt(.75);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+// Fixed UV anchors on universe-optimized.webp, independent of page drift.
+// A: dark upper/lower sky. B: visibly textured sections of the nebula band.
+const JUMP_LOCATORS=Object.freeze([
+ ...[.04,.20,.36,.52,.68,.84].flatMap((u,i)=>[
+  {id:'A'+(i*2+1),kind:'dark',u,v:.20},{id:'A'+(i*2+2),kind:'dark',u,v:.84}]),
+ ...[[.31,.57],[.47,.47],[.61,.48],[.82,.49],[.93,.43]].map(([u,v],i)=>({id:'B'+(i+1),kind:'bright',u,v}))
+].map(p=>Object.freeze({...p,point:Object.freeze({x:Math.cos((p.u-.5)*TAU)*Math.cos((.5-p.v)*Math.PI),y:Math.sin((p.u-.5)*TAU)*Math.cos((.5-p.v)*Math.PI),z:Math.sin((.5-p.v)*Math.PI)})})));
 const edgeShadeStrength=()=>root.document?.documentElement?.classList?.contains('solar-phone-layout')?0:.24;
 function samplePanorama(tex,u,v,out,index=0){
  const w=tex.width,h=tex.height,tx=((u%1+1)%1)*w-.5,ty=clamp(v*h-.5,0,h-1);
@@ -97,7 +104,7 @@ class Sky{
   this.random=rand(610639);this.comet=null;this.nextComet=18+this.random()*22;this.lastTime=0;
    // Choose a fresh panorama longitude on every launch/reload, then retain it
    // for this page lifetime while the existing passive drift continues from it.
-   this.offset=Math.random()*TAU;this.lastEffect=null;this.tanFov=Math.tan(38*Math.PI/180);this.lastGPU=-Infinity;
+   this.offset=Math.random()*TAU;this.lastEffect=null;this.tanFov=Math.tan(30.4*Math.PI/180);this.lastGPU=-Infinity;
   this.rayTables=new Map();this.visibleStars=[];this.cameraMotionAt=-Infinity;
   this.gamma=new Float32Array(4096);for(let i=0;i<4096;i++)this.gamma[i]=Math.pow(i/4095,.95)*255*.5896;
   canvas.addEventListener('webglcontextlost',e=>{
@@ -108,6 +115,22 @@ class Sky{
   this.initialize();
  }
  invalidate(){this.lastPose=null;this.lastKey='';this.lastGPU=-Infinity;this.starPose=null;}
+ jumpLocators(kind){
+  return JUMP_LOCATORS.filter(p=>p.kind===kind).map(p=>{
+   const world=this.fromPanorama(p.point);return {...p,direction:[world.x,world.y,world.z]};
+  });
+ }
+ drawJumpLocators(ctx,active){
+  const host=root.location?.hostname;
+  if(!this.panAxes||!(host==='localhost'||host==='127.0.0.1'||host==='[::1]'||root.location?.protocol==='file:'))return;
+  ctx.save();ctx.font='12px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+  for(const locator of JUMP_LOCATORS){
+   const p=this.project(locator.point);if(!p||p.x<0||p.x>this.w||p.y<0||p.y>this.h)continue;
+   ctx.globalAlpha=locator.id===active?1:.65;ctx.strokeStyle=ctx.fillStyle=locator.kind==='dark'?'#8fbcd9':'#e6c47e';
+   ctx.beginPath();ctx.arc(p.x,p.y,locator.id===active?7:3,0,TAU);ctx.stroke();ctx.fillText(locator.id,p.x+10,p.y);
+  }
+  ctx.restore();
+ }
  memoryUsage(){
   const active=!!this.gl&&!this.disposed&&this.ready;
   const textures=active&&this.texture?(this.stats.textureSize?.[0]||0)*(this.stats.textureSize?.[1]||0)*4:0;
@@ -161,11 +184,9 @@ class Sky{
    const vs=shader(g,g.VERTEX_SHADER,'attribute vec2 a;varying vec2 p;void main(){p=a;gl_Position=vec4(a,0.,1.);}');
    let fs;
    try{fs=shader(g,g.FRAGMENT_SHADER,`precision ${precision} float;
-    varying vec2 p;uniform sampler2D sky;uniform vec3 right,down,forward;uniform vec2 size;uniform float drift,fov,edgeShade;
+    varying vec2 p;uniform sampler2D sky;uniform vec3 right,down,forward;uniform vec2 size;uniform float fov,edgeShade;
     void main(){
-     vec3 ray=normalize(vec3(p.x*size.x/size.y*fov,-p.y*fov,-1.));vec3 q=right*ray.x+down*ray.y+forward*ray.z;
-     float cs=cos(drift),sn=sin(drift);q=vec3(q.x*cs-q.y*sn,q.x*sn+q.y*cs,q.z);
-     q=normalize(vec3(q.x,q.y*.866025403784-q.z*.5,q.y*.5+q.z*.866025403784));
+     vec3 ray=normalize(vec3(p.x*size.x/size.y*fov,-p.y*fov,-1.));vec3 q=normalize(right*ray.x+down*ray.y+forward*ray.z);
      float longitude=length(q.xy)>.0000001?atan(q.y,q.x):0.;
      vec2 uv=vec2(fract(longitude/6.28318530718+.5),.5-asin(clamp(q.z,-1.,1.))/3.14159265359);
      vec3 haze=texture2D(sky,uv).rgb;float vignette=1.-edgeShade*pow(clamp(length(p)*.6,0.,1.),2.);
@@ -179,7 +200,7 @@ class Sky{
    g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
    // Cache all locations once. Never query driver state in the drawing loop.
    this.attribute=g.getAttribLocation(program,'a');g.enableVertexAttribArray(this.attribute);g.vertexAttribPointer(this.attribute,2,g.FLOAT,false,0,0);
-   this.u=Object.fromEntries(['right','down','forward','size','drift','fov','sky','edgeShade'].map(k=>[k,g.getUniformLocation(program,k)]));
+   this.u=Object.fromEntries(['right','down','forward','size','fov','sky','edgeShade'].map(k=>[k,g.getUniformLocation(program,k)]));
    this.uploadSkyImage(this.image);
    this.edgeShadeStrength=null;g.useProgram(program);g.uniform1i(this.u.sky,0);g.uniform1f(this.u.fov,this.tanFov);
    const sources=root.SolarVisualEffects.starShaderSources(precision);
@@ -230,7 +251,7 @@ class Sky{
  }
  axes(camera){const a=camera.azimuth,e=camera.elevation,c=Math.cos(a),s=Math.sin(a),ce=Math.cos(e),se=Math.sin(e);return {right:[c,-s,0],down:[-s*se,-c*se,-ce],forward:[-s*ce,-c*ce,se]};}
  updateAxes(camera){
-  if(!this.axesNow||this.axesA!==camera.azimuth||this.axesE!==camera.elevation){this.axesNow=this.axes(camera);this.axesA=camera.azimuth;this.axesE=camera.elevation;}
+  if(camera.viewAxes||this.explicitAxes||!this.axesNow||this.axesA!==camera.azimuth||this.axesE!==camera.elevation){this.axesNow=camera.viewAxes||this.axes(camera);this.axesA=camera.azimuth;this.axesE=camera.elevation;this.explicitAxes=!!camera.viewAxes;}
   if(!this.panAxes||this.panOffset!==this.offset||this.panSource!==this.axesNow){
    const cs=Math.cos(this.offset),sn=Math.sin(this.offset),transform=a=>{
     const x=a[0]*cs-a[1]*sn,y=a[0]*sn+a[1]*cs;return [x,y*COS30-a[2]*.5,y*.5+a[2]*COS30];
@@ -239,22 +260,63 @@ class Sky{
    this.panOffset=this.offset;this.panSource=this.axesNow;
   }
  }
+ captureReplayBackground(){
+  if(!this.axesNow)return null;
+  const copy=axes=>Object.fromEntries(Object.entries(axes).map(([key,value])=>[key,[...value]]));
+  const stars=copy(this.starAxes||this.panAxes),previous=this.skyPrevious,dt=(this.skySample?.time-previous?.time)/1000;
+  const spin=[0,0,0];
+  if(dt>1e-4&&dt<.5)for(const key of ['right','down','forward']){
+   const a=previous.axes[key],b=stars[key];
+   spin[0]+=(a[1]*b[2]-a[2]*b[1])/(2*dt);spin[1]+=(a[2]*b[0]-a[0]*b[2])/(2*dt);spin[2]+=(a[0]*b[1]-a[1]*b[0])/(2*dt);
+  }
+  return {stars,spin};
+ }
+ updateStarAxes(replay){
+  const keys=['right','down','forward'],dot=(a,b)=>a.reduce((n,v,i)=>n+v*b[i],0);
+  if(replay?.reveal&&replay.from&&this.starBridge!==replay.from){
+   this.starBridge=replay.from;
+   this.starRemap={from:replay.from.stars,to:this.panAxes,spin:replay.from.spin||[0,0,0],carry:0,elapsed:0,start:replay.clock};
+  }
+  if(!this.starRemap){this.starAxes=this.panAxes;return;}
+  // The carry clock belongs to THIS remap, not the next T animation. Reusing
+  // a new departure's negative carry used to rewind the entire sky instantly.
+  const elapsed=replay?.from===this.starBridge&&Number.isFinite(replay?.carry)?replay.carry:
+   Number.isFinite(this.starRemap.start)?((replay?.clock??performance.now())-this.starRemap.start)/1000:4;
+  const t=this.starRemap.elapsed=clamp(Math.max(this.starRemap.elapsed,elapsed),0,4),u=t/4,carry=t-4*u**4*(2.5-3*u+u*u);
+  if(this.starSource===this.panAxes&&this.starMapping===this.starRemap&&this.starRemap.carry===carry)return;
+  this.starRemap.carry=carry;
+  const {from:original,to,spin}=this.starRemap,speed=Math.hypot(...spin),angle=Math.min(.3,speed)*carry;
+  const axis=spin.map(v=>v/(speed||1)),cs=Math.cos(angle),sn=Math.sin(angle);
+  const rotate=v=>{const d=dot(axis,v),c=[axis[1]*v[2]-axis[2]*v[1],axis[2]*v[0]-axis[0]*v[2],axis[0]*v[1]-axis[1]*v[0]];return v.map((x,i)=>x*cs+c[i]*sn+axis[i]*d*(1-cs));};
+  const from=Object.fromEntries(keys.map(k=>[k,rotate(original[k])]));
+  this.starAxes=Object.fromEntries(keys.map(key=>[key,[0,1,2].map(i=>keys.reduce((sum,k)=>sum+from[k][i]*dot(this.panAxes[key],to[k]),0))]));
+  this.starSource=this.panAxes;this.starMapping=this.starRemap;
+ }
  draw(seconds,camera,options){
   if(this.disposed||this.paused)return;
   const drawCount=root.SolarVisualEffects.drawCount(this,options);
   if(this.lastEffect!==null&&options.skyMotion)this.offset=(this.offset+Math.max(0,seconds-this.lastEffect)*DRIFT)%TAU;
   this.lastEffect=seconds;this.camera=camera;this.updateAxes(camera);
+  const replay=camera.replaySky;this.updateStarAxes(replay);
+  const clock=replay?.clock??performance.now();
+  if(!this.skySample||clock>this.skySample.time){this.skyPrevious=this.skySample;this.skySample={time:clock,axes:this.starAxes};}
+  // Galaxy and stars share one persistent orientation across the hidden
+  // camera reset. Warp keeps the same lens, panorama and star field.
+  this.tanFov=Math.tan(clamp(camera.transitionFov??60.8,40,120)*Math.PI/360);
+  // Stars retain their 60.8-degree projection throughout the jump.
+  this.starTanFov=replay?Math.tan(30.4*Math.PI/180):this.tanFov;
   if(!this.ready||!this.w||!this.h)return;
-  const now=performance.now(),a=camera.azimuth,e=camera.elevation,pose=this.lastPose,shade=edgeShadeStrength(),starTick=options.twinkle?Math.floor(seconds*30):0;
-  const cameraChanged=!pose||pose.a!==a||pose.e!==e||pose.w!==this.w||pose.h!==this.h||pose.shade!==shade;
+  const drawStars=options.twinkle&&!camera.hideStars;
+  const now=performance.now(),a=camera.azimuth,e=camera.elevation,pose=this.lastPose,shade=edgeShadeStrength(),starTick=drawStars?Math.floor(seconds*30):0;
+  const cameraChanged=!pose||pose.axes!==camera.viewAxes||pose.a!==a||pose.e!==e||pose.w!==this.w||pose.h!==this.h||pose.shade!==shade||pose.fov!==this.tanFov||pose.drawStars!==drawStars||pose.starAxes!==this.starAxes;
   const unchanged=!cameraChanged&&pose.offset===this.offset&&pose.starTick===starTick;
   if(unchanged){this.stats.skipped++;return;}
   if(!this.gl){
-   if(this.softwareA!==a||this.softwareE!==e){this.cameraMotionAt=now;this.softwareA=a;this.softwareE=e;}
+   if(this.softwareA!==a||this.softwareE!==e||this.softwareFov!==this.tanFov){this.cameraMotionAt=now;this.softwareA=a;this.softwareE=e;this.softwareFov=this.tanFov;}
    const moving=now-this.cameraMotionAt<180;
-   const key=[a,e,this.offset,this.w,this.h,moving,shade].join(':');
+   const key=[a,e,this.offset,this.w,this.h,moving,shade,this.tanFov,Object.values(this.starAxes).flat().join(',')].join(':');
    if(this.softwareDesired?.key!==key)this.softwareDesired={key,revision:(this.softwareRevision=(this.softwareRevision||0)+1),a,e,
-    moving,shade,axes:this.panAxes,offset:this.offset,w:this.w,h:this.h,epoch:this.softwareEpoch};
+    moving,shade,fov:this.tanFov,axes:this.starAxes,offset:this.offset,w:this.w,h:this.h,epoch:this.softwareEpoch};
    this.softwarePump();return;
   }
   // Passive .22-degree/s drift: 30 updates/s. Actual camera movement stays at
@@ -263,26 +325,26 @@ class Sky{
   const g=this.gl;if(g.isContextLost())return;
   g.viewport(0,0,this.canvas.width,this.canvas.height);g.disable(g.BLEND);g.useProgram(this.program);
   g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.enableVertexAttribArray(this.attribute);g.vertexAttribPointer(this.attribute,2,g.FLOAT,false,0,0);
-  for(const k of ['right','down','forward'])g.uniform3fv(this.u[k],this.axesNow[k]);
-  g.uniform2f(this.u.size,this.w,this.h);g.uniform1f(this.u.drift,this.offset);
+  for(const k of ['right','down','forward'])g.uniform3fv(this.u[k],this.starAxes[k]);
+  g.uniform2f(this.u.size,this.w,this.h);g.uniform1f(this.u.fov,this.tanFov);
   if(this.edgeShadeStrength!==shade){g.uniform1f(this.u.edgeShade,shade);this.edgeShadeStrength=shade;}
   g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,this.texture);g.drawArrays(g.TRIANGLES,0,6);
-  if(options.twinkle&&this.starProgram&&drawCount){
+  if(drawStars&&this.starProgram&&drawCount){
    g.enable(g.BLEND);g.blendFunc(g.SRC_ALPHA,g.ONE);g.useProgram(this.starProgram);g.bindBuffer(g.ARRAY_BUFFER,this.starBuffer);
    g.enableVertexAttribArray(this.starA.position);g.vertexAttribPointer(this.starA.position,3,g.FLOAT,false,24,0);
    g.enableVertexAttribArray(this.starA.appearance);g.vertexAttribPointer(this.starA.appearance,3,g.FLOAT,false,24,12);
-   for(const k of ['right','down','forward'])g.uniform3fv(this.starU[k],this.panAxes[k]);
-   g.uniform2f(this.starU.size,this.w,this.h);g.uniform1f(this.starU.fov,this.tanFov);
+   for(const k of ['right','down','forward'])g.uniform3fv(this.starU[k],this.starAxes[k]);
+   g.uniform2f(this.starU.size,this.w,this.h);g.uniform1f(this.starU.fov,this.starTanFov);
    g.uniform1f(this.starU.pointScale,this.canvas.width/this.w);g.uniform1f(this.starU.seconds,seconds);
    g.drawArrays(g.POINTS,0,drawCount);g.disable(g.BLEND);
   }
-  this.lastPose={a,e,offset:this.offset,w:this.w,h:this.h,starTick,shade};this.lastGPU=now;this.stats.frames++;
+  this.lastPose={a,e,axes:camera.viewAxes,offset:this.offset,w:this.w,h:this.h,starTick,shade,fov:this.tanFov,drawStars,starAxes:this.starAxes};this.lastGPU=now;this.stats.frames++;
  }
- rayTable(sw,sh,aspect,shade=edgeShadeStrength()){
-  const key=[sw,sh,aspect,this.tanFov,shade].join(':');let table=this.rayTables.get(key);if(table)return table;
+ rayTable(sw,sh,aspect,shade=edgeShadeStrength(),fov=this.tanFov){
+  const key=[sw,sh,aspect,fov,shade].join(':');let table=this.rayTables.get(key);if(table)return table;
   table=new Float32Array(sw*sh*4);
   for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){
-   const sx=(x+.5)/sw*2-1,sy=(y+.5)/sh*2-1,qx=sx*aspect*this.tanFov,qy=sy*this.tanFov,inv=1/Math.hypot(qx,qy,1),i=(y*sw+x)*4;
+   const sx=(x+.5)/sw*2-1,sy=(y+.5)/sh*2-1,qx=sx*aspect*fov,qy=sy*fov,inv=1/Math.hypot(qx,qy,1),i=(y*sw+x)*4;
    table[i]=qx*inv;table[i+1]=qy*inv;table[i+2]=inv;table[i+3]=1-shade*Math.min(1,Math.hypot(sx,sy)*.6)**2;
   }
   if(this.rayTables.size>=2)this.rayTables.delete(this.rayTables.keys().next().value);this.rayTables.set(key,table);return table;
@@ -294,7 +356,7 @@ class Sky{
   if(delay>0){if(!this.softwareTimer)this.softwareTimer=setTimeout(()=>{this.softwareTimer=null;this.softwarePump();},delay);return;}
   if(this.softwareTimer){clearTimeout(this.softwareTimer);this.softwareTimer=null;}
   this.softwareBusy=true;this.lastSoftware=now;request.started=now;
-  const [sw,sh]=rasterSize(request.w,request.h,request.moving),rays=this.rayTable(sw,sh,request.w/request.h,request.shade);this.edgeShadeStrength=request.shade;
+  const [sw,sh]=rasterSize(request.w,request.h,request.moving),rays=this.rayTable(sw,sh,request.w/request.h,request.shade,request.fov);this.edgeShadeStrength=request.shade;
   if(!this.softwareCanvas)this.softwareCanvas=document.createElement('canvas');
   const canvas=this.softwareCanvas;
   if(canvas.width!==sw||canvas.height!==sh||!this.softwareImage){canvas.width=sw;canvas.height=sh;this.softwareImage=canvas.getContext('2d').createImageData(sw,sh);}
@@ -330,28 +392,36 @@ class Sky{
  cancelSoftware(){this.softwareEpoch++;clearTimeout(this.softwareTimer);this.softwareTimer=null;this.softwareBusy=false;this.softwareDesired=null;}
  pause(){if(this.paused||this.disposed)return;this.paused=true;this.lastEffect=null;this.cancelSoftware();}
  resume(){if(this.disposed||!this.paused)return;this.paused=false;this.lastEffect=null;this.lastKey='';}
- toPanorama(world){return rotate(rotate(world,this.offset,'z'),Math.PI/6,'x');}
- fromPanorama(p){return rotate(rotate(p,-Math.PI/6,'x'),-this.offset,'z');}
+ remapPanorama(p,inverse=false){
+  if(!this.starRemap)return p;
+  const {from,to}=this.starRemap,source=inverse?from:to,target=inverse?to:from,v=[p.x,p.y,p.z],out=[0,0,0];
+  for(const key of ['right','down','forward']){const weight=source[key].reduce((n,x,i)=>n+x*v[i],0);for(let i=0;i<3;i++)out[i]+=target[key][i]*weight;}
+  return {x:out[0],y:out[1],z:out[2]};
+ }
+ toPanorama(world){return this.remapPanorama(rotate(rotate(world,this.offset,'z'),Math.PI/6,'x'));}
+ fromPanorama(p){return rotate(rotate(this.remapPanorama(p,true),-Math.PI/6,'x'),-this.offset,'z');}
  ray(x,y){const a=this.axesNow,qx=(x/this.w*2-1)*this.w/this.h*this.tanFov,qy=(y/this.h*2-1)*this.tanFov,len=Math.hypot(qx,qy,1);return {x:(a.right[0]*qx+a.down[0]*qy-a.forward[0])/len,y:(a.right[1]*qx+a.down[1]*qy-a.forward[1])/len,z:(a.right[2]*qx+a.down[2]*qy-a.forward[2])/len};}
- project(p){
-  const axes=this.panAxes;
+ project(p,axes=this.starAxes||this.panAxes,fov=this.tanFov){
   // Preserve direct axes-based use by older tests/integrations.
   if(!axes){const world=this.fromPanorama(p),a=this.axesNow;if(!a)return null;const dot=v=>v[0]*world.x+v[1]*world.y+v[2]*world.z,z=dot(a.forward);if(z>=-.08)return null;return {x:(1+dot(a.right)/(-z*this.tanFov*this.w/this.h))*this.w/2,y:(1+dot(a.down)/(-z*this.tanFov))*this.h/2};}
   const dot=a=>a[0]*p.x+a[1]*p.y+a[2]*p.z,z=dot(axes.forward);if(z>=-.08)return null;
-  return {x:(1+dot(axes.right)/(-z*this.tanFov*this.w/this.h))*this.w/2,y:(1+dot(axes.down)/(-z*this.tanFov))*this.h/2};
+  return {x:(1+dot(axes.right)/(-z*fov*this.w/this.h))*this.w/2,y:(1+dot(axes.down)/(-z*fov))*this.h/2};
+ }
+ drawStars(ctx,seconds,options,glow,occluders=[]){
+  if(!this.axesNow||this.paused||this.disposed||!options.twinkle)return;
+  const axes=this.starAxes||this.panAxes,fov=this.starTanFov||this.tanFov;
+   const stars=root.SolarVisualEffects.starsFor(this,options),pose=this.starPose;
+   if(!pose||pose.source!==stars||pose.axes!==axes||pose.w!==this.w||pose.h!==this.h||pose.fov!==fov){
+    this.visibleStars=[];
+    for(const [x,y,z,r,brightness,phase]of stars){const p=this.project({x,y,z},axes,fov);if(p&&p.x>=0&&p.x<=this.w&&p.y>=0&&p.y<=this.h)this.visibleStars.push([p.x,p.y,r,brightness,phase]);}
+    this.starPose={source:stars,axes,w:this.w,h:this.h,fov};this.stats.starProjections+=stars.length;
+   }
+   const starRatio=ctx.getTransform().a||1;
+   for(const [x,y,r,brightness,phase]of this.visibleStars){if(occluders.some(p=>!p.screen.behind&&(x-p.screen.x)**2+(y-p.screen.y)**2<p.r*p.r))continue;if(r<.55){root.SolarVisualEffects.drawTinyStar(ctx,x,y,r,brightness,phase,starRatio);continue;}const period=5+Math.abs(Math.sin(phase*.754877666))*20,primary=.5+.5*Math.sin(seconds/period*TAU+phase),secondary=.5+.5*Math.sin(seconds/(period*1.618+3)*TAU+phase*.37),irregular=primary*.68+secondary*.32;glow(ctx,x,y,r*.66,brightness*(.62+.30*irregular));}
  }
  decorate(ctx,seconds,options,glow){
   if(!this.axesNow||this.paused||this.disposed)return;
-  if(options.twinkle&&!this.gl){
-   const stars=root.SolarVisualEffects.starsFor(this,options),pose=this.starPose;
-   if(!pose||pose.source!==stars||pose.axes!==this.panAxes||pose.w!==this.w||pose.h!==this.h){
-    this.visibleStars=[];
-    for(const [x,y,z,r,brightness,phase]of stars){const p=this.project({x,y,z});if(p&&p.x>=0&&p.x<=this.w&&p.y>=0&&p.y<=this.h)this.visibleStars.push([p.x,p.y,r,brightness,phase]);}
-    this.starPose={source:stars,axes:this.panAxes,w:this.w,h:this.h};this.stats.starProjections+=stars.length;
-   }
-   const starRatio=ctx.getTransform().a||1;
-   for(const [x,y,r,brightness,phase]of this.visibleStars){if(r<.55){root.SolarVisualEffects.drawTinyStar(ctx,x,y,r,brightness,phase,starRatio);continue;}const period=5+Math.abs(Math.sin(phase*.754877666))*20,primary=.5+.5*Math.sin(seconds/period*TAU+phase),secondary=.5+.5*Math.sin(seconds/(period*1.618+3)*TAU+phase*.37),irregular=primary*.68+secondary*.32;glow(ctx,x,y,r*.66,brightness*(.62+.30*irregular));}
-  }
+  if(!this.camera?.hideStars&&!this.camera?.replaySky&&!this.gl)this.drawStars(ctx,seconds,options,glow);
   if(!options.comets){this.comet=null;this.nextComet=Math.max(this.nextComet,seconds+15);return;}
   if(seconds<this.lastTime){this.nextComet=seconds+20;this.comet=null;}this.lastTime=seconds;
   if(!this.comet&&seconds>=this.nextComet){

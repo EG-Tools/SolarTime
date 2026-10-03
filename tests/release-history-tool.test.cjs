@@ -31,7 +31,7 @@ test('write mode regenerates an isolated fixture, retains Korean history and is 
   history.unshift({...history[0],version:(Number(history[0].version)+.01).toFixed(2)});
   // Synthetic fixture only: mock missing translations without mutating or
   // misrepresenting the real app's existing translation gaps.
-  for(const row of history.slice(0,10))for(const code of languages)if(!row.localized[code]){row.localized[code]=row.localized.en.map(s=>'fixture '+s);delete allow.inherited[code+':release.'+row.version];}
+  for(const row of history.slice(0,10))for(const code of languages)if(row.languagePolicy!=='korean-only'&&!row.localized[code]){row.localized[code]=row.localized.en.map(s=>'fixture '+s);delete allow.inherited[code+':release.'+row.version];}
   fs.writeFileSync(historyFile,JSON.stringify(history));fs.writeFileSync(allowFile,JSON.stringify(allow));
   const report=api.run(tmp,{write:true});assert.ok(report.backup);
   const recent=JSON.parse(fs.readFileSync(historyFile)),archive=JSON.parse(fs.readFileSync(path.join(tmp,'i18n/releases-archive-ko.json')));
@@ -42,4 +42,11 @@ test('write mode regenerates an isolated fixture, retains Korean history and is 
   // Only this test's fresh, explicitly bounded temporary directory.
   if(path.dirname(tmp)===os.tmpdir()&&path.basename(tmp).startsWith('solar-release-test-'))fs.rmSync(tmp,{recursive:true,force:true});
  }
+});
+
+test('explicit Korean-only notes keep source text without inventing translations',()=>{
+ const rows=structuredClone(records);rows[0].languagePolicy='korean-only';delete rows[0].localized.en;
+ assert.deepEqual(plan(rows,[],codes).missingTranslations,[]);
+ assert.deepEqual(Object.keys(rows[0].localized),['kor']);
+ delete rows[1].localized.en;assert.deepEqual(plan(rows,[],codes).missingTranslations,['0.79:en']);
 });

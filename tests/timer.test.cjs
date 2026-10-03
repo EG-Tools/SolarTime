@@ -3,8 +3,10 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 function moduleFrom(file){const context={window:{SolarModules:{}}};for(const dependency of ['src/alarm-sound.js'])vm.runInNewContext(read(dependency),context);vm.runInNewContext(read(file),context,{filename:file});return context.window.SolarModules;}
 
-test('top actions follow music, language, timer, settings, help and fullscreen order',()=>{
- const html=read('index.html'),ids=['music-toggle','language-toggle','timer-button','settings-button','help-button','fullscreen-button'];
+test('help belongs to the brand; top actions follow music, language, timer, settings and fullscreen order',()=>{
+ const html=read('index.html'),ids=['music-toggle','language-toggle','timer-button','settings-button','fullscreen-button'];
+ assert.ok(html.indexOf('id="help-button"')<html.indexOf('class="top-actions"'));
+ assert.match(html,/id="help-button" class="brand-help"/);
  let previous=-1;for(const id of ids){const index=html.indexOf('id="'+id+'"');assert.ok(index>previous,id);previous=index;}
 });
 
@@ -12,7 +14,7 @@ test('language, timer and display-settings cards are mutually exclusive',()=>{
  const app=read('src/app.js');
  assert.match(app,/onOpen:\(\)=>\{closeLanguageMenu\(\);settings\(false\);closeBody\(\);\}/);
  assert.match(app,/function settings\(open\)[^{]+\{[^}]*if\(next\)\{closeLanguageMenu\(\);timerController\?\.close\(\);/);
- assert.match(app,/function openLanguageMenu\(\)\{\s*settings\(false\);timerController\?\.close\(\);/);
+ assert.match(app,/function openLanguageMenu\(\)\{\s*closeOpeningMenu\(\);\s*settings\(false\);timerController\?\.close\(\);/);
 });
 
 test('help feature and shortcut descriptions use the original left alignment',()=>{

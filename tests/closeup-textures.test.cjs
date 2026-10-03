@@ -102,6 +102,8 @@ test('compatibility surface publishes 1024 first and still schedules final detai
  s.update([job],1);assert.equal(sent[1].jobs[0].textureWidth,4096);
 });
 test('texture payload bytes, compression, shader and helper stay unchanged',()=>{
+ // Runtime pins include the shared ring sampler/shadow and explicit sky
+ // camera, covered by ring-tour and Saturn-ring tests. Media pins stay intact.
  const crypto=require('node:crypto');
  const baseline=JSON.parse(read('tests/fixtures/texture-v062-hashes.json'));
  for(const [name,hash] of Object.entries(baseline)){
@@ -121,7 +123,7 @@ test('texture payload bytes, compression, shader and helper stay unchanged',()=>
   // every texture manifest, shader and web runtime remains byte-for-byte.
   if(name.endsWith('.cmd'))bytes=Buffer.from(bytes.toString('utf8').replace(/\r\n/g,'\n'));
   // v0.66 adds only scoped cookie-control layout; preserve every older style.
-  if(name==='styles.css')bytes=Buffer.from(bytes.toString('utf8').replace(/\/\* Consent controls share the existing card surface; reserve space for X\. \*\/[\s\S]*?(?=@media\(max-width:760px\)\{\.cookie-consent)/,'').replace(/\/\* Help shortcut guide and CSS mouse controls\. \*\/[\s\S]*?\/\* End help shortcut guide\. \*\/\r?\n/,'').replace(/\/\* Release archive link\. \*\/[\s\S]*?\/\* End release archive link\. \*\/\r?\n/,''));
+  if(name==='styles.css')bytes=Buffer.from(bytes.toString('utf8').replaceAll(':where(html:not([data-focus-input="pointer"]) *)','').replace(/\r?\n\/\* Retain native control focus without promoting mouse input on shortcuts\. \*\/\r?\nhtml\[data-focus-input="pointer"\] :focus\{outline:none\}\r?\n/,'').replace(/\/\* Consent controls share the existing card surface; reserve space for X\. \*\/[\s\S]*?(?=@media\(max-width:760px\)\{\.cookie-consent)/,'').replace(/\/\* Help shortcut guide and CSS mouse controls\. \*\/[\s\S]*?\/\* End help shortcut guide\. \*\/\r?\n/,'').replace(/\/\* Release archive link\. \*\/[\s\S]*?\/\* End release archive link\. \*\/\r?\n/,''));
   // Only the revision diagnostic may follow a release; all layout rules
   // still match the unchanged v0.62 baseline hash after normalization.
   if(name==='src/runtime-optimizations.css'){

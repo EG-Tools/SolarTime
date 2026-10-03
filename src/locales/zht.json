@@ -1,5 +1,9 @@
 {
   "copy": {
+    "openingTravel": "開場旅行",
+    "openingDefault": "預設開場",
+    "openingNone": "無",
+    "openingReload": "按 T 播放所選開場。",
     "metaDescription": "伴隨星光流動的太陽系時鐘，在小宇宙中呈現即時時間、行星公轉、地球與月球。",
     "cookieTitle": "Cookie 使用",
     "cookieMessage": "請選擇是否允許使用 Cookie 進行造訪分析與廣告衡量。",
@@ -56,6 +60,9 @@
     "selectedBody": "所選天體資訊",
     "bodyClose": "關閉天體資訊",
     "focusBody": "近距離查看 · 追蹤天體",
+    "ringTravel": "旅行",
+    "ringTravelStarted": "土星環旅行 · 拖曳環顧四周 · 按 ESC 減速返回",
+    "ringTravelUnavailable": "旅行尚未就緒。請先選擇近距離查看並稍候。",
     "eclipseView": "日食",
     "eclipsePrevious": "前往上一次日食",
     "eclipseNext": "前往下一次日食",
@@ -215,6 +222,7 @@
     "cookieSettings": "Cookie 設定",
     "cookieDismiss": "關閉，不變更選擇",
     "cookieChoiceNote": "同意和拒絕均保留6個月。X不會變更您的選擇；尚未選擇時，下次造訪會再次詢問。",
+    "music": "音樂",
     "timer": "計時器",
     "timerClose": "關閉計時器",
     "alarm": "鬧鐘",

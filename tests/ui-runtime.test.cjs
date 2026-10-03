@@ -15,6 +15,75 @@ function harness(reduced=true){
  return {root,doc,ui:root.SolarModules.UI,timers,frames,nodes,observers,runTimers(){const a=[...timers.values()];timers.clear();a.forEach(f=>f());}};
 }
 function pointer(el,type,x,y){const e=new Event(type,{cancelable:true});Object.assign(e,{clientX:x,clientY:y});el.dispatchEvent(e);return e;}
+
+function escapeHarness(keyboard){
+ const h=harness(),events=new EventTarget();
+ h.root.addEventListener=events.addEventListener.bind(events);h.root.removeEventListener=events.removeEventListener.bind(events);
+ const capture=h.ui.bindFullscreenEscape(h.doc,keyboard);
+ return {...h,capture,events,fullscreen(value){h.doc.fullscreenElement=value?h.doc.documentElement:null;h.doc.dispatchEvent(new Event('fullscreenchange'));}};
+}
+const settle=()=>new Promise(resolve=>setImmediate(resolve));
+test('fullscreen captures only Escape, then releases it on exit and UI disposal',async()=>{
+ const calls=[];let releases=0;
+ const h=escapeHarness({lock:async keys=>calls.push([...keys]),unlock(){releases++;}});
+ assert.equal(h.capture.state,'native');assert.equal(calls.length,0);
+ h.fullscreen(true);h.fullscreen(true);assert.equal(h.capture.state,'pending');await settle();
+ assert.deepEqual(calls,[['Escape']]);assert.equal(h.capture.state,'locked');
+ h.fullscreen(false);assert.equal(h.capture.state,'native');assert.equal(releases,1);
+ h.fullscreen(true);await settle();h.ui.dispose();assert.equal(releases,2);assert.equal(h.capture.state,'native');
+ h.fullscreen(true);await settle();assert.equal(calls.length,2,'disposed owner cannot recapture');
+});
+test('stale keyboard permission completions cannot re-lock an exited or newer fullscreen session',async()=>{
+ const pending=[];let releases=0;
+ const h=escapeHarness({lock:()=>new Promise((resolve,reject)=>pending.push({resolve,reject})),unlock(){releases++;}});
+ h.fullscreen(true);h.fullscreen(false);pending[0].resolve();await settle();assert.equal(h.capture.state,'native');
+ h.fullscreen(true);h.fullscreen(false);h.fullscreen(true);
+ pending[1].reject(Error('old request'));await settle();assert.equal(h.capture.state,'pending');
+ pending[2].resolve();await settle();assert.equal(h.capture.state,'locked');
+ h.fullscreen(false);h.fullscreen(true);h.capture.dispose();pending[3].resolve();await settle();
+ assert.equal(h.capture.state,'native');assert.equal(releases,4);
+});
+test('unsupported or denied keyboard capture safely retains native fullscreen exit without retry loops',async()=>{
+ const unsupported=escapeHarness();unsupported.fullscreen(true);assert.equal(unsupported.capture.state,'unavailable');
+ let attempts=0;
+ const denied=escapeHarness({lock:async()=>{attempts++;throw Error('permission denied');},unlock(){throw Error('not owned');}});
+ denied.fullscreen(true);await settle();assert.equal(denied.capture.state,'unavailable');
+ denied.fullscreen(true);await settle();assert.equal(attempts,1);
+ denied.fullscreen(false);assert.equal(denied.capture.state,'native');denied.fullscreen(true);await settle();assert.equal(attempts,2);
+});
+test('page suspension releases Escape and bfcache restoration obtains a fresh capture',async()=>{
+ let attempts=0,releases=0;
+ const h=escapeHarness({lock:async()=>{attempts++;},unlock(){releases++;}});
+ h.fullscreen(true);await settle();h.events.dispatchEvent(new Event('pagehide'));assert.equal(releases,1);assert.equal(h.capture.state,'native');
+ h.events.dispatchEvent(new Event('pageshow'));await settle();assert.equal(attempts,2);assert.equal(h.capture.state,'locked');
+ h.capture.dispose();h.events.dispatchEvent(new Event('pageshow'));assert.equal(attempts,2);
+});
+test('Escape cancels flight first, then exits fullscreen without restarting or cutting the return',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function handleEscape\(\) \{[\s\S]*?\n      \}/)[0];
+ const doc={fullscreenElement:{}},tour={state:'cruising',stops:0,stop(){if(this.state!=='cruising')return false;this.stops++;this.state='returning';return true;}};
+ const renderer={ringTour:tour};let exits=0;
+ const escape=vm.runInNewContext('('+body+')',{openingReplayLocked:false,openingActive:false,renderer,saveTravelState(){},document:doc,exitFullscreen(){exits++;doc.fullscreenElement=null;}});
+ escape();assert.equal(tour.state,'returning');assert.equal(exits,0);assert.ok(doc.fullscreenElement);
+ escape();assert.equal(exits,1);assert.equal(renderer.ringTour,tour);assert.equal(tour.stops,1);
+ escape();assert.equal(exits,1);assert.equal(tour.stops,1);
+ renderer.ringTour=null;doc.fullscreenElement={};escape();assert.equal(exits,2,'no flight: first Escape exits fullscreen');
+});
+test('Escape during an opening or departure cancels pending resume and restores its destination',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function handleEscape\(\) \{[\s\S]*?\n      \}/)[0];
+ for(const departing of [false,true]){
+  const calls=[],context={openingReplayLocked:false,openingActive:true,openingDeparture:departing,resumeTravel:true,
+   openingCameraTarget:{zoom:.1,dolly:.002,panX:.2},renderer:{animateCamera(target){assert.equal(target,context.openingCameraTarget);calls.push('return');}},finishOpening(){calls.push('unlock');context.openingActive=false;},saveTravelState(){calls.push('save');}};
+  vm.runInNewContext('('+body+')',context)();
+  assert.equal(context.openingActive,false);assert.equal(context.openingDeparture,false);assert.equal(context.resumeTravel,false);
+  assert.deepEqual(calls,['unlock','return','save']);
+ }
+});
+
+test('Escape cannot interrupt a locked T warp',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function handleEscape\(\) \{[\s\S]*?\n      \}/)[0];
+ assert.doesNotThrow(()=>vm.runInNewContext('('+body+')',{openingReplayLocked:true})());
+});
+
 test('top dialog alone closes; a fading card consumes repeated Escape',()=>{const h=harness(false),help=new Element('dialog'),info=new Element('dialog');for(const d of [help,info]){h.ui.bindDialog(d,()=>h.ui.hide(d,()=>d.close()));h.ui.show(d,()=>d.showModal());}assert.equal(h.ui.topDialog(),info);h.ui.dismissTopDialog();assert.ok(info.open&&help.open);h.ui.dismissTopDialog();h.runTimers();assert.equal(info.open,false);assert.ok(help.open);h.ui.dismissTopDialog();h.runTimers();assert.equal(help.open,false);assert.equal(h.ui.dismissTopDialog(),false);});
 test('dialog padding stays open; genuine backdrop clicks close',()=>{const h=harness(),d=new Element('dialog');h.ui.bindDialog(d,()=>h.ui.hide(d,()=>d.close()));h.ui.show(d,()=>d.showModal());pointer(d,'pointerdown',25,25);pointer(d,'click',25,25);assert.ok(d.open);pointer(d,'pointerdown',0,0);pointer(d,'click',0,0);assert.equal(d.open,false);});
 test('dragging out of a card is not an outside click',()=>{const h=harness(),d=new Element('dialog');h.ui.bindDialog(d,()=>d.close());h.ui.show(d,()=>d.showModal());pointer(d,'pointerdown',100,100);pointer(d,'click',0,0);assert.ok(d.open);});

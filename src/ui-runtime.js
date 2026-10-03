@@ -88,14 +88,47 @@
     });
     scripts.set(url,task);task.then(()=>scripts.delete(url),()=>scripts.delete(url));return task;
   }
+  function bindFullscreenEscape(document=root.document,keyboard=root.navigator?.keyboard){
+    // preventDefault alone cannot intercept the browser's fullscreen Escape.
+    // Capture ONLY Escape; native long-press exit and every other key stay free.
+    let stopped=false,revision=0,state='native';
+    function release(){
+      revision++;const owned=state==='pending'||state==='locked';state='native';
+      if(owned)try{keyboard.unlock();}catch(_){}
+    }
+    async function sync(){
+      if(stopped||disposed||!document.fullscreenElement){release();return;}
+      if(state!=='native')return;
+      if(!keyboard?.lock||!keyboard?.unlock){state='unavailable';return;}
+      const request=++revision;state='pending';
+      try{await keyboard.lock(['Escape']);if(request===revision)state='locked';}
+      catch(_){if(request===revision)state='unavailable';}
+    }
+    document.addEventListener('fullscreenchange',sync);
+    root.addEventListener?.('pagehide',release);root.addEventListener?.('pageshow',sync);
+    const dispose=own(()=>{
+      stopped=true;release();document.removeEventListener('fullscreenchange',sync);
+      root.removeEventListener?.('pagehide',release);root.removeEventListener?.('pageshow',sync);
+    });
+    sync();return {get state(){return state;},dispose};
+  }
   function installDocumentGuards(document){
     if(document.documentElement.dataset.solarInputGuards==='true')return;
     document.documentElement.dataset.solarInputGuards='true';
+    // Browsers promote pointer-retained focus to :focus-visible on ANY key.
+    // Only deliberate Tab navigation should reveal the keyboard focus outline.
+    const html=document.documentElement,keyboardTarget=root.addEventListener?root:document;
+    html.dataset.focusInput='pointer';
+    const pointer=()=>{html.dataset.focusInput='pointer';};
+    const keyboard=event=>{if(event.key==='Tab'&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&!event.isComposing)html.dataset.focusInput='keyboard';};
+    document.addEventListener('pointerdown',pointer,true);
+    keyboardTarget.addEventListener('keydown',keyboard,true);
+    own(()=>{document.removeEventListener('pointerdown',pointer,true);keyboardTarget.removeEventListener('keydown',keyboard,true);delete html.dataset.focusInput;});
     const selectable=event=>event.target.closest?.('input,textarea,[contenteditable]:not([contenteditable="false"]),[data-allow-selection]');
     const guard=event=>{if(!selectable(event))event.preventDefault();};
     document.addEventListener('contextmenu',guard);document.addEventListener('selectstart',guard);
     own(()=>{document.removeEventListener('contextmenu',guard);document.removeEventListener('selectstart',guard);delete document.documentElement.dataset.solarInputGuards;});
   }
   function dispose(){if(disposed)return;disposed=true;for(const d of [...dialogOrder])if(shown(d))d.close();for(const frame of animationFrames)root.cancelAnimationFrame(frame);animationFrames.clear();for(const stop of [...cleanups]){cleanups.delete(stop);stop();}for(const timer of timers.values())root.clearTimeout(timer);timers.clear();dialogOrder.length=0;}
-  modules.UI=Object.freeze({fadeMs,shown,visible,show,hide,bindScrollCues,bindPopup,bindDialog,topDialog,dismissTopDialog,dismissAll,outside,loadScript,installDocumentGuards,own,dispose});
+  modules.UI=Object.freeze({fadeMs,shown,visible,show,hide,bindScrollCues,bindPopup,bindDialog,topDialog,dismissTopDialog,dismissAll,outside,loadScript,bindFullscreenEscape,installDocumentGuards,own,dispose});
 })(window);

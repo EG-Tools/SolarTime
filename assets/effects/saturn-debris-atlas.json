@@ -1,0 +1,15 @@
+{
+  "asset": "saturn-debris-atlas.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Asset type: production sprite texture atlas for instanced billboard debris in a Saturn ring flight WebGL demo. Create ONE square 512x512 RGBA image with genuinely transparent background. Exactly four isolated rock/ice fragments, arranged in a precise 2x2 equal-cell atlas. One centered fragment per 256x256 cell with generous transparent padding of at least 24 pixels on every cell edge; nothing crosses cell boundaries. Top left: irregular pale frosted ice boulder. Top right: angular gray-brown rocky fragment. Bottom left: elongated chipped ice fragment with rough opaque surface. Bottom right: compact charcoal-gray craggy rock with lighter dusty facets. Realistic simple 3D-rendered forms, restrained natural texture readable at small sizes. Consistent soft directional illumination from upper left and visible faceted volume, not glossy gemstones. No background scene, no cast shadows outside objects, no text, no cell borders, no grid, no glow. All four silhouettes distinct. Actual transparent alpha outside fragments, never a checkerboard.",
+  "processing": "Lanczos resize to 512×512, WebP quality 84, preserve alpha; no creative post-editing",
+  "layout": {
+    "columns": 2,
+    "rows": 2,
+    "width": 512,
+    "height": 512
+  },
+  "sha256": "1cf596a3e7ed107e4e424d34efa36a0726f858aca9dcf3768fd504198c81919a",
+  "bytes": 64898,
+  "url": "https://solar-time.keg0320.workers.dev/media/releases/content/textures/saturn-debris-atlas-512.1cf596a3e7ed107e.webp"
+}

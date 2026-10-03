@@ -1,0 +1,15 @@
+{
+  "asset": "saturn-dust-atlas.webp",
+  "generator": "built-in image_gen",
+  "prompt": "Use case: stylized-concept\nAsset type: real-time WebGL Saturn ring dust fog sprite atlas, one square 512x512 RGBA bitmap containing exactly four isolated sprites in a 2x2 equal grid (each cell 256x256), no visible grid.\nPrimary request: four distinct wispy fine ice-dust haze puffs, natural irregular feathery edges and layered turbulent translucent interiors. Delicate drifting space dust, not rocks. Different shapes in each cell, neutral off-white with a very faint warm gray tint. Soft diffuse light, subtle fine dust texture. Sprite opacity gently tapers all the way to zero toward its edges.\nComposition: center one entire separate puff within each quadrant, keep at least 20% completely empty transparent padding at every cell edge, no overlap across quadrants. All four fit entirely inside their cells. This is a texture sheet, not a scene or a photograph of Saturn.\nBackground: genuinely transparent alpha, including partially transparent wisps. No baked black/white background and no checkerboard drawn into the image.\nAvoid: hard circular blobs, opaque smoke clouds, flames, stars, sparkles, rocks, planets, borders, text, numbers, logos, watermarks. Must remain softly readable when composited over black outer space.",
+  "processing": "Lanczos resize to 512×512, WebP quality 84, preserve alpha; no creative post-editing",
+  "layout": {
+    "columns": 2,
+    "rows": 2,
+    "width": 512,
+    "height": 512
+  },
+  "sha256": "50d62891035bfb1ca904728de5feea3b3797a10004de17d4ad83eafd4db2ec65",
+  "bytes": 73234,
+  "url": "https://solar-time.keg0320.workers.dev/media/releases/content/textures/saturn-dust-atlas-512.50d62891035bfb1c.webp"
+}

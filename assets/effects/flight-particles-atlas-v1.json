@@ -1,0 +1,21 @@
+{
+  "asset": "flight-particles-atlas-v1.webp",
+  "width": 512,
+  "height": 512,
+  "columns": 4,
+  "rows": 4,
+  "cell": 128,
+  "sampleInset": 16,
+  "sampleSize": 96,
+  "bytes": 37504,
+  "tool": "built-in image_gen",
+  "source": "exec-3d410e4a-5225-4fb1-b12a-b82fa22aeff9.png",
+  "prompt": "Use case: stylized-concept. Asset type: real-time space-flight particle sprite atlas, exactly 512x512 pixels RGBA with genuine transparent background. Primary request: exactly SIXTEEN different subtle glowing space particle sprites on a perfectly regular 4 by 4 equal-cell atlas (128x128 per cell), one centered sprite in each cell. Technical game texture, not a presentation sheet. No labels, no grid lines, no black matte or checkerboard baked in. Each sprite and its faint glow must fade fully to transparent well before the cell border, with at least 12 pixels completely transparent gutter on all four edges. Row 1: four varied tiny pinpoints with compact soft halos, ivory, muted pale gold, cool pale blue-white, neutral white. Row 2: four small soft granular luminous specks with irregular cores and restrained glow, warm ivory and pale yellow ochre, slight cool variation. Row 3: four delicate star-like lights, compact short four-point glints or asymmetric twinkles, not dramatic lens flares. Row 4: four sparse asymmetric micro-clusters, each only 2 to 4 tiny nearby specks with one modest dominant core, subtly different spacing, warm ivory and faint cool-white, no cloud or dense swarm. Overall: understated realistic astronomical light effects for an ambient solar-system travel scene, airy sparse alpha, small bright cores with very compact falloff, no wide bloom, no circles/rings, no nebulae, no rainbow colors, no sharp rectangular edges. Even exact regular grid centered on x/y 64,192,320,448; preserve clean separation of all sixteen sprites. Sprites occupy roughly 55 to 90 pixels including their subtle alpha halo, varying silhouettes but balanced perceived energy. No text, logo, watermark, scene, planets or rocks.",
+  "processing": "Generated RGBA source downsampled to 512x512; WebP quality 82, alphaQuality 100. Original alpha preserved. No background keyed out.",
+  "use": "One shared image for opening, T replay and ring-tour grains. Existing particle counts unchanged; one drawImage per visible grain including glow. Random angle fixed once at birth; flow-aligned stretch at speed.",
+  "mixture": {
+    "pinpointsAndGrains": 0.7,
+    "glints": 0.2,
+    "sparseClusters": 0.1
+  }
+}

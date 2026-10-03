@@ -34,6 +34,12 @@
     const constrained=phone||renderCost>13||frameLag>4||performance.now()<slowUntil;
     return constrained||!active?1000/30:1000/60;
   }
+  // Reuse measured load and the existing recovery hold, not another frame monitor.
+  const particleCapacity=(quality='auto')=>quality==='low'?.5:coarse?.7:1;
+  function particleBudget(quality='auto'){
+    const capacity=particleCapacity(quality),slow=renderCost>13||frameLag>4||performance.now()<slowUntil;
+    return capacity*(renderCost>24?.45:slow?.65:1);
+  }
   function createFrameGate(){
     let next=NaN,previousInterval=0;
     return (mono,interval,reset=false)=>{
@@ -97,5 +103,5 @@
   }
   function touchTexture(renderer,name){const record=renderer.textures?.get(name);if(record)record.lastUsed=(renderer.__solarTextureUseSerial=(renderer.__solarTextureUseSerial||0)+1);}
   function enforceTextureBudget(renderer){const budget=textureBudget(),bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);renderer.stats.textureBudgetBytes=budget;renderer.stats.textureBytes=bytes;if(bytes+(renderer.auxiliaryTextureBytes?.()||0)>budget){const now=performance.now();if(now-(renderer.__solarLastTextureTrim||0)>500){renderer.__solarLastTextureTrim=now;trimTextures(renderer);}}}
-  root.SolarPerformance=Object.freeze({pixelRatio,frameInterval,createFrameGate,reportRenderCost,reportFrameTiming,textureBudget,planTextures,protectTexture,trimTextures,touchTexture,enforceTextureBudget,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
+  root.SolarPerformance=Object.freeze({particleCapacity,particleBudget,pixelRatio,frameInterval,createFrameGate,reportRenderCost,reportFrameTiming,textureBudget,planTextures,protectTexture,trimTextures,touchTexture,enforceTextureBudget,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
 })(window);

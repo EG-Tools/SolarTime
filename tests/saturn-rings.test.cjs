@@ -2,6 +2,32 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),sharp=require('sharp');
 const {radialTier,SOURCE,SHA256}=require('../tools/prepare-saturn-rings.cjs');
 const manifest=require('../assets/manifest.json');
+
+test('normal rings and tour share Sun-driven RGB shadow without an entry fade',()=>{
+ const style=require('../src/surface-style.js');
+ const normal=fs.readFileSync(require.resolve('../src/surface.js'),'utf8');
+ const tour=fs.readFileSync(require.resolve('../src/ring-tour.js'),'utf8');
+ assert.equal((style.ringShadowGLSL.match(/float ringShadow\(/g)||[]).length,1);
+ assert.doesNotMatch(style.ringShadowGLSL,/perspective|debrisReady|alpha|age/);
+ assert.ok(normal.includes('${STYLE.ringShadowGLSL}'));
+ assert.ok(tour.includes('${root.SolarSurfaceStyle.ringShadowGLSL}'));
+ assert.ok(normal.includes('vec4(band.rgb*shadow,alpha*band.a)'));
+ assert.ok(normal.includes('vec4(ringColor*shadow,alpha)'),'loading fallback also receives the same shadow');
+ assert.ok(normal.includes('radius,false,job.light)'));assert.ok(normal.includes('radius,true,job.light)'));
+ assert.ok(tour.includes('ringShadow(p,light)'));
+ assert.equal((tour.match(/ringShadow\(world,light\)/g)||[]).length,2,'mesh and billboard/fog stay in the same shadow');
+ assert.ok(!tour.includes('.78*perspective'));
+});
+test('shared Saturn shadow is ten percent lighter with a fifty percent wider penumbra',()=>{
+ const glsl=require('../src/surface-style.js').ringShadowGLSL;
+ const match=glsl.match(/return 1\.-([\d.]+)\*\(1\.-smoothstep\(([\d.]+),([\d.]+),clearance\)/);
+ assert.ok(match);const [,strength,inner,outer]=match.map(Number);
+ assert.ok(Math.abs(strength-.78*.9)<1e-12);
+ assert.ok(Math.abs((outer-inner)-.16*1.5)<1e-12);
+ assert.ok(Math.abs((outer+inner)/2-1.02)<1e-12);
+ assert.ok(1-strength>.22,'the darkest part remains visibly lighter');
+});
+
 test('Saturn radial tiers retain original provenance and use immutable one-row RGBA assets',()=>{
  const entry=manifest.materials['saturn-ring'];
  assert.equal(entry.sourceUrl,SOURCE);assert.equal(entry.sourceSha256,SHA256);

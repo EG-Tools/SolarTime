@@ -122,4 +122,12 @@ Planetary temperature and gravity values primarily use NASA/NSSDCA fact sheets. 
 
 ## Accuracy notice
 
+Saturn ring-tour debris: four-sprite, transparent 512×512 atlas generated with the built-in OpenAI image tool for this project. This is an artistic visualization, not photographed Saturn-ring material. Source prompt and processing notes: effects/saturn-debris-atlas.json.
+
+The ring-tour prototype combines that original sheet with four additional generated sprites in a 1024×512 atlas. Both source sheets supply exactly half of the instance pool. Additional prompt, layout and processing notes: effects/saturn-debris-atlas-v2.json.
+
+Saturn ring-tour dust haze: a separate four-sprite, transparent 512×512 atlas generated with the same built-in image tool. Artistic dust/fog, not a measured atmosphere. Source prompt and processing notes: effects/saturn-dust-atlas.json.
+
+Shared opening, replay and ring-flight light particles: sixteen generated sprites in one transparent 512×512 atlas, with baked compact glow. Built-in OpenAI ImageGen artwork; not a photographed star catalogue. Prompt and export notes: effects/flight-particles-atlas-v1.json.
+
 Solar Time is an educational and ambient visualization. Texture colours, unobserved terrain, body sizes, orbit spacing and event presentation may be adjusted for readability. It is not a precision ephemeris and must not be used for observation planning, navigation or mission operations.

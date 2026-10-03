@@ -326,7 +326,7 @@ test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   assert.match(renderer,/this\.labelObstacleMap=new Map\(\)/);
   assert.match(renderer,/this\.labelCandidateMap=new Map\(\)/);
   assert.match(renderer,/byId\.clear\(\);ordered\.length=0;reserved\.length=0;active\.clear\(\)/);
-  assert.match(renderer,/const camera=direct\?this\.gpuOrbitCamera\(\):null/);
+  assert.match(renderer,/const camera=orbitDirect\?this\.gpuOrbitCamera\(\):null/);
   assert.match(app,/let cameraUiSignature=''/);
   assert.match(app,/const activeMotion=!!drag\|\|pointers\.size>0/);
   assert.match(performance,/function reportFrameTiming\(elapsed,target\)/);

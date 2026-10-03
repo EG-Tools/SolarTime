@@ -6,6 +6,7 @@
   function create({audio,tracks,folder,translate,notify,button,previous,next,title,now}){
     let enabled=false,disposed=false,index=-1,order=[],position=-1,token=0,failures=0;
     let active=null,retryTimer=0,cancelFade=null,pendingUsage=null;
+    const preferenceKey='solar-time.music-enabled.v1',preferences=modules.Preferences;
     const later=(fn,ms)=>(root.setTimeout||setTimeout)(fn,ms);
     const clear=id=>{if(id)(root.clearTimeout||clearTimeout)(id);};
     audio.volume=.55;audio.muted=true;
@@ -33,12 +34,12 @@
     }
     function refresh(){
       const track=tracks[index],label=translate(enabled?'musicOff':'musicOn');
-      button.setAttribute('aria-pressed',String(enabled));button.setAttribute('aria-label',label);button.title=label;
+      button.setAttribute('aria-pressed',String(enabled));button.setAttribute('aria-label',label);button.title=label+' · M';button.setAttribute('aria-keyshortcuts','M');
       title.textContent=track?.title||'';now.hidden=!(enabled&&track);
       for(const [element,key] of [[previous,'musicPrevious'],[next,'musicNext']]){element.setAttribute('aria-label',translate(key));element.title=translate(key);}
     }
     function detach(){active?.cleanup();active=null;clear(retryTimer);retryTimer=0;cancelFade?.();}
-    function unavailable(){setEnabled(false);notify(translate('musicUnavailable'));}
+    function unavailable(){setEnabled(false,{remember:false});notify(translate('musicUnavailable'));}
     async function playAt(nextPosition,{urlIndex=0,retry=0,resumeAt=0,reuse=false}={}){
       if(!enabled||disposed)return;if(!order.length)prepareOrder();if(!order.length){unavailable();return;}
       detach();const activeToken=++token;position=(nextPosition+order.length)%order.length;index=order[position];
@@ -52,7 +53,9 @@
       const cleanup=()=>{clear(watchdog);watchdog=0;for(const [event,fn] of Object.entries(handlers))audio.removeEventListener(event,fn);};
       const failedLoad=error=>{
         if(!current())return;failed=true;cleanup();cancelFade?.();audio.pause();
-        if(error?.name==='NotAllowedError'){unavailable();return;}
+        if(error?.name==='NotAllowedError'){
+          unavailable();return;
+        }
         const at=Math.max(0,Number(audio.currentTime)||0),oldPosition=position;
         let target=oldPosition,options={urlIndex,retry:retry+1,resumeAt:at};
         if(retry>=1){
@@ -83,8 +86,8 @@
       }catch(error){failedLoad(error);}
     }
     function step(direction,resetFailures=true){if(!enabled||disposed)return;if(!order.length)prepareOrder();if(resetFailures)failures=0;playAt(position+direction);}
-    function setEnabled(value){
-      if(disposed)return;const nextEnabled=!!value;if(nextEnabled===enabled)return;enabled=nextEnabled;
+    function setEnabled(value,{remember=true}={}){
+      if(disposed)return;const nextEnabled=!!value;if(remember)preferences?.write(preferenceKey,nextEnabled);if(nextEnabled===enabled)return;enabled=nextEnabled;
       if(!enabled){pendingUsage=null;++token;detach();audio.pause();audio.muted=true;refresh();return;}
       failures=0;
       if(index>=0&&audio.src&&!audio.ended&&!audio.error)playAt(position,{resumeAt:Number(audio.currentTime)||0,reuse:true});
@@ -96,7 +99,7 @@
       if(turningOn)pendingUsage=report;setEnabled(turningOn);if(!turningOn)report?.();
     },back=()=>step(-1),forward=()=>step(1);
     button.addEventListener('click',toggle);previous.addEventListener('click',back);next.addEventListener('click',forward);refresh();
-    return Object.freeze({refresh,step,setEnabled,get enabled(){return enabled;},get track(){return tracks[index]?.title||null;},dispose(){if(disposed)return;setEnabled(false);disposed=true;++token;detach();audio.pause();button.removeEventListener('click',toggle);previous.removeEventListener('click',back);next.removeEventListener('click',forward);}});
+    return Object.freeze({refresh,step,setEnabled,get enabled(){return enabled;},get track(){return tracks[index]?.title||null;},dispose(){if(disposed)return;setEnabled(false,{remember:false});disposed=true;++token;detach();audio.pause();button.removeEventListener('click',toggle);previous.removeEventListener('click',back);next.removeEventListener('click',forward);}});
   }
   modules.MusicPlayer=Object.freeze({create,RETRY_DELAY,STALL_TIMEOUT});
 })(window);

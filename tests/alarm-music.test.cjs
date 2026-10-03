@@ -58,5 +58,5 @@ for(const hook of ['omitted','throw'])test('alarm still rings with '+hook+' opti
 });
 test('app wires the alarm hook to the shared music OFF API, not to a toggle or volume workaround',()=>{
  assert.match(read('src/app.js'),/onAlarmStart:\(\)=>setMusicEnabled\(false\)/);
- assert.match(read('src/app.js'),/setMusicEnabled=value=>music\.setEnabled\(value\)/);
+ assert.match(read('src/app.js'),/setMusicEnabled=\(value,options\)=>music\.setEnabled\(value,options\)/);
 });

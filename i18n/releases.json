@@ -1,5 +1,115 @@
 [
   {
+    "version": "0.72",
+    "date": "2026.10.04",
+    "localized": {
+      "kor": [
+        "오프닝 연출을 개선했습니다.",
+        "언제든지 토성 고리를 여행 할 수 있습니다.",
+        "T 버튼을 누르면 여행을 시작합니다.",
+        "UFO 버튼을 누르면 오프닝 연출을 선택할 수 있습니다",
+        "Space 키로 연출 카메라를 정지·재개할 수 있습니다.",
+        "다양한 최적화로 성능을 개선하였습니다."
+      ],
+      "en": [
+        "Improved the opening sequence.",
+        "You can now travel through Saturn’s rings at any time.",
+        "Press T to start a journey.",
+        "Use the UFO button to choose an opening sequence.",
+        "Press Space to pause or resume the cinematic camera.",
+        "Improved performance through various optimizations."
+      ],
+      "chn": [
+        "改进了开场演出。",
+        "现在可以随时游览土星环。",
+        "按 T 键开始旅行。",
+        "点击 UFO 按钮可选择开场演出。",
+        "按空格键可暂停或继续镜头演出。",
+        "通过多项优化提升了性能。"
+      ],
+      "zht": [
+        "改善了開場演出。",
+        "現在可以隨時遊覽土星環。",
+        "按 T 鍵開始旅行。",
+        "點擊 UFO 按鈕可選擇開場演出。",
+        "按空白鍵可暫停或繼續鏡頭演出。",
+        "透過多項最佳化提升了效能。"
+      ],
+      "jpn": [
+        "オープニング演出を改善しました。",
+        "いつでも土星の環を旅できるようになりました。",
+        "T キーを押すと旅が始まります。",
+        "UFO ボタンからオープニング演出を選択できます。",
+        "Space キーでカメラ演出を一時停止・再開できます。",
+        "さまざまな最適化によりパフォーマンスを改善しました。"
+      ],
+      "de": [
+        "Die Eröffnungssequenz wurde verbessert.",
+        "Die Saturnringe lassen sich jetzt jederzeit bereisen.",
+        "Mit T starten Sie eine Reise.",
+        "Über die UFO-Schaltfläche wählen Sie die Eröffnungssequenz aus.",
+        "Mit der Leertaste pausieren Sie die Kamerasequenz oder setzen sie fort.",
+        "Verschiedene Optimierungen verbessern die Leistung."
+      ],
+      "es": [
+        "Hemos mejorado la secuencia de apertura.",
+        "Ahora puedes recorrer los anillos de Saturno en cualquier momento.",
+        "Pulsa T para comenzar un viaje.",
+        "Usa el botón UFO para elegir la secuencia de apertura.",
+        "Pulsa Espacio para pausar o reanudar la secuencia de cámara.",
+        "Hemos mejorado el rendimiento con diversas optimizaciones."
+      ],
+      "fr": [
+        "La séquence d’ouverture a été améliorée.",
+        "Vous pouvez désormais voyager dans les anneaux de Saturne à tout moment.",
+        "Appuyez sur T pour commencer un voyage.",
+        "Le bouton UFO permet de choisir la séquence d’ouverture.",
+        "La touche Espace permet de mettre en pause ou de reprendre la séquence de caméra.",
+        "Diverses optimisations ont amélioré les performances."
+      ],
+      "hi": [
+        "आरंभिक दृश्य को बेहतर बनाया गया है।",
+        "अब आप किसी भी समय शनि के छल्लों की यात्रा कर सकते हैं।",
+        "यात्रा शुरू करने के लिए T दबाएँ।",
+        "आरंभिक दृश्य चुनने के लिए UFO बटन का उपयोग करें।",
+        "कैमरा दृश्य को रोकने या फिर से चलाने के लिए Space दबाएँ।",
+        "विभिन्न अनुकूलनों से प्रदर्शन बेहतर किया गया है।"
+      ],
+      "id": [
+        "Adegan pembuka telah ditingkatkan.",
+        "Kini Anda dapat menjelajahi cincin Saturnus kapan saja.",
+        "Tekan T untuk memulai perjalanan.",
+        "Gunakan tombol UFO untuk memilih adegan pembuka.",
+        "Tekan Spasi untuk menjeda atau melanjutkan gerakan kamera sinematik.",
+        "Berbagai pengoptimalan telah meningkatkan performa."
+      ],
+      "it": [
+        "La sequenza iniziale è stata migliorata.",
+        "Ora puoi viaggiare tra gli anelli di Saturno in qualsiasi momento.",
+        "Premi T per iniziare un viaggio.",
+        "Usa il pulsante UFO per scegliere la sequenza iniziale.",
+        "Premi Spazio per mettere in pausa o riprendere la sequenza della telecamera.",
+        "Diverse ottimizzazioni hanno migliorato le prestazioni."
+      ],
+      "nl": [
+        "De openingsscène is verbeterd.",
+        "Je kunt nu op elk moment door de ringen van Saturnus reizen.",
+        "Druk op T om een reis te beginnen.",
+        "Gebruik de UFO-knop om de openingsscène te kiezen.",
+        "Druk op de spatiebalk om de camerascène te pauzeren of te hervatten.",
+        "Verschillende optimalisaties hebben de prestaties verbeterd."
+      ],
+      "pt": [
+        "A sequência de abertura foi melhorada.",
+        "Agora é possível viajar pelos anéis de Saturno a qualquer momento.",
+        "Prima T para iniciar uma viagem.",
+        "Use o botão UFO para escolher a sequência de abertura.",
+        "Prima Espaço para pausar ou retomar a sequência da câmara.",
+        "Várias otimizações melhoraram o desempenho."
+      ]
+    }
+  },
+  {
     "version": "0.71",
     "date": "2026.10.02",
     "localized": {
@@ -700,77 +810,6 @@
         "Close-ups tonen eerst een voorbeeld in gemiddelde resolutie en vervangen dit daarna door de oorspronkelijke 4K-textuur.",
         "Geselecteerde hemellichamen krijgen voorrang bij het laden en recente texturen worden binnen het bestaande geheugenbudget hergebruikt. Beeldkwaliteit en het gedrag van alarmen en muziek blijven behouden.",
         "Na publicatie worden de oorspronkelijke textuurhashes en cachetreffers gecontroleerd. Het media-adres en de toegangsbeperkingen blijven behouden."
-      ]
-    }
-  },
-  {
-    "version": "0.62",
-    "date": "2026.09.27",
-    "localized": {
-      "kor": [
-        "화면·타이머·도움말의 번역 원본을 한 관리 체계로 정리하고, 실행용 언어 파일을 자동 생성합니다.",
-        "번역 누락과 변수·중복 키·생성 파일 불일치를 검사하며, 기존 영어 대체 문구는 별도로 표시합니다.",
-        "48개 국가·지역과 기존 문구, 시간대 연동, 알람·음악·화면 동작을 유지합니다."
-      ],
-      "en": [
-        "Translation sources for the interface, timers and release history now share one workflow with generated runtime language files.",
-        "Checks detect missing text, placeholder errors, duplicate keys and stale generated files; existing English fallbacks remain explicitly tracked.",
-        "All 48 countries and regions keep their existing text, time zones, alarm, music and display behavior."
-      ],
-      "chn": [
-        "界面、计时器和更新记录的翻译原文统一管理，并自动生成运行时语言文件。",
-        "检查遗漏文案、占位符错误、重复键和过期生成文件，现有英文回退文案单独记录。",
-        "保留全部48个国家和地区的现有文案、时区联动、闹钟、音乐和显示行为。"
-      ],
-      "zht": [
-        "介面、計時器和更新記錄的翻譯原文統一管理，並自動產生執行時語言檔案。",
-        "檢查遺漏文案、預留位置錯誤、重複鍵和過期產生檔案，現有英文備用文案另行記錄。",
-        "保留全部48個國家和地區的既有文案、時區連動、鬧鐘、音樂和顯示行為。"
-      ],
-      "jpn": [
-        "画面・タイマー・更新履歴の翻訳元を一元管理し、実行用の言語ファイルを自動生成します。",
-        "文言の欠落、変数の不一致、キーの重複、生成ファイルの更新漏れを検査し、既存の英語代替文言を別途記録します。",
-        "48の国と地域の文言、タイムゾーン連動、アラーム、音楽、画面の動作を維持します。"
-      ],
-      "hi": [
-        "इंटरफ़ेस, टाइमर और रिलीज़ इतिहास के अनुवाद स्रोत अब एक ही कार्यप्रवाह से प्रबंधित होते हैं और भाषा फ़ाइलें अपने आप बनती हैं।",
-        "जाँच में गायब पाठ, प्लेसहोल्डर की त्रुटियाँ, दोहराई गई कुंजियाँ और पुरानी जनरेट की गई फ़ाइलें पकड़ी जाती हैं; मौजूदा अंग्रेज़ी विकल्प अलग दर्ज रहते हैं।",
-        "सभी 48 देशों और क्षेत्रों का मौजूदा पाठ, समय क्षेत्र, अलार्म, संगीत और प्रदर्शन व्यवहार बना रहता है।"
-      ],
-      "es": [
-        "Las traducciones de la interfaz, los temporizadores y el historial comparten una fuente de gestión y generan los archivos de idioma de ejecución.",
-        "Las comprobaciones detectan textos ausentes, errores de variables, claves duplicadas y archivos generados desactualizados; los textos de respaldo en inglés quedan registrados.",
-        "Se mantienen los textos, las zonas horarias y el funcionamiento de alarmas, música y pantalla en los 48 países y regiones."
-      ],
-      "de": [
-        "Die Übersetzungsquellen für Oberfläche, Timer und Versionsverlauf werden gemeinsam verwaltet; Sprachdateien für die Laufzeit werden automatisch erzeugt.",
-        "Prüfungen erkennen fehlende Texte, Platzhalterfehler, doppelte Schlüssel und veraltete Ausgabedateien. Bestehende englische Ersatztexte bleiben gesondert erfasst.",
-        "Texte, Zeitzonen sowie Alarm-, Musik- und Anzeigeverhalten bleiben für alle 48 Länder und Regionen erhalten."
-      ],
-      "fr": [
-        "Les traductions de l’interface, des minuteries et de l’historique sont gérées dans un même système qui génère les fichiers de langue utilisés par l’application.",
-        "Les contrôles détectent les textes manquants, les erreurs de variables, les clés dupliquées et les fichiers générés obsolètes ; les textes de secours en anglais restent recensés.",
-        "Les textes, les fuseaux horaires et le fonctionnement des alarmes, de la musique et de l’affichage sont conservés pour les 48 pays et régions."
-      ],
-      "pt": [
-        "As traduções da interface, dos temporizadores e do histórico passam a ser geridas num único sistema que gera os ficheiros de idioma da aplicação.",
-        "As verificações detetam textos em falta, erros de variáveis, chaves duplicadas e ficheiros gerados desatualizados; os textos de recurso em inglês ficam registados.",
-        "Mantêm-se os textos, fusos horários e comportamentos dos alarmes, da música e da apresentação nos 48 países e regiões."
-      ],
-      "it": [
-        "Le traduzioni di interfaccia, timer e cronologia sono gestite in un unico sistema che genera i file di lingua usati dall’applicazione.",
-        "I controlli rilevano testi mancanti, errori nei segnaposto, chiavi duplicate e file generati non aggiornati; i testi sostitutivi in inglese restano registrati.",
-        "Testi, fusi orari e comportamento di allarmi, musica e visualizzazione restano invariati per tutti i 48 paesi e regioni."
-      ],
-      "id": [
-        "Sumber terjemahan antarmuka, timer, dan riwayat rilis dikelola dalam satu alur yang menghasilkan berkas bahasa aplikasi secara otomatis.",
-        "Pemeriksaan mendeteksi teks hilang, kesalahan variabel, kunci ganda, dan berkas hasil yang kedaluwarsa; teks cadangan bahasa Inggris tetap dicatat terpisah.",
-        "Teks, zona waktu, serta perilaku alarm, musik, dan tampilan tetap sama untuk seluruh 48 negara dan wilayah."
-      ],
-      "nl": [
-        "Vertalingen voor de interface, timers en versiegeschiedenis worden in één systeem beheerd, dat automatisch de taalbestanden voor de app genereert.",
-        "Controles vinden ontbrekende tekst, fouten in variabelen, dubbele sleutels en verouderde gegenereerde bestanden; bestaande Engelse terugvalteksten blijven apart geregistreerd.",
-        "Teksten, tijdzones en het gedrag van alarmen, muziek en weergave blijven behouden voor alle 48 landen en regio’s."
       ]
     }
   }

@@ -1,5 +1,9 @@
 {
   "copy": {
+    "openingTravel": "오프닝 여행",
+    "openingDefault": "기본 오프닝",
+    "openingNone": "없음",
+    "openingReload": "설정한 오프닝을 재생하려면 T를 눌러주세요.",
     "metaDescription": "별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주.",
     "cookieTitle": "쿠키 사용",
     "cookieMessage": "방문 분석과 광고 측정을 위해 쿠키 사용 여부를 선택해 주세요.",
@@ -56,6 +60,9 @@
     "selectedBody": "선택한 천체 정보",
     "bodyClose": "천체 정보 닫기",
     "focusBody": "가까이 보기 · 천체 추적",
+    "ringTravel": "여행",
+    "ringTravelStarted": "토성 고리 여행 · 드래그로 둘러보기 · ESC 감속 후 복귀",
+    "ringTravelUnavailable": "아직 여행을 시작할 수 없습니다. 가까이 보기 후 잠시 기다려 주세요.",
     "eclipseView": "일식",
     "eclipsePrevious": "이전 일식으로 이동",
     "eclipseNext": "다음 일식으로 이동",
@@ -215,6 +222,7 @@
     "cookieSettings": "쿠키 설정",
     "cookieDismiss": "선택을 변경하지 않고 닫기",
     "cookieChoiceNote": "허용·거부는 6개월간 기억합니다. X는 선택을 바꾸지 않으며, 미선택 상태에서는 다음 접속 때 다시 묻습니다.",
+    "music": "배경 음악",
     "timer": "타이머",
     "timerClose": "타이머 닫기",
     "alarm": "알람",

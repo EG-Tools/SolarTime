@@ -1,5 +1,9 @@
 {
   "ui": {
+    "openingTravel": "Auftaktreise",
+    "openingDefault": "Standardauftakt",
+    "openingNone": "Keine",
+    "openingReload": "T drücken, um den gewählten Start abzuspielen.",
     "metaDescription": "Eine Sonnensystem-Uhr im Fluss der Sterne – Echtzeit, Planetenbahnen, Erde und Mond in einem kleinen Kosmos.",
     "cookieTitle": "Cookie-Nutzung",
     "cookieMessage": "Wähle, ob Cookies für Besuchsanalysen und Werbemessung erlaubt werden.",
@@ -56,6 +60,9 @@
     "selectedBody": "Informationen zum Himmelskörper",
     "bodyClose": "Informationen schließen",
     "focusBody": "Nahansicht · Körper verfolgen",
+    "ringTravel": "Reisen",
+    "ringTravelStarted": "Reise durch Saturns Ringe · Ziehen zum Umsehen · ESC zum Abbremsen und Zurückkehren",
+    "ringTravelUnavailable": "Die Reise ist noch nicht bereit. Wähle die Nahansicht und warte einen Moment.",
     "eclipseView": "Finsternis",
     "eclipsePrevious": "Zur vorherigen Finsternis",
     "eclipseNext": "Zur nächsten Finsternis",
@@ -214,7 +221,8 @@
     "starDensityAria": "Dichte der Partikelsterne. Bei 0 werden Partikelsterne ausgeblendet.",
     "cookieSettings": "Cookie-Einstellungen",
     "cookieDismiss": "Schließen, ohne die Auswahl zu ändern",
-    "cookieChoiceNote": "Zustimmung und Ablehnung werden 6 Monate gespeichert. X ändert die Auswahl nicht; ohne Auswahl fragen wir beim nächsten Besuch erneut."
+    "cookieChoiceNote": "Zustimmung und Ablehnung werden 6 Monate gespeichert. X ändert die Auswahl nicht; ohne Auswahl fragen wir beim nächsten Besuch erneut.",
+    "music": "Musik"
   },
   "timer": {
     "timerClose": "Timer schließen",

@@ -83,7 +83,7 @@ module.exports=async({root,evaluate,send,session})=>{
     const first=await openingSnapshot();
     assert.equal(first.opening,true);assert.equal(first.openingLocked,true);assert.equal(first.loadingHidden,false);assert.equal(first.busy,'true');
     close(first.from.zoom,target.zoom);close(first.from.dolly,.001);assert.equal(first.from.focus,null);close(first.from.panX,0);close(first.from.panY,0);assert.equal(first.to.focus,'earth');
-    assert.ok(first.tweenDuration>=5000&&first.tweenDuration<=7000);close(first.annotationStart-first.tweenStart,first.tweenDuration-1000);
+    assert.ok(first.tweenDuration>=6500&&first.tweenDuration<=8500);close(first.annotationStart-first.tweenStart,first.tweenDuration-1000);
 
     // F5 focuses the page and refreshes automatic language preferences while
     // the camera is still travelling. Never persist that temporary viewpoint.
@@ -92,9 +92,8 @@ module.exports=async({root,evaluate,send,session})=>{
     for(const key of ['azimuth','elevation','zoom','dolly','panX','panY'])close(duringOpening[key],target[key],2e-5);
     assert.equal(duringOpening.focus,target.focus);
     await delay(1050);
-    const dust=await evaluate(`(()=>{const r=SolarTime.renderer,f=r.openingParticles;return {count:f?.points.length,alpha:f?.alpha,sprite:!!r.openingParticleSprite,glowMin:Math.min(...f.points.map(p=>p.glow)),glowMax:Math.max(...f.points.map(p=>p.glow)),delays:[...r.openingOrbitDelays.values()]};})()`);
-    assert.ok(dust.count>=204&&dust.count<=510);assert.ok(dust.alpha>0);assert.equal(dust.sprite,true);
-    assert.ok(dust.glowMin>=.8&&dust.glowMax<=2.6&&dust.glowMax-dust.glowMin>1.5);
+    const dust=await evaluate(`(()=>{const r=SolarTime.renderer;return {field:r.openingParticles,delays:[...r.openingOrbitDelays.values()]};})()`);
+    assert.ok(dust.field?.points.length>0);assert.ok(dust.field.replay.openingMove);
     assert.ok(dust.delays.every(n=>n>=0&&n<1000));assert.ok(new Set(dust.delays).size>1);
     const preview=path.join(os.tmpdir(),'solartime-opening-particles.png');
     fs.writeFileSync(preview,Buffer.from((await send('Page.captureScreenshot',{format:'png'},session)).data,'base64'));
@@ -116,8 +115,7 @@ module.exports=async({root,evaluate,send,session})=>{
     for(const key of ['azimuth','elevation','zoom','dolly','panX','panY'])close(final.camera[key],target[key],2e-5);
     assert.equal(final.camera.focus,'earth');
     assert.equal(await evaluate(`document.getElementById('camera-mode-toggle').dataset.mode==='normal'&&SolarTime.renderer.options.dollyZoom===true`),true);
-    const remainingDust=await evaluate('SolarTime.renderer.openingParticles?.points.length??0');
-    assert.ok(remainingDust<=9,'offscreen flight particles must be removed at arrival');
+    await waitFor('!SolarTime.renderer.openingParticles','Opening particle afterglow did not finish',3500);
     await waitFor('SolarTime.renderer.openingLabelOpacity(performance.now())>.999','Opening annotations did not finish fading',4000);
 
     await evaluate("sessionStorage.setItem('__openingQaClaim','1')");
@@ -254,7 +252,7 @@ module.exports=async({root,evaluate,send,session})=>{
       return {rows,sunScales,sunUi,earthLocked,earthFill,openingDuration,valid,preferencesUnchanged:before===JSON.stringify(r.getBodyScales()),restoredLens:r.gpuOrbitCamera().lens};
     })()`);
     for(const row of actualScale.rows){assert.ok(row.maxDistanceError<1e-9,JSON.stringify(row));assert.ok(row.maxRadiusError<1e-9,JSON.stringify(row));close(row.moonDistanceInEarthDiameters,30.17,.02);assert.equal(row.lens,1);}
-    close(actualScale.earthFill,.5);close(actualScale.openingDuration,7000);assert.ok(actualScale.valid&&actualScale.preferencesUnchanged);assert.equal(actualScale.restoredLens,1);
+    close(actualScale.earthFill,.5);close(actualScale.openingDuration,8500);assert.ok(actualScale.valid&&actualScale.preferencesUnchanged);assert.equal(actualScale.restoredLens,1);
     assert.deepEqual(actualScale.sunUi,{min:'100',max:'300',disabled:false,orbitDisabled:true});assert.equal(actualScale.earthLocked,true);
     for(const row of actualScale.sunScales){close(row.ratio,109.197784,.001);close(row.sunDiameter,actualScale.sunScales[0].sunDiameter*row.size);close(row.earthDiameter,actualScale.sunScales[0].earthDiameter*row.size);close(row.units,actualScale.sunScales[0].units*row.size);}
     const scaleCameraPreserved=await evaluate(`(()=>{

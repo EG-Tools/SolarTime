@@ -1,5 +1,9 @@
 {
   "copy": {
+    "openingTravel": "オープニング旅行",
+    "openingDefault": "標準オープニング",
+    "openingNone": "なし",
+    "openingReload": "Tキーで選択したオープニングを再生します。",
     "metaDescription": "星明かりとともに流れる太陽系時計。リアルタイムの惑星軌道と、地球・月を小さな宇宙に描きます。",
     "cookieTitle": "Cookieの使用",
     "cookieMessage": "アクセス解析と広告測定のためのCookie使用を選択してください。",
@@ -56,6 +60,9 @@
     "selectedBody": "選択した天体の情報",
     "bodyClose": "天体情報を閉じる",
     "focusBody": "近くで見る · 天体を追跡",
+    "ringTravel": "旅に出る",
+    "ringTravelStarted": "土星の環の旅 · ドラッグで見回す · ESCで減速して戻る",
+    "ringTravelUnavailable": "まだ出発できません。「近くで見る」を選び、少しお待ちください。",
     "eclipseView": "日食",
     "eclipsePrevious": "前の日食へ移動",
     "eclipseNext": "次の日食へ移動",
@@ -215,6 +222,7 @@
     "cookieSettings": "Cookie 設定",
     "cookieDismiss": "選択を変更せずに閉じる",
     "cookieChoiceNote": "許可・拒否は6か月間保存されます。Xでは選択を変更しません。未選択の場合は次回のアクセス時に再度確認します。",
+    "music": "音楽",
     "timer": "タイマー",
     "timerClose": "タイマーを閉じる",
     "alarm": "アラーム",

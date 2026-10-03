@@ -1,5 +1,9 @@
 {
   "copy": {
+    "openingTravel": "Perjalanan pembuka",
+    "openingDefault": "Pembuka bawaan",
+    "openingNone": "Tidak ada",
+    "openingReload": "Tekan T untuk memutar pembukaan yang dipilih.",
     "metaDescription": "Jam Tata Surya yang mengalir bersama bintang—waktu nyata, orbit planet, Bumi, dan Bulan dalam sebuah kosmos kecil.",
     "cookieTitle": "Penggunaan cookie",
     "cookieMessage": "Pilih apakah akan mengizinkan cookie untuk analisis kunjungan dan pengukuran iklan.",
@@ -56,6 +60,9 @@
     "selectedBody": "Informasi benda yang dipilih",
     "bodyClose": "Tutup informasi benda",
     "focusBody": "Lihat dekat · Ikuti benda",
+    "ringTravel": "Jelajah",
+    "ringTravelStarted": "Jelajah cincin Saturnus · Seret untuk melihat sekeliling · ESC untuk melambat dan kembali",
+    "ringTravelUnavailable": "Perjalanan belum siap. Pilih Lihat dekat dan tunggu sebentar.",
     "eclipseView": "Gerhana",
     "eclipsePrevious": "Ke gerhana sebelumnya",
     "eclipseNext": "Ke gerhana berikutnya",
@@ -215,6 +222,7 @@
     "cookieSettings": "Pengaturan cookie",
     "cookieDismiss": "Tutup tanpa mengubah pilihan",
     "cookieChoiceNote": "Persetujuan dan penolakan disimpan selama 6 bulan. X tidak mengubah pilihan; jika belum memilih, kami akan bertanya lagi pada kunjungan berikutnya.",
+    "music": "Musik",
     "timer": "Timer",
     "timerClose": "Tutup timer",
     "alarm": "Alarm",

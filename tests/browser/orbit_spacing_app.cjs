@@ -22,7 +22,7 @@ module.exports=async({root,evaluate,send,session})=>{
   await send('Emulation.setDeviceMetricsOverride',{width:1600,height:1000,deviceScaleFactor:1,mobile:false},session);
   await send('Page.navigate',{url},session);await ready();
   await evaluate(`(async()=>{await SolarTime.setLanguage('kor');SolarTime.renderer.stopAutoRotate();document.getElementById('cookie-reject').click();document.getElementById('settings-button').click();})()`);
-  assert.equal((await snapshot()).spacing,1,'new users start at 100%');
+  assert.equal((await snapshot()).spacing,0,'new users start at 0% actual orbit spacing');
   assert.equal((await snapshot()).ordinary,100);assert.equal((await snapshot()).output,'100%');
   const defaultSizes=await evaluate('SolarTime.renderer.getBodyScales()');
   assert.equal(Object.keys(defaultSizes).length,12);assert.ok(Object.values(defaultSizes).every(value=>value===1),'new users start with all bodies at 100%');
@@ -31,7 +31,7 @@ module.exports=async({root,evaluate,send,session})=>{
   const normalFile=path.join(os.tmpdir(),'solartime-normal-circular-orbits.png'),normalImage=await send('Page.captureScreenshot',{format:'png'},session);
   fs.writeFileSync(normalFile,Buffer.from(normalImage.data,'base64'));
   await evaluate(`document.getElementById('actual-scale').click()`);await settled();
-  const full=await snapshot();assert.equal(full.min,'0');assert.equal(full.max,'100');assert.equal(full.value,'100');assert.equal(full.lens,1);
+  const full=await snapshot();assert.equal(full.min,'0');assert.equal(full.max,'100');assert.equal(full.value,'0');assert.equal(full.lens,1);
   await setGap(0);await settled();const zero=await snapshot(),actual=await layout();
   assert.equal(zero.spacing,0);assert.equal(zero.saved,0);assert.equal(zero.output,'0%');assert.equal(zero.lens,1);
   let error=0;for(let i=0;i<actual.length;i++)for(let j=0;j<actual[i].length;j++){
@@ -119,7 +119,7 @@ module.exports=async({root,evaluate,send,session})=>{
   // Pluto and moons). Reset works from actual mode, which locks size sliders.
   await evaluate(`(()=>{const r=SolarTime.renderer;r.setBodyScales(Object.fromEntries(r.allBodies().map((body,i)=>[body.id,1.2+i*.04])));document.getElementById('reset-defaults').click();document.getElementById('reset-defaults-yes').click();})()`);
   await waitFor(`Object.values(SolarTime.renderer.getBodyScales()).every(value=>value===1)&&Object.values(JSON.parse(localStorage.getItem('eg.solar-time.v0.01')).bodyScales).every(value=>value===1)`);
-  const resetSpacing=await snapshot();assert.equal(resetSpacing.actual,false);assert.equal(resetSpacing.ordinary,100);assert.equal(resetSpacing.value,'100');assert.equal(resetSpacing.output,'100%');
+  const resetSpacing=await snapshot();assert.equal(resetSpacing.spacing,0);assert.equal(resetSpacing.saved,0);assert.equal(resetSpacing.actual,false);assert.equal(resetSpacing.ordinary,100);assert.equal(resetSpacing.value,'100');assert.equal(resetSpacing.output,'100%');
   assert.equal(await evaluate(`JSON.parse(localStorage.getItem('eg.solar-time.v0.01')).overviewOrbitGap`),100);
   const resetSizes=await evaluate(`(()=>{const r=SolarTime.renderer,rows=[],sun=r.bodyRadiusAtZoom(SolarAstro.SUN);for(const body of r.allBodies()){document.querySelector('#planet-nav [data-body="'+body.id+'"]').click();rows.push({id:body.id,scale:r.bodySizeScale(body),ratio:r.bodyRadiusAtZoom(body)/sun,value:document.getElementById('body-size-slider').value,label:document.getElementById('body-size-output').textContent});}return rows;})()`);
   const sizeRatios={sun:1,mercury:.25,venus:.25,earth:.25,mars:.25,jupiter:.5,saturn:.5,uranus:.5,neptune:.5,moon:.0625,pluto:.0625,europa:.125};

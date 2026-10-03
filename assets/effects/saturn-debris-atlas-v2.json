@@ -1,0 +1,41 @@
+{
+  "asset": "saturn-debris-atlas-v2.webp",
+  "generator": "built-in image_gen",
+  "sources": [
+    {
+      "asset": "saturn-debris-atlas.webp",
+      "metadata": "saturn-debris-atlas.json",
+      "slots": [
+        0,
+        1,
+        4,
+        5
+      ]
+    },
+    {
+      "asset": "saturn-debris-extra-atlas.webp",
+      "prompt": "Use case: stylized-concept\nAsset type: real-time WebGL Saturn ring debris sprite atlas, four additional rock and ice types for an existing game. ONE square 512x512 RGBA image in a precise 2x2 equal grid, each quadrant one isolated fragment on genuinely transparent alpha. This is a sprite sheet, not a scene.\nSubjects: top-left a rounded irregular dark basalt rubble stone with small pits; top-right a rough chalky gray-white fractured ice clump with stubby uneven protrusions; bottom-left a flat angular brown-gray chipped slab of dusty stone; bottom-right a knobbly porous pale gray rubble cluster. Make these distinct but consistently scaled. Natural weathered rock/ice, realistic 3D appearance with readable medium-scale bumps and soft lighting. Uneven rounded/chipped silhouettes, NOT geometric diamonds, NOT crystals or gemstones. Diffuse subdued lighting from upper left, neutral whites/grays/browns compatible with Saturn's rings.\nComposition: one whole object centered inside each quadrant, at least 15% empty transparent padding on each cell's four sides. No overlap across cell borders. Fully opaque rock interiors, transparent outside, clean antialiased edge. No ground, external cast shadow, glow, smoke, stars, planet, grid, labels, text, numbers, logos or watermarks. No baked black/white/checkerboard background.",
+      "slots": [
+        2,
+        3,
+        6,
+        7
+      ]
+    }
+  ],
+  "processing": "Extra sprites resized to 512×512 with Lanczos; original and extra sheets packed side-by-side, WebP quality 88, preserve alpha; no creative post-editing",
+  "layout": {
+    "columns": 4,
+    "rows": 2,
+    "width": 1024,
+    "height": 512
+  },
+  "instances": {
+    "total": 24000,
+    "perSource": 12000,
+    "perSprite": 3000
+  },
+  "sha256": "eba63be4d82c5761d6dd10fe829725ca7babaffd71fca853c394a8b56eb8848c",
+  "bytes": 134644,
+  "url": "https://solar-time.keg0320.workers.dev/media/releases/content/textures/saturn-debris-atlas-v2-1024x512.eba63be4d82c5761d.webp"
+}

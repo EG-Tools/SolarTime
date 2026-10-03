@@ -61,7 +61,7 @@ test('both regional clocks use DST, roll dates correctly and have distinct Earth
 });
 test('Dutch is present in recent notes and its historical addition is preserved in Korean',()=>{
  const api=require('../src/release-notes.js'),archive=require('../i18n/releases-archive-ko.json');
- assert.equal(api.RELEASES.length,10);assert.ok(api.RELEASES.every(r=>Array.isArray(r.localized.nl)&&r.localized.nl!==r.localized.en));
+ assert.equal(api.RELEASES.length,10);assert.ok(api.RELEASES.every(r=>r.languagePolicy==='korean-only'?api.itemsFor(r,'nl')===r.items:Array.isArray(r.localized.nl)&&r.localized.nl!==r.localized.en));
  const release=archive.find(r=>r.version==='0.47');assert.equal(release.items.length,8);
  assert.ok(release.items.some(s=>s.includes('벨기에')&&s.includes('네덜란드')));
  assert.ok(!api.RELEASES.some(r=>r.version==='0.47'));

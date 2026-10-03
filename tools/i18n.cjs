@@ -78,6 +78,12 @@ function compile(root){
  for(const release of releases){
   if(!/^0\.\d{1,2}$/.test(release.version)||versions.has(release.version)||!/^\d{4}\.\d{2}\.\d{2}$/.test(release.date)||!object(release.localized))throw Error('Invalid release '+release.version);
   versions.add(release.version);
+  if(release.languagePolicy!==undefined&&release.languagePolicy!=='korean-only')throw Error('Invalid release language policy '+release.version);
+  if(release.languagePolicy==='korean-only'){
+   const items=release.localized.kor;
+   if(Object.keys(release.localized).length!==1||!Array.isArray(items)||!items.length||items.some(v=>typeof v!=='string'||!v.trim()))throw Error('Invalid Korean-only release '+release.version);
+   continue;
+  }
   if(!Array.isArray(release.localized.en)||!release.localized.en.length||!Array.isArray(release.localized.kor))throw Error('Missing release base text '+release.version);
   for(const code of Object.keys(release.localized))if(!codes.includes(code))errors.push('Unknown release language '+code);
   for(const code of codes){

@@ -1,5 +1,9 @@
 {
   "ui": {
+    "openingTravel": "Voyage d’ouverture",
+    "openingDefault": "Ouverture par défaut",
+    "openingNone": "Aucun",
+    "openingReload": "Appuyez sur T pour lancer l’ouverture choisie.",
     "metaDescription": "Une horloge du système solaire au fil des étoiles : heure réelle, orbites planétaires, Terre et Lune dans un petit cosmos.",
     "cookieTitle": "Utilisation des cookies",
     "cookieMessage": "Choisissez si vous autorisez les cookies pour l’analyse des visites et la mesure publicitaire.",
@@ -56,6 +60,9 @@
     "selectedBody": "Informations sur l’astre",
     "bodyClose": "Fermer les informations",
     "focusBody": "Vue rapprochée · Suivre l’astre",
+    "ringTravel": "Voyager",
+    "ringTravelStarted": "Voyage dans les anneaux de Saturne · Glissez pour regarder · ESC pour ralentir et revenir",
+    "ringTravelUnavailable": "Le voyage n’est pas encore prêt. Choisissez la vue rapprochée et patientez un instant.",
     "eclipseView": "Éclipse",
     "eclipsePrevious": "Aller à l’éclipse précédente",
     "eclipseNext": "Aller à l’éclipse suivante",
@@ -214,7 +221,8 @@
     "starDensityAria": "Densité des étoiles particules. Zéro masque les étoiles particules.",
     "cookieSettings": "Paramètres des cookies",
     "cookieDismiss": "Fermer sans modifier votre choix",
-    "cookieChoiceNote": "L’acceptation et le refus sont conservés 6 mois. X ne modifie pas votre choix ; sans choix enregistré, la question revient à la prochaine visite."
+    "cookieChoiceNote": "L’acceptation et le refus sont conservés 6 mois. X ne modifie pas votre choix ; sans choix enregistré, la question revient à la prochaine visite.",
+    "music": "Musique"
   },
   "timer": {
     "timer": "Minuteur",

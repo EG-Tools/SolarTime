@@ -1,5 +1,9 @@
 {
   "ui": {
+    "openingTravel": "Opening journey",
+    "openingDefault": "Default opening",
+    "openingNone": "None",
+    "openingReload": "Press T to play the selected opening.",
     "metaDescription": "A solar-system clock flowing with the stars—real time, planetary orbits, Earth and Moon in a small cosmos.",
     "cookieTitle": "Cookies",
     "cookieMessage": "Choose whether to allow cookies for visit analytics and advertising measurement.",
@@ -56,6 +60,9 @@
     "selectedBody": "Selected body information",
     "bodyClose": "Close body information",
     "focusBody": "Closer view · Track body",
+    "ringTravel": "Travel",
+    "ringTravelStarted": "Saturn ring travel · Drag to look around · ESC to slow down and return",
+    "ringTravelUnavailable": "Travel is not ready yet. Choose Closer view and wait a moment.",
     "eclipseView": "Eclipse",
     "eclipsePrevious": "Travel to previous eclipse",
     "eclipseNext": "Travel to next eclipse",
@@ -214,7 +221,8 @@
     "starDensityAria": "Particle star density. Zero hides particle stars.",
     "cookieSettings": "Cookie settings",
     "cookieDismiss": "Close without changing your choice",
-    "cookieChoiceNote": "Acceptance and rejection are remembered for 6 months. X leaves your choice unchanged; with no choice, we ask again on your next visit."
+    "cookieChoiceNote": "Acceptance and rejection are remembered for 6 months. X leaves your choice unchanged; with no choice, we ask again on your next visit.",
+    "music": "Background Music"
   },
   "timer": {
     "timer": "Timer",

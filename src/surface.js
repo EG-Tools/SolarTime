@@ -752,7 +752,7 @@ const DIRECT_CORONA_FRAGMENT=`precision highp float;
 // shader, so dragging the camera no longer projects and uploads every orbit
 // point again on the CPU.
 const DIRECT_LINE_VERTEX=`attribute vec4 a;
-  uniform vec2 center,viewport;uniform vec3 worldOffset,anchor,depthOffset,depthAnchor;
+  uniform vec2 center,viewport,roll;uniform vec3 worldOffset,anchor,depthOffset,depthAnchor;
   uniform vec4 camera,orbitMorph;uniform float lens,travel,scale,localScale,depthLocalScale,orbitPlane;
   varying vec2 orbitDirection;
   void main(){
@@ -766,6 +766,7 @@ const DIRECT_LINE_VERTEX=`attribute vec4 a;
     float y=p.x*camera.y+p.y*camera.x;
     float dy=dp.x*camera.y+dp.y*camera.x;
     vec3 v=vec3(x*lens,-(y*camera.w+p.z*camera.z),-dy*camera.z+dp.z*camera.w);
+    v.xy=vec2(v.x*roll.x+v.y*roll.y,v.y*roll.x-v.x*roll.y);
     // Keep the actual homogeneous position, even behind the near plane.
     // Replacing hidden vertices with a fixed corner creates triangular rays
     // when a local moon orbit crosses the camera during a distant retreat.
@@ -800,20 +801,22 @@ const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,ax
   varying vec2 local;varying float depth;
   void main(){local=a*outer;depth=dot(local,depthAxis);vec2 q=center+(axisU*local.x+axisV*local.y)*radius;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);}`;
  const DIRECT_RING_FRAGMENT=`precision highp float;varying vec2 local;varying float depth;
-   uniform vec2 axisU,axisV;uniform float radius,inner,outer,front,saturn,pixel;uniform vec3 ringColor;
+   uniform vec2 axisU,axisV;uniform float radius,inner,outer,front,saturn,pixel;uniform vec3 ringColor,light;
    uniform sampler2D ringMap;uniform float hasRingMap,ringTexel;
-   vec4 ringSample(float f){vec4 c=texture2D(ringMap,vec2(clamp(f,ringTexel*.5,1.-ringTexel*.5),.5));return vec4(c.rgb*c.a,c.a);}
+   ${STYLE.ringSamplingGLSL}
+   ${STYLE.ringShadowGLSL}
    float lineBand(float f,float center,float width,float aa){return 1.-smoothstep(width,width+aa,abs(f-center));}
    void main(){float r=length(local);if(r<inner||r>outer||(front>.5&&depth<0.)||(front<.5&&depth>=0.))discard;
      float f=(r-inner)/(outer-inner),span=outer-inner;
      vec2 radial=local/max(r,.0001),screenRadial=axisU*radial.x+axisV*radial.y;
      float aa=max(pixel/span,1.15/(max(radius*length(screenRadial),1.)*span));
      float edge=max(pixel,aa*span),alpha=smoothstep(inner,inner+edge,r)*(1.-smoothstep(outer-edge,outer,r));
+     float shadow=saturn>.5?ringShadow(vec3(local.x,0.,local.y),light):1.;
      if(saturn>.5&&hasRingMap>.5){
        // Radial (not longitude) sampling: no repeated inner/outer seam. Filter
        // unresolved bands in premultiplied space to keep transparent gaps dark.
-       vec4 band=(ringSample(f-aa*.5)+2.*ringSample(f)+ringSample(f+aa*.5))*.25;
-       gl_FragColor=vec4(band.rgb/max(band.a,.00001),alpha*band.a);return;
+       vec4 band=ringFiltered(f,aa);
+       gl_FragColor=vec4(band.rgb*shadow,alpha*band.a);return;
      }
      if(saturn>.5){
        float gap=smoothstep(.56-aa*1.5,.56+aa*1.5,f)*(1.-smoothstep(.62-aa*1.5,.62+aa*1.5,f));
@@ -833,7 +836,7 @@ const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,ax
       float unresolved=.035+.025*smoothstep(.70,1.,f);
       alpha*=mix(unresolved,min(lines*coverage,.68),detail);
     }
-    gl_FragColor=vec4(ringColor,alpha);}`;
+    gl_FragColor=vec4(ringColor*shadow,alpha);}`;
 function directCompile(gl,type,source){
   const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
   if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){const message=gl.getShaderInfoLog(shader)||'GPU shader compilation failed';gl.deleteShader(shader);throw Error(message);}
@@ -852,7 +855,7 @@ class DirectRenderer{
     // GPU colors are blended into a transparent backing store as premultiplied
     // values. Tell Chromium compositors the truth so thin orbit alpha is not
     // multiplied a second time (notably visible in Microsoft Edge).
-    this.canvas=canvas;this.gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:true,depth:false,stencil:false,preserveDrawingBuffer:false});
+    this.canvas=canvas;this.gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:true,depth:true,stencil:false,preserveDrawingBuffer:false});
     if(!this.gl)throw Error('WebGL is required for the direct planet renderer.');
     this.disposed=false;this.paused=false;this.generation=0;this.textureToken=0;this.width=1;this.height=1;this.dpr=1;
     this.textures=new Map();this.recentTextures=new Map();this.textureIntent=null;this.frames=new Map();this.desired=new Map();this.orbitBuffers=new Map();this.textureSources=new Map();this.coronaTexture=null;this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
@@ -901,8 +904,8 @@ class DirectRenderer{
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
     this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount']);
     this.coronaProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
-    this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','color','ink','inkWeight']);
-    this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel']);
+    this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','roll','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','color','ink','inkWeight']);
+    this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel','light']);
     this.quad=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.quad);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
     this.black=g.createTexture();g.bindTexture(g.TEXTURE_2D,this.black);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,1,1,0,g.RGBA,g.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
     g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
@@ -1123,8 +1126,8 @@ class DirectRenderer{
     }
     return record?.texture?record:null;
   }
-  orbit(key,xyz,worldOffset,camera,scale,centerX,centerY,color,alpha,localScale=1,depthLocalScale=localScale,components=3,ink=null){
-    if(!key||!xyz?.length||!(alpha>0)||(ink&&ink.progress<=0))return;
+  prepareOrbit(key,xyz,components=3){
+    if(!key||!xyz?.length||this.disposed||this.contextLost)return null;
     const g=this.gl,p=this.line,data=xyz instanceof Float32Array?xyz:new Float32Array(xyz);
     let record=this.orbitBuffers.get(key);
     if(!record){record={buffer:g.createBuffer(),source:null,count:0};this.orbitBuffers.set(key,record);}
@@ -1133,16 +1136,24 @@ class DirectRenderer{
     this.bind(p,record.buffer,components);
     if(record.source!==xyz){g.bufferData(g.ARRAY_BUFFER,data,g.STATIC_DRAW);this.orbitBufferBytes=(this.orbitBufferBytes||0)+data.byteLength-(record.bytes||0);record.bytes=data.byteLength;record.source=xyz;this.stats.orbitUploads++;}
     record.count=data.length/components;
+    return record;
+  }
+  orbit(key,xyz,worldOffset,camera,scale,centerX,centerY,color,alpha,localScale=1,depthLocalScale=localScale,components=3,ink=null){
+    if(!(alpha>0)||(ink&&ink.progress<=0))return;
+    const record=this.prepareOrbit(key,xyz,components);if(!record)return;
+    const g=this.gl,p=this.line;
     const offset=worldOffset||{x:0,y:0,z:0},anchor=camera.anchor||{x:0,y:0,z:0};
     const depthX=anchor.depthX??anchor.x,depthY=anchor.depthY??anchor.y,depthZ=anchor.depthZ??anchor.z;
     this.viewport(p);
     const s=this.orbitState;
     if(!s.valid||s.centerX!==centerX||s.centerY!==centerY||s.anchorX!==anchor.x||s.anchorY!==anchor.y||s.anchorZ!==anchor.z||s.depthX!==depthX||s.depthY!==depthY||s.depthZ!==depthZ||
-      s.ca!==camera.ca||s.sa!==camera.sa||s.ce!==camera.ce||s.se!==camera.se||s.lens!==camera.lens||s.travel!==camera.travel||s.scale!==scale){
+      s.ca!==camera.ca||s.sa!==camera.sa||s.ce!==camera.ce||s.se!==camera.se||s.cr!==(camera.cr??1)||s.sr!==(camera.sr??0)||s.lens!==camera.lens||s.travel!==camera.travel||s.scale!==scale){
       g.uniform2f(p.u.center,centerX,centerY);g.uniform3f(p.u.anchor,anchor.x,anchor.y,anchor.z);
       g.uniform3f(p.u.depthAnchor,depthX,depthY,depthZ);
       g.uniform4f(p.u.camera,camera.ca,camera.sa,camera.ce,camera.se);g.uniform1f(p.u.lens,camera.lens);g.uniform1f(p.u.travel,camera.travel);g.uniform1f(p.u.scale,scale);
+      g.uniform2f(p.u.roll,camera.cr??1,camera.sr??0);
       Object.assign(s,{valid:true,centerX,centerY,anchorX:anchor.x,anchorY:anchor.y,anchorZ:anchor.z,depthX,depthY,depthZ,ca:camera.ca,sa:camera.sa,ce:camera.ce,se:camera.se,lens:camera.lens,travel:camera.travel,scale});
+      s.cr=camera.cr??1;s.sr=camera.sr??0;
     }
     g.uniform3f(p.u.worldOffset,offset.x,offset.y,offset.z);g.uniform1f(p.u.localScale,localScale);g.uniform4f(p.u.color,color[0],color[1],color[2],alpha);
     g.uniform3f(p.u.depthOffset,offset.depthX??offset.x,offset.depthY??offset.y,offset.depthZ??offset.z);g.uniform1f(p.u.depthLocalScale,depthLocalScale);
@@ -1180,12 +1191,15 @@ class DirectRenderer{
     this.bindTextureUnit(3,record.texture);
     g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
   }
-  rings(body,frame,screen,radius,front){
+  rings(body,frame,screen,radius,front,light){
     const saturn=body.id==='saturn',inner=saturn?1.28:1.58,outer=saturn?2.26:1.94,g=this.gl,p=this.ring;
     // The normal material owner handles ring LOD, queueing and disposal too.
     // Before its first load (or offline), retain the procedural fallback.
     const map=saturn?this.textures.get('saturn-ring'):null,ready=!!map?.texture;
     this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform2f(p.u.axisU,frame.u[0],frame.u[1]);g.uniform2f(p.u.axisV,frame.v[0],frame.v[1]);g.uniform2f(p.u.depthAxis,frame.u[2],frame.v[2]);
+    // Same view-space sunlight as the planet, expressed in its ring frame.
+    const lx=light?.[0]||0,ly=light?.[1]||0,lz=light?.[2]||0,{u,v,pole}=frame;
+    g.uniform3f(p.u.light,u[0]*lx+u[1]*ly+u[2]*lz,pole?pole[0]*lx+pole[1]*ly+pole[2]*lz:0,v[0]*lx+v[1]*ly+v[2]*lz);
     this.bindTextureUnit(0,ready?map.texture:this.black);g.uniform1f(p.u.hasRingMap,ready?1:0);g.uniform1f(p.u.ringTexel,1/(ready?map.width:1));
     g.uniform1f(p.u.radius,radius);g.uniform1f(p.u.inner,inner);g.uniform1f(p.u.outer,outer);g.uniform1f(p.u.front,front?1:0);g.uniform1f(p.u.saturn,saturn?1:0);g.uniform1f(p.u.pixel,1/Math.max(radius,1));
     g.uniform3f(p.u.ringColor,saturn?.88:.62,saturn?.75:.78,saturn?.55:.80);g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
@@ -1217,7 +1231,7 @@ class DirectRenderer{
     // Rings are children of this body: the surface and both ring halves share
     // exactly one parent transform and cannot drift into separate orientations.
     const frame=job.frame;
-    if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,false);
+    if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,false,job.light);
     const g=this.gl,p=this.planetProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius);g.uniform3fv(p.u.axisU,frame.u);g.uniform3fv(p.u.axisV,frame.v);g.uniform3fv(p.u.pole,frame.pole);g.uniform3fv(p.u.light,job.light);
     g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='venus'?5:job.id==='uranus'?4:['jupiter','saturn','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);g.uniform1f(p.u.nightTexel,1/(night?.width||color.width));g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);g.uniform1f(p.u.cloudAmount,clouds?cloudAmount:0);
     g.uniform1f(p.u.cloudAltMix,altMix);
@@ -1228,7 +1242,7 @@ class DirectRenderer{
     this.bindTextureUnit(4,weather?.texture||this.black);
     this.bindTextureUnit(5,cloudsAlt?.texture||this.black);
     g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
-    if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,true);
+    if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,true,job.light);
     let frameRecord=this.frames.get(job.id);if(!frameRecord){frameRecord={job:null,image:{width:0,height:0,gpu:true}};this.frames.set(job.id,frameRecord);}
     frameRecord.job=job;frameRecord.image.width=Math.round(radius*2*this.dpr);frameRecord.image.height=Math.round(radius*2*this.dpr);return true;
   }

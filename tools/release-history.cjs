@@ -11,7 +11,7 @@ function plan(releases,archive,codes){
   seen.add(row.version);previous=Number(row.version);
  }
  const recent=releases.slice(0,10),removed=releases.slice(10),missingTranslations=[];
- for(const r of recent)for(const code of codes){const items=r.localized[code];if(!Array.isArray(items)||items.length!==r.localized.kor.length||items.some(s=>typeof s!=='string'||!s.trim()))missingTranslations.push(r.version+':'+code);}
+ for(const r of recent)for(const code of codes){if(r.languagePolicy==='korean-only')continue;const items=r.localized[code];if(!Array.isArray(items)||items.length!==r.localized.kor.length||items.some(s=>typeof s!=='string'||!s.trim()))missingTranslations.push(r.version+':'+code);}
  const archived=[...removed.map(r=>({version:r.version,date:r.date,items:[...r.localized.kor]})),...archive];
  return {recent,archived,removed:removed.map(r=>r.version),missingTranslations};
 }

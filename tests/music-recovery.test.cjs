@@ -1,19 +1,34 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const {Element,flush,deferred}=require('./helpers/timer-harness.cjs');
-function fixture({count=2,fallback=false,failPlay=false}={}){
+function fixture({count=2,fallback=false,failPlay=false,storage=new Map()}={}){
  let clock=0,id=0;const pending=new Map(),loads=[],notices=[],document=new Element();document.hidden=true;
  const audio=new Element();Object.assign(audio,{paused:true,ended:false,error:null,currentTime:0,duration:120,src:'',volume:.55,muted:true,
   load(){this.currentTime=0;this.error=null;this.ended=false;loads.push(this.src);},pause(){this.paused=true;},
   play(){this.paused=false;return typeof failPlay==='function'?failPlay():failPlay?Promise.reject(Error('network')):Promise.resolve();}});
- const button=new Element(),window={SolarModules:{},location:{href:'https://solartime.app/'},setTimeout(fn,ms){pending.set(++id,{fn,at:clock+ms});return id;},clearTimeout:n=>pending.delete(n)};
+ const button=new Element(),window={SolarModules:{Preferences:{read:key=>storage.get(key),write:(key,value)=>storage.set(key,value)}},location:{href:'https://solartime.app/'},setTimeout(fn,ms){pending.set(++id,{fn,at:clock+ms});return id;},clearTimeout:n=>pending.delete(n)};
  const tracks=Array.from({length:count},(_,i)=>({file:i+'.mp3',title:'track '+i}));
  window.SolarAssets={music:Object.fromEntries(tracks.map(t=>[t.file,{base:'https://a.example/',path:t.file,fallback:'https://'+(fallback?'b':'a')+'.example/'+t.file}]))};
  const math=Object.create(Math);math.random=()=>.999;
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/music-player.js'),'utf8'),{window,document,URL,Math:math,performance:{now:()=>clock},requestAnimationFrame:()=>1,cancelAnimationFrame(){}});
  const music=window.SolarModules.MusicPlayer.create({audio,tracks,folder:'assets/',translate:x=>x,notify:x=>notices.push(x),button,previous:new Element(),next:new Element(),title:new Element(),now:new Element()});
- return {window,music,audio,loads,notices,pending,button,async advance(ms){const end=clock+ms;let loops=0;while(true){const entry=[...pending].sort((a,b)=>a[1].at-b[1].at)[0];if(!entry||entry[1].at>end)break;if(++loops>100)throw Error('Unbounded recovery');clock=entry[1].at;pending.delete(entry[0]);entry[1].fn();await flush();}clock=end;await flush();},async error(){audio.error={code:2};await audio.fire('error');await flush();}};
+ return {document,window,music,audio,loads,notices,pending,button,async advance(ms){const end=clock+ms;let loops=0;while(true){const entry=[...pending].sort((a,b)=>a[1].at-b[1].at)[0];if(!entry||entry[1].at>end)break;if(++loops>100)throw Error('Unbounded recovery');clock=entry[1].at;pending.delete(entry[0]);entry[1].fn();await flush();}clock=end;await flush();},async error(){audio.error={code:2};await audio.fire('error');await flush();}};
 }
+test('saved ON never starts audio after reload; music still starts from its button',async()=>{
+ const storage=new Map(),a=fixture({storage});await a.button.fire('click');await flush();
+ a.music.setEnabled(false,{remember:false});a.music.dispose();assert.equal(storage.get('solar-time.music-enabled.v1'),true);
+ const b=fixture({storage});await flush();assert.equal(b.music.enabled,false);assert.equal(b.loads.length,0);
+ await b.button.fire('click');await flush();assert.equal(b.music.enabled,true);assert.equal(b.loads.length,1);
+ b.music.dispose();
+});
+test('unrelated clicks and travel hotkeys never auto-start saved music',async()=>{
+ const f=fixture({storage:new Map([['solar-time.music-enabled.v1',true]])});
+ await f.document.fire('pointerdown');await f.document.fire('keydown',{key:'t',code:'KeyT'});await flush();
+ assert.equal(f.music.enabled,false);assert.equal(f.loads.length,0);assert.equal(f.pending.size,0);
+ assert.equal((f.document.listeners.pointerdown||[]).length,0);assert.equal((f.document.listeners.keydown||[]).length,0);
+ assert.doesNotMatch(fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),/music\.restore\(/);
+ f.music.dispose();
+});
 test('mid-track error retries once, then skips; all failed tracks turn music and UI OFF',async()=>{
  const f=fixture();f.music.setEnabled(true);await flush();assert.equal(f.loads.length,1);
  await f.error();await f.error();await f.advance(999);assert.equal(f.loads.length,1);await f.advance(1);assert.equal(f.loads.length,2);assert.equal(f.music.track,'track 0');

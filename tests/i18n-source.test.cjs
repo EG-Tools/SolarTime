@@ -23,11 +23,23 @@ test('all 13 web and file-language bundles preserve approved interface, timer, b
  const compiled=api.compile(root);
  for(const protocol of ['https:','file:']){
   const {loader}=runtime({protocol});
-  for(const code of compiled.codes){const bundle=await loader.load(code);const previous={...bundle,copy:{...bundle.copy}};for(const key of ['cookieSettings','cookieDismiss','cookieChoiceNote','defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan','releaseNotesAll','atmosphericClouds'])delete previous.copy[key];assert.equal(api.fingerprint(previous),gold[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
+  for(const code of compiled.codes){const bundle=await loader.load(code);const previous={...bundle,copy:{...bundle.copy}};for(const key of ['music','openingTravel','openingDefault','openingNone','openingReload','cookieSettings','cookieDismiss','cookieChoiceNote','defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan','releaseNotesAll','atmosphericClouds','ringTravel','ringTravelStarted','ringTravelUnavailable'])delete previous.copy[key];assert.equal(api.fingerprint(previous),gold[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
  }
 });
 test('all retained historical release translations are unchanged',()=>{
  const notes=require('../src/release-notes.js');for(const [version,languages] of Object.entries(gold.releases))for(const [code,digest] of Object.entries(languages)){const release=notes.RELEASES.find(r=>r.version===version);assert.ok(release,version);assert.equal(api.fingerprint(notes.itemsFor(release,code)),digest,version+' '+code);}
+});
+
+test('ring travel labels are localized for all languages including older file-launch bundles',()=>{
+ const {loader}=runtime({protocol:'file:'}),compiled=api.compile(root);
+ for(const code of compiled.codes){
+  const bundle=loader.resolveBundle({copy:{},bodies:{},phases:{}},code,{local:true});
+  for(const key of ['ringTravel','ringTravelStarted','ringTravelUnavailable']){
+   assert.equal(bundle.copy[key],compiled.bundles[code].copy[key],code+' '+key);
+   assert.ok(data('i18n/locales/'+code+'.json').ui[key].trim(),code+' '+key);
+  }
+ }
+ assert.equal(compiled.bundles.kor.copy.ringTravel,'여행');assert.equal(compiled.bundles.en.copy.ringTravel,'Travel');
 });
 
 test('footer shows mean orbit first and size-distance scale second in every language',()=>{
@@ -109,4 +121,25 @@ test('public HTML and literal UI references have canonical message keys',()=>{
  const copy=api.compile(root).bundles.en.copy,keys=new Set([...read('index.html').matchAll(/data-i18n(?:-aria|-title|-content)?="(\w+)"/g)].map(m=>m[1]));
  for(const file of ['src/app.js','src/timer-controller.js','src/music-player.js'])for(const match of read(file).matchAll(/\b(?:t|translate)\(['"](\w+)['"]/g))keys.add(match[1]);
  for(const key of keys)assert.ok(Object.hasOwn(copy,key),key);
+});
+
+test('music shortcut keeps current Korean and English labels with old file-launch bundles',async()=>{
+ for(const protocol of ['file:','https:']){
+  const {loader}=runtime({protocol,fetch:async()=>({ok:true,json:async()=>protocol==='file:'?{copy:{music:'Background Music'},bodies:{},phases:{}}:data('src/locales/kor.json')})});
+  assert.equal((await loader.load('kor')).copy.music,'배경 음악');
+ }
+ const {loader}=runtime({protocol:'file:'});
+ assert.equal(loader.resolveBundle({copy:{},bodies:{},phases:{}},'en',{local:true}).copy.music,'Background Music');
+});
+
+test('latest release uses reviewed translations; explicit Korean-only fixtures remain validated',()=>{
+ const compiled=api.compile(root),release=compiled.releases[0],runtime=require('../src/release-notes.js');
+ assert.equal(release.languagePolicy,undefined);assert.deepEqual(Object.keys(release.localized).sort(),[...compiled.codes].sort());
+ for(const code of compiled.codes)assert.deepEqual(runtime.itemsFor(runtime.RELEASES[0],code),release.localized[code]);
+ const dir=sandbox();try{
+  const entries=data('i18n/releases.json',dir);entries[0].languagePolicy='korean-only';entries[0].localized={kor:entries[0].localized.kor};entries[0].localized.en=['Not an approved translation'];write('i18n/releases.json',entries,dir);
+  assert.throws(()=>api.compile(dir),/Invalid Korean-only release/);
+  delete entries[0].localized.en;delete entries[0].languagePolicy;write('i18n/releases.json',entries,dir);
+  assert.throws(()=>api.compile(dir),/Missing release base text/);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
