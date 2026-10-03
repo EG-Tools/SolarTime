@@ -2198,7 +2198,7 @@
       if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
       const {bodies}=this.updateFrameBodies(ms),saturn=this.currentFrameItem('saturn');
       this.updateProjectionAnchor();
-      this.updateRingTourEntry(tour,saturn);
+      this.updateRingTourTracking(tour,saturn);
       const returning=this.prepareRingTourReturn(tour,bodies,ms);
       const saturnRadius=this.bodyRadiusAtZoom(saturn.body),units=tour.worldUnits||saturnRadius/this.scale;
       const projection=tour.projection=this.prepareRingTourProjection({tour,axes,saturn:saturn.world,saturnRadius,units,focal:this.h/(2*Math.tan(tour.pose.fov*Math.PI/360))});
@@ -2235,13 +2235,26 @@
       tour.visibleBodies=visible.map(item=>item.body.id);this.projected=bodies;
       this.checkReplayClearance(mono,bodies);
     }
-    updateRingTourEntry(tour,item) {
-      if(tour.state!=='entering'||tour.openingResume||tour.replayBridge)return;
+    updateRingTourTracking(tour,item) {
+      if(tour.replayBridge)return;
+      if(tour.state==='returning'){
+        tour.updateReturnView(this.ringTourReturnView(item));
+        tour.pose=tour.cameraPose();return;
+      }
+      if(tour.state!=='entering'||tour.openingResume)return;
       // Keep the departure view tied to the live ephemeris until the existing
       // approach takes over. A frozen snapshot makes only Saturn stop moving
       // at high time rates, while the shared body projection keeps orbiting.
       tour.entryView=this.ringTourReturnView(item);
       tour.pose=tour.cameraPose();
+    }
+    ringTourMappedView(world,map,reference) {
+      const values=[world.x,world.y,world.z,world.depthX??world.x,world.depthY??world.y,world.depthZ??world.z];
+      const clip=map.origin.map((v,row)=>v+map.columns.reduce((sum,col,i)=>sum+col[row]*values[i],0));
+      const depth=Math.max(DOLLY.nearRatio,Math.abs(clip[2])),f=this.h/(2*Math.tan(reference.fov*Math.PI/360));
+      const orthoScale=f*depth/map.radius,length=Math.hypot(...reference.eye);
+      return {...reference,eye:reference.eye.map(v=>v/length*Math.max(1.08,orthoScale)),orthoScale,
+        offset:[(clip[0]/depth-this.w/2)/f,(this.h/2-clip[1]/depth)/f]};
     }
     ringTourReturnView(item) {
       // Saturn can be behind the destination camera (e.g. Uranus tracking).
@@ -2281,7 +2294,8 @@
       };
       let current=correction(tour.returnTo||tour.entryView||tour.startPose,tour.entryNormalProjection||this.ringTourNormalProjection(saturnRadius));
       if(tour.returnNormalFrom){
-        const from=correction(tour.entryView||tour.startPose,tour.returnNormalFrom),t=tour.returnProgress(tour.returnNormalStart||0);
+        const reference=tour.entryView||tour.startPose;
+        const from=correction(tour.liveReturn?this.ringTourMappedView(saturn,tour.returnNormalFrom,reference):reference,tour.returnNormalFrom),t=tour.returnProgress(tour.returnNormalStart||0);
         current={matrix:current.matrix.map((row,i)=>row.map((v,j)=>mix(from.matrix[i][j],v,t))),radius:mix(from.radius,current.radius,t)};
       }
       projection.correction=current;return projection;

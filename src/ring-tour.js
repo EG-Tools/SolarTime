@@ -736,6 +736,15 @@
       this.returnControls={yaw:this.yaw,pitch:this.pitch,pan:[...this.pan],fov:this.fov};
       this.pose=this.cameraPose();
     }
+    updateReturnView(view){
+      // Refresh the destination, not the return clock or its initial momentum.
+      // At accelerated simulation rates the planet keeps orbiting during exit;
+      // a one-time destination snapshot would jump on the final normal frame.
+      this.liveReturn=true;this.returnTo=view;
+      if(this.returnMotion.rewind){
+        if(this.returnRedirect)this.returnRedirect.view=view;
+      }else this.returnMotion.b=polar(view.eye);
+    }
     rewindAge(elapsed){
       const m=this.returnMotion,weight=ease(elapsed/m.duration);
       // Briefly brake the incoming velocity before running the SAME entry

@@ -3,8 +3,8 @@
   "src/consent.js": "69c07b6623d762e0f21be391e9d955a93a1127e3ea934b972b1f35ecaf426531",
   "src/windows-shutdown.js": "3109e303c919cf6bbb4490bd74423595958854d0b2d4275d4bd000fd7705070a",
   "src/alarm-sound.js": "924225d8b735221f1b466919ecfd2daafcbaca7a4549185c22a50bb85169c7e5",
-  "src/renderer.js": "e3c55254fafff639db360b327107c6e3373ace4339574d6ea772d0ace2e19d26",
+  "src/renderer.js": "509cf98bec470f248490db2f9fa186fc75785e14ae5c303daf02d0bb5f893e9d",
   "src/surface.js": "15b769b1ab2c7266da51bbb3412f8caa392c5136016412cbf33980a0760b7ccd",
   "src/assets.js": "36cd9b70c3fa0f009492734c60b83a88825c5f4ae7f8b8d470be4a52a30e1353",
-  "styles.css": "7ec3bd59d55059263abd3a6acdde798672647d4cda5f00732860e94c05a14632"
+  "styles.css": "3c9337bae8afa17a17820f0b988b37bf371d4ea942bec0f75dfec1a89eaef733"
 }
