@@ -199,7 +199,7 @@ test('travel Saturn participates once in the shared far-to-near planet order',()
    physical:{x:1,y:0,z:0},screen:{},r:10,directJob:{}}));
   const saturn=bodies[1],r=Object.create(R),tour={state,job:{},pose:{fov:72},draw:()=>calls.push('saturn')};
   Object.assign(r,{lastPathMs:ms,pathYear:astro.modelYear(ms),w:1280,h:800,scale:10,options:{activity:true},compatSurfaceJobs:[],directBodies:[],
-   updateFrameBodies:()=>({bodies}),currentFrameItem:()=>saturn,updateProjectionAnchor(){},prepareRingTourReturn:()=>state==='returning',
+   updateFrameBodies:()=>({bodies}),currentFrameItem:()=>saturn,updateProjectionAnchor(){},updateRingTourEntry(){},prepareRingTourReturn:()=>state==='returning',
    bodyRadiusAtZoom:()=>10,prepareRingTourProjection:p=>p,
    projectRingTourPoint(p,world,out,r,normal){Object.assign(out,{z:world.z,radius:r,localX:0,localY:0,localZ:world.z});normal.perspective=1;},
    visible:()=>showOthers,surfaceJob:(b,p,r,ms,s,d,job)=>job,coronaSource:()=>null,
@@ -1373,6 +1373,39 @@ test('Saturn and all other bodies share the moving camera immediately, without a
    near(out.radius,.5*p.focal/depth,1e-6);
   }
  }
+});
+
+test('moving Saturn keeps its live departure position and size while tracking blends into the ring',()=>{
+ const A=window.SolarAstro,body=A.BODIES.find(b=>b.id==='saturn'),axes=A.bodyAxes(body);
+ for(const dolly of [1,3]){
+  const r=Object.create(R);Object.assign(r,{w:1280,h:800,cx:640,cy:400,scale:4,camera:{azimuth:.2,elevation:.3,dolly},projectionAnchor:null,bodyRadiusAtZoom:()=>20});
+  const item={body,r:20,world:{x:15,y:20,z:2}},screen=r.project(item.world);
+  const t=create(123,{frame:r.bodyFrame(body),radius:item.r*screen.perspective,screen,deferPreparation:true});
+  const baseline=create(123,{frame:r.bodyFrame(body),radius:item.r*screen.perspective,screen,deferPreparation:true});
+  const focal=r.h/(2*Math.tan(72*Math.PI/360));
+  for(const age of [0,.01,.5,2,5,9.9,10]){
+   // Five simulated years per second: retain a moving target throughout entry.
+   const angle=age*5/29.46*Math.PI*2;
+   item.world={x:15+200*Math.sin(angle),y:20+200*(Math.cos(angle)-1),z:2};
+   t.age=age;r.updateRingTourEntry(t,item);
+   const pose=t.pose,delta=pose.eye.map(v=>-v),dot=v=>v.reduce((sum,n,i)=>sum+n*delta[i],0);
+   const depth=pose.orthoScale*(1-pose.perspective)+dot(pose.forward)*pose.perspective;
+   const dedicated={x:640+(dot(pose.right)/depth+pose.offset[0])*focal,y:400-(dot(pose.up)/depth+pose.offset[1])*focal,radius:focal/depth};
+   const projection=r.prepareRingTourProjection({tour:t,axes,saturn:item.world,saturnRadius:20,units:5,focal});
+   const shared=r.projectRingTourPoint(projection,item.world,{},20);
+   for(const key of ['x','y','radius'])near(shared[key],dedicated[key],1e-6);
+   if(age===0){const normal=r.project(item.world);near(dedicated.x,normal.x);near(dedicated.y,normal.y);near(dedicated.radius,20*normal.perspective);}
+   if(age===.01)assert.ok(dedicated.x>screen.x+.1,'Saturn continues moving instead of freezing on selection');
+   if(age===10){baseline.age=age;const expected=baseline.cameraPose();vectorNear(pose.eye,expected.eye);vectorNear(pose.offset,expected.offset);near(pose.orthoScale,expected.orthoScale);}
+   assert.ok(Object.values(dedicated).every(Number.isFinite));
+  }
+  t.stop();const before=t.pose;r.updateRingTourEntry(t,{...item,world:{x:999,y:0,z:0}});assert.equal(t.pose,before,'return owns its captured entry pose');
+ }
+});
+
+test('live Saturn entry tracking does not alter opening handoffs or warp bridges',()=>{
+ const r=Object.create(R);r.ringTourReturnView=()=>{throw Error('unexpected retarget');};
+ for(const extra of [{openingResume:true},{replayBridge:{}}])r.updateRingTourEntry({state:'entering',...extra},{});
 });
 
 test('compiled frame projection matches the old solver across entry, free look, true-depth and retargeted exits',()=>{

@@ -2198,6 +2198,7 @@
       if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
       const {bodies}=this.updateFrameBodies(ms),saturn=this.currentFrameItem('saturn');
       this.updateProjectionAnchor();
+      this.updateRingTourEntry(tour,saturn);
       const returning=this.prepareRingTourReturn(tour,bodies,ms);
       const saturnRadius=this.bodyRadiusAtZoom(saturn.body),units=tour.worldUnits||saturnRadius/this.scale;
       const projection=tour.projection=this.prepareRingTourProjection({tour,axes,saturn:saturn.world,saturnRadius,units,focal:this.h/(2*Math.tan(tour.pose.fov*Math.PI/360))});
@@ -2233,6 +2234,14 @@
       if(!tourDrawn)tour.draw(this.gpu,this.w,this.h);
       tour.visibleBodies=visible.map(item=>item.body.id);this.projected=bodies;
       this.checkReplayClearance(mono,bodies);
+    }
+    updateRingTourEntry(tour,item) {
+      if(tour.state!=='entering'||tour.openingResume||tour.replayBridge)return;
+      // Keep the departure view tied to the live ephemeris until the existing
+      // approach takes over. A frozen snapshot makes only Saturn stop moving
+      // at high time rates, while the shared body projection keeps orbiting.
+      tour.entryView=this.ringTourReturnView(item);
+      tour.pose=tour.cameraPose();
     }
     ringTourReturnView(item) {
       // Saturn can be behind the destination camera (e.g. Uranus tracking).
@@ -2270,9 +2279,9 @@
         matrix[1][0]-=(this.h/2-reference.offset[1]*f)*w;matrix[2][0]-=w;
         return {matrix,radius:(map.radius*gain-k)/saturnRadius};
       };
-      let current=correction(tour.returnTo||tour.startPose,tour.entryNormalProjection||this.ringTourNormalProjection(saturnRadius));
+      let current=correction(tour.returnTo||tour.entryView||tour.startPose,tour.entryNormalProjection||this.ringTourNormalProjection(saturnRadius));
       if(tour.returnNormalFrom){
-        const from=correction(tour.startPose,tour.returnNormalFrom),t=tour.returnProgress(tour.returnNormalStart||0);
+        const from=correction(tour.entryView||tour.startPose,tour.returnNormalFrom),t=tour.returnProgress(tour.returnNormalStart||0);
         current={matrix:current.matrix.map((row,i)=>row.map((v,j)=>mix(from.matrix[i][j],v,t))),radius:mix(from.radius,current.radius,t)};
       }
       projection.correction=current;return projection;

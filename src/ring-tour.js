@@ -860,6 +860,16 @@
       const motion=this.entryMotion(age),{weight,curve}=motion;
       const frame=orientation(this.startPose,this.approachHeading,curve),turn=(this.entryTurn+age*TAU/this.period*this.direction)*curve;
       const pose={...turnFrame(frame,turn),eye:this.entryPosition(age,motion),offset:blend(this.startOffset,[0,0],weight),perspective:weight,fov,orthoScale:this.orthoScale*motion.distance/this.startDistance};
+      if(this.entryView){
+        // Follow the moving planet progressively, without changing simulation
+        // time or the ring arrival. The live lens also prevents a stale size
+        // from popping when Saturn moves toward/away from the normal camera.
+        const remaining=1-weight,view=this.entryView;
+        const scale=Math.exp(Math.log(view.orthoScale/this.startPose.orthoScale)*remaining);
+        const eyeScale=Math.max(1.08/Math.hypot(...pose.eye),scale);
+        pose.eye=pose.eye.map(v=>v*eyeScale);pose.orthoScale*=scale;
+        pose.offset=pose.offset.map((v,i)=>v+(view.offset[i]-this.startOffset[i])*remaining);
+      }
       return pose;
     }
     bankEntryPose(pose,age){
