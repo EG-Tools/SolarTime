@@ -160,6 +160,14 @@ test('renderer owns the reveal clock, preserves it during a drag, and clears it 
   r.setOption('earthCloudAmount',0);assert.equal(r.cloudRevealProgress(4000),0);
   r.setOption('earthCloudAmount',1);assert.equal(r.cloudRevealProgress(4100),0);
   r.setOption('earthCloudSeed',.7);assert.equal(r.cloudRevealProgress(4600),0);
+  // Manual slider changes bypass the initial reveal in both directions,
+  // including a new randomized seed after returning from zero.
+  r.setOption('earthCloudAmount',0,false);assert.equal(r.cloudRevealProgress(4700),0);
+  r.setOption('earthCloudSeed',.8);r.setOption('earthCloudAmount',.2,false);
+  assert.equal(r.cloudRevealProgress(4700),1);assert.equal(r.options.earthCloudAmount,.2);
+  r.setOption('earthCloudAmount',1,false);assert.equal(r.cloudRevealProgress(4701),1);
+  r.setOption('earthCloudAmount',.2,false);assert.equal(r.cloudRevealProgress(4702),1);
+  assert.equal(r.options.earthCloudAmount,.2);
 });
 
 test('paused compatibility frames continue updating until reveal finishes',()=>{

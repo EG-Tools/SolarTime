@@ -652,6 +652,7 @@
         const numeric=Number(value);
         this.options.earthCloudAmount=clamp(Number.isFinite(numeric)?numeric:1,0,1);
         if(this.options.earthCloudAmount===0){this.cloudRevealSeed=null;this.gpu?.cloudWeather?.cancelBuild();}
+        else if(!animate){this.cloudRevealSeed=this.options.earthCloudSeed;this.cloudRevealStart=-Infinity;}
         this.lastSurfaceSubmit=-Infinity;this.dirty=true;return;
       }
       if(key==='venusCloudAmount'){
@@ -990,20 +991,27 @@
       const seconds=path.openingMove?Math.min(elapsed,this.replayOpeningAt(path)+path.inbound-20)/1000:replayFlightTime(elapsed/1000,Math.max(path.brakeAt/1000,acceleration));
       const sample=time=>path.openingMove?this.openingParticlePose(path.openingMove,time*1000-this.replayOpeningAt(path)):window.SolarRingTour.jumpPose(flight,time);
       const pose=sample(seconds);
+      // Normal-view virtual warp is displayed through flightLookForView,
+      // which reverses the transported right axis. Ring travel uses it as-is.
+      const screenRight=!path.openingMove&&path.ring.virtual&&flight===path.path?pose.right.map(v=>-v):pose.right;
       // Measure travel in the transported camera frame, including bank.
       // A rising camera must pass the grains downward, and vice versa.
       const next=sample(seconds+.02);
       const delta=next.eye.map((value,i)=>value-pose.eye[i]);
       const direction=Math.hypot(...delta)>1e-12?flightUnit(delta):pose.forward;
       const forward=Math.max(.25,Math.abs(flightDot(direction,pose.forward)));
-      field.headingX=clamp(flightDot(direction,pose.right)/forward,-2,2);
+      field.headingX=clamp(flightDot(direction,screenRight)/forward,-2,2);
       field.headingY=clamp(-flightDot(direction,pose.up)/forward,-2,2);
       const ahead=sample(seconds+.65);
       const turn=ahead.forward.map((value,i)=>value-pose.forward[i]);
       const speed=field.velocity/peak;
-      field.flowX=-this.w*.4*flightDot(turn,pose.right)*speed;
+      field.flowX=-this.w*.4*flightDot(turn,screenRight)*speed;
       field.flowY=this.h*.4*flightDot(turn,pose.up)*speed;
       field.bendX=field.flowX*.65;field.bendY=field.flowY*.65;
+      const loopAge=Math.max(0,elapsed-path.brakeAt),arrivalAge=Math.max(0,elapsed-this.replayOpeningAt(path));
+      const drift=path.openingMove?0:ease(loopAge/REPLAY_TRANSITION.warp)*(1-ease(arrivalAge/1200));
+      const target=field.vanishingTarget||[0,0],span=Math.min(this.w,this.h)*.12;
+      field.vanishingX=target[0]*span*drift;field.vanishingY=target[1]*span*drift;
     }
     flightLookForView(yaw,pitch,state=this.camera,frame=null){
       // Blend in WORLD view angles. Blending relative to a rapidly moving
@@ -1091,6 +1099,11 @@
         p.haloAlpha=.045+.035*clamp(((p.glow??.8)-.8)/1.8,0,1);
       }
       this.openingParticles={capacity,start:mono-offset,duration:duration+offset,replay,points,projected:{},exitAt:null,elapsed:offset,alpha:0};
+      const sun=this.projected.find(p=>p.body.id==='sun'&&!p.screen.behind)?.screen;
+      const dx=sun?sun.x-this.w*.5:0,dy=sun?sun.y-this.h*.5:0,length=Math.hypot(dx,dy);
+      // Freeze the visible solar-system bearing before the scene disappears.
+      // A centered destination gets a small diagonal approach instead.
+      this.openingParticles.vanishingTarget=length>1?[dx/length,dy/length]:[replay.turn?-.6:.6,-.4];
       this.invalidatePresentation(duration,mono);
     }
     openingParticleFrame(mono=performance.now()) {
@@ -1154,7 +1167,7 @@
       const headingX=field.headingX||0,headingY=field.headingY||0;
       const passed=p.depth-depth;
       const laneX=x-short*headingX*passed,laneY=y-short*headingY*passed;
-      const cx=this.w*.5+field.flowX,cy=this.h*.5+field.flowY;
+      const cx=this.w*.5+field.flowX+(field.vanishingX||0),cy=this.h*.5+field.flowY+(field.vanishingY||0);
       const curve=1/(depth+.6);
       out.x=cx+laneX/depth+field.bendX*curve;out.y=cy+laneY/depth+field.bendY*curve;
       out.size=clamp(p.size/(depth+.5),.65,4.5);out.glowSize=out.size*p.glow;

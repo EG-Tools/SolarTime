@@ -122,6 +122,7 @@ body.zen dialog[open] :is(button,input,select,a){visibility:visible!important;po
 
 /* Keep the date and active-region label readable beneath the clock. */
 .date-line{font-size:13px;margin-top:3px}
+.date-line .timezone-readout{font-size:inherit}
 .date-line button{font-size:12px}
 @media(max-width:680px){.date-line{font-size:12px}.date-line button{font-size:11px}}
 @media(max-height:630px) and (min-width:681px){.date-line{font-size:12px}}

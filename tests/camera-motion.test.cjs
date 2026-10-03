@@ -212,7 +212,7 @@ test('warp grains approach immediately from zero speed without a stationary hold
 
 test('warp perspective and trails follow camera travel upward, downward and sideways',()=>{
  const {r,sandbox}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
- const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;
+ const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;path.ring.virtual=false;
  const base={right:[1,0,0],up:[0,1,0],forward:[0,0,1]};
  const particle={...r.openingParticles.points[0],x:0,y:0,depth:3,speed:.1,formationAt:0};
  for(const [vx,vy] of [[0,1],[0,-1],[1,0],[-1,0]]){
@@ -227,6 +227,28 @@ test('warp perspective and trails follow camera travel upward, downward and side
  // A rolled camera uses its own up/right, rather than world vertical.
  sandbox.window.SolarRingTour.jumpPose=(_,t)=>({right:[0,1,0],up:[-1,0,0],forward:[0,0,1],eye:[0,t,t]});
  const rolled=r.openingParticleFrame(2000);close(rolled.headingX,1);close(rolled.headingY,0);
+ // The normal-view virtual camera reverses the transported right axis.
+ // Compare against the actual view conversion, including a rolled frame.
+ path.ring.virtual=true;path.flightPath=path.path;
+ const pose=sandbox.window.SolarRingTour.jumpPose(path.path,2);
+ const look=r.flightLookForView(0,0,{azimuth:0,elevation:0},pose);
+ const virtual=r.openingParticleFrame(2000);
+ close(virtual.headingX,-1);close(virtual.headingY,0);
+ close(look.right[2],-1);
+});
+
+test('warp loop vanishing point approaches the solar bearing smoothly and settles on arrival',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;
+ const field=r.openingParticles;field.vanishingTarget=[.6,-.8];
+ const sample=t=>{r.replayDustMotion(path,t,field);return [field.vanishingX,field.vanishingY];};
+ assert.deepEqual(sample(4300),[0,-0]);
+ const middle=sample(6500),late=sample(8500);
+ assert.ok(middle[0]>0&&middle[1]<0);assert.ok(late[0]>middle[0]&&late[1]<middle[1]);
+ assert.ok(Math.hypot(...late)<=Math.min(r.w,r.h)*.12);
+ const direct=sample(8000);for(let t=4300;t<8000;t+=17)sample(t);assert.deepEqual(sample(8000),direct);
+ for(const boundary of [4300,9000,10200]){const a=sample(boundary-.001),b=sample(boundary+.001);assert.ok(Math.hypot(a[0]-b[0],a[1]-b[1])<.01);}
+ assert.equal(Math.hypot(...sample(10200)),0);
 });
 
 test('warp appearance alpha uses stable random delays and fade durations',()=>{
@@ -376,7 +398,7 @@ test('boot and warp particles keep approaching while their random alpha fades',(
   const end=boot?6500:9000,first={...r.openingParticleFrame(end)};
   const p={...first.points[0],life:5000,rotation:0,x:.25,y:.1,depth:((2+first.travel*.5-.04)%5)+.04,speed:.1};
   // Isolate forward perspective from the separate camera heading projection.
-  const project=f=>r.projectOpeningParticle(p,{...f,headingX:0,headingY:0,flowX:0,flowY:0,bendX:0,bendY:0},{});
+  const project=f=>r.projectOpeningParticle(p,{...f,headingX:0,headingY:0,flowX:0,flowY:0,bendX:0,bendY:0,vanishingX:0,vanishingY:0},{});
   const a=project(first),later={...r.openingParticleFrame(end+1000)},b=project(later);
   assert.ok(later.velocity>0&&later.travel>first.travel);
   assert.ok(Math.hypot(b.x-r.w*.5,b.y-r.h*.5)>Math.hypot(a.x-r.w*.5,a.y-r.h*.5),'grains continue approaching');

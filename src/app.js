@@ -638,7 +638,7 @@
       $('earth-cloud-amount').addEventListener('input',()=>{
         const value=Number($('earth-cloud-amount').value),previous=renderer.options.earthCloudAmount;
         if(value>0&&previous<=0)renderer.setOption('earthCloudSeed',randomCloudSeed(renderer.options.earthCloudSeed));
-        renderer.setOption('earthCloudAmount',value/100);$('earth-cloud-amount-output').textContent=value+'%';
+        renderer.setOption('earthCloudAmount',value/100,false);$('earth-cloud-amount-output').textContent=value+'%';
       });
       $('earth-cloud-amount').addEventListener('change',persist);
       $('venus-cloud-amount').addEventListener('input',()=>{
