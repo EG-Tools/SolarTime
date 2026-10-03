@@ -30,6 +30,7 @@ def verify_consent_controls(browser, root, check, diagnostics, load):
             page.evaluate('SolarCookieConsent.show()')
             page.keyboard.press('Escape')
             check(page.locator('#cookie-consent').is_hidden() and page.evaluate('SolarConsent.value()') == 'granted', str(size) + ' focused Escape dismisses without changing consent')
+            check(not page.locator('#help-dialog').evaluate('e=>e.open'), str(size) + ' cookie Escape does not also open Help')
             page.evaluate('SolarCookieConsent.show()')
             page.locator('#cookie-reject').click()
             check(page.evaluate('SolarConsent.value()') == 'denied', str(size) + ' rejection from settings works')

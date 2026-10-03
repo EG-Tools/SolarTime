@@ -1240,6 +1240,8 @@
       window.addEventListener('keydown',event=>{
         if(disposed)return;
         if(event.key==='Escape'||event.code==='Escape'){
+          // Let the focused cookie banner consume its own dismissal before scene shortcuts.
+          if(event.target.closest?.('#cookie-consent'))return;
           if(UI.topDialog()){event.preventDefault();event.stopImmediatePropagation();if(!event.repeat)UI.dismissTopDialog();return;}
           if(openingReplayLocked){event.preventDefault();event.stopImmediatePropagation();return;}
           // Outside the Web Fullscreen API, leave the native Escape action available.
