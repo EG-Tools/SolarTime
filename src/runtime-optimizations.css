@@ -185,7 +185,7 @@ html.solar-standalone .modal{
 @media(max-width:1050px){.timer-panel{right:27px}}
 @media(max-width:680px){.timer-panel{right:16px;top:max(61px,calc(var(--solar-safe-top) + 8px));width:264px}.timer-panel>.panel-heading{padding:21px 21px 2px}.timer-scroll{padding:0 21px 21px}}
 @media(max-height:630px) and (min-width:681px){.timer-panel{top:max(60px,calc(var(--solar-safe-top) + 8px))}}
-@media(max-width:420px){.brand{gap:5px}.brand svg{width:24.1px;height:24.1px}.brand h1{font-size:12px;letter-spacing:1.3px}.top-actions .icon-button{width:30px;height:31px}.top-actions .language-toggle{width:34px}.top-actions svg{width:18px;height:18px}}
+@media(max-width:420px){.brand{gap:5px}.brand svg{width:25.1px;height:25.1px}.brand h1{font-size:12px;letter-spacing:1.3px}.top-actions .icon-button{width:30px;height:31px}.top-actions .language-toggle{width:34px}.top-actions svg{width:18px;height:18px}}
 html.solar-standalone :is(.alarm-dialog,.shutdown-dialog){
   top:calc(var(--solar-viewport-top,0px) + var(--solar-viewport-height,100dvh)/2);
   left:calc(var(--solar-viewport-left,0px) + var(--solar-viewport-width,100vw)/2);

@@ -20,9 +20,9 @@ test('a repeated T cannot rewind the previous sky momentum clock',()=>{
  sky.draw(0,{...camera,azimuth:.004,replaySky:{clock:20}},options);
  const from=sky.captureReplayBackground(),reset={azimuth:2,elevation:.7};
  sky.draw(0,{...reset,replaySky:{from,reveal:true,carry:0,clock:40}},options);
- sky.draw(0,{...reset,replaySky:{from,reveal:true,carry:4,clock:4040}},options);
+ sky.draw(0,{...reset,replaySky:{from,reveal:true,carry:6,clock:6040}},options);
  const before=JSON.stringify(sky.starAxes);
- for(const clock of [4040,4050,4100]){
+ for(const clock of [6040,6050,6100]){
   sky.draw(0,{...reset,replaySky:{reveal:false,carry:-Infinity,clock}},options);
   assert.equal(JSON.stringify(sky.starAxes),before,'starting T must not reset the retained star/galaxy orientation');
  }
@@ -39,9 +39,22 @@ test('galaxy and stars carry angular momentum while the opening camera prepares'
  const atReset=JSON.stringify(sky.starAxes);
  sky.draw(0,{...reset,replaySky:{...reset.replaySky,carry:1,clock:1040}},options);
  assert.notEqual(JSON.stringify(sky.starAxes),atReset,'held camera must not freeze the shared sky');
- for(const t of [2,3,4])sky.draw(0,{...reset,replaySky:{...reset.replaySky,carry:t,clock:40+t*1000}},options);
+ for(const t of [2,3,4,5,6])sky.draw(0,{...reset,replaySky:{...reset.replaySky,carry:t,clock:40+t*1000}},options);
  const end=JSON.stringify(sky.starAxes);sky.draw(0,{...reset,replaySky:null},options);
  assert.equal(JSON.stringify(sky.starAxes),end,'momentum release must not snap back');
+});
+
+test('warp-opening blend preserves fast incoming rotation and releases it over six seconds',()=>{
+ for(const speed of [.05,.6,1.2]){
+  const {sky}=fixture(true),from={stars:{right:[1,0,0],down:[0,1,0],forward:[0,0,1]},spin:[0,0,speed]};
+  const angle=t=>{sky.draw(0,{...camera,replaySky:{from,reveal:true,carry:t,clock:t*1000}},options);return Math.atan2(sky.starAxes.right[1],sky.starAxes.right[0]);};
+  const dt=.0001,start=angle(0),first=angle(dt);
+  assert.ok(Math.abs((first-start)/dt-speed)<1e-6,'handoff keeps the original angular velocity, including above .3 rad/s');
+  const middle=angle(4),later=angle(4+dt);
+  assert.ok(later-middle>speed*dt*.15,'momentum still overlaps the opening after the old four-second cutoff');
+  const before=angle(6-dt),end=angle(6),after=angle(6+dt);
+  assert.ok(Math.abs(end-before)/dt<1e-6);close(end,after);
+ }
 });
 
 test('named dark and bright UV locators follow panorama rotation exactly',()=>{

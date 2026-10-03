@@ -1,6 +1,6 @@
 /* Solar Time v0.47 — sky implementation owner. */
 (function(root){'use strict';
-const TAU=Math.PI*2,DRIFT=.22*Math.PI/180,COS30=Math.sqrt(.75);
+const TAU=Math.PI*2,DRIFT=.22*Math.PI/180,COS30=Math.sqrt(.75),REPLAY_MOMENTUM_SECONDS=6;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 // Fixed UV anchors on universe-optimized.webp, independent of page drift.
 // A: dark upper/lower sky. B: visibly textured sections of the nebula band.
@@ -281,11 +281,14 @@ class Sky{
   // The carry clock belongs to THIS remap, not the next T animation. Reusing
   // a new departure's negative carry used to rewind the entire sky instantly.
   const elapsed=replay?.from===this.starBridge&&Number.isFinite(replay?.carry)?replay.carry:
-   Number.isFinite(this.starRemap.start)?((replay?.clock??performance.now())-this.starRemap.start)/1000:4;
-  const t=this.starRemap.elapsed=clamp(Math.max(this.starRemap.elapsed,elapsed),0,4),u=t/4,carry=t-4*u**4*(2.5-3*u+u*u);
+   Number.isFinite(this.starRemap.start)?((replay?.clock??performance.now())-this.starRemap.start)/1000:REPLAY_MOMENTUM_SECONDS;
+  // Overlap the carried warp rotation with more of the incoming opening.
+  // The integrated quintic ease preserves velocity and acceleration at both
+  // ends; keep the measured initial speed instead of abruptly capping it.
+  const duration=REPLAY_MOMENTUM_SECONDS,t=this.starRemap.elapsed=clamp(Math.max(this.starRemap.elapsed,elapsed),0,duration),u=t/duration,carry=t-duration*u**4*(2.5-3*u+u*u);
   if(this.starSource===this.panAxes&&this.starMapping===this.starRemap&&this.starRemap.carry===carry)return;
   this.starRemap.carry=carry;
-  const {from:original,to,spin}=this.starRemap,speed=Math.hypot(...spin),angle=Math.min(.3,speed)*carry;
+  const {from:original,to,spin}=this.starRemap,speed=Math.hypot(...spin),angle=speed*carry;
   const axis=spin.map(v=>v/(speed||1)),cs=Math.cos(angle),sn=Math.sin(angle);
   const rotate=v=>{const d=dot(axis,v),c=[axis[1]*v[2]-axis[2]*v[1],axis[2]*v[0]-axis[0]*v[2],axis[0]*v[1]-axis[1]*v[0]];return v.map((x,i)=>x*cs+c[i]*sn+axis[i]*d*(1-cs));};
   const from=Object.fromEntries(keys.map(k=>[k,rotate(original[k])]));
