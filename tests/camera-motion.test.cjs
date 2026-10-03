@@ -274,6 +274,17 @@ test('fresh opening starts its particle distance at zero without inherited warp 
  const next=r.openingParticleFrame(116.667);assert.ok(next.distance>0&&next.distance<.01);
 });
 
+test('opening glows approach the viewer radially even while the camera turns',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,100,6500);
+ const pool=r.openingParticles,p={...pool.points[0],x:.2,y:.1,depth:4,speed:.1};let previous=0;
+ for(const time of [0,300,1000,2000,4000,6000]){
+  const f=r.openingParticleFrame(100+time),q=r.projectOpeningParticle(p,f,{}),x=q.x-r.w/2,y=q.y-r.h/2;
+  close(f.headingX,0);close(f.headingY,0);close(x/y,2);
+  const radius=Math.hypot(x,y);assert.ok(radius>previous);previous=radius;
+  assert.equal(q.tail,0);
+ }
+});
+
 test('warp appearance alpha uses stable random delays and fade durations',()=>{
  const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
  const pool=r.openingParticles,probes=[0,.5,1].map(n=>({...pool.points[0],life:1000+4000*n,rotation:n*Math.PI*2,brightness:1,formationAt:0,x:.2,y:.1,depth:2,speed:0}));

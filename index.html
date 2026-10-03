@@ -24,7 +24,7 @@
   <script src="src/usage-analytics.js?v=889c5a4755d5"></script>
   <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
   <script src="src/page-runtime.js?v=1d8a9a92e549"></script>
-  <link rel="stylesheet" href="styles.css?v=b91e1f865539">
+  <link rel="stylesheet" href="styles.css?v=925aef689775">
   <link rel="stylesheet" href="src/runtime-optimizations.css?v=7bdfbe73bd18">
 </head>
 <body>
@@ -65,7 +65,7 @@
         <div id="language-menu" class="language-menu card-surface" role="menu" aria-label="언어 선택" hidden>
           <button type="button" class="language-auto" role="menuitemradio" data-language-auto><strong id="auto-language-mode">자동</strong><span id="auto-language-name">언어</span></button>
           <div class="language-list">
-          <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+          <span class="scroll-cue scroll-cue-up" aria-hidden="true"></span>
           <div id="language-scroll" class="language-scroll">
           <button type="button" role="menuitemradio" data-language="ao"><strong>AO</strong><span>Angola</span></button>
           <button type="button" role="menuitemradio" data-language="ar"><strong>AR</strong><span>Argentina</span></button>
@@ -116,7 +116,7 @@
           <button type="button" role="menuitemradio" data-language="uy"><strong>UY</strong><span>Uruguay</span></button>
           <button type="button" role="menuitemradio" data-language="ve"><strong>VE</strong><span>Venezuela</span></button>
           </div>
-          <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
+          <span class="scroll-cue scroll-cue-down" aria-hidden="true"></span>
           </div>
         </div>
       </div>
@@ -153,7 +153,7 @@
   </main>
 
   <aside id="settings-panel" class="panel settings-panel card-surface ui" hidden aria-label="화면 설정" data-i18n-aria="settings">
-    <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+    <span class="scroll-cue scroll-cue-up" aria-hidden="true"></span>
     <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2 data-i18n="settings">화면 설정</h2></div><button id="settings-close" class="close-button" aria-label="설정 닫기" data-i18n-aria="settingsClose">×</button></div>
     <div id="settings-scroll" class="settings-scroll card-scroll">
     <div class="setting-row"><label for="actual-scale" data-i18n="actualScale">실제 크기 비율</label><input id="actual-scale" type="checkbox" role="switch"></div>
@@ -177,11 +177,11 @@
     <button id="review-cookie-consent" type="button" class="text-button settings-consent" data-i18n="cookieSettings">쿠키 설정</button>
     <button id="reset-defaults" type="button" class="text-button settings-reset" data-i18n="resetDefaults">초기화</button>
     </div>
-    <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
+    <span class="scroll-cue scroll-cue-down" aria-hidden="true"></span>
   </aside>
 
   <aside id="timer-panel" class="panel timer-panel card-surface ui" hidden aria-label="타이머" data-i18n-aria="timer">
-    <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+    <span class="scroll-cue scroll-cue-up" aria-hidden="true"></span>
     <div class="panel-heading"><div><span class="eyebrow">TIME CONTROL</span><h2 data-i18n="timer">타이머</h2></div><button id="timer-close" class="close-button" type="button" aria-label="타이머 닫기" data-i18n-aria="timerClose">×</button></div>
     <div class="timer-scroll card-scroll">
       <section class="timer-section" aria-labelledby="alarm-label">
@@ -217,12 +217,12 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
         </div>
       </section>
     </div>
-    <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
+    <span class="scroll-cue scroll-cue-down" aria-hidden="true"></span>
   </aside>
 
   <aside id="body-panel" class="panel body-panel card-surface ui" hidden aria-label="선택한 천체 정보" data-i18n-aria="selectedBody">
     <button id="body-close" class="close-button" aria-label="천체 정보 닫기" data-i18n-aria="bodyClose">×</button>
-    <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+    <span class="scroll-cue scroll-cue-up" aria-hidden="true"></span>
     <div id="body-scroll" class="body-scroll card-scroll">
     <span id="body-category" class="eyebrow">OUR HOME</span>
     <h2><span id="body-name">지구</span><span id="body-english">EARTH</span></h2>
@@ -285,7 +285,7 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
       </div>
     </div>
     </div>
-    <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
+    <span class="scroll-cue scroll-cue-down" aria-hidden="true"></span>
   </aside>
 
   <div id="view-controls" class="view-controls ui" role="group" aria-label="시점 조절" data-i18n-aria="viewControls">
@@ -401,7 +401,7 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
 
   <dialog id="help-dialog" class="modal card-surface" aria-labelledby="help-title">
     <form method="dialog"><button class="close-button" aria-label="도움말 닫기" data-i18n-aria="helpClose">×</button></form>
-    <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+    <span class="scroll-cue scroll-cue-up" aria-hidden="true"></span>
     <div id="help-scroll" class="modal-scroll">
       <span class="eyebrow">QUICK GUIDE</span><h2 id="help-title" data-i18n="helpTitle">사용 방법과 계산 기준</h2>
       <button id="release-notes-toggle" class="release-notes-toggle" type="button" aria-expanded="false" aria-controls="release-notes-panel"><span data-i18n="releaseNotes">업데이트 내역</span><span class="release-notes-toggle-mark" aria-hidden="true"></span></button>
@@ -448,26 +448,26 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
       </div>
       <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="wechat-pay-link" class="support-link" href="wechat-pay-qr.svg" aria-haspopup="dialog" aria-controls="wechat-pay-dialog">WeChat</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="alarm-music-credit" class="music-credit support-credit">Alram Music - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.72 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
     </div>
-    <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
+    <span class="scroll-cue scroll-cue-down" aria-hidden="true"></span>
   </dialog>
   <dialog id="kakao-pay-dialog" class="modal card-surface support-qr-dialog kakao-pay-dialog" aria-labelledby="kakao-pay-title">
     <form method="dialog"><button class="close-button" aria-label="KakaoPay QR 닫기">×</button></form>
-    <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+    <span class="scroll-cue scroll-cue-up" aria-hidden="true"></span>
     <div id="kakao-pay-scroll" class="modal-scroll card-scroll kakao-pay-scroll">
     <h2 id="kakao-pay-title">KakaoPay QR</h2>
     <img src="kakao-pay-qr.svg" width="240" height="240" alt="KakaoPay 송금 QR 코드">
     <a class="support-link kakao-pay-open" href="https://qr.kakaopay.com/FC1GBtXGB" target="_blank" rel="noopener noreferrer" data-i18n="openKakaoPay">카카오페이 열기</a>
     </div>
-    <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
+    <span class="scroll-cue scroll-cue-down" aria-hidden="true"></span>
   </dialog>
   <dialog id="wechat-pay-dialog" class="modal card-surface support-qr-dialog" aria-labelledby="wechat-pay-title">
     <form method="dialog"><button class="close-button" aria-label="Close WeChat QR">×</button></form>
-    <span class="scroll-cue scroll-cue-up" aria-hidden="true">⌃</span>
+    <span class="scroll-cue scroll-cue-up" aria-hidden="true"></span>
     <div id="wechat-pay-scroll" class="modal-scroll card-scroll support-qr-scroll">
     <h2 id="wechat-pay-title">WeChat Pay QR</h2>
     <img src="wechat-pay-qr.svg" width="240" height="240" alt="WeChat Pay QR code">
     </div>
-    <span class="scroll-cue scroll-cue-down" aria-hidden="true">⌄</span>
+    <span class="scroll-cue scroll-cue-down" aria-hidden="true"></span>
   </dialog>
   <dialog id="site-policy-dialog" class="modal card-surface site-policy-dialog" aria-label="Solar Time site information">
     <button id="site-policy-close" class="close-button" type="button" aria-label="Close">×</button>
@@ -514,7 +514,7 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
   <script src="src/sky.js?v=89f71e4d029d"></script>
   <script src="src/visual-effects.js?v=44159ae6ea99"></script>
   <script src="src/ring-tour.js?v=229cf12a9a07"></script>
-  <script src="src/renderer.js?v=d688e00636f4"></script>
+  <script src="src/renderer.js?v=9edf0b5744ee"></script>
   <script src="src/performance.js?v=4ac7ad7ac498"></script>
   <script src="src/language-data.js?v=3b2f6d255f7e"></script>
   <script src="src/localization.js?v=bb6782c68730"></script>

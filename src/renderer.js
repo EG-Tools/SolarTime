@@ -987,6 +987,9 @@
       // Entrance is shared; each grain contracts independently on arrival.
       const loop=ease((elapsed-path.brakeAt)/WARP_PARTICLES.blend);
       field.tailScale=WARP_PARTICLES.tail*mix(WARP_PARTICLES.edgeTail,1,loop);
+      // Opening glows approach the viewer in camera space. The scenic
+      // camera turn must not sweep the particle field sideways.
+      if(path.openingMove){field.headingX=field.headingY=field.flowX=field.flowY=field.bendX=field.bendY=0;return;}
       const flight=path.flightPath||path.path;
       const seconds=path.openingMove?Math.min(elapsed,this.replayOpeningAt(path)+path.inbound-20)/1000:replayFlightTime(elapsed/1000,Math.max(path.brakeAt/1000,acceleration));
       const sample=time=>path.openingMove?this.openingParticlePose(path.openingMove,time*1000-this.replayOpeningAt(path)):window.SolarRingTour.jumpPose(flight,time);

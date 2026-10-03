@@ -138,7 +138,7 @@ body.zen dialog[open] :is(button,input,select,a){visibility:visible!important;po
 .language-menu button[aria-checked=true]{background:rgba(205,175,121,.12);color:#e7cd9b}
 .language-menu .language-auto{flex:none;width:calc(100% - 12px);margin:6px 6px 4px;border-bottom:1px solid rgba(171,188,212,.12);border-radius:7px 7px 3px 3px}
 .language-menu strong{font-size:11px;font-weight:500;letter-spacing:.8px}
-.language-menu span{font-size:11px;white-space:nowrap}
+.language-menu button span{font-size:11px;white-space:nowrap}
 .language-scroll button span{white-space:normal;overflow-wrap:anywhere;line-height:1.25}
 .language-menu.can-scroll-up>.language-list>.scroll-cue-up,.language-menu.can-scroll-down>.language-list>.scroll-cue-down{opacity:1}
 @media(max-width:680px){.language-menu{left:0;transform:none;width:122px}.language-menu button{grid-template-columns:34px minmax(0,1fr)}}
@@ -194,8 +194,8 @@ body.zen #timezone-button{display:inline-block!important;visibility:visible!impo
 .modal>form>.close-button:hover{display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;background:transparent;color:#9eabba;line-height:1}
 .modal>.close-button:focus-visible:where(html:not([data-focus-input="pointer"]) *){outline:1px solid rgba(233,200,141,.72);outline-offset:3px;border-radius:50%;background:transparent}
 .modal>form>.close-button:focus-visible:where(html:not([data-focus-input="pointer"]) *){outline:1px solid rgba(233,200,141,.72);outline-offset:3px;border-radius:50%;background:transparent}
-.scroll-cue{position:absolute;left:50%;z-index:3;width:0;height:0;transform:translateX(-50%);font-size:0;line-height:0;opacity:0;filter:drop-shadow(0 0 5px rgba(151,193,228,.42));transition:opacity .16s;pointer-events:none}
-.scroll-cue-up{top:8px;border-right:7px solid transparent;border-bottom:10px solid rgba(225,235,245,.76);border-left:7px solid transparent}.scroll-cue-down{bottom:7px;border-top:10px solid rgba(225,235,245,.76);border-right:7px solid transparent;border-left:7px solid transparent}
+.scroll-cue{position:absolute;left:50%;z-index:3;width:13px;height:9px;background:center/100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 11'%3E%3Cpath d='M1 1H14L7.5 10Z' fill='%23e3c58d' stroke='%23e3c58d' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E");transform:translateX(-50%);font-size:0;line-height:0;opacity:0;filter:drop-shadow(0 0 5px rgba(227,197,141,.3));transition:opacity .16s;pointer-events:none}
+.scroll-cue-up{top:8px;transform:translateX(-50%) rotate(180deg)}.scroll-cue-down{bottom:7px}
 .can-scroll-up>.scroll-cue-up{opacity:1}
 .can-scroll-down>.scroll-cue-down{opacity:1}
 
