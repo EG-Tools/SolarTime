@@ -9,6 +9,8 @@
   "timer.timerTarget": "Show the target clock time and the remaining duration. Preserve both {time} and {remaining}.",
   "timer.helperDownloadPrivacy": "Describe only the existing one-time receipt data. Do not claim that native helper installation is required for ordinary alarms.",
   "timer.shutdownDataWarning": "A safety warning to save work because Windows timed shutdown can close applications forcibly.",
+  "timer.shutdownAvailable": "Small gray status beside Scheduled shutdown when its helper is installed and active.",
+  "timer.shutdownUnavailable": "Small gray status beside Scheduled shutdown before its helper is active.",
   "ui.auNote": "Optional astronomical-unit footnote. An intentionally empty value is valid for the languages already using it.",
   "ui.cookieSettings": "Opens the existing cookie choice panel without changing or resetting the existing choice.",
   "ui.cookieDismiss": "X closes without saving a new choice or changing an existing one. New visitors remain denied; this is never acceptance.",

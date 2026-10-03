@@ -1204,6 +1204,14 @@
           if(!q.visible||q.alpha<1e-4)continue;
           const radius=clamp(q.size*.23,.38,1.05)*(p.sizeScale??1),tail=Math.max(0,q.tail||0);
           const halo=p.haloAlpha??(.045+.035*clamp(((p.glow??.8)-.8)/1.8,0,1));
+          if(field.replay.openingMove){
+            // Opening glows are concentric discs, with no line or motion streak.
+            c.fillStyle=FLIGHT_GLOW_COLORS[p.color??0];
+            c.globalAlpha=q.alpha*halo;c.beginPath();c.arc(q.x,q.y,radius*4.5,0,TAU);c.fill();
+            c.globalAlpha=q.alpha*.3;c.beginPath();c.arc(q.x,q.y,radius*1.6,0,TAU);c.fill();
+            c.globalAlpha=q.alpha;c.fillStyle='#edf7ff';c.beginPath();c.arc(q.x,q.y,radius*.5,0,TAU);c.fill();
+            continue;
+          }
           c.strokeStyle=FLIGHT_GLOW_COLORS[p.color??0];c.beginPath();
           if(tail>.65){
             c.moveTo(q.x-Math.cos(q.angle)*tail,q.y-Math.sin(q.angle)*tail);c.lineTo(q.x,q.y);

@@ -37,7 +37,7 @@ test('phone layout shares an explicit standalone-aware flag with the sky rendere
   const mobile=css.slice(css.indexOf('/* v0.46 r4:'));
   assert.ok(mobile.includes('html.solar-phone-layout .edge-shade{display:none}'));
   assert.ok(mobile.includes('html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}'));
-  assert.ok(mobile.includes('html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 32px)}'));
+  assert.ok(mobile.includes('html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 30px)}'));
   assert.ok(page.includes('root.navigator?.standalone===true'));
   assert.ok(page.includes("(any-pointer:coarse)"));
   assert.ok(sky.includes("classList?.contains('solar-phone-layout')?0:.24"));

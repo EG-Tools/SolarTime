@@ -228,6 +228,8 @@
     "timerClose": "Tutup timer",
     "alarmDuration": "Waktu alarm",
     "scheduledShutdown": "Matikan terjadwal",
+    "shutdownAvailable": "Tersedia",
+    "shutdownUnavailable": "Tidak tersedia",
     "shutdownDuration": "Waktu hingga mati",
     "hours": "jam",
     "minutes": "mnt",

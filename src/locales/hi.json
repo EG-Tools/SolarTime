@@ -228,6 +228,8 @@
     "alarm": "अलार्म",
     "alarmDuration": "अलार्म समय",
     "scheduledShutdown": "निर्धारित शटडाउन",
+    "shutdownAvailable": "उपलब्ध",
+    "shutdownUnavailable": "अनुपलब्ध",
     "shutdownDuration": "शटडाउन समय",
     "hours": "घंटे",
     "minutes": "मिनट",

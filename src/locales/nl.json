@@ -228,6 +228,8 @@
     "alarm": "Alarm",
     "alarmDuration": "Alarmtijd",
     "scheduledShutdown": "Gepland afsluiten",
+    "shutdownAvailable": "Beschikbaar",
+    "shutdownUnavailable": "Niet beschikbaar",
     "shutdownDuration": "Tijd tot afsluiten",
     "hours": "uur",
     "minutes": "min",

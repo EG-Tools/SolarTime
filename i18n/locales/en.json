@@ -230,6 +230,8 @@
     "alarm": "Alarm",
     "alarmDuration": "Alarm delay",
     "scheduledShutdown": "Scheduled shutdown",
+    "shutdownAvailable": "Available",
+    "shutdownUnavailable": "Unavailable",
     "shutdownDuration": "Shutdown delay",
     "hours": "hours",
     "minutes": "min",

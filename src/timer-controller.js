@@ -61,9 +61,9 @@
       helper.checked=available&&state.helperEnabled;helper.disabled=!available||helperBusy||!!nativeBusy;
       $('shutdown-helper-remove').disabled=!available||!state.helperConfirmed||state.helperProgress<100||helperBusy||!!nativeBusy;
       $('shutdown-helper-install-yes').disabled=helperBusy;
-      const enabled=available&&state.helperEnabled;shutdown.toggle.disabled=!available||(!enabled&&!state.shutdown.enabled)||nativeBusy==='cancel'||nativeBusy==='uninstall';shutdown.hours.disabled=!enabled||!!nativeBusy;shutdown.minutes.disabled=!enabled||!!nativeBusy;
-      $('shutdown-section').classList.toggle('is-unavailable',!available);$('shutdown-support-note').textContent=t(!available?'shutdownUnsupported':'shutdownHelperNote')+(available?' '+t('shutdownDataWarning'):'');
+      const enabled=available&&state.helperEnabled;$('shutdown-availability').textContent=t(enabled?'shutdownAvailable':'shutdownUnavailable');shutdown.toggle.disabled=!available||(!enabled&&!state.shutdown.enabled)||nativeBusy==='cancel'||nativeBusy==='uninstall';shutdown.hours.disabled=!enabled||!!nativeBusy;shutdown.minutes.disabled=!enabled||!!nativeBusy;
       const progress=available?state.helperProgress:0,track=$('shutdown-helper-progress').querySelector('.timer-helper-track');
+      const supportNote=$('shutdown-support-note');$('shutdown-section').classList.toggle('is-unavailable',!available);supportNote.textContent=t(!available?'shutdownUnsupported':'shutdownHelperNote')+(available?'\n'+t('shutdownDataWarning'):'');supportNote.hidden=available&&state.helperConfirmed&&progress>=100;
       $('shutdown-helper-progress').style.setProperty('--helper-progress',progress+'%');$('shutdown-helper-percent').textContent=progress+'%';track.setAttribute('aria-valuenow',String(progress));
       $('shutdown-helper-status').textContent=t(progress>=100?(state.helperEnabled?'helperInstallComplete':'helperDisabled'):progress>=50?'helperDownloadReady':'helperNotInstalled');
     }

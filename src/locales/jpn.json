@@ -228,6 +228,8 @@
     "alarm": "アラーム",
     "alarmDuration": "アラーム時間",
     "scheduledShutdown": "予約シャットダウン",
+    "shutdownAvailable": "利用可能",
+    "shutdownUnavailable": "利用不可",
     "shutdownDuration": "終了までの時間",
     "hours": "時間",
     "minutes": "分",

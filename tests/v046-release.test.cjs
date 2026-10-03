@@ -252,14 +252,14 @@ test('r14 moves the scale readout to the top and enlarges it by one pixel',()=>{
   const ordered=['id="zoom-value"','id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
   let cursor=-1;
   for(const token of ordered){const next=block.indexOf(token);assert.ok(next>cursor,token+' order');cursor=next;}
-  assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1(?:;margin-bottom:5px)?\}/);
+  assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:10px;line-height:1(?:;margin-bottom:5px)?\}/);
 });
 
 
 test('r15 adds one extra pixel only between the scale readout and home',()=>{
   const html=read('index.html'),css=read('styles.css');
 assert.ok(html.includes('href="'+cacheUrl('styles.css')+'"'));
-  assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:9px;line-height:1;margin-bottom:5px\}/);
+  assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:10px;line-height:1;margin-bottom:5px\}/);
   assert.match(css,/\.view-controls\{[^}]*--tool-gap:5px;gap:var\(--tool-gap\)/);
   assert.match(css,/\.camera-presets\{[^}]*gap:var\(--tool-gap\);margin:0/);
 });

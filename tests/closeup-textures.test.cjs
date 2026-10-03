@@ -124,8 +124,8 @@ test('texture payload bytes, compression, shader and helper stay unchanged',()=>
   if(name.endsWith('.cmd'))bytes=Buffer.from(bytes.toString('utf8').replace(/\r\n/g,'\n'));
   // v0.66 adds only scoped cookie-control layout; preserve every older style.
   if(name==='styles.css')bytes=Buffer.from(bytes.toString('utf8').replaceAll(':where(html:not([data-focus-input="pointer"]) *)','').replace(/\r?\n\/\* Retain native control focus without promoting mouse input on shortcuts\. \*\/\r?\nhtml\[data-focus-input="pointer"\] :focus\{outline:none\}\r?\n/,'').replace(/\/\* Consent controls share the existing card surface; reserve space for X\. \*\/[\s\S]*?(?=@media\(max-width:760px\)\{\.cookie-consent)/,'').replace(/\/\* Help shortcut guide and CSS mouse controls\. \*\/[\s\S]*?\/\* End help shortcut guide\. \*\/\r?\n/,'').replace(/\/\* Release archive link\. \*\/[\s\S]*?\/\* End release archive link\. \*\/\r?\n/,''));
-  // Only the revision diagnostic may follow a release; all layout rules
-  // still match the unchanged v0.62 baseline hash after normalization.
+  // Style pins include the approved typography, timer spacing and scroll cues.
+  // Normalize only the release diagnostic; retain exact checks for all rules.
   if(name==='src/runtime-optimizations.css'){
    const css=bytes.toString('utf8'),revision=JSON.parse(read('version.json')).revision;
    const markers=[...css.matchAll(/--solar-layout-revision:([^}]+)}/g)];

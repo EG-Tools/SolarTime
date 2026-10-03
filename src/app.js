@@ -181,7 +181,7 @@
       Object.assign(renderer.options,FACTORY_OPTIONS);renderer.options.earthCloudSeed=randomCloudSeed();renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
       const clock=new A.SimulationClock(Date.now(),performance.now());
       let timezone='local',showSeconds=false,hourCycle='12',clockSize=1,language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),zen=false,raf=0,clockFitFrame=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
-      let speedMode='day',speedValues={hour:1,day:1,year:1},timerController=null;
+      let speedMode='hour',speedValues={hour:1,day:1,year:1},timerController=null;
       const activeRegion=()=>REGIONS[language]||REGIONS.kor;
       autoTimeZone=autoTimeZone||activeRegion().timeZone;
       const activeTimeZone=()=>timezone==='utc'?'UTC':languageMode==='auto'?autoTimeZone:activeRegion().timeZone;
@@ -863,7 +863,7 @@
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
         renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();keyboardTrackingReturn=null;
         A.calibrateAt(Date.now());clock.now(mono);eclipseTargets.clear();alignmentTarget=null;renderer.setAlignmentGuide(null);renderer.invalidateSurfaces();
-        timezone='local';showSeconds=false;hourCycle='12';clockSize=1;clockFont='georgia';speedMode='day';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;
+        timezone='local';showSeconds=false;hourCycle='12';clockSize=1;clockFont='georgia';speedMode='hour';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;
         renderer.setSite(activeRegion());for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
         $('show-seconds').checked=showSeconds;$('seconds-group').hidden=true;$('ampm').hidden=false;syncHourCycleUi();
         $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);

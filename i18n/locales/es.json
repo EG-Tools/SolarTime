@@ -230,6 +230,8 @@
     "alarm": "Alarma",
     "alarmDuration": "Tiempo de alarma",
     "scheduledShutdown": "Apagado programado",
+    "shutdownAvailable": "Disponible",
+    "shutdownUnavailable": "No disponible",
     "shutdownDuration": "Tiempo de apagado",
     "hours": "horas",
     "timerInactive": "Sin configurar",

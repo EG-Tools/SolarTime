@@ -228,6 +228,8 @@
     "alarm": "Alarme",
     "alarmDuration": "Délai de l’alarme",
     "scheduledShutdown": "Arrêt programmé",
+    "shutdownAvailable": "Disponible",
+    "shutdownUnavailable": "Indisponible",
     "shutdownDuration": "Délai avant arrêt",
     "hours": "h",
     "minutes": "min",

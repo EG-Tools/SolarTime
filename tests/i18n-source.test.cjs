@@ -132,6 +132,15 @@ test('music shortcut keeps current Korean and English labels with old file-launc
  assert.equal(loader.resolveBundle({copy:{},bodies:{},phases:{}},'en',{local:true}).copy.music,'Background Music');
 });
 
+test('file launches retain current shutdown translations with older server bundles',async()=>{
+ const compiled=api.compile(root);
+ for(const code of compiled.codes){
+  const {loader}=runtime({protocol:'file:',fetch:async()=>({ok:true,json:async()=>({copy:{helperDownloadTitle:'Old title'},bodies:{},phases:{}})})});
+  const bundle=await loader.load(code);
+  for(const key of ['shutdownAvailable','shutdownUnavailable','shutdownHelperNote','shutdownDataWarning','helperDownloadTitle','helperDownloadDescription','helperDownloadPrivacy','helperDownloadQuestion'])assert.equal(bundle.copy[key],compiled.bundles[code].copy[key],code+': '+key);
+ }
+});
+
 test('latest release uses reviewed translations; explicit Korean-only fixtures remain validated',()=>{
  const compiled=api.compile(root),release=compiled.releases[0],runtime=require('../src/release-notes.js');
  assert.equal(release.languagePolicy,undefined);assert.deepEqual(Object.keys(release.localized).sort(),[...compiled.codes].sort());

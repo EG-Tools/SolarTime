@@ -228,6 +228,8 @@
     "alarm": "Alarm",
     "alarmDuration": "Alarmzeit",
     "scheduledShutdown": "Geplantes Herunterfahren",
+    "shutdownAvailable": "Verfügbar",
+    "shutdownUnavailable": "Nicht verfügbar",
     "shutdownDuration": "Zeit bis zum Herunterfahren",
     "hours": "Std.",
     "minutes": "Min.",

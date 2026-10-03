@@ -24,8 +24,8 @@
   <script src="src/usage-analytics.js?v=889c5a4755d5"></script>
   <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
   <script src="src/page-runtime.js?v=1d8a9a92e549"></script>
-  <link rel="stylesheet" href="styles.css?v=42c4ed311284">
-  <link rel="stylesheet" href="src/runtime-optimizations.css?v=2e2600ed28fb">
+  <link rel="stylesheet" href="styles.css?v=df6074f435f9">
+  <link rel="stylesheet" href="src/runtime-optimizations.css?v=7c66adbcd91c">
 </head>
 <body>
   <div id="solar-viewport">
@@ -191,7 +191,7 @@
         </div>
         <output id="alarm-target" class="timer-target" aria-live="polite" data-i18n="timerInactive">설정 안 됨</output>
         <fieldset class="timer-sound-options">
-          <legend data-i18n="alarmSound">알람 사운드</legend>
+          <legend hidden data-i18n="alarmSound">알람 사운드</legend>
           <div class="timer-radio-row"><label class="timer-radio"><input id="alarm-sound-default" type="radio" name="alarm-sound-mode" value="default" checked><span class="timer-radio-mark" aria-hidden="true"></span><span data-i18n="defaultAlarmSound">기본 알람 사운드</span></label><button id="alarm-preview-default" class="timer-sound-preview" type="button" aria-label="기본 알람 사운드 미리듣기" aria-pressed="false"><span aria-hidden="true"></span></button></div>
           <span class="timer-sound-credit"><a href="https://pixabay.com/ko/users/marmixer-6762941/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=484625" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi - Soft Morning</a></span>
           <div class="timer-radio-row timer-radio-row-custom"><label class="timer-radio"><input id="alarm-sound-custom" type="radio" name="alarm-sound-mode" value="custom"><span class="timer-radio-mark" aria-hidden="true"></span><span data-i18n="customAlarmSound">알람 사운드 설정</span></label><button id="alarm-sound-choose" type="button" data-i18n="chooseFile">파일 선택</button><button id="alarm-preview-custom" class="timer-sound-preview" type="button" aria-label="설정한 알람 사운드 미리듣기" aria-pressed="false"><span aria-hidden="true"></span></button></div>
@@ -200,18 +200,19 @@
         </fieldset>
       </section>
       <section id="shutdown-section" class="timer-section timer-shutdown" aria-labelledby="shutdown-label">
-        <div class="setting-row"><label id="shutdown-label" for="shutdown-enabled" data-i18n="scheduledShutdown">예약 종료</label><input id="shutdown-enabled" type="checkbox" role="switch"></div>
+        <div class="setting-row"><label id="shutdown-label" for="shutdown-enabled"><span data-i18n="scheduledShutdown">예약 종료</span> <small id="shutdown-availability" data-i18n="shutdownUnavailable">사용 불가</small></label><input id="shutdown-enabled" type="checkbox" role="switch"></div>
         <div class="timer-duration" role="group" aria-label="예약 종료 시간" data-i18n-aria="shutdownDuration">
           <label><input id="shutdown-hours" type="number" min="0" max="99" step="1" value="1" inputmode="numeric"><span data-i18n="hours">시간</span></label>
           <label><input id="shutdown-minutes" type="number" min="0" max="59" step="1" value="0" inputmode="numeric"><span data-i18n="minutes">분</span></label>
         </div>
         <output id="shutdown-target" class="timer-target" aria-live="polite" data-i18n="timerInactive">설정 안 됨</output>
         <div class="setting-row timer-helper-row"><div class="timer-helper-label"><label for="shutdown-helper-enabled" data-i18n="shutdownHelper">Windows 종료 보조 모듈</label><button id="shutdown-helper-remove" class="timer-helper-remove" type="button" data-i18n="removeHelper" disabled>제거</button></div><input id="shutdown-helper-enabled" type="checkbox" role="switch"></div>
-        <p id="shutdown-support-note" class="timer-support-note" data-i18n="shutdownHelperNote">예약 종료를 사용하려면 보조 모듈을 설치하고 활성화해야 합니다.</p>
+        <p id="shutdown-support-note" class="timer-support-note" data-i18n="shutdownHelperNote">보조 모듈을 설치하고 활성화해야 합니다.
+Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
         <div id="shutdown-helper-progress" class="timer-helper-progress" aria-live="polite">
           <div class="timer-helper-progress-heading"><span data-i18n="helperSetup">보조 모듈 설치</span><output id="shutdown-helper-percent">0%</output></div>
           <div class="timer-helper-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
-          <span id="shutdown-helper-status" data-i18n="helperNotInstalled">설치 안 됨</span>
+          <span hidden id="shutdown-helper-status" data-i18n="helperNotInstalled">설치 안 됨</span>
         </div>
       </section>
     </div>
@@ -325,8 +326,8 @@
       <span class="bar-divider"></span>
       <button id="live-button" class="speed-button active" aria-pressed="true"><span class="tiny-dot"></span><span data-i18n="realTime">실제 시간</span></button>
       <div class="speed-control" aria-label="공전 속도" data-i18n-aria="orbitSpeed">
-        <input id="speed-slider" class="solar-range" type="range" min="1" max="365" step="1" value="1" aria-label="1초당 진행하는 시간" data-i18n-aria="speedSlider">
-        <button id="speed-mode-button" class="speed-mode-button" type="button" data-speed-mode="day" aria-label="속도 단위 일. 누르면 다음 단위로 전환">일</button>
+        <input id="speed-slider" class="solar-range" type="range" min="1" max="24" step="1" value="1" aria-label="1초당 진행하는 시간" data-i18n-aria="speedSlider">
+        <button id="speed-mode-button" class="speed-mode-button" type="button" data-speed-mode="hour" aria-label="속도 단위 시간. 누르면 다음 단위로 전환">시간</button>
       </div>
     </div>
   </section>
@@ -370,16 +371,16 @@
   </dialog>
 
   <dialog id="shutdown-helper-download-dialog" class="preset-dialog shutdown-helper-download-dialog card-surface" aria-labelledby="shutdown-helper-download-title" aria-describedby="shutdown-helper-download-note shutdown-helper-download-question">
-    <h2 id="shutdown-helper-download-title" data-i18n="helperDownloadTitle">안전 확인된 공식 보조 모듈</h2>
-    <p id="shutdown-helper-download-note" data-i18n="helperDownloadDescription">Solar Time에서 직접 제작하고 내용을 확인한 Windows 예약 종료용 파일입니다.</p>
+    <h2 id="shutdown-helper-download-title" data-i18n="helperDownloadTitle">Solar Time 공식 보조 모듈</h2>
     <ul class="shutdown-helper-safety-list">
-      <li data-i18n="helperDownloadPrivacy">일회용 요청 번호, 모듈 버전, 명령 처리 결과만 전송하며 확인 기록은 만료 후 자동 정리됩니다.</li>
-      <li data-i18n="helperDownloadPermission">관리자 권한 없이 현재 사용자에게 설치하며 PowerShell, URL 연결 등록, Windows 종료 명령을 사용합니다.</li>
-      <li data-i18n="helperDownloadSource">원본 코드와 SHA-256 값을 공개해 파일 변경 여부를 확인할 수 있습니다.</li>
+      <li id="shutdown-helper-download-note" data-i18n="helperDownloadDescription">개발자가 안전을 확인하고 직접 제작한 Windows 예약 종료 파일입니다.</li>
+      <li data-i18n="helperDownloadPrivacy">일회용 랜덤 코드, 보조 모듈 버전, 처리 결과만 서버에 전송합니다. 계정·파일·컴퓨터·개인정보는 보내지 않으며 코드 확인 후 저장은 자동 폐기됩니다.</li>
+      <li data-i18n="helperDownloadPermission">관리자 권한 없이 설치합니다. PowerShell, URL 연결, Windows 종료 명령을 사용합니다.</li>
+      <li data-i18n="helperDownloadSource">원본 코드와 SHA-256 값을 공개해 안전 여부를 확인할 수 있습니다.</li>
     </ul>
     <a class="shutdown-helper-source" href="https://solar-time.keg0320.workers.dev/media/releases/content/windows/SolarTimeShutdownHelper.4a6a6f50fc48ada9.source.txt" target="_blank" rel="noopener noreferrer" data-i18n="helperViewSource">원본 코드 보기</a>
     <p class="shutdown-helper-checksum"><span data-i18n="helperChecksumLabel">SHA-256</span><code id="shutdown-helper-checksum"></code></p>
-    <p id="shutdown-helper-download-question" class="shutdown-helper-download-question" data-i18n="helperDownloadQuestion">Cloudflare에서 다운로드하시겠습니까?</p>
+    <p id="shutdown-helper-download-question" class="shutdown-helper-download-question" data-i18n="helperDownloadQuestion">다운로드하시겠습니까?</p>
     <div class="preset-actions shutdown-helper-download-actions"><button type="button" id="shutdown-helper-download-no" data-i18n="no">아니오</button><button type="button" id="shutdown-helper-download-yes" data-i18n="yes">예</button></div>
   </dialog>
 
@@ -512,20 +513,20 @@
   <script src="src/sky.js?v=0bb8e8db7a48"></script>
   <script src="src/visual-effects.js?v=44159ae6ea99"></script>
   <script src="src/ring-tour.js?v=0d36f2ef6e28"></script>
-  <script src="src/renderer.js?v=98b810592a23"></script>
+  <script src="src/renderer.js?v=c456e104815c"></script>
   <script src="src/performance.js?v=4ac7ad7ac498"></script>
-  <script src="src/language-data.js?v=e11adf85301f"></script>
+  <script src="src/language-data.js?v=3b2f6d255f7e"></script>
   <script src="src/localization.js?v=bb6782c68730"></script>
   <script src="src/preferences.js?v=292d73007ea4"></script>
   <script src="src/ui-runtime.js?v=bf194c61550b"></script>
   <script src="src/windows-shutdown.js?v=3109e303c919"></script>
   <script src="src/alarm-sound.js?v=924225d8b735"></script>
-  <script src="src/timer-controller.js?v=737e7b336e5f"></script>
+  <script src="src/timer-controller.js?v=35b908fd36b8"></script>
   <script src="src/policy-dialog.js?v=4f327ee92740"></script>
   <script src="src/music-player.js?v=59c6928f8573"></script>
   <script src="src/adsense.js?v=4f3eb62dffcc"></script>
   <script src="src/cookie-consent.js?v=1494a5b88bc9"></script>
-  <script src="src/app.js?v=009a4335c881"></script>
+  <script src="src/app.js?v=863d7c90eedc"></script>
   <!-- Cloudflare Web Analytics -->
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}'></script>
   <!-- End Cloudflare Web Analytics -->

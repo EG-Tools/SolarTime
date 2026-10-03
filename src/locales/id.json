@@ -228,6 +228,8 @@
     "alarm": "Alarm",
     "alarmDuration": "Waktu alarm",
     "scheduledShutdown": "Matikan terjadwal",
+    "shutdownAvailable": "Tersedia",
+    "shutdownUnavailable": "Tidak tersedia",
     "shutdownDuration": "Waktu hingga mati",
     "hours": "jam",
     "minutes": "mnt",

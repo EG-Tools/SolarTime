@@ -228,6 +228,8 @@
     "alarm": "闹钟",
     "alarmDuration": "闹钟延时",
     "scheduledShutdown": "定时关机",
+    "shutdownAvailable": "可用",
+    "shutdownUnavailable": "不可用",
     "shutdownDuration": "关机延时",
     "hours": "小时",
     "minutes": "分钟",

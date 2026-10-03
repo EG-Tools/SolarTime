@@ -228,6 +228,8 @@
     "alarm": "Alarme",
     "alarmDuration": "Tempo do alarme",
     "scheduledShutdown": "Encerramento programado",
+    "shutdownAvailable": "Disponível",
+    "shutdownUnavailable": "Indisponível",
     "shutdownDuration": "Tempo até encerrar",
     "hours": "h",
     "minutes": "min",

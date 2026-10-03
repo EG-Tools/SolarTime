@@ -108,6 +108,16 @@
     }
   },
   "legacyFileKeys": [
+    "shutdownAvailable",
+    "shutdownUnavailable",
+    "shutdownHelperNote",
+    "shutdownDataWarning",
+    "helperDownloadTitle",
+    "helperDownloadDescription",
+    "helperDownloadPrivacy",
+    "helperDownloadPermission",
+    "helperDownloadSource",
+    "helperDownloadQuestion",
     "universeAria",
     "orbitSpacing",
     "orbitSpacingAria",

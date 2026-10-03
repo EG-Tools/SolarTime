@@ -59,6 +59,14 @@ test('inactive speed slider exposes its configured value as pending',()=>{
   assert.match(app,/aria-valuetext',active\?selectedText:t\('speedUnitReady',\{unit:selectedText\}\)/);
   assert.match(app,/if\(!selectedSpeedActive\(\)\)\{applySpeed\(\);return;\}/);
 });
+test('speed unit defaults and resets to hour while saved user choice is restored',()=>{
+  const app=read('src/app.js'),html=read('index.html');
+  assert.match(app,/let speedMode='hour',speedValues=/);
+  assert.match(app,/clockFont='georgia';speedMode='hour';speedValues=/);
+  assert.match(app,/if\(\['hour','day','year'\]\.includes\(saved\.speedMode\)\)speedMode=saved\.speedMode/);
+  assert.match(html,/id="speed-slider"[^>]+max="24"/);
+  assert.match(html,/id="speed-mode-button"[^>]+data-speed-mode="hour"[^>]*>시간<\/button>/);
+});
 
 test('a fully paused stable scene skips foreground draws but invalidations render immediately',()=>{
   const source=read('src/renderer.js'),app=read('src/app.js'),window={SolarAstro:A};

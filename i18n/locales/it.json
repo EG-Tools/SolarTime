@@ -229,6 +229,8 @@
     "alarm": "Sveglia",
     "alarmDuration": "Tempo sveglia",
     "scheduledShutdown": "Spegnimento programmato",
+    "shutdownAvailable": "Disponibile",
+    "shutdownUnavailable": "Non disponibile",
     "shutdownDuration": "Tempo allo spegnimento",
     "hours": "ore",
     "timerInactive": "Non impostato",
