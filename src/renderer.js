@@ -962,7 +962,7 @@
       const eye=flightEye(s).map((value,i)=>value+(-right[i]*s.panX+up[i]*s.panY)/Math.max(.00001,s.dolly));
       return {eye,right,up,forward};
     }
-    replayDustMotion(path,elapsed,field){
+    replayDustSample(path,elapsed,field){
       const active=Math.max(0,elapsed-path.particleAt)/1000;
       const acceleration=path.ring.accelerationDuration||REPLAY_TRANSITION.departure/1000;
       const peakAt=WARP_PARTICLES.peakAt/1000,rise=Math.min(acceleration,peakAt);
@@ -1002,16 +1002,41 @@
       const forward=Math.max(.25,Math.abs(flightDot(direction,pose.forward)));
       field.headingX=clamp(flightDot(direction,screenRight)/forward,-2,2);
       field.headingY=clamp(-flightDot(direction,pose.up)/forward,-2,2);
-      const ahead=sample(seconds+.65);
-      const turn=ahead.forward.map((value,i)=>value-pose.forward[i]);
-      const speed=field.velocity/peak;
-      field.flowX=-this.w*.4*flightDot(turn,screenRight)*speed;
-      field.flowY=this.h*.4*flightDot(turn,pose.up)*speed;
-      field.bendX=field.flowX*.65;field.bendY=field.flowY*.65;
-      const loopAge=Math.max(0,elapsed-path.brakeAt),arrivalAge=Math.max(0,elapsed-this.replayOpeningAt(path));
-      const drift=path.openingMove?0:ease(loopAge/REPLAY_TRANSITION.warp)*(1-ease(arrivalAge/1200));
-      const target=field.vanishingTarget||[0,0],span=Math.min(this.w,this.h)*.12;
-      field.vanishingX=target[0]*span*drift;field.vanishingY=target[1]*span*drift;
+      // No screen-space destination drift or look-ahead bend: neither is
+      // actual camera translation, and both used to drag the entire field.
+      field.flowX=field.flowY=field.bendX=field.bendY=0;
+    }
+    replayDustMotion(path,elapsed,field){
+      this.replayDustSample(path,elapsed,field);
+      const start=path.openingMove?this.replayOpeningAt(path):0;
+      // Integrate direction against distance, never reapply the latest
+      // heading to distance already travelled. Fixed samples make this
+      // independent of frame rate, pauses and out-of-order preview queries.
+      let motion=field.motion;
+      if(!motion||motion.path!==path||motion.brake!==path.brakeAt){
+        const first={time:start,x:0,y:0};this.replayDustSample(path,start,first);
+        motion=field.motion={path,brake:path.brakeAt,rows:[first]};
+      }
+      const rows=motion.rows,integrate=(a,b)=>{
+        const d=b.travel-a.travel;
+        b.x=a.x+d*(a.headingX+b.headingX)*.5;
+        b.y=a.y+d*(a.headingY+b.headingY)*.5;return b;
+      };
+      while(rows[rows.length-1].time+50<=elapsed){
+        const prior=rows[rows.length-1],next={time:prior.time+50};
+        this.replayDustSample(path,next.time,next);rows.push(integrate(prior,next));
+      }
+      const index=Math.max(0,Math.min(rows.length-1,Math.floor((elapsed-start)/50)));
+      const end=integrate(rows[index],{travel:field.travel,headingX:field.headingX,headingY:field.headingY});
+      field.distance=field.travel-rows[0].travel;field.lateralX=end.x;field.lateralY=end.y;
+    }
+    openingParticleLateral(field,distance){
+      const rows=field.motion?.rows;if(!rows||distance<=0)return {x:0,y:0};
+      const travel=distance+rows[0].travel;let low=0,high=rows.length-1;
+      while(low<high){const mid=Math.ceil((low+high)/2);if(rows[mid].travel<=travel)low=mid;else high=mid-1;}
+      const a=rows[low],b=rows[low+1]||{travel:field.travel,x:field.lateralX,y:field.lateralY};
+      const u=clamp((travel-a.travel)/Math.max(1e-12,b.travel-a.travel),0,1);
+      return {x:mix(a.x,b.x,u),y:mix(a.y,b.y,u)};
     }
     flightLookForView(yaw,pitch,state=this.camera,frame=null){
       // Blend in WORLD view angles. Blending relative to a rapidly moving
@@ -1101,11 +1126,6 @@
         p.haloAlpha=.045+.035*clamp(((p.glow??.8)-.8)/1.8,0,1);
       }
       this.openingParticles={capacity,start:mono-offset,duration:duration+offset,replay,points,projected:{},exitAt:null,elapsed:offset,alpha:0};
-      const sun=this.projected.find(p=>p.body.id==='sun'&&!p.screen.behind)?.screen;
-      const dx=sun?sun.x-this.w*.5:0,dy=sun?sun.y-this.h*.5:0,length=Math.hypot(dx,dy);
-      // Freeze the visible solar-system bearing before the scene disappears.
-      // A centered destination gets a small diagonal approach instead.
-      this.openingParticles.vanishingTarget=length>1?[dx/length,dy/length]:[replay.turn?-.6:.6,-.4];
       this.invalidatePresentation(duration,mono);
     }
     openingParticleFrame(mono=performance.now()) {
@@ -1162,14 +1182,18 @@
       const opacity=field.alpha*p.brightness*ease((field.formation-p.formationAt+.12)/.35)*appearance*remaining;
       if(visibleOnly&&opacity<1e-4){out.visible=false;out.alpha=0;return out;}
       const length=REPLAY_TRANSITION.particleDepth,rate=length*p.speed;
-      const depth=((p.depth-rate*field.travel-.04)%length+length)%length+.04;
+      const distance=field.distance??field.travel;
+      const depth=((p.depth-rate*distance-.04)%length+length)%length+.04;
       const density=frame.budget>=1?1:1-ease((.85*(depth/length)**2+.15*timing-frame.budget)/.12);
       if(visibleOnly&&density*opacity<1e-4){out.visible=false;out.alpha=0;return out;}
       const short=frame.short,x=p.x*short,y=p.y*short;
       const headingX=field.headingX||0,headingY=field.headingY||0;
-      const passed=p.depth-depth;
-      const laneX=x-short*headingX*passed,laneY=y-short*headingY*passed;
-      const cx=this.w*.5+field.flowX+(field.vanishingX||0),cy=this.h*.5+field.flowY+(field.vanishingY||0);
+      const cycle=Math.max(0,Math.ceil((rate*distance-p.depth+.04)/length));
+      const born=cycle>0?(p.depth-.04+(cycle-1)*length)/Math.max(1e-12,rate):0;
+      const origin=this.openingParticleLateral(field,born);
+      const laneX=x-short*rate*((field.lateralX??headingX*distance)-origin.x);
+      const laneY=y-short*rate*((field.lateralY??headingY*distance)-origin.y);
+      const cx=this.w*.5,cy=this.h*.5;
       const curve=1/(depth+.6);
       out.x=cx+laneX/depth+field.bendX*curve;out.y=cy+laneY/depth+field.bendY*curve;
       out.size=clamp(p.size/(depth+.5),.65,4.5);out.glowSize=out.size*p.glow;
@@ -1181,7 +1205,7 @@
       const exposureVelocity=frame.exposureVelocity;
       const shutter=frame.shutter*p.stretch;
       const behind=depth+rate*exposureVelocity*shutter;
-      const behindX=x-short*headingX*(p.depth-behind),behindY=y-short*headingY*(p.depth-behind);
+      const behindX=laneX+short*headingX*(behind-depth),behindY=laneY+short*headingY*(behind-depth);
       const tx=cx+behindX/behind+field.bendX/(behind+.6),ty=cy+behindY/behind+field.bendY/(behind+.6);
       const dx=out.x-tx,dy=out.y-ty;
       out.tail=Math.min(short*.24,Math.hypot(dx,dy))*field.tailScale*mix(1,WARP_PARTICLES.arrivalTail,contraction);

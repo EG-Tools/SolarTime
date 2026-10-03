@@ -217,6 +217,7 @@ test('warp perspective and trails follow camera travel upward, downward and side
  const particle={...r.openingParticles.points[0],x:0,y:0,depth:3,speed:.1,formationAt:0};
  for(const [vx,vy] of [[0,1],[0,-1],[1,0],[-1,0]]){
   sandbox.window.SolarRingTour.jumpPose=(_,t)=>({...base,eye:[vx*t,vy*t,t]});
+  delete r.openingParticles.motion;
   const f=r.openingParticleFrame(2000),q={...r.projectOpeningParticle(particle,f,{})};
   close(f.headingX,vx);close(f.headingY,-vy);
   if(vy){assert.ok((q.y-r.h*.5)*vy>0,'vertical camera travel produces opposite screen flow');assert.ok(Math.sin(q.angle)*vy>0,'tail follows the same flow');}
@@ -237,18 +238,40 @@ test('warp perspective and trails follow camera travel upward, downward and side
  close(look.right[2],-1);
 });
 
-test('warp loop vanishing point approaches the solar bearing smoothly and settles on arrival',()=>{
+test('warp has no artificial solar-bearing offset or look-ahead screen bend',()=>{
  const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
  const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;
  const field=r.openingParticles;field.vanishingTarget=[.6,-.8];
- const sample=t=>{r.replayDustMotion(path,t,field);return [field.vanishingX,field.vanishingY];};
- assert.deepEqual(sample(4300),[0,-0]);
- const middle=sample(6500),late=sample(8500);
- assert.ok(middle[0]>0&&middle[1]<0);assert.ok(late[0]>middle[0]&&late[1]<middle[1]);
- assert.ok(Math.hypot(...late)<=Math.min(r.w,r.h)*.12);
- const direct=sample(8000);for(let t=4300;t<8000;t+=17)sample(t);assert.deepEqual(sample(8000),direct);
- for(const boundary of [4300,9000,10200]){const a=sample(boundary-.001),b=sample(boundary+.001);assert.ok(Math.hypot(a[0]-b[0],a[1]-b[1])<.01);}
- assert.equal(Math.hypot(...sample(10200)),0);
+ for(const time of [4300,6500,8500,9000,10200]){
+  r.replayDustMotion(path,time,field);
+  assert.deepEqual([field.flowX,field.flowY,field.bendX,field.bendY],[0,0,0,0]);
+  const point={...field.points[0],x:.1,y:.1,speed:.05},before=r.projectOpeningParticle(point,field,{});
+  field.vanishingX=100;field.vanishingY=-100;
+  const after=r.projectOpeningParticle(point,field,{});close(before.x,after.x);close(before.y,after.y);
+ }
+});
+
+test('changing travel direction cannot reposition distance already covered',()=>{
+ const {r,sandbox}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;path.ring.virtual=false;
+ sandbox.window.SolarRingTour.jumpPose=(_,t)=>({right:[1,0,0],up:[0,1,0],forward:[0,0,1],eye:[Math.max(0,t-2),0,t]});
+ const f=r.openingParticles,p={...f.points[0],x:.1,y:.1,depth:4,speed:.1};
+ const sample=t=>{r.replayDustMotion(path,t,f);return r.projectOpeningParticle(p,f,{});};
+ const a=sample(1979.99),b=sample(1980.01);
+ assert.ok(Math.hypot(a.x-b.x,a.y-b.y)<.01,'a direction change is integrated instead of moving old positions');
+ const expected=sample(3100);
+ for(const dt of [1000/20,1000/30,1000/60]){
+  delete f.motion;for(let t=0;t<3100;t+=dt)sample(t);
+  const actual=sample(3100);close(actual.x,expected.x);close(actual.y,expected.y);
+ }
+});
+
+test('fresh opening starts its particle distance at zero without inherited warp movement',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,100,6500);
+ const f=r.openingParticleFrame(100),p={...f.points[0],x:.2,y:.1,depth:3};
+ close(f.distance,0);close(f.lateralX,0);close(f.lateralY,0);
+ const q=r.projectOpeningParticle(p,f,{});close(q.x,r.w/2+.2*800/3);close(q.y,r.h/2+.1*800/3);
+ const next=r.openingParticleFrame(116.667);assert.ok(next.distance>0&&next.distance<.01);
 });
 
 test('warp appearance alpha uses stable random delays and fade durations',()=>{
@@ -265,7 +288,7 @@ test('warp arrival tails retain staggered contraction and boot grains fade at di
  const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningCamera(target,9000,6500);
  const pool=r.openingParticles,probes=[0,.5,1].map(n=>({...pool.points[0],life:1000+4000*n,rotation:n*Math.PI*2,x:.2,y:.1,depth:2,speed:1,brightness:1,formationAt:0}));
  // Hold perspective/speed fixed to measure only the requested tail envelope.
- const tail=(p,time)=>{const f=r.openingParticleFrame(time);return r.projectOpeningParticle(p,{...f,replay:{...f.replay,openingMove:null},travel:0,velocity:.36,headingX:0,headingY:0,flowX:0,flowY:0,bendX:0,bendY:0},{}).tail;};
+ const tail=(p,time)=>{const f=r.openingParticleFrame(time);return r.projectOpeningParticle(p,{...f,replay:{...f.replay,openingMove:null},motion:null,distance:0,lateralX:0,lateralY:0,travel:0,velocity:.36,headingX:0,headingY:0,flowX:0,flowY:0,bendX:0,bendY:0},{}).tail;};
  for(const p of probes){
   const initial=tail(p,9000);let previous=initial;
   for(let time=9000;time<=11000;time+=20){const value=tail(p,time);assert.ok(value<=previous+1e-10);assert.ok(previous-value<initial*.03);previous=value;}
