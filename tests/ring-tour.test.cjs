@@ -30,6 +30,24 @@ test('virtual locator search avoids bodies along both the circle and the swept a
  }
 });
 
+test('a populated solar view keeps all eight safe warp directions selectable',()=>{
+ const T=window.SolarRingTour,from={eye:[0,-3444,891],forward:[0,.968,-.251],right:[-1,0,0],up:[0,.251,.968]};
+ const obstacles=[[500,968,43],[-635,618,11],[36,639,22],[-522,593,43],[923,179,43],[470,133,6],[482,88,22],[1239,57,43],[0,0,87],[340,-11,22],[18,-189,22],[780,-1146,6]].map(([x,y,radius])=>({center:[x,y,0],radius}));
+ let seed=93617;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+ const counts=Array(8).fill(0);
+ for(let i=0;i<128;i++){const ring=T.planWarp(from,[0,0,0],obstacles,4.3,random);assert.ok(ring);counts[ring.direction]++;}
+ assert.ok(counts.every(n=>n>0),JSON.stringify(counts));
+ assert.ok(Math.max(...counts)<64,'no direction monopolizes repeated departures');
+});
+
+test('warp planner respects the orbital-disc direction filter',()=>{
+ const T=window.SolarRingTour,from={eye:[0,-8,3],forward:[0,1,0],right:[-1,0,0],up:[0,0,1]};
+ let seed=912;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+ const allowed=[0,1,7],seen=new Set();
+ for(let i=0;i<64;i++){const plan=T.planWarp(from,[0,0,0],[{center:[0,0,0],radius:2}],4.3,random,allowed);assert.ok(plan);assert.ok(allowed.includes(plan.direction));seen.add(plan.direction);}
+ assert.equal(seen.size,3);
+});
+
 test('nearby warp retreat keeps initial velocity and clears the actual swept path',()=>{
  const T=window.SolarRingTour,from={eye:[0,-2.2,0],forward:[0,1,0],right:[-1,0,0],up:[0,0,1],retreat:[0,-6,0]},velocity=[0,0,0],body={center:[0,0,0],radius:1};
  const ring=T.planWarp(from,velocity,[body],4.3);assert.ok(ring);
@@ -57,7 +75,7 @@ test('virtual locator pitch plane inherits camera roll and remains frozen',()=>{
   const ring=T.planWarp(from,[0,.5,0]);vectorNear(ring.entryUp,from.up);vectorNear(ring.normal,from.right);
   vectorNear(ring.center.map((x,i)=>(x-from.eye[i])/(ring.radius*ring.side)),from.up);
   const path=T.warpPath(from,[0,.5,0],ring),before=JSON.stringify(ring);
-  vectorNear(T.jumpPose(path,5).forward,from.forward.map((x,i)=>(x+from.up[i]*ring.side)/Math.sqrt(2)),1e-8);
+  vectorNear(T.jumpPose(path,5).forward,from.forward.map((x,i)=>x*.5+from.up[i]*ring.side*Math.sqrt(.75)),1e-8);
   T.jumpPose(path,10);assert.equal(JSON.stringify(ring),before);
  }
 });
@@ -73,21 +91,22 @@ test('virtual locator inherits actual velocity, speed and projected camera tilt'
  vectorNear(T.planWarp(from,[0,0,0]).entryForward,from.forward);
 });
 
-test('all eight warp departures limit visible heading to 45 degrees with opposite scene parallax',()=>{
+test('all eight warp departures limit visible heading to 60 degrees with opposite scene parallax',()=>{
  const T=window.SolarRingTour,dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0);
  const from={eye:[0,0,0],forward:[0,1,0],up:[0,0,1],right:[-1,0,0]};
  const selected=new Set();
  for(let wanted=0;wanted<8;wanted++){
   let choice=0;const ring=T.planWarp(from,[0,0,0],[],4.3,()=>choice++===wanted?0:1);
-  selected.add(ring.direction);near(ring.viewTurnAngle,Math.PI/4);
+  selected.add(ring.direction);near(ring.viewTurnAngle,Math.PI/3);
   const path=T.warpPath(from,[0,0,0],ring),steering=ring.viewTurnUp.map(x=>x*ring.side);
   let previous=0;
   for(let t=0;t<12;t+=.02){
    const pose=T.jumpPose(path,t),angle=Math.acos(Math.max(-1,Math.min(1,dot(pose.forward,from.forward))));
-   assert.ok(angle<=Math.PI/4+1e-8);assert.ok(angle>=previous-1e-8);
-   assert.ok(angle-previous<.007,'gentle turn, under 20 degrees per second');previous=angle;
+   assert.ok(angle<=Math.PI/3+1e-8);assert.ok(angle>=previous-1e-8);
+   assert.ok(angle-previous<.01,'smooth turn, under 29 degrees per second');previous=angle;
   }
-  const end=T.jumpPose(path,4.3);near(dot(end.forward,from.forward),Math.SQRT1_2);
+  const end=T.jumpPose(path,4.3);near(dot(end.forward,from.forward),.5);
+  const scene=T.warpSceneEye(path,4.3);vectorNear(scene,end.eye.map((x,i)=>from.eye[i]+2*(x-from.eye[i])));
   assert.ok(dot(end.eye,steering)>0,'camera translation adds opposite scene parallax');
   vectorNear(from.eye,[0,0,0]);vectorNear(from.forward,[0,1,0]);
  }
@@ -1646,10 +1665,12 @@ test('all eight random warp directions preserve the initial view and continuous 
  }
  assert.equal(directions.size,8);
 });
-test('upper-screen planets bias random warp selection toward the lower three directions',()=>{
+test('upper-screen orbital disc restricts random warp selection to the lower three directions',()=>{
  const T=window.SolarRingTour,from={eye:[0,0,0],forward:[0,1,0],up:[0,0,1],right:[-1,0,0]};
  const obstacles=[-12,0,12].map(x=>({center:[x,30,20],radius:2}));
- for(let seed=1;seed<=12;seed++){let n=seed;const ring=T.planWarp(from,[0,0,0],obstacles,4.3,()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;});assert.ok([3,4,5].includes(ring.direction),ring.direction);}
+ const renderer=Object.assign(Object.create(R),{w:1280,h:800,projected:[{body:{id:'sun'},screen:{x:640,y:180,behind:false}}]});
+ const allowed=renderer.warpExitDirections({from});assert.deepEqual([...allowed].sort(),[3,4,5]);
+ for(let seed=1;seed<=12;seed++){let n=seed;const ring=T.planWarp(from,[0,0,0],obstacles,4.3,()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;},allowed);assert.ok([3,4,5].includes(ring.direction),ring.direction);}
 });
 test('paused Saturn travel keeps path time fixed while free look remains available',()=>{
  const t=create(),r=Object.create(R);r.ringTour=t;

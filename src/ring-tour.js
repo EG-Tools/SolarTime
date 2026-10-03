@@ -121,7 +121,7 @@
     const lift=path.skySide*liftSpeed*(ramp*(q**6-3*q**5+2.5*q**4)+Math.max(0,t-path.duration));
     return path.ring.center.map((x,i)=>x+path.u[i]*local[0]+path.normal[i]*(local[1]+lift)+path.v[i]*local[2]+path.velocity[i]*bridge);
   }
-  function planWarp(from,velocity,obstacles=[],duration=5,randomChoice=()=>.5){
+  function planWarp(from,velocity,obstacles=[],duration=5,randomChoice=()=>.5,allowedDirections=null){
     const speed=Math.hypot(...velocity),forward=unit(speed>1e-7?velocity:from.forward);
     // Freeze the banked camera's pitch plane at T, rather than levelling the
     // locator to the solar plane. Project onto the inherited travel tangent.
@@ -154,19 +154,22 @@
 
     // Eight screen directions share the same swept-path safety test. Randomness
     // is sampled once per command; replay never changes the chosen direction.
-    const right=unit(cross(up,forward)),jitter=Array.from({length:8},()=>clamp(randomChoice(),0,1)*.8);
+    // Weighted random priorities, rather than a tiny tie-breaker that could
+    // never overcome the old curved-departure exposure score.
+    const right=unit(cross(up,forward)),jitter=Array.from({length:8},()=>Math.log(-Math.log(1-clamp(randomChoice(),1e-9,1-1e-9))));
     for(const angle of [Math.PI/2,Math.PI]){
       const candidates=[];
       for(const reach of [1,2,4])for(let direction=0;direction<8;direction++){
+        if(allowedDirections&&!allowedDirections.includes(direction))continue;
         const heading=(direction%4)*Math.PI/4,side=direction<4?1:-1;
         const planeUp=up.map((v,i)=>v*Math.cos(heading)+right[i]*Math.sin(heading)),normal=unit(cross(planeUp,forward));
         const steering=planeUp.map(v=>v*side),radius=Math.max(scale*reach,speed*duration*1.25/angle),center=from.eye.map((x,i)=>x+steering[i]*radius);
         const viewRight=unit(cross(from.up,from.forward));
         const viewTurnUp=from.up.map((v,i)=>v*Math.cos(heading)+viewRight[i]*Math.sin(heading));
-        const ring={virtual:true,orbit:'virtual',retreat:from.retreat,center,normal,u:forward,entryForward:forward,entryUp:planeUp,viewUp:up,direction,turnAngle:angle,viewTurnAngle:Math.PI/4,viewTurnUp,side,bankSide:Math.abs(bankIntent)>1e-4?Math.sign(bankIntent):side,radius,speed:speed||radius*.08,duration,accelerationDuration};
+        const ring={virtual:true,orbit:'virtual',retreat:from.retreat,center,normal,u:forward,entryForward:forward,entryUp:planeUp,viewUp:up,direction,turnAngle:angle,viewTurnAngle:Math.PI/3,viewTurnUp,side,bankSide:Math.abs(bankIntent)>1e-4?Math.sign(bankIntent):side,radius,speed:speed||radius*.08,duration,accelerationDuration};
         if(!from.retreat&&obstacles.some(b=>{const d=b.center.map((x,i)=>x-center[i]),height=dot(d,normal),radial=Math.sqrt(Math.max(0,dot(d,d)-height*height));return Math.hypot(radial-radius,height)<b.radius*1.18;}))continue;
-        const path=warpPath(from,velocity,ring,duration),pose=warpArcPose(path,duration);
-        let exposure=0,crowding=0;
+        const path=warpPath(from,velocity,ring,duration);
+        let crowding=0;
         for(const body of obstacles){
           const d=body.center.map((x,i)=>x-from.eye[i]),distance=Math.hypot(...d),apparent=body.radius/Math.max(distance,1e-9);
           if(dot(d,from.forward)>0&&apparent>.0001){
@@ -174,11 +177,11 @@
             const alignment=length>1e-9?dot(lateral,steering)/length:0;
             crowding+=(.2+Math.min(1,apparent*20))*((1+clamp(alignment,-1,1))/2)**4;
           }
-          const target=body.center.map((x,i)=>x-pose.eye[i]),gap=Math.hypot(...target);
-          if(gap>0&&body.radius/gap>.0001&&dot(unit(target),pose.forward)>Math.cos(Math.PI/3)-body.radius/gap)exposure++;
         }
         const early=warpArcMotion(path,duration*.35).angle,earlyForward=forward.map((x,i)=>x*Math.cos(early)+planeUp[i]*Math.sin(early));
-        const score=exposure*8+crowding*4+6*(1-dot(from.forward,earlyForward))+Math.log(reach)+jitter[direction];
+        // Prefer less crowded bearings without excluding the other directions.
+        // Actual collisions still reject a candidate in the swept-path check.
+        const score=1.5*crowding/(1+crowding)+6*(1-dot(from.forward,earlyForward))+Math.log(reach)+jitter[direction];
         candidates.push({ring,path,score});
       }
       candidates.sort((a,b)=>a.score-b.score);
@@ -214,7 +217,7 @@
     const base=axes(f,path.ring.viewUp||u),source=path.previous||path.from,previous=axes(source.forward,source.up),start=axes(path.from.forward,path.from.up),carry=t*Math.exp(-t/.6);
     const headingAngle=Math.acos(clamp(dot(start.forward,base.forward),-1,1)),alignDuration=Math.max(2.5,headingAngle/(Math.PI/6));
     // Keep the swept translation for subtle opposite scene parallax, but
-    // turn the visible camera only 45 degrees from the user's starting view.
+    // turn the visible camera only 60 degrees from the user's starting view.
     const frame=orientation(orientation(previous,start,1+carry/.001),limited?start:base,transition(t,0,alignDuration));
     // One transported pitch axis stays continuous even through the vertical.
     const axis=unit(cross(u,f)),c=Math.cos(angle),s=Math.sin(angle);
@@ -222,6 +225,14 @@
     const pose={...frame,right:rotate(frame.right),up:rotate(frame.up),forward:rotate(frame.forward),eye:warpPosition(path,t),look:1};
     const bank=(path.ring.bankSide??path.ring.side)*30*Math.PI/180*smooth(t/(path.duration*2));
     return bankPose(pose,bank);
+  }
+  function warpSceneEye(path,age){
+    if(!Number.isFinite(path.ring?.viewTurnAngle))return warpPosition(path,age);
+    const t=Math.max(0,age),ramp=ease(t/1.2),progress=ease(t/path.duration);
+    const eye=warpPosition(path,t+.1*t*ramp*(1-progress)),gain=1+ramp;
+    // Scene-only parallax: double the distance, with a small early lead.
+    // The camera orientation and the shared particle/sky view are unchanged.
+    return eye.map((x,i)=>path.from.eye[i]+(x-path.from.eye[i])*gain);
   }
   function warpPose(path,age){
     if(path.ring.virtual)return warpArcPose(path,age);
@@ -685,7 +696,7 @@
       const look=path.warp?transition(t,0,Math.min(2.5,path.duration)):pose.look;
       const frame=path.warp?pose:orientation(orientation(previous,from,1+carry/dt),heading,look);
       const weight=path.warp?entryWeight(clamp(t/path.duration,0,1)*SETTINGS.entry):0;
-      return {...from,...frame,eye:pose.eye,perspective:mix(from.perspective,1,weight),offset:blend(from.offset,[0,0],weight)};
+      return {...from,...frame,eye:path.warp?warpSceneEye(path,t):pose.eye,perspective:mix(from.perspective,1,weight),offset:blend(from.offset,[0,0],weight)};
     }
     returnProgress(start=0){return transition(this.returnAge||0,start,this.returnDuration);}
     ringDetailState(viewEye=projectionEye(this.pose)){
@@ -1333,6 +1344,7 @@
   RingTour.smoothBank=smoothBank;
   RingTour.jumpPath=jumpPath;
   RingTour.warpPath=warpPath;
+  RingTour.warpSceneEye=warpSceneEye;
   RingTour.planWarp=planWarp;
   RingTour.warpPosition=warpPosition;
   RingTour.jumpPose=jumpPose;

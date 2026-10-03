@@ -12,7 +12,7 @@
   const mix=(a,b,t)=>a+(b-a)*t;
   const REPLAY_TRANSITION=Object.freeze({departure:4300,warp:4700,particleLead:0,clearHold:250,fadeOut:8000,openingLead:2000,skyFov:60.8,particleDepth:5,particleRate:.8});
   const FLIGHT_GLOW_COLORS=Object.freeze(['#76bfff','#f3d6aa','#b8a1ff','#bfecff']);
-  const WARP_PARTICLES=Object.freeze({peakAt:7000,entryDelay:1500,exitLead:300,openingAppear:1200,appear:700,speed:1.44,arrivalSpeed:.3,arrivalDrift:.06,tail:.8,edgeTail:.5,arrivalTail:.25,alpha:.64,speedAlpha:.7,arrivalAlpha:1.2,arrivalHold:.25,afterglow:2000,loopSpread:1200,loopFade:800,blend:450});
+  const WARP_PARTICLES=Object.freeze({peakAt:7000,entryDelay:1000,entrySpread:1200,entryFade:450,exitLead:300,openingAppear:1200,openingTail:.175,appear:700,speed:1.44,arrivalSpeed:.3,arrivalDrift:.06,tail:.8,edgeTail:.5,arrivalTail:.25,alpha:.64,speedAlpha:.7,arrivalAlpha:1.2,arrivalHold:.25,afterglow:2000,loopSpread:1200,loopFade:800,blend:450});
   // The ordinary endpoint is a parent-centered circle. Only Pluto retains
   // inclination there; the physical endpoint always keeps its full 3D vector.
   function blendOrbitPoint(point,normal,actual,depthNormal,depthActual,inclined,out){
@@ -819,6 +819,27 @@
       const view=this.bankedSkyCamera().viewAxes;
       return {from:{eye,forward:view?view.forward.map(v=>-v):forward,right:view?view.right.map(v=>-v):right.map(v=>-v),up:view?view.down.map(v=>-v):up},velocity};
     }
+    warpExitDirections(departure){
+      const visible=(this.projected||[]).filter(p=>!p.screen.behind&&Number.isFinite(p.screen.x)&&Number.isFinite(p.screen.y));
+      if(!visible.length)return null;
+      const from=departure.from,right=this.ringTour?from.right:from.right.map(v=>-v),up=from.up;
+      const sun=visible.find(p=>p.body.id==='sun');
+      const center=sun?sun.screen:{x:visible.reduce((n,p)=>n+p.screen.x,0)/visible.length,y:visible.reduce((n,p)=>n+p.screen.y,0)/visible.length};
+      const dx=center.x-this.w*.5,dy=center.y-this.h*.5;
+      // The orbital plane's projected pole points across the narrow side of
+      // the disc. Choose the side facing away from its screen position.
+      let nx=right[2],ny=-up[2],length=Math.hypot(nx,ny);
+      if(length<.1){nx=-dx;ny=-dy;length=Math.hypot(nx,ny);}
+      if(length<1e-8){nx=0;ny=-1;length=1;}
+      nx/=length;ny/=length;
+      if(nx*dx+ny*dy>1e-6||(Math.abs(nx*dx+ny*dy)<=1e-6&&ny>0)){nx=-nx;ny=-ny;}
+      const f=from.forward,viewRight=[up[1]*f[2]-up[2]*f[1],up[2]*f[0]-up[0]*f[2],up[0]*f[1]-up[1]*f[0]];
+      return Array.from({length:8},(_,direction)=>{
+        const angle=(direction%4)*Math.PI/4,side=direction<4?1:-1;
+        const steering=up.map((v,i)=>side*(v*Math.cos(angle)+viewRight[i]*Math.sin(angle)));
+        return {direction,score:nx*flightDot(steering,right)-ny*flightDot(steering,up)};
+      }).sort((a,b)=>b.score-a.score).slice(0,3).map(p=>p.direction);
+    }
     warpRingGeometry(departure=this.warpDeparture()){
       const scale=this.scale||this.fitScale*this.camera.zoom*(this.camera.dolly??1);
       const obstacles=(this.frameBodies||[]).map(p=>({center:[p.world.x,p.world.y,p.world.z],radius:this.bodyRadiusAtZoom(p.body)/scale}));
@@ -831,7 +852,7 @@
         clearance=Math.max(clearance,distance*(p.r/(Math.min(this.w,this.h)*.25)-1));
       }
       const from=clearance>0?{...departure.from,retreat:departure.from.forward.map(value=>-value*clearance)}:departure.from;
-      return window.SolarRingTour.planWarp(from,departure.velocity,obstacles,REPLAY_TRANSITION.departure/1000,Math.random);
+      return window.SolarRingTour.planWarp(from,departure.velocity,obstacles,REPLAY_TRANSITION.departure/1000,Math.random,this.warpExitDirections(departure));
     }
     animateOpeningReplay(state,departure,mono=performance.now(),duration=this.openingCameraDuration(state)) {
       mono=this.animationMono(mono);
@@ -851,6 +872,9 @@
       const path=window.SolarRingTour.warpPath(view,velocity,{...ring,retreat:ring.retreat?.map(value=>value/DOLLY.baseDistance),duration:REPLAY_TRANSITION.departure/1000,center:ring.center.map((v,i)=>(v-anchor[['x','y','z'][i]])/DOLLY.baseDistance),radius:ring.radius/DOLLY.baseDistance,speed:ring.speed/DOLLY.baseDistance});
       move.fromAnchor={...anchor};
       move.replay={path,ring,departureAnnotations,departure:{...departure},outbound,resetAt:Infinity,brakeAt:Infinity,particleAt:Infinity,clearSince:null,turn,inbound:duration};
+      const steering=ring.viewTurnUp.map(v=>v*ring.side),screenRight=tour?departurePose.from.right:departurePose.from.right.map(v=>-v);
+      move.replay.sceneSlide={direction:[-flightDot(steering,screenRight),flightDot(steering,departurePose.from.up)],
+        camera:{...move.from},bank:this.flightBank,look:this.flightLook,anchor:{...anchor},distance:this.replaySceneDistance(steering,screenRight,departurePose.from.up)};
       if(tour){
         const axes=A.bodyAxes(A.BODIES.find(body=>body.id==='saturn'));
         const solarUp=[axes.u.z,axes.pole.z,axes.v.z];
@@ -869,7 +893,7 @@
     }
     openingReplayEye(path,elapsed){
       const t=replayFlightTime(Math.max(0,elapsed)/1000,Math.max(path.brakeAt/1000,path.ring.accelerationDuration||0));
-      return window.SolarRingTour.jumpPose(path.path,t).eye;
+      return window.SolarRingTour.warpSceneEye(path.path,t);
     }
     replayDepartureScore(tour,pose){
       // Preview through the same lens/correction as the flight, without
@@ -883,6 +907,33 @@
       return score;
     }
     replayOpeningAt(path){return path.resetAt+REPLAY_TRANSITION.openingLead;}
+    replaySceneDistance(steering,right,up){
+      const dx=-flightDot(steering,right),dy=flightDot(steering,up);
+      let distance=Math.max(this.w,this.h)*2;
+      for(const item of this.projected||[]){
+        const p=item.screen;if(!p||p.behind)continue;
+        const radius=(item.r||0)*(item.body.id==='sun'?5.1:2.3)+24;
+        const x=Math.abs(dx)<1e-8?Infinity:(dx>0?this.w+radius-p.x:p.x+radius)/Math.abs(dx);
+        const y=Math.abs(dy)<1e-8?Infinity:(dy>0?this.h+radius-p.y:p.y+radius)/Math.abs(dy);
+        if(Number.isFinite(Math.min(x,y)))distance=Math.max(distance,Math.min(x,y));
+      }
+      return distance;
+    }
+    replaySceneSlide(mono){
+      const move=this.cameraTween,path=move?.replay,elapsed=move?this.animationMono(mono)-move.start:0;
+      if(!path?.sceneSlide||elapsed>=path.resetAt)return null;
+      const slide=path.sceneSlide,weight=ease(elapsed*(1.1*.75)/REPLAY_TRANSITION.departure);
+      return {...slide,x:slide.direction[0]*slide.distance*weight,y:slide.direction[1]*slide.distance*weight};
+    }
+    beginReplayScene(slide,ms){
+      if(!slide)return null;
+      const saved={};
+      for(const key of ['camera','flightBank','flightLook','trackingAnchor','projectionAnchor','scale','centerX','centerY','cx','cy','homeCx','homeCy','bodyScale'])saved[key]=this[key];
+      this.camera=slide.camera;this.flightBank=slide.bank;this.flightLook=slide.look;this.trackingAnchor=slide.anchor;
+      this.rebuild(ms);this.centerX+=slide.x;this.centerY+=slide.y;
+      return saved;
+    }
+    endReplayScene(saved){if(saved){Object.assign(this,saved);this.dirty=true;}}
     replaySkyCamera(camera,mono){
       const frame=this.replayPresentation(mono),path=this.cameraTween?.replay;
       return {...camera,transitionFov:frame.fov,replaySky:path?{...frame,from:path.skyFrom,clock:mono,carry:Math.max(0,(mono-this.cameraTween.start-path.resetAt)/1000)}:null};
@@ -892,7 +943,7 @@
         const t=clamp((elapsed-this.replayOpeningAt(move.replay))/move.replay.inbound,0,1);
         return this.cameraTweenState({from:move.replay.departure,to:move.to,timing:'opening',flyThrough:move.flyThrough,openingPath:move.openingPath},t);
       }
-      const path=move.replay,seconds=replayFlightTime(elapsed/1000,Math.max(path.brakeAt/1000,path.ring.accelerationDuration||0)),pose=window.SolarRingTour.jumpPose(path.path,seconds),eye=pose.eye,distance=Math.max(.00001,Math.hypot(...eye)),p=ease(clamp(elapsed/7000,0,1));
+      const path=move.replay,seconds=replayFlightTime(elapsed/1000,Math.max(path.brakeAt/1000,path.ring.accelerationDuration||0)),pose=window.SolarRingTour.jumpPose(path.path,seconds),eye=window.SolarRingTour.warpSceneEye(path.path,seconds),distance=Math.max(.00001,Math.hypot(...eye)),p=ease(clamp(elapsed/7000,0,1));
       const state={...move.from,azimuth:A.wrap(Math.atan2(-eye[0],-eye[1])),elevation:Math.asin(clamp(eye[2]/distance,-1,1)),dolly:1/distance};
       const goalYaw=Math.atan2(pose.forward[0],pose.forward[1]),goalPitch=-Math.asin(clamp(pose.forward[2],-1,1));
       const yaw=move.from.azimuth+(A.wrap(goalYaw-move.from.azimuth+Math.PI)-Math.PI)*pose.look;
@@ -987,9 +1038,9 @@
       // Entrance is shared; each grain contracts independently on arrival.
       const loop=ease((elapsed-path.brakeAt)/WARP_PARTICLES.blend);
       field.tailScale=WARP_PARTICLES.tail*mix(WARP_PARTICLES.edgeTail,1,loop);
-      // Opening glows approach the viewer in camera space. The scenic
-      // camera turn must not sweep the particle field sideways.
-      if(path.openingMove){field.headingX=field.headingY=field.flowX=field.flowY=field.bendX=field.bendY=0;return;}
+      // Forward particle travel is separate from the scene's parallax path.
+      // Warp rotation is applied below through the SAME displayed sky axes.
+      if(path.openingMove||Number.isFinite(path.ring.viewTurnAngle)){field.headingX=field.headingY=field.flowX=field.flowY=field.bendX=field.bendY=0;return;}
       const flight=path.flightPath||path.path;
       const seconds=path.openingMove?Math.min(elapsed,this.replayOpeningAt(path)+path.inbound-20)/1000:replayFlightTime(elapsed/1000,Math.max(path.brakeAt/1000,acceleration));
       const sample=time=>path.openingMove?this.openingParticlePose(path.openingMove,time*1000-this.replayOpeningAt(path)):window.SolarRingTour.jumpPose(flight,time);
@@ -1139,8 +1190,40 @@
       const end=this.replayOpeningAt(path)+(path.openingMove?path.inbound+WARP_PARTICLES.afterglow:Math.max(0,path.inbound-WARP_PARTICLES.exitLead));
       if(elapsed>=end||exit<=0){field.points.length=0;this.openingParticles=null;return null;}
       field.elapsed=elapsed;this.replayDustMotion(path,elapsed,field);
+      if(this.sky?.starAxes){
+        const rows=field.cameraFrames||(field.cameraFrames=[]),last=rows[rows.length-1];
+        if(!last||elapsed>last.time){
+          const axes=this.sky.starAxes,delta=last?field.distance-last.distance:0;
+          const position=last?last.position.map((x,i)=>x-delta*(last.axes.forward[i]+axes.forward[i])*.5):[0,0,0];
+          rows.push({time:elapsed,distance:field.distance,axes,position});
+        }
+      }
       field.alpha=this.replayParticleAlpha(elapsed,path,field.velocity)*exit;
       return field;
+    }
+    projectFlightParticleCamera(p,field,spawnDepth,born,behind,shutter,out){
+      const rows=field.cameraFrames,current=rows[rows.length-1],previous=rows[rows.length-2]||current;
+      let low=0,high=rows.length-1;
+      while(low<high){const mid=Math.ceil((low+high)/2);if(rows[mid].distance<=born)low=mid;else high=mid-1;}
+      const a=rows[low],b=rows[low+1]||a,u=clamp((born-a.distance)/Math.max(1e-12,b.distance-a.distance),0,1);
+      const focal=this.h/(2*Math.tan(REPLAY_TRANSITION.skyFov*Math.PI/360)),spread=Math.min(this.w,this.h)/focal;
+      const axes=current.axes,prior=previous.axes,dt=(current.time-previous.time)/1000;
+      const exposure=dt>0?shutter/dt:0;
+      let x=0,y=0,z=0,tx=0,ty=0,tz=0;
+      for(let i=0;i<3;i++){
+        const right=mix(a.axes.right[i],b.axes.right[i],u),down=mix(a.axes.down[i],b.axes.down[i],u),forward=mix(a.axes.forward[i],b.axes.forward[i],u);
+        const movement=REPLAY_TRANSITION.particleDepth*p.speed*(mix(a.position[i],b.position[i],u)-current.position[i]);
+        const point=movement+right*p.x*spread+down*p.y*spread-forward*spawnDepth;
+        const tailPoint=point-axes.forward[i]*behind;
+        x+=point*axes.right[i];y+=point*axes.down[i];z-=point*axes.forward[i];
+        tx+=tailPoint*mix(axes.right[i],prior.right[i],exposure);
+        ty+=tailPoint*mix(axes.down[i],prior.down[i],exposure);
+        tz-=tailPoint*mix(axes.forward[i],prior.forward[i],exposure);
+      }
+      out.cameraDepth=z;const near=Math.max(.04,z),tailNear=Math.max(.04,tz);
+      out.x=this.w*.5+focal*x/near;out.y=this.h*.5+focal*y/near;
+      const dx=focal*(x/near-tx/tailNear),dy=focal*(y/near-ty/tailNear);
+      out.tail=Math.hypot(dx,dy);out.angle=Math.atan2(dy,dx);
     }
     openingParticleProjection(field){
       const frame=this.openingParticleFrameConstants||(this.openingParticleFrameConstants={}),path=field.replay;
@@ -1151,6 +1234,22 @@
       frame.exitWindow=Math.max(1,path.inbound-WARP_PARTICLES.exitLead);
       frame.birthAt=path.particleAt+(path.openingMove?0:WARP_PARTICLES.entryDelay);
       frame.early=ease((field.elapsed-frame.birthAt-1000)/WARP_PARTICLES.appear);return frame;
+    }
+    warpParticleBirth(p,field,frame){
+      const timing=p.rotation/TAU,slide=field.replay.sceneSlide;
+      if(field.replay.openingMove||!slide||!field.cameraFrames?.length)return {at:frame.birthAt+timing*WARP_PARTICLES.entrySpread,distance:0};
+      const direction=slide.direction,span=Math.hypot(...direction)||1;
+      const facing=clamp(-(p.x*direction[0]+p.y*direction[1])/(Math.max(.04,p.depth)*span),-1,1);
+      const initialAt=frame.birthAt+(.75*(1-facing)*.5+.25*timing)*WARP_PARTICLES.entrySpread;
+      const loopGrain=p.edgeKeep===false;
+      const at=loopGrain?Math.max(initialAt,field.replay.brakeAt+timing*WARP_PARTICLES.loopSpread)
+        :p.earlyKeep===false?Math.max(initialAt,frame.birthAt+1000):initialAt;
+      // Anchor each grain to the displayed camera at its own birth, not the
+      // camera before the turn. Keep that world-space trajectory thereafter.
+      const rows=field.cameraFrames;let low=0,high=rows.length-1;
+      while(low<high){const mid=Math.ceil((low+high)/2);if(rows[mid].time<=at)low=mid;else high=mid-1;}
+      const a=rows[low],b=rows[low+1]||a,u=clamp((at-a.time)/Math.max(1e-12,b.time-a.time),0,1);
+      return {at,distance:mix(a.distance,b.distance,u),depth:loopGrain?REPLAY_TRANSITION.particleDepth*(.85+.15*timing):p.depth};
     }
     projectOpeningParticle(p,field,out,visibleOnly=false,frame=this.openingParticleProjection(field)) {
       if(visibleOnly&&!field.replay.openingMove&&field.elapsed<=field.replay.particleAt+WARP_PARTICLES.entryDelay){out.visible=false;out.alpha=0;return out;}
@@ -1165,7 +1264,7 @@
       // and fade durations, so their visible count grows rather than popping.
       const entrance=ease((field.elapsed-field.replay.brakeAt-timing*WARP_PARTICLES.loopSpread)
         /(WARP_PARTICLES.loopFade*(.75+lifetime*.5)));
-      const birthAt=frame.birthAt;
+      const birthAt=frame.birthAt,birth=this.warpParticleBirth(p,field,frame);
       const early=frame.early;
       const birthDensity=p.edgeKeep===false?entrance:p.earlyKeep===false?early:1;
       // The other half now also retires throughout arrival, doubling the
@@ -1181,18 +1280,18 @@
       // Replayed warp grains are already visible and must not appear again.
       const appearance=field.replay.openingMove?ease((arrival-timing*WARP_PARTICLES.openingAppear/3)
         /(WARP_PARTICLES.openingAppear*(1+lifetime)/3))
-        :ease((field.elapsed-birthAt-timing*200)/(250+lifetime*450));
+        :ease((field.elapsed-birth.at)/(WARP_PARTICLES.entryFade+lifetime*450));
       const opacity=field.alpha*p.brightness*ease((field.formation-p.formationAt+.12)/.35)*appearance*remaining;
       if(visibleOnly&&opacity<1e-4){out.visible=false;out.alpha=0;return out;}
-      const length=REPLAY_TRANSITION.particleDepth,rate=length*p.speed;
-      const distance=field.distance??field.travel;
-      const depth=((p.depth-rate*distance-.04)%length+length)%length+.04;
+      const length=REPLAY_TRANSITION.particleDepth,rate=length*p.speed,spawnDepth=birth.depth??p.depth;
+      const distance=Math.max(0,(field.distance??field.travel)-birth.distance);
+      const depth=((spawnDepth-rate*distance-.04)%length+length)%length+.04;
       const density=frame.budget>=1?1:1-ease((.85*(depth/length)**2+.15*timing-frame.budget)/.12);
       if(visibleOnly&&density*opacity<1e-4){out.visible=false;out.alpha=0;return out;}
       const short=frame.short,x=p.x*short,y=p.y*short;
       const headingX=field.headingX||0,headingY=field.headingY||0;
-      const cycle=Math.max(0,Math.ceil((rate*distance-p.depth+.04)/length));
-      const born=cycle>0?(p.depth-.04+(cycle-1)*length)/Math.max(1e-12,rate):0;
+      const cycle=Math.max(0,Math.ceil((rate*distance-spawnDepth+.04)/length));
+      const born=birth.distance+(cycle>0?(spawnDepth-.04+(cycle-1)*length)/Math.max(1e-12,rate):0);
       const origin=this.openingParticleLateral(field,born);
       const laneX=x-short*rate*((field.lateralX??headingX*distance)-origin.x);
       const laneY=y-short*rate*((field.lateralY??headingY*distance)-origin.y);
@@ -1204,7 +1303,12 @@
       // streak. Its shutter grows with speed and contracts during arrival.
       // Tune exposure independently of travel speed so faster particles do
       // not undo the requested reduction in trail length.
-      if(field.replay.openingMove){out.tail=0;out.angle=0;}else{
+      if(field.cameraFrames?.length){
+        const shutter=frame.shutter*p.stretch;
+        this.projectFlightParticleCamera(p,field,cycle>0?length+.04:spawnDepth,born,rate*frame.exposureVelocity*shutter,shutter,out);
+        out.size=clamp(p.size/(Math.max(.04,out.cameraDepth)+.5),.65,4.5);out.glowSize=out.size*p.glow;
+        out.tail=Math.min(short*.24,out.tail)*field.tailScale*mix(1,WARP_PARTICLES.arrivalTail,contraction);
+      }else{
       const exposureVelocity=frame.exposureVelocity;
       const shutter=frame.shutter*p.stretch;
       const behind=depth+rate*exposureVelocity*shutter;
@@ -1214,7 +1318,9 @@
       out.tail=Math.min(short*.24,Math.hypot(dx,dy))*field.tailScale*mix(1,WARP_PARTICLES.arrivalTail,contraction);
       out.angle=Math.atan2(dy,dx);
       }
+      if(field.replay.openingMove)out.tail*=WARP_PARTICLES.openingTail;
       out.alpha=opacity*density*(1-ease((depth-length*.7)/(length*.3)));
+      if(field.cameraFrames?.length)out.alpha*=ease((out.cameraDepth-.04)/.12);
       const margin=out.glowSize*(p.sizeScale??1)+out.tail;
       out.visible=out.x>=-margin&&out.x<=this.w+margin&&out.y>=-margin&&out.y<=this.h+margin;
       return out;
@@ -1246,8 +1352,8 @@
           if(!q.visible||q.alpha<1e-4)continue;
           const radius=clamp(q.size*.23,.38,1.05)*(p.sizeScale??1),tail=Math.max(0,q.tail||0);
           const halo=p.haloAlpha??(.045+.035*clamp(((p.glow??.8)-.8)/1.8,0,1));
-          if(field.replay.openingMove){
-            // Opening glows are concentric discs, with no line or motion streak.
+          if(field.replay.openingMove&&tail<=.65){
+            // Preserve the soft glow when its restored short trail is subpixel.
             c.fillStyle=FLIGHT_GLOW_COLORS[p.color??0];
             c.globalAlpha=q.alpha*halo;c.beginPath();c.arc(q.x,q.y,radius*4.5,0,TAU);c.fill();
             c.globalAlpha=q.alpha*.3;c.beginPath();c.arc(q.x,q.y,radius*1.6,0,TAU);c.fill();
@@ -2210,14 +2316,21 @@
       const camera=tour.skyCamera(axes,this.camera);
       this.sky.draw(seconds,this.replaySkyCamera(camera,mono),this.options);
       const solar=this.replayPresentation(mono).solar;this.setReplaySolarOpacity(solar);
+      const slide=this.replaySceneSlide(mono),flightPose=tour.pose;
+      if(slide&&tour.replayBridge?.takeoff){
+        const from=tour.replayBridge.takeoff.from,focal=this.h/(2*Math.tan(from.fov*Math.PI/360));
+        tour.pose={...from,offset:[from.offset[0]+slide.x/focal,from.offset[1]-slide.y/focal]};
+      }
+      try{
       if(gpu.begin()){
         gpu.externalTextureBytes=(this.sky?.memoryUsage?.().textures||0)+tour.memoryUsage();
-        try{if(solar>0)this.drawRingTourBodies(tour,axes,camera.viewAxes,ms,seconds,mono);}catch(error){this.ringTourError=error.message;this.endRingTour();return false;}
+        try{if(solar>0)this.drawRingTourBodies(tour,axes,slide?tour.skyCamera(axes,this.camera).viewAxes:camera.viewAxes,ms,seconds,mono);}catch(error){this.ringTourError=error.message;this.endRingTour();return false;}
         gpu.end();
       }
       if(solar>0&&tour.flightField.alpha>0){const frame=tour.grainProjection(this.w,this.h);this.drawFlightParticles(this.ctx,tour.flightField,(p,f,out)=>tour.projectGrain(p,f,out,this.w,this.h,frame));}
-      this.drawOpeningParticles(this.ctx,mono);
       this.drawRingTourAnnotations(tour,ms,mono);
+      }finally{tour.pose=flightPose;}
+      this.drawOpeningParticles(this.ctx,mono);
       if(this.autoRotation)this.autoRotation.mono=null;
       this.presentationDirty=false;this.presentedResources=this.resourceSignature();return true;
     }
@@ -2395,6 +2508,8 @@
       if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
       this.sky.draw(seconds,this.replaySkyCamera(this.bankedSkyCamera(),mono),this.options);
       this.sky.decorate(c,seconds,this.options,this.boundStarGlow);
+      const sceneSaved=this.beginReplayScene(this.replaySceneSlide(mono),ms);
+      try{
       const solar=this.replayPresentation(mono).solar;this.setReplaySolarOpacity(solar);c.save();c.globalAlpha=solar;
       const {bodies,satelliteLayouts}=this.updateFrameBodies(ms);
       const earth=this.currentFrameItem('earth');
@@ -2487,6 +2602,7 @@
       else this.clearLabels();
       this.projected=bodies;
       this.presentationDirty=false;this.presentedResources=this.resourceSignature();
+      }finally{this.endReplayScene(sceneSaved);}
     }
     hit(x,y) {
       if(this.ringTour)return null;

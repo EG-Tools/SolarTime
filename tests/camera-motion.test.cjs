@@ -21,6 +21,36 @@ function renderer(seed=.127694){
 }
 const ms=Date.parse('2026-09-19T12:00:00Z');
 
+test('warp picks the three directions away from the projected orbital disc',()=>{
+ const {r}=renderer(),departure={from:{forward:[0,1,0],right:[-1,0,0],up:[0,0,1]},velocity:[0,0,0]};
+ const sun={body:{id:'sun'},screen:{x:640,y:500,behind:false}};r.projected=[sun];
+ assert.deepEqual([...r.warpExitDirections(departure)].sort(),[0,1,7]);
+ sun.screen.y=300;assert.deepEqual([...r.warpExitDirections(departure)].sort(),[3,4,5]);
+ // Rotating the view by 90 degrees makes the disc vertical. Exit sideways.
+ sun.screen={x:800,y:400,behind:false};departure.from.right=[0,0,-1];departure.from.up=[-1,0,0];
+ const choices=r.warpExitDirections(departure);assert.equal(choices.length,3);assert.ok(choices.includes(2));
+ assert.ok(!choices.includes(0)&&!choices.includes(4));
+});
+
+test('warp solar scene translates rigidly in eight directions and restores the live camera',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ r.rebuild=()=>{r.scale=2;r.centerX=640+r.camera.panX*1280;r.centerY=400+r.camera.panY*800;};
+ const path=r.cameraTween.replay;path.resetAt=7000;
+ const points=[{x:0,y:0,z:0},{x:70,y:-30,z:12},{x:-90,y:20,z:-10}];
+ const sample=t=>{const saved=r.beginReplayScene(r.replaySceneSlide(t),ms);r.cx=r.centerX;r.cy=r.centerY;r.projectionAnchor=null;try{return points.map(p=>r.project(p));}finally{r.endReplayScene(saved);}};
+ for(let direction=0;direction<8;direction++){
+  const angle=direction*Math.PI/4;path.sceneSlide.direction=[Math.sin(angle),Math.cos(angle)];
+  const initial=sample(0);r.camera={...r.camera,azimuth:r.camera.azimuth+.3,elevation:.8,zoom:3};
+  const actual=r.camera;
+  for(const time of [800,2200,3900]){
+   const slide=r.replaySceneSlide(time),projected=sample(time);
+   projected.forEach((p,i)=>{close(p.x-initial[i].x,slide.x);close(p.y-initial[i].y,slide.y);close(p.perspective,initial[i].perspective);close(p.z,initial[i].z);});
+   assert.equal(r.camera,actual);
+  }
+ }
+ assert.equal(r.replaySceneSlide(7000),null);assert.equal(r.replaySceneSlide(9000),null);
+});
+
 test('T follows the side-view bend and coasts into the opening',()=>{
  const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
  const move=r.cameraTween,p=move.replay;
@@ -137,7 +167,7 @@ test('T uses one bounded particle pool through start, loop, reset and end',()=>{
    const projected=points.map(p=>({...r.projectOpeningParticle(p,pool,{})}));
    assert.ok(projected.every(q=>[q.x,q.y,q.size,q.tail,q.alpha].every(Number.isFinite)));
    if(time===0)assert.equal(pool.alpha,0);
-   if(time<=1500)assert.ok(projected.every(q=>q.alpha===0),'first 1.5 seconds stay clear');
+   if(time<=1000)assert.ok(projected.every(q=>q.alpha===0),'first second stays clear');
   }
   assert.equal(r.openingParticleFrame(15200),null);assert.equal(points.length,0);
   assert.ok(r.cameraTween,'the camera continues after particles disappear');
@@ -213,6 +243,7 @@ test('warp grains approach immediately from zero speed without a stationary hold
 test('warp perspective and trails follow camera travel upward, downward and sideways',()=>{
  const {r,sandbox}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
  const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;path.ring.virtual=false;
+ delete path.ring.viewTurnAngle; // Legacy uncapped travel still follows its path.
  const base={right:[1,0,0],up:[0,1,0],forward:[0,0,1]};
  const particle={...r.openingParticles.points[0],x:0,y:0,depth:3,speed:.1,formationAt:0};
  for(const [vx,vy] of [[0,1],[0,-1],[1,0],[-1,0]]){
@@ -254,6 +285,7 @@ test('warp has no artificial solar-bearing offset or look-ahead screen bend',()=
 test('changing travel direction cannot reposition distance already covered',()=>{
  const {r,sandbox}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
  const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;path.ring.virtual=false;
+ delete path.ring.viewTurnAngle;
  sandbox.window.SolarRingTour.jumpPose=(_,t)=>({right:[1,0,0],up:[0,1,0],forward:[0,0,1],eye:[Math.max(0,t-2),0,t]});
  const f=r.openingParticles,p={...f.points[0],x:.1,y:.1,depth:4,speed:.1};
  const sample=t=>{r.replayDustMotion(path,t,f);return r.projectOpeningParticle(p,f,{});};
@@ -274,25 +306,106 @@ test('fresh opening starts its particle distance at zero without inherited warp 
  const next=r.openingParticleFrame(116.667);assert.ok(next.distance>0&&next.distance<.01);
 });
 
-test('opening glows approach the viewer radially even while the camera turns',()=>{
+test('opening glows retain radial fallback when no displayed sky camera is available',()=>{
  const {r}=renderer(),target=r.cameraSnapshot();r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,100,6500);
  const pool=r.openingParticles,p={...pool.points[0],x:.2,y:.1,depth:4,speed:.1};let previous=0;
  for(const time of [0,300,1000,2000,4000,6000]){
   const f=r.openingParticleFrame(100+time),q=r.projectOpeningParticle(p,f,{}),x=q.x-r.w/2,y=q.y-r.h/2;
   close(f.headingX,0);close(f.headingY,0);close(x/y,2);
   const radius=Math.hypot(x,y);assert.ok(radius>previous);previous=radius;
-  assert.equal(q.tail,0);
+  assert.ok(q.tail>=0);
  }
+});
+
+test('60-degree warp forward motion does not inherit the separate scene parallax',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;
+ const point={...r.openingParticles.points[0],x:.2,y:-.1,depth:4,speed:.01};
+ for(const time of [1600,2500,4300,6500,9000,11000]){
+  const field=r.openingParticleFrame(time),q=r.projectOpeningParticle(point,field,{});
+  close(field.headingX,0);close(field.headingY,0);close(field.lateralX,0);close(field.lateralY,0);
+  close((q.x-r.w/2)/(q.y-r.h/2),-2);close(q.angle,Math.atan2(-.1,.2));
+ }
+});
+
+test('warp particles and tails inherit the displayed sky camera, including the hidden reset',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;
+ const start={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};r.sky.starAxes=start;
+ const field=r.openingParticleFrame(0),point={...field.points[0],x:.2,y:.1,depth:3,speed:0};
+ const before=r.projectOpeningParticle(point,r.openingParticleFrame(2400),{}),a=.2,c=Math.cos(a),s=Math.sin(a);
+ r.sky.starAxes={right:[c,0,s],down:[0,1,0],forward:[-s,0,c]};
+ const f=r.openingParticleFrame(3000),after=r.projectOpeningParticle(point,f,{});
+ const focal=r.h/(2*Math.tan(30.4*Math.PI/180)),x=point.x*800/focal,y=point.y*800/focal,z=-point.depth;
+ close(after.x,r.w/2+focal*(c*x+s*z)/(s*x-c*z));
+ close(after.y,r.h/2+focal*y/(s*x-c*z));
+ assert.ok(after.x<before.x,'turning right moves stationary grains left with the sky');
+ assert.ok(after.tail>0,'camera rotation also drives the tail');
+ r.camera.azimuth+=Math.PI;
+ const reset=r.projectOpeningParticle(point,r.openingParticleFrame(7001),{});
+ close(reset.x,after.x);close(reset.y,after.y);
+ assert.equal(field.cameraFrames.at(-1).axes,r.sky.starAxes,'one displayed camera owner');
+});
+
+test('opening inherits the displayed camera rotation and forward movement with short tails',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,100,6500);
+ r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};
+ const field=r.openingParticleFrame(100),p={...field.points[0],x:.2,y:.1,depth:3,speed:0};
+ const before=r.projectOpeningParticle(p,field,{}),a=.2,c=Math.cos(a),s=Math.sin(a);
+ r.sky.starAxes={right:[c,0,s],down:[0,1,0],forward:[-s,0,c]};
+ const f=r.openingParticleFrame(1100),after=r.projectOpeningParticle(p,f,{});
+ const focal=r.h/(2*Math.tan(30.4*Math.PI/180)),x=p.x*800/focal,y=p.y*800/focal,z=-p.depth;
+ close(after.x,r.w/2+focal*(c*x+s*z)/(s*x-c*z));
+ close(after.y,r.h/2+focal*y/(s*x-c*z));
+ assert.ok(after.x<before.x);assert.ok(after.tail>0);
+ assert.equal(f.cameraFrames.at(-1).axes,r.sky.starAxes);
+ const moving=r.projectOpeningParticle({...p,speed:.1},f,{});
+ assert.ok(moving.cameraDepth<after.cameraDepth,'forward motion brings grains toward the current camera');
+ assert.ok(moving.tail>0);
+ r.setAnimationPaused(true,1100);
+ const paused=r.projectOpeningParticle({...p,speed:.1},r.openingParticleFrame(2100),{});
+ close(paused.x,moving.x);close(paused.y,moving.y);
+});
+
+test('warp grains are born in the turning camera and appear on the turning side first',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;
+ r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};
+ const field=r.openingParticleFrame(0),p={...field.points[0],depth:1,speed:0,rotation:0,life:1000,formationAt:0,brightness:1};
+ const a=.4,c=Math.cos(a),s=Math.sin(a);r.sky.starAxes={right:[c,0,s],down:[0,1,0],forward:[-s,0,c]};
+ r.openingParticleFrame(1000);r.openingParticleFrame(1200);
+ for(let i=0;i<8;i++){
+  const angle=i*Math.PI/4,dx=Math.cos(angle),dy=Math.sin(angle);path.sceneSlide.direction=[-dx,-dy];
+  const leading={...p,x:dx,y:dy},trailing={...p,x:-dx,y:-dy};
+  const first=r.projectOpeningParticle(leading,field,{}),last=r.projectOpeningParticle(trailing,field,{});
+  assert.ok(first.alpha>0);close(last.alpha,0);
+  // No drift from the old camera before the particle became visible.
+  close(first.x,r.w/2+dx*800);close(first.y,r.h/2+dy*800);
+ }
+});
+
+test('loop additions are born far away when their own fade starts',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;
+ r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};
+ const field=r.openingParticleFrame(0),p={...field.points[0],edgeKeep:false,earlyKeep:false,x:.1,y:.1,depth:.05,rotation:0,speed:.65,life:1000,brightness:1,formationAt:0};
+ for(let t=20;t<=4300;t+=20)r.openingParticleFrame(t);
+ const birth=r.projectOpeningParticle(p,field,{});assert.ok(birth.cameraDepth>=4.25-1e-8);close(birth.alpha,0);
+ for(let t=4320;t<=4600;t+=20)r.openingParticleFrame(t);
+ const later=r.projectOpeningParticle(p,field,{});assert.ok(later.cameraDepth<birth.cameraDepth);assert.ok(later.cameraDepth>1);assert.ok(later.alpha>0);
+ const delayed={...p,rotation:Math.PI};
+ const invisible=r.projectOpeningParticle(delayed,field,{});close(invisible.alpha,0);assert.ok(invisible.cameraDepth>4);
 });
 
 test('warp appearance alpha uses stable random delays and fade durations',()=>{
  const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
  const pool=r.openingParticles,probes=[0,.5,1].map(n=>({...pool.points[0],life:1000+4000*n,rotation:n*Math.PI*2,brightness:1,formationAt:0,x:.2,y:.1,depth:2,speed:0}));
- const alpha=(p,time)=>r.projectOpeningParticle(p,r.openingParticleFrame(time+1500),{}).alpha;
- close(alpha(probes[2],200),0);assert.ok(alpha(probes[0],200)>alpha(probes[1],200));assert.ok(alpha(probes[1],200)>0);
- assert.ok(alpha(probes[0],400)>alpha(probes[1],400));assert.ok(alpha(probes[1],400)>alpha(probes[2],400));
- const direct=alpha(probes[1],400);for(let time=0;time<400;time+=17)alpha(probes[1],time);close(alpha(probes[1],400),direct);
- for(const p of probes)close(alpha(p,1000),alpha(probes[0],1000));
+ const alpha=(p,time)=>r.projectOpeningParticle(p,r.openingParticleFrame(time+1000),{}).alpha;
+ assert.ok(alpha(probes[0],200)>0);close(alpha(probes[1],200),0);close(alpha(probes[2],200),0);
+ assert.ok(alpha(probes[0],800)>alpha(probes[1],800));assert.ok(alpha(probes[1],800)>0);close(alpha(probes[2],800),0);
+ assert.ok(alpha(probes[1],1400)>alpha(probes[2],1400));assert.ok(alpha(probes[2],1400)>0);
+ const direct=alpha(probes[1],800);for(let time=0;time<800;time+=17)alpha(probes[1],time);close(alpha(probes[1],800),direct);
+ for(const p of probes)close(alpha(p,2200),alpha(probes[0],2200));
 });
 
 test('warp arrival tails retain staggered contraction and boot grains fade at different times',()=>{
@@ -322,9 +435,10 @@ test('first second caps at 200 and arrival progressively retires both halves',()
   const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;
   const points=r.openingParticles.points;
   const alphas=time=>{const f=r.openingParticleFrame(time);if(!f)return Array(count).fill(0);return points.map(p=>r.projectOpeningParticle({...p,speed:0,depth:2,brightness:1,formationAt:0},f,{}).alpha);};
-  for(const time of [100,400,1000,1500,1900,2200,2500])assert.ok(alphas(time).filter(a=>a>0).length<=200);
-  assert.equal(alphas(2500).filter(a=>a>0).length,Math.min(200,count/2));
-  assert.equal(alphas(3500).filter(a=>a>0).length,count/2);
+  for(const time of [100,400,1000,1200,1500,1900,2000])assert.ok(alphas(time).filter(a=>a>0).length<=200);
+  assert.ok(alphas(2000).filter(a=>a>0).length>0);
+  assert.ok(alphas(2000).filter(a=>a>0).length<=Math.min(200,count/2));
+  assert.equal(alphas(3000).filter(a=>a>0).length,count/2);
   assert.equal(alphas(4300).filter(a=>a>0).length,count/2);
   const joining=alphas(4500),full=alphas(6500);
   assert.equal(full.filter(a=>a>0).length,count);
@@ -366,7 +480,8 @@ test('boot opening begins at warp arrival and preserves its camera and fade life
   warp.cameraTween.replay.brakeAt=4300;warp.cameraTween.replay.resetAt=7000;warp.cameraTween.replay.ring.accelerationDuration=4.3;
   for(const elapsed of [0,500,2000,duration-1,duration,duration+1500]){
    const boot=r.openingParticleFrame(100+elapsed),exit={};warp.replayDustMotion(warp.cameraTween.replay,9000+elapsed,exit);exit.alpha=warp.replayParticleAlpha(9000+elapsed,warp.cameraTween.replay,exit.velocity);
-   for(const key of ['velocity','travel','formation','tailScale','alpha'])close(boot[key],exit[key]);
+   for(const key of ['velocity','travel'])close(boot[key],exit[key]);
+   for(const key of ['formation','tailScale','alpha'])close(boot[key],exit[key]);
    const alphas=boot.points.map(p=>{const q=r.projectOpeningParticle(p,boot,{});assert.ok([q.x,q.y,q.tail,q.alpha].every(Number.isFinite));return q.alpha;});
    if(elapsed===0)assert.ok(alphas.every(alpha=>alpha===0));else assert.ok(alphas.some(alpha=>alpha>0));assert.equal(r.openingParticles,pool);
   }
@@ -395,13 +510,13 @@ test('boot fades grains in at staggered times without delaying arrival motion',(
  assert.equal(r.openingParticles,pool);
 });
 
-test('T waits 1.5 seconds to appear and fades every grain 0.3 seconds before the arrival camera ends',()=>{
+test('T waits one second to appear and fades every grain 0.3 seconds before the arrival camera ends',()=>{
  const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
  const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;
  const pool=r.openingParticles,points=pool.points;
  const alpha=time=>{const f=r.openingParticleFrame(time);return points.map(p=>r.projectOpeningParticle({...p,speed:0,depth:2,brightness:1,formationAt:0},f,{}).alpha);};
- for(const time of [0,1000,1499,1500])assert.ok(alpha(time).every(value=>value===0));
- assert.ok(alpha(1800).some(value=>value>0));
+ for(const time of [0,500,999,1000])assert.ok(alpha(time).every(value=>value===0));
+ assert.ok(alpha(1100).some(value=>value>0));
  let previous=alpha(9000),differentDeaths=false;
  for(let time=9025;time<15200;time+=25){
   const values=alpha(time);
@@ -1381,10 +1496,10 @@ test('paused auto rotation preserves manual framing and its configured direction
   r.advanceAutoRotate(8100);assert.notDeepEqual(plain(r.camera),manually);assert.equal(r.rotationIntent,intent);
  }
 });
-test('boot has no tails and enlarges glow ten percent while warp keeps its original size range',()=>{
+test('boot restores short tails and enlarges glow ten percent while warp keeps its original size range',()=>{
  const {r}=renderer(),home=r.cameraSnapshot();r.animateOpeningCamera(home,0,6500);
  for(const p of r.openingParticles.points)assert.ok(p.sizeScale>=1.65-1e-12&&p.sizeScale<=3.08);
- for(const time of [0,1000,3000,6000,7000]){const f=r.openingParticleFrame(time);for(const p of f.points)assert.equal(r.projectOpeningParticle(p,f,{}).tail,0);}
+ for(const time of [0,1000,3000,6000,7000]){const f=r.openingParticleFrame(time);for(const p of f.points){const q=r.projectOpeningParticle(p,f,{}),warp=r.projectOpeningParticle(p,{...f,replay:{...f.replay,openingMove:null}},{});close(q.tail,warp.tail*.175);}}
  r.animateOpeningReplay(home,r.openingCameraSnapshot(home),10000,6500);
  for(const p of r.openingParticles.points)assert.ok(p.sizeScale>=1&&p.sizeScale<=2);
 });
