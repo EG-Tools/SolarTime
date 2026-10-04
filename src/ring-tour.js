@@ -166,7 +166,7 @@
         const steering=planeUp.map(v=>v*side),radius=Math.max(scale*reach,speed*duration*1.25/angle),center=from.eye.map((x,i)=>x+steering[i]*radius);
         const viewRight=unit(cross(from.up,from.forward));
         const viewTurnUp=from.up.map((v,i)=>v*Math.cos(heading)+viewRight[i]*Math.sin(heading));
-        const ring={virtual:true,orbit:'virtual',retreat:from.retreat,center,normal,u:forward,entryForward:forward,entryUp:planeUp,viewUp:up,direction,turnAngle:angle,viewTurnAngle:Math.PI/3,viewTurnUp,side,bankSide:Math.abs(bankIntent)>1e-4?Math.sign(bankIntent):side,radius,speed:speed||radius*.08,duration,accelerationDuration};
+        const ring={virtual:true,orbit:'virtual',cruiseDeparture:!!from.cruiseDeparture,retreat:from.retreat,center,normal,u:forward,entryForward:forward,entryUp:planeUp,viewUp:up,direction,turnAngle:angle,viewTurnAngle:Math.PI/3,viewTurnUp,side,bankSide:Math.abs(bankIntent)>1e-4?Math.sign(bankIntent):side,radius,speed:speed||radius*.08,duration,accelerationDuration};
         if(!from.retreat&&obstacles.some(b=>{const d=b.center.map((x,i)=>x-center[i]),height=dot(d,normal),radial=Math.sqrt(Math.max(0,dot(d,d)-height*height));return Math.hypot(radial-radius,height)<b.radius*1.18;}))continue;
         const path=warpPath(from,velocity,ring,duration);
         let crowding=0;
@@ -190,9 +190,11 @@
     return null;
   }
   function warpArcMotion(path,age){
-    const t=Math.max(0,age),d=path.duration,u=clamp(t/d,0,1),s0=Math.hypot(...path.velocity),s1=2*path.ring.radius*path.ring.turnAngle/d-s0;
+    const t=Math.max(0,age),d=path.duration,u=clamp(t/d,0,1),s0=Math.hypot(...path.velocity),plannedSpeed=2*path.ring.radius*path.ring.turnAngle/d-s0;
+    // Cruise takeoff inherits a speed budget, not the size of a distant locator.
+    const s1=path.ring.cruiseDeparture?clamp(plannedSpeed,s0,s0*3):plannedSpeed;
     const tail=Math.max(0,t-d),drift=.025*(tail-1.2*(1-Math.exp(-tail/1.2)));
-    const acceleration=clamp(t/(path.ring.accelerationDuration||d),0,1);
+    const acceleration=clamp(t/(path.ring.cruiseDeparture?Math.max(5,path.ring.accelerationDuration||d):(path.ring.accelerationDuration||d)),0,1);
     return {angle:path.ring.side*(path.ring.turnAngle*ease(u)+drift),speed:mix(s0,s1,ease(acceleration))};
   }
   function warpArcPosition(path,age){
@@ -227,7 +229,7 @@
     return bankPose(pose,bank);
   }
   function warpSceneEye(path,age){
-    if(!Number.isFinite(path.ring?.viewTurnAngle))return warpPosition(path,age);
+    if(path.ring?.cruiseDeparture||!Number.isFinite(path.ring?.viewTurnAngle))return warpPosition(path,age);
     const t=Math.max(0,age),ramp=ease(t/1.2),progress=ease(t/path.duration);
     const eye=warpPosition(path,t+.1*t*ramp*(1-progress)),gain=1+ramp;
     // Scene-only parallax: double the distance, with a small early lead.

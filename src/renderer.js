@@ -813,7 +813,7 @@
       if(tour?.projection){
         const {axes,saturn,units}=tour.projection;
         const {from,velocity}=tour.takeoffStart(),world=v=>['x','y','z'].map(k=>axes.u[k]*v[0]+axes.pole[k]*v[1]+axes.v[k]*v[2]);
-        return {from:{eye:world(from.eye).map((v,i)=>saturn[['x','y','z'][i]]+v*units),forward:world(from.forward),up:world(from.up),right:world(from.right),bankRate:from.bankRate},velocity:world(velocity).map(v=>v*units)};
+        return {from:{eye:world(from.eye).map((v,i)=>saturn[['x','y','z'][i]]+v*units),forward:world(from.forward),up:world(from.up),right:world(from.right),bankRate:from.bankRate,cruiseDeparture:true},velocity:world(velocity).map(v=>v*units)};
       }
       const eye=flightEye(this.camera).map((v,i)=>v*DOLLY.baseDistance+anchor[['x','y','z'][i]]);
       const a=this.flightLook?.world?this.flightLook.yaw:this.camera.azimuth,e=this.flightLook?.world?this.flightLook.pitch:this.camera.elevation;
@@ -856,7 +856,10 @@
       // Our disc renderer clips by the body's centre. Before turning past a
       // nearby large limb, gently retreat so the whole disc can leave view.
       let clearance=0;
-      for(const p of this.frameBodies||[]){
+      // A ring flight already has forward momentum. A screen-size retreat
+      // overwhelms that velocity near Saturn and makes takeoff accelerate back.
+      // Keep its tangent; planWarp still rejects colliding swept paths.
+      if(!this.ringTour)for(const p of this.frameBodies||[]){
         if(!(p.r>Math.min(this.w,this.h)*.3)||!this.visible(p.screen,p.r))continue;
         const distance=Math.hypot(...departure.from.eye.map((value,i)=>value-p.world[['x','y','z'][i]]));
         clearance=Math.max(clearance,distance*(p.r/(Math.min(this.w,this.h)*.25)-1));
@@ -878,7 +881,7 @@
       const move=this.cameraTween,start=flightEye(move.from),turn=Math.floor(Math.random()*2);
       const {azimuth:a,elevation:e}=move.from;
       const view=tour?{eye:start,forward:flightUnit(start).map(v=>-v),right:[Math.cos(a),-Math.sin(a),0],up:[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)]}:{...departurePose.from,eye:start};
-      const velocity=tour?[0,0,0]:departurePose.velocity.map(v=>v/DOLLY.baseDistance);
+      const velocity=departurePose.velocity.map(v=>v/DOLLY.baseDistance);
       const path=window.SolarRingTour.warpPath(view,velocity,{...ring,retreat:ring.retreat?.map(value=>value/DOLLY.baseDistance),duration:REPLAY_TRANSITION.departure/1000,center:ring.center.map((v,i)=>(v-anchor[['x','y','z'][i]])/DOLLY.baseDistance),radius:ring.radius/DOLLY.baseDistance,speed:ring.speed/DOLLY.baseDistance});
       move.fromAnchor={...anchor};
       move.replay={path,ring,departureAnnotations,departure:{...departure},outbound,resetAt:Infinity,brakeAt:Infinity,particleAt:Infinity,clearSince:null,turn,inbound:duration};
@@ -2330,10 +2333,7 @@
       this.sky.draw(seconds,this.replaySkyCamera(camera,mono),this.options);
       const solar=this.replayPresentation(mono).solar;this.setReplaySolarOpacity(solar);
       const slide=this.replaySceneSlide(mono),flightPose=tour.pose;
-      if(slide&&tour.replayBridge?.takeoff){
-        const from=tour.replayBridge.takeoff.from,focal=this.h/(2*Math.tan(from.fov*Math.PI/360));
-        tour.pose={...from,offset:[from.offset[0]+slide.x/focal,from.offset[1]-slide.y/focal]};
-      }
+      if(slide&&tour.replayBridge?.takeoff)tour.pose=this.replayRingScenePose(tour,slide);
       try{
       if(gpu.begin()){
         gpu.externalTextureBytes=(this.sky?.memoryUsage?.().textures||0)+tour.memoryUsage();
@@ -2346,6 +2346,13 @@
       this.drawOpeningParticles(this.ctx,mono);
       if(this.autoRotation)this.autoRotation.mono=null;
       this.presentationDirty=false;this.presentedResources=this.resourceSignature();return true;
+    }
+    replayRingScenePose(tour,slide) {
+      const from=tour.replayBridge.takeoff.from,focal=this.h/(2*Math.tan(from.fov*Math.PI/360));
+      // Keep the existing opposite screen slide, but inherit the live flight eye.
+      // Freezing the entire departure pose erased cruise translation from both
+      // ring geometry and nearby grains even though the flight kept advancing.
+      return {...from,eye:tour.pose.eye,offset:[from.offset[0]+slide.x/focal,from.offset[1]-slide.y/focal]};
     }
     drawRingTourBodies(tour,axes,view,ms,seconds,mono) {
       // Reuse the normal ephemeris, size rules, material jobs and GPU planet renderer.

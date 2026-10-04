@@ -1535,3 +1535,21 @@ test('warp arrival shares the particle vanishing point before restoring the save
   close(r.camera.panX,target.panX);close(r.camera.panY,target.panY);
  }
 });
+
+test('ring jump near a large Saturn does not add backwards clearance acceleration',()=>{
+ const {r,sandbox}=renderer(),body=A.BODIES.find(p=>p.id==='saturn');
+ r.frameBodies=[{body,world:{x:0,y:0,z:0},r:400,screen:{x:640,y:400,behind:false}}];
+ const departure={from:{eye:[0,-500,0],forward:[0,1,0],right:[1,0,0],up:[0,0,1]},velocity:[0,5,0]};
+ const normal=r.warpRingGeometry(departure);assert.ok(normal.retreat[1]<0);
+ r.ringTour={state:'cruising'};
+ const ring=r.warpRingGeometry(departure);assert.ok(ring);assert.equal(ring.retreat,undefined);
+ const flight=sandbox.window.SolarRingTour;
+ const path=flight.warpPath(departure.from,departure.velocity,ring);
+ let lastSpeed=5;
+ for(const t of [.01,.1,.3,.6,1,1.5]){
+  const a=flight.warpSceneEye(path,t),b=flight.warpSceneEye(path,t+.001);
+  const velocity=b.map((v,i)=>(v-a[i])/.001),speed=Math.hypot(...velocity);
+  assert.ok(velocity[1]>0,'must continue forward during the early turn');
+  assert.ok(speed>=lastSpeed,'must accelerate rather than brake or reverse');lastSpeed=speed;
+ }
+});

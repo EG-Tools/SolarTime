@@ -1681,3 +1681,39 @@ test('paused Saturn travel keeps path time fixed while free look remains availab
  const shot=[...t.pose.forward];r.setAnimationPaused(false,19000);t.advance(19000);vectorNear(t.pose.forward,shot);
  t.advance(19050);assert.ok(t.age>age);t.dispose();
 });
+
+test('visible ring scene carries cruise velocity through the eight jump directions',()=>{
+ const T=window.SolarRingTour;
+ for(const age of [.5,6,22])for(let direction=0;direction<8;direction++){
+  const tour=create(123);tour.age=age;tour.state=age<10?'entering':'cruising';tour.pose=tour.cameraPose();
+  const {from,velocity}=tour.takeoffStart();
+  const ring=T.planWarp({...from,cruiseDeparture:true},velocity,[],4.3,()=>.5,[direction]);assert.ok(ring);
+  tour.startTakeoff(0,Infinity,0,[0,1,0],null,[],ring);
+  const render=t=>{tour.pose=tour.takeoffPose(t);return R.replayRingScenePose.call({h:800},tour,{x:0,y:0});};
+  const first=render(0),next=render(.00001);
+  vectorNear(first.eye,from.eye);
+  vectorNear(next.eye.map((x,i)=>(x-first.eye[i])/.00001),velocity,.003);
+  const later=render(.5);assert.ok(Math.hypot(...later.eye.map((x,i)=>x-first.eye[i]))>0);
+  vectorNear(later.eye,tour.pose.eye);
+  const shifted=R.replayRingScenePose.call({h:800},tour,{x:90,y:-60});
+  vectorNear(shifted.eye,later.eye);assert.ok(shifted.offset[0]>later.offset[0]);assert.ok(shifted.offset[1]>later.offset[1]);
+ }
+});
+
+test('ring departure acceleration scales with cruise speed, without scene distance amplification',()=>{
+ const T=window.SolarRingTour;
+ for(const speed of [.01,.3,5])for(const radius of [10,10000]){
+  const from={eye:[0,0,0],forward:[0,0,1],up:[0,1,0],right:[1,0,0],cruiseDeparture:true};
+  const planned=T.planWarp(from,[0,0,speed],[],4.3,()=>.5,[0]);assert.equal(planned.cruiseDeparture,true);
+  const path=T.warpPath(from,[0,0,speed],{...planned,radius});
+  let previous=speed;
+  for(const t of [0,.1,.25,.5,1,2,3,4,5,7]){
+   const dt=.00001,a=T.warpSceneEye(path,t),b=T.warpSceneEye(path,t+dt);
+   vectorNear(a,T.warpPosition(path,t));
+   const actual=Math.hypot(...b.map((v,i)=>(v-a[i])/dt));
+   assert.ok(actual>=previous-speed*.001);assert.ok(actual<=speed*3.001);
+   if(t<=1)assert.ok(actual<=speed*1.12,'first second must stay close to cruise speed');
+   previous=actual;
+  }
+ }
+});
