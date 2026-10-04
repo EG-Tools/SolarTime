@@ -18,8 +18,12 @@ def main():
             browser = getattr(p, engine).launch(**options)
             try:
                 page = browser.new_page()
-                page.route("**/*", lambda route: route.abort())
-                page.set_content('<button id="run">Test silent audio</button>')
+                # Use a real secure origin, matching production Blob ownership. Keep
+                # network isolation scoped to HTTP so local Blob media stays readable.
+                page.route("https://**/*", lambda route: route.abort())
+                page.route("https://audio.test/", lambda route: route.fulfill(
+                    body='<button id="run">Test silent audio</button>', content_type='text/html'))
+                page.goto("https://audio.test/")
                 page.add_script_tag(content=(root / "src/alarm-sound.js").read_text(encoding="utf8"))
                 page.evaluate(r"""() => {
                   const wav = seconds => {
