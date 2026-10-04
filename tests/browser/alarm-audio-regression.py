@@ -56,7 +56,9 @@ def main():
                 assert not page.evaluate("window.audioError||''"), page.evaluate("window.audioError")
                 result = page.evaluate("window.result")
                 assert result["longStreamed"] and result["playing"]
-                assert abs(result["mediaVolume"] - .864) < 1e-7
+                # PulseAudio stores cubic volume as 16-bit steps; round-trip linear
+                # volume can differ by < 3/65536. Keep the Web Audio check strict.
+                assert abs(result["mediaVolume"] - .864) < 5e-5, result
                 assert abs(result["webAudioGain"] - .864) < 1e-7
                 assert result["shortDecodedBytes"] <= 32 * 1024 * 1024
                 report.update(passed=True, **result)
