@@ -207,3 +207,16 @@ test('layout diagnostics expose the declared status-bar setting without inferrin
  assert.equal(info.mode,'standalone');
  assert.equal(info.build,'0.46 r6');
 });
+
+test('busy app and ringing dialogs defer updates without consuming the reload attempt',async()=>{
+ const h=harness();await flush();let busy=true;h.window.SolarTime={canApplyUpdate:()=>!busy};h.state.manifest={version:'0.46',revision:'r5'};
+ await h.window.SolarPageRuntime.checkForUpdate(true);assert.equal(h.redirects.length,0);assert.equal(h.storage.size,0);assert.equal(h.window.SolarPageRuntime.getPendingUpdate().revision,'r5');
+ busy=false;await h.window.SolarPageRuntime.checkForUpdate(true);assert.equal(h.redirects.length,1);
+});
+test('alarm dialog and audible media block reload even before app startup completes',async()=>{
+ for(const kind of ['alarm','audio','loading']){
+ const h=harness();await flush();const query=h.document.querySelector;
+ h.document.querySelector=selector=>kind==='alarm'&&selector==='#alarm-dialog'?{open:true}:kind==='audio'&&selector==='audio:not([data-preview])'?{paused:false}:kind==='loading'&&selector==='#loading'?{hidden:false}:query(selector);
+ h.state.manifest={version:'0.46',revision:'r5'};await h.window.SolarPageRuntime.checkForUpdate(true);assert.equal(h.redirects.length,0,kind);
+ }
+});

@@ -150,8 +150,7 @@
     needsDraw(mono=performance.now()){
       return !!(this.preparedRingTour&&!this.preparedRingTour.disposed&&(!this.preparedRingTour.preparationReady||!this.preparedRingTour.resources?.ready))||
         this.dirty||this.presentationDirty||this.resourceSignature()!==this.presentedResources||
-        !!this.ringTour||!!this.cameraTween||!!this.bankRelease||!!this.openingParticles||!!this.autoRotation||!!this.actualScaleTween||!!this.orbitSpacingTween||this.orbitRevealAlpha(mono)<.9999||
-        mono<this.presentationUntil||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
+        (!this.animationPaused&&(!!this.ringTour||!!this.cameraTween||!!this.bankRelease||!!this.openingParticles||!!this.autoRotation||this.orbitRevealAlpha(mono)<.9999||mono<this.presentationUntil))||!!this.actualScaleTween||!!this.orbitSpacingTween||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
     }
     starGlow(c,x,y,r,alpha) {
       if(!(r>0)||!(alpha>0))return;
@@ -600,6 +599,13 @@
       this.fitScale=mix(this.overviewFitScale,this.actualFitScale,this.orbitScaleMix());
       this.scale=this.fitScale*this.camera.zoom*(this.camera.dolly??1);
       this.centerX=(left+right)/2+this.w*(this.camera.panX||0);this.centerY=baseY+this.h*this.camera.panY;
+      // Warp arrival starts at the particles' viewport-centred vanishing point.
+      // Restore the normal layout and saved pan through the same camera progress.
+      const arrival=this.cameraTween?.replay?.arrivalProgress;
+      if(Number.isFinite(arrival)){
+        this.centerX=mix(this.w*.5,this.centerX,arrival);
+        this.centerY=mix(this.h*.5,this.centerY,arrival);
+      }
       this.cx=this.centerX;this.homeCx=this.centerX;this.homeCy=this.centerY;this.cy=this.homeCy;
       this.bodyScale=this.bodyScaleAtZoom();this.lastPathMs=ms;this.pathYear=A.modelYear(ms);this.dirty=false;
     }
@@ -706,6 +712,10 @@
       this.prepareCloseup(id);this.restoreCamera(to);
     }
     get zoomLimits() {return VIEW;}
+    bodyVisibleRadius(body,r,{surface=false}={}) {
+      if(surface&&body.id!=='saturn'&&body.id!=='uranus')return r+2;
+      return r*(body.id==='sun'?5.1:body.id==='saturn'?2.3:body.id==='uranus'?2:1.3)+16;
+    }
     visible(p,r=0) {return !p.behind&&p.x+r>=0&&p.x-r<=this.w&&p.y+r>=0&&p.y-r<=this.h;}
 
     cameraSnapshot() {return {...this.camera,mode:this.options.dollyZoom?'move':'zoom'};}
@@ -1549,7 +1559,10 @@
         if(t>=1)this.bankRelease=null;this.dirty=true;return true;
       }
       const t=clamp((mono-move.start)/move.duration,0,1),{to}=move,{state,progress,look}=this.cameraTweenState(move,t);move.progress=progress;
-      if(move.replay){this.flightLook=look||null;this.lookRelease=null;}
+      if(move.replay){
+        move.replay.arrivalProgress=mono-move.start>=move.replay.resetAt?progress:null;
+        this.flightLook=look||null;this.lookRelease=null;
+      }
       const bankLimit=window.SolarRingTour?.bankLimit??20*A.DEG;
       this.flightBank=move.timing==='opening'?0:clamp((move.bankFrom||0)*(1-ease(t)),-bankLimit,bankLimit);
       this.camera=t>=1?{azimuth:to.azimuth,elevation:to.elevation,zoom:to.zoom,dolly:to.dolly??1,focus:to.focus,panX:to.panX,panY:to.panY}:state;
@@ -2552,7 +2565,7 @@
       // resume()+pump() in the 60 fps draw hot path.
       // A corona that crosses the viewport does NOT make the hidden solar disk visible.
       const surfaceBodies=this.surfaceBodies;surfaceBodies.length=0;
-      for(const p of bodies)if(solar>0&&this.visible(p.screen,p.r+2))surfaceBodies.push(p);
+      for(const p of bodies)if(solar>0&&this.visible(p.screen,this.bodyVisibleRadius(p.body,p.r,{surface:true})))surfaceBodies.push(p);
       surfaceBodies.sort((a,b)=>{
         const focus=Number(b.body.id===this.camera.focus)-Number(a.body.id===this.camera.focus);
         return focus||b.r-a.r;
@@ -2571,7 +2584,7 @@
         if(solar>0)this.gpu.prepare(jobs);
         const sun=this.currentFrameItem('sun');
         if(solar>0&&sun&&this.options.activity&&this.visible(sun.screen,sun.r*5.1+16))this.gpu.corona(this.coronaSource(sun.r),sun.screen,sun.r,seconds);
-        for(const p of bodies){const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;if(solar<=0||!this.visible(p.screen,p.r*extent+16))continue;
+        for(const p of bodies){const extent=this.bodyVisibleRadius(p.body,p.r);if(solar<=0||!this.visible(p.screen,extent))continue;
           const job=p.directReady?p.directJob:null;if(job&&this.gpu.planet(job,p.body,p.screen,p.r,seconds,this.options.activity))directBodies.push(p);
         }
         this.gpu.end();
@@ -2588,8 +2601,8 @@
       }
       if(direct)this.occludeDirectBodies(c,directBodies);
       for(const p of bodies) {
-        const extent=p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3;
-        if(solar<=0||!this.visible(p.screen,p.r*extent+16))continue;
+        const extent=this.bodyVisibleRadius(p.body,p.r);
+        if(solar<=0||!this.visible(p.screen,extent))continue;
         if(this.gpu)this.drawBodyOverlay(c,p.body,p.screen,p.r);
         else this.drawBody(c,p.body,p.world,p.screen,p.r,ms,seconds);
         this.hitTargets.push({id:p.body.id,x:p.screen.x,y:p.screen.y,r:Math.max(p.r+6,11),z:p.screen.z});

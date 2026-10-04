@@ -73,7 +73,7 @@
   root.visualViewport?.addEventListener('scroll',scheduleViewportSync,{passive:true});
 
   const interval=5*60*1000,attemptKey='solar-time.update-attempt';
-  let checkedAt=-Infinity,checking=false,reloading=false,lastAttempt=null;
+  let checkedAt=-Infinity,checking=false,reloading=false,lastAttempt=null,pendingUpdate=null;
   const compareVersion=(a,b)=>{
     const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);
     for(let i=0;i<Math.max(x.length,y.length);i++)if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0)?1:-1;
@@ -93,6 +93,11 @@
       if(!/^\d+(?:\.\d+)+$/.test(nextVersion)||!/^r\d+$/.test(nextRevision))return;
       const order=compareVersion(nextVersion,version);
       if(order<0||(order===0&&revisionNumber(nextRevision)<=revisionNumber(revision)))return;
+      pendingUpdate={version:nextVersion,revision:nextRevision};
+      // Detection must not interrupt audio, an alarm or a camera sequence.
+      if(document.querySelector('#loading')?.hidden===false||root.SolarTime?.canApplyUpdate?.()===false||document.querySelector('#alarm-dialog')?.open
+        ||document.querySelector('#shutdown-dialog')?.open
+        ||document.querySelector('audio:not([data-preview])')?.paused===false)return;
       let previous=lastAttempt;
       try{previous=JSON.parse(root.sessionStorage.getItem(attemptKey)||'null')||previous;}catch(_){/* Storage can be unavailable. */}
       if(previous?.version===nextVersion&&previous?.revision===nextRevision&&now-previous.at<60000)return;
@@ -159,5 +164,5 @@
     if(new URL(root.location.href).searchParams.get('layout-debug')==='1')showDiagnostics();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
-  root.SolarPageRuntime=Object.freeze({checkForUpdate,layoutInfo,showDiagnostics,getViewport:()=>viewportBounds});
+  root.SolarPageRuntime=Object.freeze({checkForUpdate,layoutInfo,showDiagnostics,getPendingUpdate:()=>pendingUpdate,getViewport:()=>viewportBounds});
 })(window);

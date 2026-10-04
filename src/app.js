@@ -172,15 +172,17 @@
   function toast(message) { clearTimeout(toastTimer);$('toast').textContent=message;showFading($('toast'));toastTimer=setTimeout(()=>hideFading($('toast')),3400); }
   function fatal(error) { $('loading').hidden=true;$('fatal-error').hidden=false;$('fatal-message').textContent=error instanceof Error?error.message:String(error);console.error(error); }
   async function init() {
+    const cleanups=[];const cleanup=()=>{for(const fn of cleanups.splice(0).reverse())try{fn();}catch(_){}};
     try {
-      const materials=new window.SolarMaterials.Owner();
+      const materials=new window.SolarMaterials.Owner();cleanups.push(()=>materials.dispose());
       const bootWall=Date.now(),calibrationStarted=performance.now();
       A.calibrateAt(bootWall);
       const calibrationMs=performance.now()-calibrationStarted;
-      const renderer=new window.SolarRenderer($('starfield'),$('universe'));
+      const renderer=new window.SolarRenderer($('starfield'),$('universe'));cleanups.push(()=>renderer.dispose());
       Object.assign(renderer.options,FACTORY_OPTIONS);renderer.options.earthCloudSeed=randomCloudSeed();renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
       const clock=new A.SimulationClock(Date.now(),performance.now());
       let timezone='local',showSeconds=false,hourCycle='12',clockSize=1,language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),zen=false,raf=0,clockFitFrame=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
+      cleanups.push(()=>{disposed=true;cancelAnimationFrame(raf);cancelAnimationFrame(clockFitFrame);});
       let speedMode='hour',speedValues={hour:1,day:1,year:1},timerController=null;
       const activeRegion=()=>REGIONS[language]||REGIONS.kor;
       autoTimeZone=autoTimeZone||activeRegion().timeZone;
@@ -196,6 +198,7 @@
         folder:/\/dist\/[^/]+\.html$/i.test(location.pathname)?'../assets/music/':'assets/music/',
         translate:t,notify:toast,button:$('music-toggle'),previous:$('music-previous'),next:$('music-next'),title:$('music-title'),now:$('music-now')
       });
+      cleanups.push(()=>music.dispose(),()=>UI.dispose());
       const musicUi=()=>music.refresh(),setMusicEnabled=(value,options)=>music.setEnabled(value,options);
       function translateStatic(){
         document.documentElement.lang=languageMode==='auto'?copyMeta().html:LANG_META[language].html;
@@ -276,7 +279,18 @@
       } catch (_) { /* Private browsing, corrupt JSON and blocked storage must not break the clock. */ }
       activeCopyCode=languageMode==='auto'?detectedCopyLanguage():(LANG_META[language]?.copy||'kor');
       if(languageMode==='auto')autoTimeZone=detectedTimeZone()||activeRegion().timeZone;
-      await hydrateLanguage(language,activeCopyCode);
+      try{await hydrateLanguage(language,activeCopyCode);}catch(_){
+        const fallback=LanguageData.resolveBundle(null,activeCopyCode,{local:false});
+        COPY[activeCopyCode]=fallback.copy;BODY_COPY[activeCopyCode]=fallback.bodies;PHASE_COPY[activeCopyCode]=fallback.phases;
+      }
+      let languageRetry=0,languageRetryBusy=false;
+      const retryLanguage=async()=>{
+        if(disposed||languageRetryBusy)return;if(LanguageData.loaded(activeCopyCode)){clearInterval(languageRetry);languageRetry=0;return;}
+        languageRetryBusy=true;const code=activeCopyCode,region=language;
+        try{await hydrateLanguage(region,code);if(!disposed&&code===activeCopyCode){translateStatic();clearInterval(languageRetry);languageRetry=0;}}catch(_){}finally{languageRetryBusy=false;}
+      };
+      languageRetry=LanguageData.loaded(activeCopyCode)?0:setInterval(retryLanguage,30000);window.addEventListener('online',retryLanguage);
+      cleanups.push(()=>{clearInterval(languageRetry);window.removeEventListener('online',retryLanguage);});
       const travelResumeKey='solar-time.ring-travel-resume.v1';
       const openingModeKey='solar-time.opening-mode.v1';
       let openingMode=Preferences.read(openingModeKey,'default');
@@ -351,6 +365,7 @@
       renderer.setSite(activeRegion());
        if(savedRotationMode==='random')renderer.setRandomRotate(true,performance.now());
        else if(savedRotationMode)renderer.setAutoRotate(savedRotationMode,performance.now());
+      cleanups.push(()=>timerController?.dispose());
       timerController=Modules.TimerController.create({document,UI,Preferences,translate:t,notify:toast,shutdownBridge:Modules.WindowsShutdown.create(document),onAlarmStart:()=>setMusicEnabled(false),onOpen:()=>{closeLanguageMenu();settings(false);closeBody();},shouldKeepOpen:event=>$('help-dialog').open||$('help-button').contains(event.target)});
       translateStatic();
       renderer.resize();
@@ -1042,7 +1057,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=0893b3f5ac0b','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=90d372bc5fc5','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1378,6 +1393,26 @@
       }
       window.addEventListener('resize',refreshViewport,{passive:true});
       const frameGate=window.SolarPerformance.createFrameGate();
+      let pausedWake=0;
+      function wakeFrames(){
+        clearTimeout(pausedWake);pausedWake=0;
+        if(!disposed&&!document.hidden&&!raf){lastFrame=0;raf=requestAnimationFrame(frame);}
+      }
+      function sleepPausedFrames(){
+        cancelAnimationFrame(raf);raf=0;
+        // Real time remains live. This low-frequency clock tick also observes
+        // completed asynchronous textures without running the frame coordinator.
+        const tick=()=>{
+          pausedWake=0;if(disposed||document.hidden)return;
+          const mono=performance.now(),wall=Date.now();updateWall(wall);updateControls(clock.value(mono,wall));helpReminder.touch();
+          if(!clock.paused||renderer.needsDraw(mono)){wakeFrames();return;}
+          pausedWake=setTimeout(tick,1000-Date.now()%1000);
+        };
+        pausedWake=setTimeout(tick,1000-Date.now()%1000);
+      }
+      const wakeEvents=['pointerdown','pointermove','pointerup','pointercancel','pointerleave','wheel','keydown','keyup','input','change','click','focusin','resize','load'];
+      for(const type of wakeEvents)window.addEventListener(type,wakeFrames,{capture:true,passive:true});
+      cleanups.push(()=>{clearTimeout(pausedWake);for(const type of wakeEvents)window.removeEventListener(type,wakeFrames,true);});
       function frame(mono) {
         if(disposed||document.hidden){raf=0;return;}
         raf=requestAnimationFrame(frame);
@@ -1385,7 +1420,7 @@
         if(openingActive&&!openingReplayLocked&&openingControlsLocked&&openingStartedAt!==null&&motionMono-openingStartedAt>=openingDuration-OPENING_UNLOCK_BEFORE_END)unlockOpeningControls();
         updateTravelCursor(mono);
         const heldZoom=keyboardZoomDirection();
-        const activeMotion=!!drag||pointers.size>0||!!renderer.ringTour||!!renderer.cameraTween||!!renderer.autoRotation||
+        const activeMotion=!!drag||pointers.size>0||(!clock.paused&&(!!renderer.ringTour||!!renderer.cameraTween||!!renderer.autoRotation))||
           heldZoom!==0||mono-(renderer.cameraChangeAt??-Infinity)<180||(!clock.live&&!clock.paused);
         const frameInterval=window.SolarPerformance?.frameInterval(window.innerWidth,window.innerHeight,activeMotion)??(1000/(activeMotion&&window.innerWidth>=680?60:30));
         const frameDelta=lastFrame?Math.max(0,mono-lastFrame):frameInterval;
@@ -1427,11 +1462,12 @@
             if((openingFinished||wasTransitioning)&&!renderer.cameraTween&&!renderer.ringTour)persist();
           }
           if(mono-lastUi>200){lastUi=mono;if(!document.hidden)helpReminder.touch();updateWall(wall);updateControls(ms);cameraUi();if(renderer.selected)updateBody(ms);showFirstHelp(mono);}
-        } catch(error){disposed=true;setMusicEnabled(false,{remember:false});timerController?.dispose();UI.dispose();music.dispose();renderer.dispose();materials.dispose();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
+          if(clock.paused&&!activeMotion&&!resizeFrame&&!renderer.needsDraw(mono)&&mono-lastPointerActivity>idleDelay+600)sleepPausedFrames();
+        } catch(error){disposed=true;setMusicEnabled(false,{remember:false});timerController?.dispose();cleanup();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
       }
       document.addEventListener('visibilitychange',()=>{
         saveTravelState();
-        if(document.hidden){helpReminder.touch(true);clearKeyboardZoom();closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
+        if(document.hidden){helpReminder.touch(true);clearKeyboardZoom();clearTimeout(pausedWake);pausedWake=0;closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
         else if(!disposed){
           firstHelpPending=helpReminder.visit();
           renderer.resume();
@@ -1441,17 +1477,17 @@
           if(!raf){lastFrame=0;uiNow();wakePointer();raf=requestAnimationFrame(frame);}
         }
       });
-      window.addEventListener('pagehide',event=>{if(!document.hidden)helpReminder.touch(true);clearKeyboardZoom();closePresetDialog(false);setMusicEnabled(false,{remember:false});materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;timerController?.dispose();UI.dispose();music.dispose();renderer.dispose();materials.dispose();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);cancelAnimationFrame(clockFitFrame);resizeFrame=0;clockFitFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);materialRefreshTimer=0;});
+      window.addEventListener('pagehide',event=>{clearTimeout(pausedWake);pausedWake=0;if(!document.hidden)helpReminder.touch(true);clearKeyboardZoom();closePresetDialog(false);setMusicEnabled(false,{remember:false});materials.cancel();if(event.persisted)renderer.suspend();else {disposed=true;timerController?.dispose();cleanup();}cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);cancelAnimationFrame(clockFitFrame);resizeFrame=0;clockFitFrame=0;raf=0;lastFrame=0;clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);materialRefreshTimer=0;});
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){firstHelpPending=helpReminder.visit();renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive&&!openingDeparture&&!clock.paused)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({version:'0.72',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.73',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();
       if(!disposed){const revealMono=performance.now();renderer.startOrbitReveal(revealMono);renderer.draw(clock.value(revealMono),0,revealMono);const animated=beginOpening(revealMono);if(!animated){renderer.restoreCamera(openingCameraTarget);finishOpening();}renderer.sky?.startDetailUpgrade?.();scheduleMaterialRefresh();}
       if(!document.hidden&&!disposed)raf=requestAnimationFrame(frame);
-    } catch(error){fatal(error);}
+    } catch(error){cleanup();fatal(error);}
   }
   requestAnimationFrame(()=>setTimeout(init,0));
 })();

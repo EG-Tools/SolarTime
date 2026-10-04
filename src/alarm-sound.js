@@ -3,10 +3,50 @@
   'use strict';
   const modules=root.SolarModules||(root.SolarModules={}),MAX_BYTES=30*1024*1024,MAX_DECODED_BYTES=32*1024*1024;
   const decodedBytes=buffer=>Number(buffer?.length||0)*Number(buffer?.numberOfChannels||0)*4;
-  async function decodeBounded(blob,context){
+  function audioLayout(bytes){
+    const v=new DataView(bytes),n=v.byteLength,tag=(at,text)=>at+text.length<=n&&[...text].every((c,i)=>v.getUint8(at+i)===c.charCodeAt(0));
+    if(n>=12&&tag(0,'RIFF')&&tag(8,'WAVE')){
+      if(v.getUint32(4,true)+8!==n)return null;
+      let format=null,data=0;
+      for(let at=12;at+8<=n;){
+        const size=v.getUint32(at+4,true),next=at+8+size;if(next>n)return null;
+        if(tag(at,'fmt ')&&size>=16){
+          if(format||data)return null;
+          const kind=v.getUint16(at+8,true),channels=v.getUint16(at+10,true),rate=v.getUint32(at+12,true),align=v.getUint16(at+20,true),bits=v.getUint16(at+22,true);
+          if(![1,3].includes(kind)||!channels||!rate||![8,16,24,32,64].includes(bits)||align!==channels*bits/8)return null;
+          format={channels,rate,align};
+        }
+        if(tag(at,'data'))data+=size;at=next+(size%2);
+      }
+      return format&&data>0&&data%format.align===0?{channels:format.channels,rate:format.rate,seconds:data/format.align/format.rate}:null;
+    }
+    // MPEG Layer III: count validated complete frames, including VBR. Do not
+    // infer decoded size from file extension, bitrate or duration alone.
+    let at=0,seconds=0,channels=0,rate=0,frames=0;
+    if(tag(0,'ID3')){
+      if(n<10||[6,7,8,9].some(i=>v.getUint8(i)>127))return null;
+      at=10+[6,7,8,9].reduce((value,i)=>value*128+v.getUint8(i),0)+(v.getUint8(5)&16?10:0);
+    }
+    while(at<n){
+      if(n-at===128&&tag(at,'TAG')){at=n;break;}
+      if(at+4>n)return null;
+      const h=v.getUint32(at),version=(h>>>19)&3,layer=(h>>>17)&3,index=(h>>>12)&15,sample=(h>>>10)&3;
+      if((h>>>21)!==2047||version===1||layer!==1||index===0||index===15||sample===3)return null;
+      const sr=[44100,48000,32000][sample]/(version===3?1:version===2?2:4);
+      const kb=(version===3?[0,32,40,48,56,64,80,96,112,128,160,192,224,256,320]:[0,8,16,24,32,40,48,56,64,80,96,112,128,144,160])[index];
+      const size=Math.floor((version===3?144000:72000)*kb/sr)+((h>>>9)&1);
+      if(size<4||at+size>n)return null;
+      seconds+=(version===3?1152:576)/sr;channels=Math.max(channels,((h>>>6)&3)===3?1:2);rate=Math.max(rate,sr);frames++;at+=size;
+    }
+    return frames>0&&at===n?{seconds,channels,rate}:null;
+  }
+  async function decodeBounded(blob,context,{budget=MAX_DECODED_BYTES,maxSeconds=60}={}){
     if(blob.size>MAX_BYTES)throw Error('Alarm file exceeds the compressed size limit');
-    const buffer=await context.decodeAudioData(await blob.arrayBuffer());
-    if(decodedBytes(buffer)>MAX_DECODED_BYTES)throw Error('Use streaming for a large decoded alarm');
+    const bytes=await blob.arrayBuffer(),layout=audioLayout(bytes);
+    const rate=Math.max(layout?.rate||0,context.sampleRate||192000);
+    if(!layout||layout.seconds>maxSeconds||(Math.ceil(layout.seconds*rate)+4096)*layout.channels*4>budget)throw Error('Use streaming for unverified or large decoded audio');
+    const buffer=await context.decodeAudioData(bytes);
+    if(decodedBytes(buffer)>budget)throw Error('Use streaming for a large decoded alarm');
     return buffer;
   }
   async function prepare(blob,{getContext,signal}={}){
@@ -100,7 +140,7 @@
           const response=await waitFor(root.fetch(url,{cache:'force-cache',signal:local}),local);
           if(!response.ok)throw Error('Default audio download failed');
           const blob=await readDefault(response,local),context=getContext?.();if(!context)throw Error('Web Audio unavailable');
-          const buffer=await waitFor(context.decodeAudioData(await waitFor(blob.arrayBuffer(),local)),local);
+          const buffer=await waitFor(decodeBounded(blob,context,{budget:DEFAULT_MAX_PCM,maxSeconds:DEFAULT_MAX_SECONDS}),local);
           if(decodedBytes(buffer)>DEFAULT_MAX_PCM||buffer.duration>DEFAULT_MAX_SECONDS){if(typeof root.Audio==='function')return streamed();throw Error('Default alarm decoded budget exceeded');}
           return {url:'',buffer,duration:buffer.duration||duration,dispose(){this.buffer=null;}};
         }catch(error){
@@ -111,5 +151,5 @@
       return null;
     }finally{root.clearTimeout?.(timer);signal?.removeEventListener('abort',cancel);abort?.abort();}
   }
-  modules.AlarmSound=Object.freeze({prepare,prepareDefault,decodeBounded,decodedBytes,MAX_BYTES,MAX_DECODED_BYTES,DEFAULT_TIMEOUT,DEFAULT_MAX_BYTES,DEFAULT_MAX_SECONDS,DEFAULT_MAX_PCM});
+  modules.AlarmSound=Object.freeze({prepare,prepareDefault,decodeBounded,audioLayout,decodedBytes,MAX_BYTES,MAX_DECODED_BYTES,DEFAULT_TIMEOUT,DEFAULT_MAX_BYTES,DEFAULT_MAX_SECONDS,DEFAULT_MAX_PCM});
 })(window);

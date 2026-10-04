@@ -9,7 +9,7 @@ class Element{
  showModal(){this.open=true;}close(){this.open=false;}click(){return this.fire('click');}
  fire(type){return Promise.all((this.listeners[type]||[]).map(fn=>fn({target:this,preventDefault(){},stopPropagation(){}})));}
 }
-function fixture({saved={},record=null,prepare,hidden=false,installed=false,getRecord,putRecord,fetchFn,decode}={}){
+function fixture({preferences,locks,saved={},record=null,prepare,hidden=false,installed=false,getRecord,putRecord,fetchFn,decode}={}){
  let clock=1790290000000,id=0,stored=record;const pending=new Map(),elements=new Map(),nodes=[],ramps=[],writes=[],notices=[];
  const counts={reads:0,puts:0,opens:0,decodes:0,contexts:0,intervals:0,probes:0};
  const get=k=>{if(!elements.has(k))elements.set(k,new Element());return elements.get(k);};
@@ -23,13 +23,15 @@ function fixture({saved={},record=null,prepare,hidden=false,installed=false,getR
  const req=(value,tx)=>{const r={};Promise.resolve(value).then(v=>{r.result=v;r.onsuccess?.();if(tx)queueMicrotask(()=>tx.oncomplete?.());},e=>{r.error=e;r.onerror?.();});return r;};
  const db={transaction:()=>{const tx={};tx.objectStore=()=>({get:()=>{counts.reads++;return req(getRecord?getRecord():stored);},put:value=>{counts.puts++;return req(Promise.resolve(putRecord?putRecord(value):null).then(()=>{stored=value;writes.push(value.name);return undefined;}),tx);},delete:()=>req(null,tx)});return tx;}};
  window.indexedDB={open:()=>{counts.opens++;return req(db);}};
- window.fetch=fetchFn||(async()=>({ok:true,blob:async()=>new Blob(['sound'],{type:'audio/wav'})}));
+ window.fetch=fetchFn||(async()=>({ok:true,blob:async()=>require('./audio-fixture.cjs').wav()}));
  class Clock extends Date{constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}
  const globals={window,document,Date:Clock,Intl,URL,Blob,clearInterval(){},setTimeout,clearTimeout};
  for(const name of ['alarm-sound','timer-controller'])vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../../src',name+'.js'),'utf8'),globals);
  if(prepare)window.SolarModules.AlarmSound={...window.SolarModules.AlarmSound,prepare};
  const bridge={eligible:installed,helperSha256:'A'.repeat(64),schedule:async seconds=>({ok:true,deadline:clock+seconds*1000}),cancel:async()=>({ok:true}),probe:async()=>({ok:true}),installStatus:async()=>{counts.probes++;return false;},dispose(){}};
- const timer=window.SolarModules.TimerController.create({document,UI:{bindScrollCues:()=>({update(){},dispose(){}}),bindPopup(){},bindDialog(){},visible:e=>!e.hidden,show:(e,fn)=>{e.hidden=false;fn?.();},hide:(e,fn)=>{e.hidden=true;fn?.();}},Preferences:{read:()=>saved,write(){}},translate:(k,v)=>k+JSON.stringify(v||{}),shutdownBridge:bridge,notify:v=>notices.push(v)});
+ let preferencesValue=JSON.parse(JSON.stringify(saved));
+ window.navigator={locks:locks===false?null:locks||{request(_name,_options,callback){try{return Promise.resolve(callback({}));}catch(error){return Promise.reject(error);}}}};
+ const timer=window.SolarModules.TimerController.create({document,UI:{bindScrollCues:()=>({update(){},dispose(){}}),bindPopup(){},bindDialog(){},visible:e=>!e.hidden,show:(e,fn)=>{e.hidden=false;fn?.();},hide:(e,fn)=>{e.hidden=true;fn?.();}},Preferences:preferences||{read:()=>JSON.parse(JSON.stringify(preferencesValue)),write(_key,value){preferencesValue=JSON.parse(JSON.stringify(value));return true;}},translate:(k,v)=>k+JSON.stringify(v||{}),shutdownBridge:bridge,notify:v=>notices.push(v)});
  return {window,timer,document,get,pending,counts,nodes,ramps,writes,notices,bridge,now:()=>clock,stored:()=>stored,
   async advance(ms){const end=clock+ms;let guard=0;while(true){const next=[...pending].sort((a,b)=>a[1].at-b[1].at)[0];if(!next||next[1].at>end)break;if(++guard>10000)throw Error('Timer spin');clock=next[1].at;pending.delete(next[0]);next[1].fn();await flush();}clock=end;await flush();},
   async arm(name='alarm',minutes=1){get(name+'-hours').value='0';get(name+'-minutes').value=String(minutes);get(name+'-enabled').checked=true;await get(name+'-enabled').fire('change');},

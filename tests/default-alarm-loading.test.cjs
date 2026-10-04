@@ -1,10 +1,11 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const {wav}=require('./helpers/audio-fixture.cjs');
 const {fixture:timerFixture,flush,deferred,Element}=require('./helpers/timer-harness.cjs');
 function fixture({duration=120,fetchFn,decodeFn,metadata='ok'}={}){
  let clock=0,id=0,fetches=0,decodes=0;const pending=new Map(),media=[];
  class Audio{constructor(){this.duration=duration;media.push(this);}pause(){this.paused=true;}removeAttribute(){this.src='';}load(){if(this.src&&metadata!=='hang')queueMicrotask(()=>metadata==='error'?this.onerror?.():this.onloadedmetadata?.());}}
- const window={SolarModules:{},Audio,AbortController,URL,setTimeout(fn,ms){pending.set(++id,{fn,at:clock+ms});return id;},clearTimeout:n=>pending.delete(n),fetch:(...args)=>{fetches++;return fetchFn?fetchFn(...args):Promise.resolve(new Response(new Blob(['audio'],{type:'audio/wav'})));}};
+ const window={SolarModules:{},Audio,AbortController,URL,setTimeout(fn,ms){pending.set(++id,{fn,at:clock+ms});return id;},clearTimeout:n=>pending.delete(n),fetch:(...args)=>{fetches++;return fetchFn?fetchFn(...args):Promise.resolve(new Response(wav()));}};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/alarm-sound.js'),'utf8'),{window,Blob});
  const context={decodeAudioData(bytes){decodes++;return decodeFn?decodeFn(bytes):Promise.resolve({duration,length:duration*48000,numberOfChannels:2});}};
  return {api:window.SolarModules.AlarmSound,window,media,pending,fetches:()=>fetches,decodes:()=>decodes,context,async advance(ms){const end=clock+ms;while(true){const e=[...pending].sort((a,b)=>a[1].at-b[1].at)[0];if(!e||e[1].at>end)break;clock=e[1].at;pending.delete(e[0]);e[1].fn();await flush();}clock=end;await flush();},prepare(signal){return this.api.prepareDefault(['https://example.test/default.mp3'],{getContext:()=>context,signal});}};

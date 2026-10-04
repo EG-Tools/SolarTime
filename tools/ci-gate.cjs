@@ -2,7 +2,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const REPO='EG-Tools/SolarTime';
-const REQUIRED=['unit (ubuntu-latest, 22)','unit (ubuntu-latest, 24)','unit (windows-latest, 22)','unit (windows-latest, 24)','browser (ui)','browser (tiny-star)','verified'];
+const REQUIRED=['unit (ubuntu-latest, 22)','unit (ubuntu-latest, 24)','unit (windows-latest, 22)','unit (windows-latest, 24)','browser (ui)','browser (tiny-star)','recovery (chromium)','recovery (firefox)','recovery (webkit)','verified'];
 function selectVerification(runs,sha){
  const candidates=runs.filter(r=>r.head_sha===sha&&r.head_branch==='main'&&r.head_repository?.full_name===REPO&&['push','workflow_dispatch'].includes(r.event)&&r.path==='.github/workflows/verify.yml').sort((a,b)=>b.id-a.id);
  const run=candidates[0];

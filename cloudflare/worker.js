@@ -165,6 +165,22 @@ function mediaDelivery(response,cacheStatus){
  return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
 
+// Only scalar ownership markers are shared. Streams and promises stay with
+// their originating request; a later request never awaits another request's I/O.
+const musicFills=new Map(),MAX_MUSIC_FILLS=8;
+function fillMusic(cache,cacheKey,env,ctx,key){
+  const now=Date.now();for(const [id,entry] of musicFills)if(entry.expires<=now)musicFills.delete(id);
+  const id=cacheKey.url;if(musicFills.has(id)||musicFills.size>=MAX_MUSIC_FILLS)return;
+  const entry={expires:now+60000};musicFills.set(id,entry);
+  ctx.waitUntil((async()=>{
+    try{
+      const cached=await cache.match(cacheKey);if(cached){await cached.body?.cancel();return;}
+      const full=await env.SOLAR_TIME_MEDIA.get(key);
+      if(full)await cache.put(cacheKey,new Response(full.body,{headers:mediaHeaders(full,200,key)}));
+    }catch(error){console.warn('Music cache fill failed',String(error));}
+    finally{if(musicFills.get(id)===entry)musicFills.delete(id);}
+  })());
+}
 async function mediaResponse(request,env,ctx,key){
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET, HEAD, OPTIONS','access-control-allow-headers':'Range','access-control-max-age':'86400'}});
   if(request.method!=='GET'&&request.method!=='HEAD')return new Response('Method Not Allowed',{status:405,headers:{allow:'GET, HEAD, OPTIONS'}});
@@ -187,11 +203,7 @@ async function mediaResponse(request,env,ctx,key){
     if(whole){
       const copy=response.clone();ctx.waitUntil(cache.put(cacheKey,new Response(copy.body,{headers:mediaHeaders(object,200,key)})).catch(error=>console.warn('Media cache write failed',String(error))));
     }else if(/\.mp3$/i.test(key)&&object.size<=16*1024*1024){
-      ctx.waitUntil((async()=>{
-        const cached=await cache.match(cacheKey);if(cached){await cached.body?.cancel();return;}
-        const full=await env.SOLAR_TIME_MEDIA.get(key);
-        if(full)await cache.put(cacheKey,new Response(full.body,{headers:mediaHeaders(full,200,key)}));
-      })().catch(error=>console.warn('Music cache fill failed',String(error))));
+      fillMusic(cache,cacheKey,env,ctx,key);
     }
   }
   return mediaDelivery(response,cache?'MISS':'BYPASS');

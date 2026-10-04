@@ -26,12 +26,37 @@
     let defaultResource=null,defaultPreviewCleanup=null,defaultPlaybackCleanup=null;
     let targetFormatter=null,formatterKey='',targetLabels=new Map();
     const metrics={wakes:0,outputWrites:0,formatters:0,installPolls:0};
-    try{const saved=Preferences.read(storageKey);if(saved&&typeof saved==='object'){
-      for(const name of ['alarm','shutdown']){const value=saved[name];if(value&&typeof value==='object')state[name]={enabled:!!value.enabled,hours:integer(value.hours,0,99),minutes:integer(value.minutes,0,59),deadline:Number.isFinite(value.deadline)?value.deadline:0,...(name==='shutdown'?{status:value.enabled?(value.status==='confirmed'?'confirmed':'unknown'):'idle'}:{})};}
+    function applySaved(saved,initial=false){if(saved&&typeof saved==='object'){
+      for(const name of ['alarm','shutdown']){const value=saved[name];if(value&&typeof value==='object')state[name]={enabled:!!value.enabled,hours:integer(value.hours,0,99),minutes:integer(value.minutes,0,59),deadline:Number.isFinite(value.deadline)?value.deadline:0,...(name==='alarm'?{ringing:!!value.ringing,owner:typeof value.owner==='string'?value.owner:'',lease:Number.isFinite(value.lease)?value.lease:0}:{}),...(name==='shutdown'?{status:value.enabled?(value.status==='confirmed'?'confirmed':!initial&&value.status==='pending'?'pending':'unknown'):'idle'}:{})};}
       state.helperEnabled=!!saved.helperEnabled;state.helperProgress=[0,50,100].includes(saved.helperProgress)?saved.helperProgress:(state.helperEnabled?100:0);state.helperConfirmed=saved.helperConfirmed===true;state.helperRevision=typeof saved.helperRevision==='string'?saved.helperRevision:'';state.helperInstallToken=/^[a-f0-9]{32}$/.test(saved.helperInstallToken||'')?saved.helperInstallToken:'';state.helperInstallDeadline=Number.isFinite(saved.helperInstallDeadline)?saved.helperInstallDeadline:0;if(state.helperConfirmed&&state.helperRevision!==String(shutdownBridge?.helperSha256||'')){state.helperEnabled=false;state.helperProgress=0;state.helperConfirmed=false;state.helperRevision='';state.helperInstallToken='';state.helperInstallDeadline=0;if(state.shutdown.enabled)state.shutdown.status='unknown';}if(!state.helperConfirmed&&state.helperProgress>=100){state.helperProgress=50;state.helperEnabled=false;if(state.shutdown.enabled)state.shutdown.status='unknown';}if(state.helperConfirmed){state.helperProgress=100;state.helperInstallToken='';state.helperInstallDeadline=0;}state.soundMode=saved.soundMode==='custom'?'custom':'default';state.soundName=typeof saved.soundName==='string'?saved.soundName:'';
-    }}catch(_){/* Blocked storage must not disable timers. */}
+    }}
+    try{applySaved(Preferences.read(storageKey),true);}catch(_){}
+    let baseline=JSON.parse(JSON.stringify(state)),claiming=false,releaseAlarmLock=null,leaseTimer=0;
+    const owner=root.crypto?.randomUUID?.()||Math.random().toString(36).slice(2)+now();
+    function refreshShared(){
+      let saved;try{saved=Preferences.read(storageKey);}catch(_){return;}
+      if(!saved||typeof saved!=='object')return;
+      const before=JSON.stringify(state.alarm),sound=state.soundMode+'|'+state.soundName;
+      applySaved(saved);baseline=JSON.parse(JSON.stringify(state));
+      if(ringing&&(!state.alarm.ringing||state.alarm.owner!==owner))closeAlarm();
+      if(sound!==state.soundMode+'|'+state.soundName){stopPreview();invalidateSound();releaseCustom();}
+      if(before!==JSON.stringify(state.alarm))setFields('alarm');
+    }
+    const storageChanged=event=>{
+      if(disposed||event.key!==storageKey&&event.key!==null)return;
+      const shutdown=JSON.stringify(state.shutdown);refreshShared();
+      if(nativeBusy&&shutdown!==JSON.stringify(state.shutdown)){++nativeSerial;nativeBusy='';}
+      sync();check();
+    };
+
     const t=(key,values)=>translate(key,values),eligible=!!shutdownBridge?.eligible;
-    function save(){Preferences.write(storageKey,state);}
+    function save(){
+      // Merge only locally changed groups, so sound/helper edits cannot restore
+      // another tab's cancelled alarm or overwrite a newer shutdown receipt.
+      const latest=Preferences.read(storageKey),merged={...(latest&&typeof latest==='object'?latest:{})};
+      for(const key of Object.keys(state))if(!(key in merged)||JSON.stringify(state[key])!==JSON.stringify(baseline[key]))merged[key]=state[key];
+      Preferences.write(storageKey,merged);applySaved(merged);baseline=JSON.parse(JSON.stringify(state));
+    }
     function setFields(name){const item=state[name],control=controls[name];control.toggle.checked=item.enabled;control.hours.value=String(item.hours);control.minutes.value=String(item.minutes);}
     function readFields(name){const control=controls[name];state[name].hours=integer(control.hours.value,0,99);state[name].minutes=integer(control.minutes.value,0,59);control.hours.value=String(state[name].hours);control.minutes.value=String(state[name].minutes);return totalMinutes(state[name].hours,state[name].minutes);}
     function formatTarget(deadline){
@@ -183,13 +208,13 @@
       });
     }
     function stopTone(){ringing=false;++toneRequest;defaultPlaybackCleanup?.();defaultPlaybackCleanup=null;clearInterval(toneInterval);toneInterval=0;try{customSource?.stop();customSource?.disconnect?.();}catch(_){}customSource=null;try{defaultAlarmMedia?.pause();if(defaultAlarmMedia){defaultAlarmMedia.src='';defaultAlarmMedia.load?.();}}catch(_){}defaultAlarmMedia=null;releaseIdleAudio();}
-    function closeAlarm(){stopTone();if(alarmDialog.open)UI.hide(alarmDialog,()=>alarmDialog.close());}
+    function closeAlarm(){root.clearTimeout?.(leaseTimer);leaseTimer=0;releaseAlarmLock?.();releaseAlarmLock=null;stopTone();if(alarmDialog.open)UI.hide(alarmDialog,()=>alarmDialog.close());}
     function closeShutdown(){if(shutdownDialog.open)UI.hide(shutdownDialog,()=>shutdownDialog.close());}
-    function ring(){state.alarm.enabled=false;state.alarm.deadline=0;save();sync();ringing=true;try{onAlarmStart();}catch(error){root.console?.warn?.('Alarm start hook failed',error);}startTone();if(!alarmDialog.open)UI.show(alarmDialog,()=>alarmDialog.showModal());}
+    function ring(){state.alarm.enabled=false;state.alarm.deadline=0;state.alarm.ringing=true;state.alarm.owner=owner;save();sync();ringing=true;try{onAlarmStart();}catch(error){root.console?.warn?.('Alarm start hook failed',error);}startTone();if(!alarmDialog.open)UI.show(alarmDialog,()=>alarmDialog.showModal());}
     function failureMessage(result){return result?.reason==='not-launched'?t('shutdownNotLaunched'):result?.uncertain?t('shutdownUnknown'):t('shutdownFailed',{code:result?.code??'unknown'});}
     async function nativeResult(action,seconds){try{return await shutdownBridge?.[action]?.(seconds)||{ok:false,uncertain:true};}catch(_){return {ok:false,uncertain:true};}}
     async function cancel(name,{native=true,quiet=false}={}){
-      const wasEnabled=state[name].enabled;
+      refreshShared();const wasEnabled=state[name].enabled;
       const report=wasEnabled&&(name==='alarm'||native)?root.SolarUsageAnalytics?.begin(name==='alarm'?'solar_alarm_cancel':'solar_shutdown_cancel'):null;
       if(name==='shutdown'&&native&&wasEnabled){
         if(nativeBusy==='cancel'||nativeBusy==='uninstall')return false;
@@ -198,17 +223,18 @@
         const result=await pending;if(disposed||request!==nativeSerial)return false;nativeBusy='';
         if(result?.ok!==true){state.shutdown.status='unknown';save();sync();notify(failureMessage(result));return false;}
       }
-      state[name].enabled=false;state[name].deadline=0;
+      state[name].enabled=false;state[name].deadline=0;if(name==='alarm'){state.alarm.ringing=false;state.alarm.owner='';state.alarm.lease=0;closeAlarm();}
       if(name==='shutdown'){state.shutdown.status='idle';closeShutdown();}
       save();sync();if(name==='alarm')releaseIdleAudio();if(!quiet&&wasEnabled)notify(t(name==='alarm'?'alarmCancelled':'shutdownCancelled'));report?.();return true;
     }
     async function schedule(name,{quiet=false,usageAction='set'}={}){
       if(name==='shutdown'&&nativeBusy){sync();return false;}
+      const hours=controls[name].hours.value,minuteValue=controls[name].minutes.value;refreshShared();controls[name].hours.value=hours;controls[name].minutes.value=minuteValue;
       const previous={...state[name]},minutes=readFields(name);
       if(minutes<1){notify(t('timerDurationRequired'));sync();return false;}
       if(name==='shutdown'&&(!eligible||!state.helperEnabled)){notify(t(!eligible?'shutdownUnsupported':'shutdownHelperRequired'));sync();return false;}
       const report=root.SolarUsageAnalytics?.begin(name==='alarm'?(usageAction==='snooze'?'solar_alarm_snooze':'solar_alarm_set'):'solar_shutdown_set',name==='alarm'&&usageAction!=='snooze'?{sound_type:state.soundMode}:{});
-      if(name==='alarm'){primeAudio();if(state.soundMode==='custom')loadStoredSound();else loadDefaultSound();}
+      if(name==='alarm'){closeAlarm();primeAudio();if(state.soundMode==='custom')loadStoredSound();else loadDefaultSound();}
       if(name==='shutdown'){
         const request=++nativeSerial;nativeBusy='schedule';state.shutdown.enabled=true;state.shutdown.status='pending';state.shutdown.deadline=0;
         // Start the protocol request while user activation is still live.
@@ -221,7 +247,7 @@
           save();sync();notify(failureMessage(result));return false;
         }
         state.shutdown.deadline=result.deadline;state.shutdown.status='confirmed';
-      }else {state.alarm.enabled=true;state.alarm.deadline=now()+minutes*60000;}
+      }else {state.alarm.ringing=false;state.alarm.owner='';state.alarm.lease=0;state.alarm.enabled=true;state.alarm.deadline=now()+minutes*60000;}
       save();sync();if(!quiet)notify(t(name==='alarm'?'alarmScheduled':'shutdownScheduled',{time:formatTarget(state[name].deadline)}));report?.();return true;
     }
     function showShutdownCountdown(seconds){$('shutdown-countdown').textContent=String(seconds);if(!shutdownDialog.open)UI.show(shutdownDialog,()=>shutdownDialog.showModal());}
@@ -248,7 +274,8 @@
     function scheduleWake(){
       if(interval){root.clearTimeout?.(interval);interval=0;}if(disposed)return;
       const time=now(),delays=[];
-      if(state.alarm.enabled)delays.push(Math.min(60000,state.alarm.deadline-time));
+      if(state.alarm.enabled)delays.push(claiming?1000:Math.min(60000,state.alarm.deadline-time));
+      if(state.alarm.ringing&&!ringing)delays.push(1000);
       if(state.shutdown.enabled&&state.shutdown.status==='confirmed'){
         const left=state.shutdown.deadline-time;delays.push(left>10000?Math.min(60000,left-10000):Math.min(1000,left));
       }
@@ -259,9 +286,29 @@
       if(!document.hidden&&UI.visible(panel)&&(state.alarm.enabled||(state.shutdown.enabled&&state.shutdown.status==='confirmed')))delays.push(1000-time%1000);
       if(delays.length&&typeof root.setTimeout==='function')interval=root.setTimeout(()=>{interval=0;metrics.wakes++;check();},Math.max(1,Math.min(...delays)));
     }
+    function claimAlarm(){
+      if(claiming||ringing||disposed)return;
+      claiming=true;
+      const due=()=>state.alarm.ringing||state.alarm.enabled&&state.alarm.deadline<=now();
+      if(root.navigator?.locks?.request){
+        root.navigator.locks.request(storageKey+'.alarm',{ifAvailable:true},async lock=>{
+          if(!lock||disposed)return;refreshShared();if(!due())return;
+          await new Promise(resolve=>{releaseAlarmLock=resolve;ring();});
+        }).catch(()=>{}).finally(()=>{claiming=false;if(!disposed)scheduleWake();});
+      }else{
+        // Older browsers elect a short-lived owner in shared storage, then
+        // verify ownership after competing tabs have had a turn to observe it.
+        refreshShared();if(!due()||state.alarm.lease>now()&&state.alarm.owner!==owner){claiming=false;return;}
+        state.alarm.owner=owner;state.alarm.lease=now()+10000;save();
+        root.setTimeout(()=>{
+          claiming=false;if(disposed)return;refreshShared();if(!due()||state.alarm.owner!==owner)return;
+          ring();const renew=()=>{if(disposed||!ringing)return;refreshShared();if(!ringing)return;state.alarm.lease=now()+10000;save();leaseTimer=root.setTimeout(renew,4000);};renew();
+        },30);
+      }
+    }
     function check(){
-      if(disposed)return;const time=now();pollHelperInstall(time);
-      if(state.alarm.enabled&&state.alarm.deadline<=time)ring();
+      if(disposed)return;refreshShared();const time=now();pollHelperInstall(time);
+      if(state.alarm.ringing||state.alarm.enabled&&state.alarm.deadline<=time)claimAlarm();
       if(state.shutdown.enabled&&state.shutdown.status==='confirmed'){const remaining=Math.max(0,Math.ceil((state.shutdown.deadline-time)/1000));if(remaining>0&&remaining<=10)showShutdownCountdown(remaining);if(remaining<=0)cancel('shutdown',{native:false,quiet:true});}
       if(!document.hidden&&UI.visible(panel)){updateOutput('alarm');updateOutput('shutdown');}
       scheduleWake();
@@ -326,11 +373,12 @@
     $('alarm-stop').addEventListener('click',()=>{closeAlarm();cancel('alarm',{quiet:true});});UI.bindDialog(alarmDialog,()=>{closeAlarm();cancel('alarm',{quiet:true});});
     $('shutdown-cancel').addEventListener('click',()=>cancel('shutdown'));
     shutdownDialog.addEventListener('cancel',event=>{event.preventDefault();cancel('shutdown');});
-    if(state.alarm.enabled&&state.alarm.deadline<=now())state.alarm.enabled=false;if(state.shutdown.enabled&&state.shutdown.status==='confirmed'&&state.shutdown.deadline<=now()){state.shutdown.enabled=false;state.shutdown.status='idle';}
+    if(state.shutdown.enabled&&state.shutdown.status==='confirmed'&&state.shutdown.deadline<=now()){state.shutdown.enabled=false;state.shutdown.status='idle';}
     const visibilityCheck=()=>{if(!document.hidden)nextInstallPoll=0;check();};
     sync();save();if(state.alarm.enabled){if(state.soundMode==='custom')loadStoredSound();else loadDefaultSound();}
+    root.addEventListener?.('storage',storageChanged);
     document.addEventListener('visibilitychange',visibilityCheck);root.addEventListener?.('pageshow',visibilityCheck);root.addEventListener?.('focus',visibilityCheck);
-    return Object.freeze({open,close:()=>open(false),refreshLanguage,check,getState:()=>JSON.parse(JSON.stringify(state)),getDiagnostics:()=>({...metrics,retainedDecodedBytes:modules.AlarmSound.decodedBytes(defaultBuffer)+modules.AlarmSound.decodedBytes(customBuffer),customStreaming:!!customResource?.url,defaultStreaming:!!defaultResource?.url,wakeScheduled:!!interval}),dispose(){if(disposed)return;disposed=true;++nativeSerial;invalidateSound();releaseCustom();releaseDefault();shutdownBridge?.dispose?.();root.clearTimeout?.(interval);interval=0;root.removeEventListener?.('pageshow',visibilityCheck);root.removeEventListener?.('focus',visibilityCheck);document.removeEventListener('visibilitychange',visibilityCheck);document.removeEventListener('pointerdown',closeOnViewport);scrollBinding.dispose();stopPreview();closeAlarm();closeShutdown();closeDownloadConfirm();closeInstallConfirm();closeRemoveConfirm();audioContext?.close?.().catch(()=>{});}});
+    return Object.freeze({isBusy:()=>ringing||state.alarm.enabled||state.alarm.ringing||!!previewSource||!!previewMedia||!!nativeBusy||helperBusy,open,close:()=>open(false),refreshLanguage,check,getState:()=>JSON.parse(JSON.stringify(state)),getDiagnostics:()=>({...metrics,retainedDecodedBytes:modules.AlarmSound.decodedBytes(defaultBuffer)+modules.AlarmSound.decodedBytes(customBuffer),customStreaming:!!customResource?.url,defaultStreaming:!!defaultResource?.url,wakeScheduled:!!interval}),dispose(){if(disposed)return;disposed=true;++nativeSerial;invalidateSound();releaseCustom();releaseDefault();shutdownBridge?.dispose?.();root.clearTimeout?.(interval);interval=0;root.removeEventListener?.('storage',storageChanged);root.removeEventListener?.('pageshow',visibilityCheck);root.removeEventListener?.('focus',visibilityCheck);document.removeEventListener('visibilitychange',visibilityCheck);document.removeEventListener('pointerdown',closeOnViewport);scrollBinding.dispose();stopPreview();closeAlarm();closeShutdown();closeDownloadConfirm();closeInstallConfirm();closeRemoveConfirm();audioContext?.close?.().catch(()=>{});}});
   }
   modules.TimerController=Object.freeze({create,totalMinutes,MAX_MINUTES,MAX_SOUND_BYTES,DEFAULT_ALARM_FILE,ALARM_VOLUME,PREVIEW_VOLUME,FALLBACK_VOLUME});
 })(window);

@@ -7,13 +7,15 @@ from playwright.sync_api import sync_playwright
 
 def main():
     root = Path(__file__).resolve().parents[2]
-    report = {"mode": "Chromium silent WAV audio; not a physical iPhone", "passed": False}
+    engine = os.environ.get("SOLAR_BROWSER", "chromium")
+    report = {"mode": engine + " silent WAV audio; not a physical iPhone", "passed": False}
     try:
         with sync_playwright() as p:
-            options = {"headless": True, "args": ["--no-sandbox"]}
-            if os.environ.get("SOLAR_CHROMIUM_EXECUTABLE"):
+            options = {"headless": True}
+            if engine == "chromium": options["args"] = ["--no-sandbox"]
+            if engine == "chromium" and os.environ.get("SOLAR_CHROMIUM_EXECUTABLE"):
                 options["executable_path"] = os.environ["SOLAR_CHROMIUM_EXECUTABLE"]
-            browser = p.chromium.launch(**options)
+            browser = getattr(p, engine).launch(**options)
             try:
                 page = browser.new_page()
                 page.route("**/*", lambda route: route.abort())
@@ -114,10 +116,10 @@ def main():
         report["error"] = str(error)
         raise
     finally:
-        out = root / ".cloudflare/alarm-audio-verification.json"
+        out = root / (".cloudflare/alarm-audio-" + engine + "-verification.json")
         out.parent.mkdir(exist_ok=True)
         out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf8")
-    print("Real Chromium alarm audio checks passed: short decode, long stream, gain, cleanup.")
+    print("Real browser alarm audio checks passed: short decode, long stream, gain, cleanup.")
 
 if __name__ == "__main__":
     main()

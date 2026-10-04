@@ -27,7 +27,8 @@ function fixture({soundMode='default',hook='normal',pendingPlay=false,hidden=fal
  const context={window,document,Date:Clock,Intl,URL,performance:{now:()=>0},requestAnimationFrame,cancelAnimationFrame,clearInterval(){},setTimeout};
  for(const name of ['music-player','alarm-sound','timer-controller'])vm.runInNewContext(read('src/'+name+'.js'),context);
  const music=window.SolarModules.MusicPlayer.create({audio,tracks:[{file:'music.mp3',title:'Background music'}],folder:'assets/music/',translate:k=>k,notify(){},button:get('music-toggle'),previous:get('previous'),next:get('next'),title:get('title'),now:get('now')});
- const options={document,Preferences:{read:()=>({soundMode}),write(){}},translate:k=>k,shutdownBridge:{eligible:false},UI:{bindScrollCues:()=>({update(){},dispose(){}}),bindPopup(){},bindDialog(){},visible:el=>!el.hidden,show:(el,fn)=>{el.hidden=false;fn?.();},hide:(el,fn)=>{el.hidden=true;fn?.();}}};
+ let saved={soundMode};window.navigator={locks:{request(_name,_options,fn){return Promise.resolve(fn({}));}}};
+ const options={document,Preferences:{read:()=>JSON.parse(JSON.stringify(saved)),write(_key,value){saved=JSON.parse(JSON.stringify(value));return true;}},translate:k=>k,shutdownBridge:{eligible:false},UI:{bindScrollCues:()=>({update(){},dispose(){}}),bindPopup(){},bindDialog(){},visible:el=>!el.hidden,show:(el,fn)=>{el.hidden=false;fn?.();},hide:(el,fn)=>{el.hidden=true;fn?.();}}};
  if(hook!=='omitted')options.onAlarmStart=()=>{hookCalls++;if(hook==='throw')throw Error('isolated hook error');music.setEnabled(false);};
  const timer=window.SolarModules.TimerController.create(options);
  return {music,timer,audio,get,events,hookCalls:()=>hookCalls,advance(ms){clock+=ms;timer.check();},async arm(){get('alarm-hours').value='0';get('alarm-minutes').value='1';get('alarm-enabled').checked=true;await get('alarm-enabled').fire('change');},finishPlay(){resolvePlay?.();},drainFrames(){const pending=[...frames.values()];frames.clear();for(const fn of pending)fn(1000);},dispose(){timer.dispose();music.dispose();}};
@@ -42,7 +43,7 @@ for(const soundMode of ['default','custom'])test(soundMode+' alarm turns music a
 });
 test('music already OFF stays OFF when the alarm rings',async()=>{const f=fixture();await f.arm();f.advance(60001);assert.equal(f.music.enabled,false);assert.equal(f.get('alarm-dialog').open,true);f.dispose();});
 test('snooze stays silent and a second ring stops manually restarted music',async()=>{
- const f=fixture();await flush();f.music.setEnabled(true);await f.arm();f.advance(60001);await f.get('alarm-snooze').fire('click');assert.equal(f.music.enabled,false);
+ const f=fixture();await flush();f.music.setEnabled(true);await f.arm();f.advance(60001);await f.get('alarm-snooze').fire('click');await flush();assert.equal(f.music.enabled,false);
  f.music.setEnabled(true);f.advance(299000);assert.equal(f.music.enabled,true);f.advance(1001);assert.equal(f.music.enabled,false);assert.equal(f.hookCalls(),2);f.dispose();
 });
 test('cancelling an alarm and previewing its sound do not switch music OFF',async()=>{

@@ -1503,3 +1503,35 @@ test('boot restores short tails and enlarges glow ten percent while warp keeps i
  r.animateOpeningReplay(home,r.openingCameraSnapshot(home),10000,6500);
  for(const p of r.openingParticles.points)assert.ok(p.sizeScale>=1&&p.sizeScale<=2);
 });
+
+test('ring-only viewport intersections prepare the same extent as drawing without preparing a corona-only sun',()=>{
+ const {r}=renderer();
+ for(const id of ['saturn','uranus'])for(const screen of [{x:-150,y:400},{x:1430,y:400},{x:640,y:-150},{x:640,y:950}]){
+  const body={id};assert.equal(r.visible(screen,102),false);assert.equal(r.visible(screen,r.bodyVisibleRadius(body,100,{surface:true})),true);assert.equal(r.bodyVisibleRadius(body,100,{surface:true}),r.bodyVisibleRadius(body,100));
+ }
+ const sun={id:'sun'},screen={x:-150,y:400};assert.equal(r.visible(screen,r.bodyVisibleRadius(sun,100,{surface:true})),false);assert.equal(r.visible(screen,r.bodyVisibleRadius(sun,100)),true);
+});
+
+test('frozen travel does not demand frames but dirty resources still do',()=>{
+ const {r}=renderer();Object.assign(r,{animationPaused:true,dirty:false,presentationDirty:false,presentedResources:'ready',resourceSignature:()=> 'ready',ringTour:{},cameraTween:{},autoRotation:{},openingParticles:{},cameraChangeAt:-Infinity,presentationUntil:99999});
+ assert.equal(r.needsDraw(1000),false);r.presentationDirty=true;assert.equal(r.needsDraw(1000),true);r.presentationDirty=false;r.animationPaused=false;assert.equal(r.needsDraw(1000),true);
+});
+
+test('warp arrival shares the particle vanishing point before restoring the saved layout',()=>{
+ for(const [w,h] of [[1280,800],[390,844],[900,500]]){
+  const {r}=renderer();r.w=w;r.h=h;
+  r.precisionOrbitPathCache=new Map();r.getBodies=()=>[];r.actualScaleFit=()=>1;r.orbitScaleMix=()=>0;r.bodyScaleAtZoom=()=>1;
+  const target={...r.cameraSnapshot(),panX:.17,panY:.12};
+  r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+  const move=r.cameraTween,path=move.replay;path.resetAt=7000;path.brakeAt=4300;move.duration=15500;
+  for(const time of [7000,8000,9000]){
+   r.advanceCamera(time);r.rebuild(ms);close(r.centerX,w/2);close(r.centerY,h/2);
+  }
+  r.advanceCamera(12000);r.rebuild(ms);const blend=path.arrivalProgress;
+  assert.ok(blend>0&&blend<1);
+  const actual={x:r.centerX,y:r.centerY};path.arrivalProgress=null;r.rebuild(ms);
+  close(actual.x,w/2+(r.centerX-w/2)*blend);close(actual.y,h/2+(r.centerY-h/2)*blend);
+  r.advanceCamera(15500);r.rebuild(ms);assert.equal(r.cameraTween,null);
+  close(r.camera.panX,target.panX);close(r.camera.panY,target.panY);
+ }
+});
