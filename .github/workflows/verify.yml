@@ -109,6 +109,13 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install playwright==1.57.0
       - run: python -m playwright install --with-deps ${{ matrix.engine }}
+      - name: Provide a silent Linux audio output
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=solar_test
+          pactl set-default-sink solar_test
       - run: python tests/browser/recovery-regression.py
       - run: python tests/browser/alarm-audio-regression.py
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f

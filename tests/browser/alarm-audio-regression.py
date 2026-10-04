@@ -38,13 +38,16 @@ def main():
                       long=await api.prepare(wav(61),{getContext:()=>context});
                       if(!short.buffer||short.url||long.buffer||!long.url)throw Error('Wrong decode/stream selection');
                       const gain=context.createGain(),source=context.createBufferSource();gain.gain.value=.864;source.buffer=short.buffer;source.connect(gain).connect(context.destination);source.start();source.stop();source.disconnect();gain.disconnect();
-                      media=new Audio(long.url);media.volume=.864;await media.play();
+                      media=new Audio(long.url);media.volume=.864;
+                      await new Promise((resolve,reject)=>{document.querySelector('#run').onclick=()=>media.play().then(resolve,reject);window.prepared=true;});
                       window.result={shortDecodedBytes:api.decodedBytes(short.buffer),longStreamed:true,mediaVolume:media.volume,webAudioGain:gain.gain.value,playing:!media.paused};
-                    }catch(error){window.audioError=String(error.stack||error);}
+                    }catch(error){window.audioError=String(error)+"\n"+String(error.stack||'');}
                     finally{if(media){media.pause();media.src='';media.load();}short?.dispose();long?.dispose();await context?.close();window.audioDone=true;}
                   };
                 }""")
                 page.click("#run")
+                page.wait_for_function("window.prepared||window.audioDone", timeout=30000)
+                if page.evaluate("!!window.prepared"): page.click("#run")
                 page.wait_for_function("window.audioDone===true", timeout=30000)
                 assert not page.evaluate("window.audioError||''"), page.evaluate("window.audioError")
                 result = page.evaluate("window.result")
@@ -80,7 +83,7 @@ def main():
                         const shortDecodes=decodes;
                         long=await SolarModules.AlarmSound.prepareDefault(['https://audio.test/long.wav'],{getContext:()=>context});
                         window.defaultResult={shortDecoded:!!short.buffer,longStreamed:!!long.url&&!long.buffer,shortDecodes,longDecodes:decodes-shortDecodes};
-                      }catch(error){window.defaultError=String(error.stack||error);}
+                      }catch(error){window.defaultError=String(error)+"\\n"+String(error.stack||'');}
                       finally{short?.dispose();long?.dispose();await context.close();window.defaultDone=true;}
                     };
                 }""")
