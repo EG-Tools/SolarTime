@@ -208,24 +208,21 @@ test('warp takeoff retains both linear and angular cruise momentum, including ea
  }
 });
 
-test('warp heading follows motion without horizon flips or excess bank',()=>{
- const dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],unit=a=>a.map(x=>x/(Math.hypot(...a)||1));
+test('warp heading transports inherited bank without Euler flips',()=>{
+ const dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0),unit=a=>a.map(x=>x/(Math.hypot(...a)||1));
  for(const back of [0,Math.PI])for(const side of [-1,1]){
   const tour=create();tour.age=22;tour.state='cruising';tour.look(back,.12);tour.pose=tour.cameraPose();
-  const normal=[0,.6,-.8];
+  const normal=[0,.6,-.8],from=tour.takeoffStart().from;
   tour.startTakeoff(0,Infinity,0,normal,null,[],{center:[-25,8*side,4],u:[1,0,0],normal,side,radius:20,speed:.8,duration:5});
-  let previous=tour.takeoffPose(0);
+  let previous=tour.takeoffPose(0);vectorNear(previous.up,from.up);vectorNear(previous.right,from.right);vectorNear(previous.forward,from.forward);
   for(let i=1;i<=1200;i++){
-   const time=i/120,p= tour.takeoffPose(time),levelRight=unit(cross(normal,p.forward)),levelUp=cross(p.forward,levelRight);
-   const roll=Math.abs(Math.atan2(dot(p.up,levelRight),dot(p.up,levelUp)));
-   if(time>=2.5)assert.ok(roll<=window.SolarRingTour.bankLimit+1e-6,'shared bank cap');
-   const step=Math.acos(Math.max(-1,Math.min(1,dot(previous.up,p.up))));
-   assert.ok(step<.04,'no abrupt orientation flip at '+time);
+   const time=i/120,p=tour.takeoffPose(time);
+   for(const key of ['right','up','forward'])assert.ok(dot(previous[key],p[key])>.999,'no abrupt transported-frame flip at '+time+'/'+key);
    if(time>=7){const ahead=tour.takeoffPose(time+.001),velocity=unit(ahead.eye.map((x,j)=>x-p.eye[j]));assert.ok(dot(p.forward,velocity)>.995,'must face motion, not outward/up');}
    previous=p;
   }
   const path=tour.replayBridge.takeoff.path,later=tour.takeoffPose(9),count=path.views.length;
-  tour.takeoffPose(2);vectorNear(tour.takeoffPose(9).forward,later.forward);assert.equal(path.views.length,count,'reuse deterministic heading samples');
+  tour.takeoffPose(2);vectorNear(tour.takeoffPose(9).forward,later.forward);assert.equal(path.views.length,count,'reuse deterministic transported frames');
  }
 });
 
