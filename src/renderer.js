@@ -749,7 +749,10 @@
       if(!Renderer.validCamera(state))return false;
       if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       const mono=performance.now(),direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
-      this.cameraTween=null;this.flightBank=0;this.flightLook=null;this.lookRelease=null;this.bankRelease=null;this.openingParticles=null;this.autoRotation=null;this.pendingAutoRotation=null;this.trackingAnchor=null;if(state.mode!==undefined)this.setDollyMode(state.mode==='move',false);
+      // Bank belongs to the camera lineage, not to an individual transition.
+      // The first camera after refresh establishes it (normally zero); every
+      // restore/preset/opening keeps that same roll instead of re-leveling.
+      this.cameraTween=null;this.flightBank=Number.isFinite(this.flightBank)?this.flightBank:0;this.flightLook=null;this.lookRelease=null;this.bankRelease=null;this.openingParticles=null;this.autoRotation=null;this.pendingAutoRotation=null;this.trackingAnchor=null;if(state.mode!==undefined)this.setDollyMode(state.mode==='move',false);
       // Commit one camera transaction. Time, selected body and display toggles are not preset data.
       this.camera={azimuth:state.azimuth,elevation:state.elevation,zoom:state.zoom,dolly:state.dolly??1,
         focus:state.focus,panX:state.panX,panY:state.panY};
@@ -879,8 +882,9 @@
         orbits:new Map(annotationIds.map(id=>[id,this.openingOrbitOpacity(mono,id)]))};
       if(!this.animateCamera(state,mono,outbound+duration,false,'opening',!!tour))return false;
       const move=this.cameraTween,start=flightEye(move.from),turn=Math.floor(Math.random()*2);
-      const {azimuth:a,elevation:e}=move.from;
-      const view=tour?{eye:start,forward:flightUnit(start).map(v=>-v),right:[Math.cos(a),-Math.sin(a),0],up:[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)]}:{...departurePose.from,eye:start};
+      // Rebase only position. Orientation is the exact displayed departure
+      // frame, including inherited bank; never rebuild it from Euler angles.
+      const view={...departurePose.from,eye:start};
       const velocity=departurePose.velocity.map(v=>v/DOLLY.baseDistance);
       const path=window.SolarRingTour.warpPath(view,velocity,{...ring,retreat:ring.retreat?.map(value=>value/DOLLY.baseDistance),duration:REPLAY_TRANSITION.departure/1000,center:ring.center.map((v,i)=>(v-anchor[['x','y','z'][i]])/DOLLY.baseDistance),radius:ring.radius/DOLLY.baseDistance,speed:ring.speed/DOLLY.baseDistance});
       move.fromAnchor={...anchor};
@@ -953,8 +957,24 @@
     }
     openingReplayPose(move,elapsed){
       if(elapsed>=move.replay.resetAt){
-        const t=clamp((elapsed-this.replayOpeningAt(move.replay))/move.replay.inbound,0,1);
-        return this.cameraTweenState({from:move.replay.departure,to:move.to,timing:'opening',flyThrough:move.flyThrough,openingPath:move.openingPath},t);
+        const path=move.replay,t=clamp((elapsed-this.replayOpeningAt(path))/path.inbound,0,1);
+        const result=this.cameraTweenState({from:path.departure,to:move.to,timing:'opening',flyThrough:move.flyThrough,openingPath:move.openingPath},t);
+        // Warp -> opening is one orientation handoff. Hold the exact transported
+        // frame at the cut, then quaternion-blend it into the opening camera over
+        // the existing lead. This removes the one-frame bank/roll reset.
+        const handoff=ease((elapsed-path.resetAt)/Math.max(1,REPLAY_TRANSITION.openingLead));
+        if(handoff<1&&window.SolarRingTour?.orientation){
+          if(!path.arrivalFrame){
+            const seconds=replayFlightTime(path.resetAt/1000,Math.max(path.brakeAt/1000,path.ring.accelerationDuration||0));
+            path.arrivalFrame=window.SolarRingTour.jumpPose(path.path,seconds);
+          }
+          const state=result.state,a=state.azimuth,e=state.elevation;
+          const right=[Math.cos(a),-Math.sin(a),0],up=[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)],forward=[Math.sin(a)*Math.cos(e),Math.cos(a)*Math.cos(e),-Math.sin(e)];
+          const natural={right:right.map(v=>-v),up,forward};
+          const frame=window.SolarRingTour.orientation(path.arrivalFrame,natural,handoff);
+          result.look=this.flightLookForView(a,e,state,frame);
+        }else result.look=null;
+        return result;
       }
       const path=move.replay,seconds=replayFlightTime(elapsed/1000,Math.max(path.brakeAt/1000,path.ring.accelerationDuration||0)),pose=window.SolarRingTour.jumpPose(path.path,seconds),eye=window.SolarRingTour.warpSceneEye(path.path,seconds),distance=Math.max(.00001,Math.hypot(...eye)),p=ease(clamp(elapsed/7000,0,1));
       const state={...move.from,azimuth:A.wrap(Math.atan2(-eye[0],-eye[1])),elevation:Math.asin(clamp(eye[2]/distance,-1,1)),dolly:1/distance};
@@ -1567,7 +1587,10 @@
         this.flightLook=look||null;this.lookRelease=null;
       }
       const bankLimit=window.SolarRingTour?.bankLimit??20*A.DEG;
-      this.flightBank=move.timing==='opening'?0:clamp((move.bankFrom||0)*(1-ease(t)),-bankLimit,bankLimit);
+      // Preserve the bank established by the preceding camera. Path-specific
+      // flight roll is carried by the transported frame (flightLook/RingTour),
+      // not by fading this shared baseline back to zero.
+      this.flightBank=clamp(Number.isFinite(move.bankFrom)?move.bankFrom:(this.flightBank||0),-bankLimit,bankLimit);
       this.camera=t>=1?{azimuth:to.azimuth,elevation:to.elevation,zoom:to.zoom,dolly:to.dolly??1,focus:to.focus,panX:to.panX,panY:to.panY}:state;
       if(!move.replay)releaseLook();
       const blend=move.rotationBlend;
@@ -1601,7 +1624,8 @@
       if(this.cameraTween){
         this.advanceCamera(mono);this.cameraTween=null;
         if(this.flightLook){this.lookRelease={from:this.flightLook,start:mono};this.invalidatePresentation(1000,mono);}
-        if(this.flightBank)this.bankRelease={from:this.flightBank,start:mono};
+        // Do not release bank here. The next camera inherits the same baseline.
+        this.bankRelease=null;
         const pending=this.pendingAutoRotation;this.pendingAutoRotation=null;
         if(pending)this.beginAutoRotation(pending.direction,mono,pending.generation);
       }
@@ -1687,7 +1711,7 @@
     }
     resetCamera() {
       const mono=performance.now(),direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
-      this.cameraTween=null;this.flightBank=0;this.bankRelease=null;this.autoRotation=null;this.pendingAutoRotation=null;this.camera={...DEFAULT_CAMERA};this.trackingAnchor=null;
+      this.cameraTween=null;this.flightBank=Number.isFinite(this.flightBank)?this.flightBank:0;this.bankRelease=null;this.autoRotation=null;this.pendingAutoRotation=null;this.camera={...DEFAULT_CAMERA};this.trackingAnchor=null;
       if(direction)this.beginAutoRotation(direction,mono,generation);
       this.projectionAnchor=null;this.dirty=true;
     }
@@ -2265,7 +2289,8 @@
       if(fromOpening)this.preparedRingTour=null;
       if(openingProjection)this.ringTour.entryNormalProjection=openingProjection;
       this.flightLook=null;this.lookRelease=null;
-      if(this.flightBank){this.ringTour.returnNormalFrom=this.ringTourNormalProjection();this.flightBank=0;this.bankRelease=null;}
+      if(this.flightBank)this.ringTour.returnNormalFrom=this.ringTourNormalProjection();
+      this.bankRelease=null;
       if(fromOpening)this.ringTour.lastMono=mono;
       this.openingFlight=null;
       this.ringTour.worldUnits=this.bodyRadiusAtZoom(p.body)/this.scale;
