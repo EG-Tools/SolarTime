@@ -80,6 +80,15 @@
     const [x,y,z,w]=q;
     return {right:[1-2*(y*y+z*z),2*(x*y+z*w),2*(x*z-y*w)],up:[2*(x*y-z*w),1-2*(x*x+z*z),2*(y*z+x*w)],forward:[2*(x*z+y*w),2*(y*z-x*w),1-2*(x*x+y*y)]};
   }
+  function transportFrame(frame,forward){
+    // Parallel-transport the complete camera frame. Never decompose it into
+    // yaw/pitch/roll: that makes the roll branch jump at poles and +/-180°.
+    const from=unit(frame.forward),to=unit(forward),crossed=cross(from,to),sin=Math.hypot(...crossed),cos=clamp(dot(from,to),-1,1);
+    if(sin<1e-10&&cos>0)return {right:[...frame.right],up:[...frame.up],forward:to};
+    const axis=sin>=1e-10?crossed.map(v=>v/sin):unit(frame.up),angle=Math.atan2(sin,cos),c=Math.cos(angle),s=Math.sin(angle);
+    const rotate=v=>{const k=cross(axis,v),a=dot(axis,v);return v.map((x,i)=>x*c+k[i]*s+axis[i]*a*(1-c));};
+    return axes(to,rotate(frame.up));
+  }
   const polar=eye=>({angle:Math.atan2(eye[2],eye[0]),radius:Math.hypot(...eye),elevation:Math.atan2(eye[1],Math.hypot(eye[0],eye[2]))});
   const polarEye=({angle,radius,elevation})=>{const r=radius*Math.cos(elevation);return [r*Math.cos(angle),radius*Math.sin(elevation),r*Math.sin(angle)];};
   // Preserve starting velocity and ease to rest. Usually 10% faster than the
@@ -238,29 +247,23 @@
   }
   function warpPose(path,age){
     if(path.ring.virtual)return warpArcPose(path,age);
-    const t=Math.max(0,age),step=1/120,wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
-    const angles=f=>[Math.atan2(dot(f,path.v),dot(f,path.u)),Math.asin(clamp(dot(f,path.normal),-1,1))];
-    const level=(yaw,pitch)=>axes(path.u.map((x,i)=>(x*Math.cos(yaw)+path.v[i]*Math.sin(yaw))*Math.cos(pitch)+path.normal[i]*Math.sin(pitch)),path.normal);
-    if(!path.views){
-      const a=angles(path.from.forward),prior=angles((path.previous||path.from).forward),base=level(...a);
-      path.roll=Math.atan2(dot(path.from.up,base.right),dot(path.from.up,base.up));
-      path.views=[{a,w:a.map((x,i)=>wrap(x-prior[i])/.001)}];
-    }
-    // One deterministic heading follower owns the entire warp. A captured
-    // camera-up vector becomes singular when flight turns through it; use the
-    // solar horizon instead, with bounded turn speed and the shared bank cap.
+    const t=Math.max(0,age),step=1/120;
+    if(!path.views)path.views=[{frame:{right:[...path.from.right],up:[...path.from.up],forward:[...path.from.forward]}}];
+    // A single transported vector frame owns the entire physical warp.
+    // Fixed 120 Hz samples make the result deterministic while preserving the
+    // incoming roll exactly; there is no Euler seam to cross or roll to reset.
     const index=Math.floor(t/step);
     while(path.views.length<=index+1){
-      const time=(path.views.length-1)*step,last=path.views[path.views.length-1];
-      const ahead=warpPosition(path,time+step+.001),before=warpPosition(path,time+step);
-      const velocity=ahead.map((x,i)=>x-before[i]),target=Math.hypot(...velocity)>1e-10?angles(unit(velocity)):last.a;
-      const w=last.w.map((v,i)=>clamp(v+clamp(36*(i===0?wrap(target[i]-last.a[i]):target[i]-last.a[i])-12*v,-4,4)*step,-1.2,1.2));
-      path.views.push({a:last.a.map((x,i)=>x+(last.w[i]+w[i])*step*.5),w});
+      const time=path.views.length*step,last=path.views[path.views.length-1].frame;
+      const before=warpPosition(path,Math.max(0,time-.001)),ahead=warpPosition(path,time+.001);
+      const velocity=ahead.map((x,i)=>x-before[i]);
+      const forward=Math.hypot(...velocity)>1e-10?unit(velocity):last.forward;
+      path.views.push({frame:transportFrame(last,forward)});
     }
-    const a=path.views[index],b=path.views[index+1],u=(t-index*step)/step;
-    const view=a.a.map((x,i)=>(2*u**3-3*u*u+1)*x+(u**3-2*u*u+u)*step*a.w[i]+(-2*u**3+3*u*u)*b.a[i]+(u**3-u*u)*step*b.w[i]);
-    const fade=transition(t,0,2.5),roll=mix(path.roll,clamp(path.roll,-BANK_LIMIT,BANK_LIMIT),fade)*(1-fade);
-    const frame=t===0?path.from:bankPose(level(view[0],clamp(view[1],-Math.PI/2+.001,Math.PI/2-.001)),roll);
+    const a=path.views[index].frame,b=path.views[index+1].frame,u=(t-index*step)/step,transported=orientation(a,b,u);
+    const source=path.previous||path.from,carry=t*Math.exp(-t/.6);
+    const inherited=source===path.from?path.from:orientation(source,path.from,1+carry/.001);
+    const frame=t===0?path.from:orientation(inherited,transported,transition(t,0,2.5));
     return {...frame,eye:warpPosition(path,t),look:1};
   }
   function jumpPath(from,velocity,turn,reach,solarUp=[0,1,0],locator=null){
@@ -1344,6 +1347,8 @@
   RingTour.bankAngle=bankAngle;
   RingTour.bankLimit=BANK_LIMIT;
   RingTour.smoothBank=smoothBank;
+  RingTour.orientation=orientation;
+  RingTour.transportFrame=transportFrame;
   RingTour.jumpPath=jumpPath;
   RingTour.warpPath=warpPath;
   RingTour.warpSceneEye=warpSceneEye;
