@@ -146,6 +146,18 @@ test('normal-view warp preserves the transported frame through a vertical 180-de
  }
 });
 
+test('warp-to-opening handoff keeps the transported bank frame continuous',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.flightBank=.17;
+ r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const move=r.cameraTween,p=move.replay;p.brakeAt=4300;p.resetAt=7000;move.duration=r.replayOpeningAt(p)+p.inbound;
+ const before=r.openingReplayPose(move,p.resetAt-.001),at=r.openingReplayPose(move,p.resetAt),after=r.openingReplayPose(move,p.resetAt+.001);
+ const axes=sample=>{const saved=r.camera;r.camera=sample.state;const old=r.flightLook;r.flightLook=sample.look;const value=r.bankedSkyCamera().viewAxes;r.flightLook=old;r.camera=saved;return value;};
+ const a=axes(before),b=axes(at),c=axes(after),dot=(x,y)=>x.reduce((sum,v,i)=>sum+v*y[i],0);
+ for(const key of ['right','down','forward']){assert.ok(dot(a[key],b[key])>.999999,'no reset at handoff');assert.ok(dot(b[key],c[key])>.999999,'continuous quaternion blend');}
+ close(r.flightBank,.17);
+});
+
+
 test('no safe virtual route leaves the camera and travel state unchanged',()=>{
  const {r,sandbox}=renderer(),before=r.cameraSnapshot();
  sandbox.window.SolarRingTour.planWarp=()=>null;
@@ -735,23 +747,23 @@ test('opening uses a different random departure without changing its destination
  for(const state of [a,b]){assert.equal(state.zoom,target.zoom);assert.equal(state.dolly,.001);assert.equal(state.focus,null);}
  assert.deepEqual(plain(target),plain(r.defaultCameraSnapshot()));
 });
-test('ordinary and travel openings stay level throughout, including tracked views',()=>{
+test('ordinary and travel openings inherit the first camera bank without re-leveling',()=>{
  for(const seed of [.1,.9])for(const flyThrough of [false,true])for(const focus of [null,'earth']){
-  const {r,sandbox}=renderer(seed);for(const file of ['surface-style','ring-tour'])vm.runInNewContext(read('src/'+file+'.js'),sandbox);
-  const target={...r.cameraSnapshot(),focus};r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,0,5000);
-  r.cameraTween.flyThrough=flyThrough;r.cameraTween.bankFrom=.2;
-  for(let ms=0;ms<=5000;ms+=10){
-   r.advanceCamera(ms);close(r.flightBank,0);close(r.cameraBasis().sr,0);assert.equal(r.bankedSkyCamera(),r.camera);
-  }
+  const {r}=renderer(seed),bank=.2,target={...r.cameraSnapshot(),focus};
+  r.flightBank=bank;r.restoreCamera(r.openingCameraSnapshot(target));close(r.flightBank,bank);
+  r.animateOpeningCamera(target,0,5000);r.cameraTween.flyThrough=flyThrough;
+  for(let ms=0;ms<=5000;ms+=10){r.advanceCamera(ms);close(r.flightBank,bank);close(r.cameraBasis().sr,Math.sin(bank));}
   assert.deepEqual(plain(r.cameraSnapshot()),plain(target));
+  r.restoreCamera(r.defaultCameraSnapshot());close(r.flightBank,bank);
+  r.resetCamera();close(r.flightBank,bank);
  }
 });
 
-test('opening still exposes curvature for the following S bend without applying roll',()=>{
- const {r,sandbox}=renderer();sandbox.window.SolarRingTour={smoothBank:()=>.2};
- const target=r.cameraSnapshot();r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,0,5000);
+test('opening curvature selects the following S bend without replacing inherited bank',()=>{
+ const {r,sandbox}=renderer();sandbox.window.SolarRingTour={smoothBank:()=>.2,bankLimit:20*A.DEG};
+ const target=r.cameraSnapshot();r.flightBank=.13;r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,0,5000);
  const move=r.cameraTween;move.flyThrough=true;
- for(const t of [.75,.79,.8,.81,.85]){close(r.openingTurn(move,t),.2);r.advanceCamera(t*5000);close(r.flightBank,0);}
+ for(const t of [.75,.79,.8,.81,.85]){close(r.openingTurn(move,t),.2);r.advanceCamera(t*5000);close(r.flightBank,.13);}
 });
 
 test('focus never changes a body size or overrides its user-set scale',()=>{
