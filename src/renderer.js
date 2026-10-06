@@ -970,7 +970,8 @@
           }
           const state=result.state,a=state.azimuth,e=state.elevation;
           const right=[Math.cos(a),-Math.sin(a),0],up=[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)],forward=[Math.sin(a)*Math.cos(e),Math.cos(a)*Math.cos(e),-Math.sin(e)];
-          const natural={right:right.map(v=>-v),up,forward};
+          const bank=this.flightBank||0,c=Math.cos(bank),sn=Math.sin(bank),bankedRight=right.map((v,i)=>c*v-sn*up[i]),bankedUp=up.map((v,i)=>c*v+sn*right[i]);
+          const natural={right:bankedRight.map(v=>-v),up:bankedUp,forward};
           const frame=window.SolarRingTour.orientation(path.arrivalFrame,natural,handoff);
           result.look=this.flightLookForView(a,e,state,frame);
         }else result.look=null;
