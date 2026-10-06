@@ -1126,9 +1126,13 @@
       return {x:mix(a.x,b.x,u),y:mix(a.y,b.y,u)};
     }
     flightLookForView(yaw,pitch,state=this.camera,frame=null){
-      // Blend in WORLD view angles. Blending relative to a rapidly moving
-      // orbital axis made T turn twice, even with a smooth easing function.
-      const basis=(a,e)=>[[Math.cos(a),-Math.sin(a),0],[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)],[Math.sin(a)*Math.cos(e),Math.cos(a)*Math.cos(e),-Math.sin(e)]];
+      // Blend in WORLD view angles. The local transform is relative to the
+      // inherited banked camera, not an artificial zero-roll Euler frame.
+      // Otherwise a preserved baseline bank is applied twice at handoffs.
+      const basis=(a,e,r=this.flightBank||0)=>{
+        const right=[Math.cos(a),-Math.sin(a),0],up=[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)],forward=[Math.sin(a)*Math.cos(e),Math.cos(a)*Math.cos(e),-Math.sin(e)],c=Math.cos(r),s=Math.sin(r);
+        return [right.map((v,i)=>c*v-s*up[i]),up.map((v,i)=>c*v+s*right[i]),forward];
+      };
       const base=basis(state.azimuth,state.elevation),view=frame?[frame.right.map(v=>-v),frame.up,frame.forward]:basis(yaw,pitch),local=view.map(axis=>base.map(v=>flightDot(axis,v)));
       return {yaw,pitch,world:true,right:local[0],up:local[1],forward:local[2]};
     }
