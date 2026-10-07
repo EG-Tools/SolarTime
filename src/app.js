@@ -4,7 +4,7 @@
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
   const Localization=Modules.Localization,LanguageData=Modules.LanguageData,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
-  const LANG_ORDER=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','dk','do','ec','fi','fr','de','gh','gt','hk','is','hi','id','ie','it','jpn','kor','my','mt','mx','mz','nl','nz','ng','no','pa','pe','ph','pt','sg','za','es','se','tw','eu','en','uy','ve'];
+  const LANG_ORDER=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','dk','do','ec','fi','fr','de','gh','gt','hk','is','hi','id','ie','it','jpn','kor','my','mt','mx','mz','nl','nz','ng','no','pa','pe','ph','pt','ru','sg','za','es','se','tw','ua','eu','en','uy','ve'];
   const LANG_META={
     no:{"code":"NO","name":"Norway","locale":"en-NO","html":"en-NO","copy":"en"},
     se:{"code":"SE","name":"Sweden","locale":"en-SE","html":"en-SE","copy":"en"},
@@ -29,7 +29,9 @@
     hi:{code:'HI',name:'भारत',locale:'hi-IN',html:'hi',copy:'hi'},
     es:{code:'ES',name:'España',locale:'es-ES',html:'es',copy:'es'},
     de:{code:'DE',name:'Deutschland',locale:'de-DE',html:'de',copy:'de'},
-    fr:{code:'FR',name:'France',locale:'fr-FR',html:'fr',copy:'fr'}
+    fr:{code:'FR',name:'France',locale:'fr-FR',html:'fr',copy:'fr'},
+    ru:{code:'RU',name:'Россия',locale:'ru-RU',html:'ru',copy:'ru'},
+    ua:{code:'UA',name:'Україна',locale:'uk-UA',html:'uk',copy:'uk'}
 ,
     pt:{code:'PT',name:'Portugal',locale:'pt-PT',html:'pt-PT',copy:'pt'},
     be:{code:'BE',name:'België',locale:'nl-BE',html:'nl-BE',copy:'nl'},
@@ -81,7 +83,9 @@
     hi:{label:'INDIA',timeZone:'Asia/Kolkata',latitude:22.5937,longitude:78.9629,region:'भारत',city:'देश का केंद्र'},
     es:{label:'SPAIN',timeZone:'Europe/Madrid',latitude:40.4637,longitude:-3.7492,region:'España',city:'centro geográfico'},
     de:{label:'GERMANY',timeZone:'Europe/Berlin',latitude:51.1657,longitude:10.4515,region:'Deutschland',city:'geografische Mitte'},
-    fr:{label:'FRANCE',timeZone:'Europe/Paris',latitude:46.2276,longitude:2.2137,region:'France',city:'centre géographique'}
+    fr:{label:'FRANCE',timeZone:'Europe/Paris',latitude:46.2276,longitude:2.2137,region:'France',city:'centre géographique'},
+    ru:{label:'RUSSIA',timeZone:'Europe/Moscow',latitude:55.7558,longitude:37.6173,region:'Россия',city:'Москва'},
+    ua:{label:'UKRAINE',timeZone:'Europe/Kyiv',latitude:50.4501,longitude:30.5234,region:'Україна',city:'Київ'}
 ,
     pt:{label:'PORTUGAL',timeZone:'Europe/Lisbon',latitude:39.3999,longitude:-8.2245,region:'Portugal',city:'centro de Portugal'},
     // Representative cities from tzdb zone.tab; both regions share Dutch copy.
@@ -1057,7 +1061,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=90d372bc5fc5','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=1b8cd73dea07','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){

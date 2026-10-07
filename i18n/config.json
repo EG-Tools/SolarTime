@@ -105,6 +105,22 @@
         "AUTO",
         "Taal"
       ]
+    },
+    "ru": {
+      "locale": "ru-RU",
+      "html": "ru",
+      "automaticLabel": [
+        "АВТО",
+        "Язык"
+      ]
+    },
+    "uk": {
+      "locale": "uk-UA",
+      "html": "uk",
+      "automaticLabel": [
+        "АВТО",
+        "Мова"
+      ]
     }
   },
   "legacyFileKeys": [
@@ -221,6 +237,14 @@
     [
       "^nl(?:-|$)",
       "nl"
+    ],
+    [
+      "^ru(?:-|$)",
+      "ru"
+    ],
+    [
+      "^uk(?:-|$)",
+      "uk"
     ],
     [
       "^en(?:-|$)",

@@ -28,6 +28,8 @@
     if(/hong_kong/i.test(zone))return 'hk';
     if(/(?:shanghai|chongqing|urumqi|macau)/i.test(zone))return 'chn';
     if(/seoul/i.test(zone))return 'kor';
+    if(/kyiv|kiev|uzhgorod|zaporozhye/i.test(zone))return 'ua';
+    if(/moscow|kaliningrad|kirov|volgograd|astrakhan|saratov|ulyanovsk|samara|yekaterinburg|omsk|novosibirsk|barnaul|tomsk|novokuznetsk|krasnoyarsk|irkutsk|chita|yakutsk|khandyga|vladivostok|ust-nera|ust_nera|magadan|sakhalin|srednekolymsk|kamchatka|anadyr/i.test(zone))return 'ru';
     if(/^Europe\/(?:Amsterdam|Brussels)$/i.test(zone)){
       // These zone IDs can be aliases in tzdb/ICU. An explicit NL/BE locale
       // disambiguates the country without changing other regions' precedence.
@@ -81,7 +83,7 @@
       ['nl-be','be'],['fr-be','be'],['de-be','be'],['nl','nl'],
       ['pt-ao','ao'],['pt-mz','mz'],['pt-br','br'],['pt','pt'],
       ['es-ar','ar'],['es-cl','cl'],['es-co','co'],['es-cr','cr'],['es-ec','ec'],['es-mx','mx'],['es-pa','pa'],['es-pe','pe'],['es-uy','uy'],['es-ve','ve'],['es','es'],
-      ['de-at','at'],['de','de'],['fr','fr'],['hi','hi'],['it','it'],['id','id']
+      ['de-at','at'],['de','de'],['fr','fr'],['ru','ru'],['uk','ua'],['hi','hi'],['it','it'],['id','id']
     ];
     for(const [prefix,language] of localeMap)if(languages.some(value=>value===prefix||value.startsWith(prefix+'-')))return language;
     return 'en';
