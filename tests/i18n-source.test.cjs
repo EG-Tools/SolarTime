@@ -11,13 +11,13 @@ function runtime({protocol='https:',fetch:fetchFn}={}){
  vm.runInNewContext(read('src/language-data.js'),context);return {loader:window.SolarModules.LanguageData,requests};
 }
 test('all generated translations are deterministic and current',()=>{
- const a=api.sync(root);assert.deepEqual(a.changed,[]);assert.equal(a.report.languages,13);assert.deepEqual(api.sync(root).changed,[]);
+ const a=api.sync(root);assert.deepEqual(a.changed,[]);assert.equal(a.report.languages,15);assert.deepEqual(api.sync(root).changed,[]);
  const version=data('version.json');assert.equal(api.compile(root).releases[0].version,version.version);
  const compiled=api.compile(root),archive=compiled.archive;assert.ok(Number(archive[0].version)<Number(compiled.releases.at(-1).version));assert.equal(archive.at(-1).version,'0.01');
  assert.match(read('changelog.html'),/전체 업데이트 내역/);assert.match(read('changelog.html'),/id="v0\.01"/);
  for(const file of ['tools/build-pages.cjs','tools/cloudflare-site.cjs'])assert.match(read(file),/require\('\.\/i18n\.cjs'\)\.sync\(root\)/);
 });
-test('all 13 web and file-language bundles preserve approved interface, timer, body and phase text',async()=>{
+test('all 15 web and file-language bundles preserve approved interface, timer, body and phase text',async()=>{
  // UI fingerprints include the approved orbit label, + shortcut and current mouse accessibility guidance.
  // Historical release and automatic-language baselines remain unchanged.
  const compiled=api.compile(root);
@@ -114,7 +114,7 @@ test('source-only changes are reported before translation completeness, without 
  const dir=sandbox();try{
   for(const args of [['init','-q'],['config','user.email','test@invalid.example'],['config','user.name','Test'],['add','i18n'],['commit','-qm','source baseline']]){const result=cp.spawnSync('git',args,{cwd:dir,encoding:'utf8'});assert.equal(result.status,0,result.stderr);}
   const en=data('i18n/locales/en.json',dir);en.ui.newFeatureLabel='New feature';write('i18n/locales/en.json',en,dir);
-  const change=api.diff(dir,'HEAD');assert.equal(change.messages.length,1);assert.equal(change.messages[0].key,'ui.newFeatureLabel');assert.equal(change.messages[0].reviewLanguages.length,12);assert.throws(()=>api.diff(dir,'--bad'),/Invalid base/);assert.throws(()=>api.diff(dir,'not-a-ref'),/Unknown base/);
+  const change=api.diff(dir,'HEAD');assert.equal(change.messages.length,1);assert.equal(change.messages[0].key,'ui.newFeatureLabel');assert.equal(change.messages[0].reviewLanguages.length,14);assert.throws(()=>api.diff(dir,'--bad'),/Invalid base/);assert.throws(()=>api.diff(dir,'not-a-ref'),/Unknown base/);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 test('public HTML and literal UI references have canonical message keys',()=>{
