@@ -20,7 +20,7 @@ test('v0.46 page build stays consistent while unchanged coordinator keeps its bu
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
   const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
-  assert.deepEqual(priorRegionOrder(order),['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve']);
+  assert.deepEqual(priorRegionOrder(order),['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve']);
   assert.match(html,/id="star-density-output" for="star-density">100%<\/output>/);assert.match(html,/id="star-density" class="solar-range" type="range" min="0" max="300" step="10" value="100"/);assert.match(app,/orbitBrightness:\.5,starDensity:1/);
 });
 
@@ -160,7 +160,7 @@ test('r10 removes the extra WebGL star canvas while keeping the safe r9 optimiza
 
 test('r11 reuses existing language bundles for additional countries',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js');
-  const expected=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve'];
+  const expected=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve'];
   const order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
   assert.deepEqual(priorRegionOrder(order),expected);
 

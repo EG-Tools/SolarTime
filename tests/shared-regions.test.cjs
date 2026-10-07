@@ -4,14 +4,14 @@ const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8'),rows=req
 function metadata(){const app=read('src/app.js'),a=app.indexOf('  const LANG_ORDER='),b=app.indexOf('  const FACTORY_OPTIONS=',a);return vm.runInNewContext(app.slice(a,b)+';({order:LANG_ORDER,meta:LANG_META,regions:REGIONS})');}
 function detect(zone,languages){const window={};require('./helpers/i18n-runtime.cjs').localization({window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
 test('13 requested countries reuse existing English/Spanish without new locale payloads',()=>{
- const {order,meta,regions}=metadata(),prior=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','sg','es','tw','eu','en','uy','ve'];
- assert.equal(order.length,48);assert.equal(new Set(order).size,48);assert.equal(rows.filter(r=>r.copy==='en').length,11);assert.equal(rows.filter(r=>r.copy==='es').length,2);
+ const {order,meta,regions}=metadata(),prior=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve'];
+ assert.equal(order.length,50);assert.equal(new Set(order).size,50);assert.equal(rows.filter(r=>r.copy==='en').length,11);assert.equal(rows.filter(r=>r.copy==='es').length,2);
  assert.deepEqual(Array.from(order).filter(c=>!rows.some(r=>r.code===c)),prior);
  for(const r of rows){assert.deepEqual(JSON.parse(JSON.stringify(meta[r.code])),{code:r.code.toUpperCase(),name:r.name,locale:r.locale,html:r.locale,copy:r.copy});
   assert.deepEqual(JSON.parse(JSON.stringify(regions[r.code])),{label:r.label,timeZone:r.timeZone,latitude:r.latitude,longitude:r.longitude,region:r.name,city:r.city});
   assert.ok(!fs.existsSync(path.join(__dirname,'../src/locales/'+r.code+'.json')));
  }
- assert.equal(fs.readdirSync(path.join(__dirname,'../src/locales')).filter(f=>f.endsWith('.json')).length,13);
+ assert.equal(fs.readdirSync(path.join(__dirname,'../src/locales')).filter(f=>f.endsWith('.json')).length,15);
  const html=read('index.html'),block=html.slice(html.indexOf('id="language-scroll"'),html.indexOf('scroll-cue-down',html.indexOf('id="language-scroll"')));
  assert.deepEqual([...block.matchAll(/data-language="([^"]+)"/g)].map(m=>m[1]),Array.from(order));
 });

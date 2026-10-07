@@ -5,7 +5,7 @@ const baseline=data('tests/fixtures/release-history-v069.json'),api=require('../
 
 test('rolling retention keeps exactly ten validated releases with a unique Korean archive',()=>{
  const compiled=api.compile(root),rows=compiled.releases,archive=compiled.archive;
- assert.equal(rows.length,10);assert.equal(compiled.codes.length,13);
+ assert.equal(rows.length,10);assert.equal(compiled.codes.length,15);
  assert.deepEqual(notes.RELEASES.map(r=>r.version),rows.map(r=>r.version));
  const all=[...rows,...archive],versions=all.map(r=>r.version);
  assert.equal(new Set(versions).size,versions.length);

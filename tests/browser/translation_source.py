@@ -4,7 +4,7 @@ import json
 def verify_translation_source(page, root, tag, check):
     config=json.loads((root/'i18n/config.json').read_text(encoding='utf8'))
     for code in config['languages']:
-        region='tw' if code=='zht' else code
+        region={'zht':'tw','uk':'ua'}.get(code,code)
         page.evaluate('async region=>await SolarTime.setLanguage(region)', region)
         check(page.evaluate('SolarTime.getState().copyLanguage')==code,tag+' canonical copy '+code)
         expected=json.loads((root/'src/locales'/f'{code}.json').read_text(encoding='utf8'))
