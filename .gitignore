@@ -13,6 +13,11 @@ worker-configuration.d.ts
 __pycache__/
 playwright-report/
 test-results/
+# Local backups, patch bundles and one-off deployment/preview launchers.
+/.backup/
+/patch/
+/Deploy_SolarTime_v*.cmd
+/SolarTime-Direct-Cloudflare-Preview-*.ps1
 Apply_v*.ps1
 SolarTime_*_Repair*.bat
 SolarTime_*_TestFix*.bat

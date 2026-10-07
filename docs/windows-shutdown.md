@@ -18,7 +18,7 @@ Account: `4640527a19614f7b65a034f422704b64`
 Worker: `solar-time`
 R2 bucket: `solar-time-media`
 
-From this release's source directory, double-click `Deploy_SolarTime_v0.57.cmd`. It installs the locked dependencies, opens Cloudflare authorization when an API token is not supplied, and runs the guarded deployment. Alternatively:
+현재 정식 배포는 [GitHub Actions 파이프라인](ci-pipeline.md)을 사용합니다. 버전별 배포 실행 파일은 제거했습니다. 승인된 로컬 배포가 필요한 경우 기존 명령을 사용합니다:
 
 ```sh
 npm ci

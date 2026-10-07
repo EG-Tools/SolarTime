@@ -1,7 +1,7 @@
 name: Verify Solar Time
 on:
   push:
-    branches: [main, release/v0.47]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:

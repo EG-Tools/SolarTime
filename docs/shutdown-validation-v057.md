@@ -31,7 +31,7 @@ New CRLF installer SHA-256:
 
 The run's Cloudflare authorization check found no configured `CLOUDFLARE_API_TOKEN`. The actual R2/Worker deployment step was **skipped**, not successfully deployed. The provided dashboard URL identifies the account and bucket but does not grant API access. No token value was read or exposed.
 
-`main` was intentionally left on v0.56 r2. Do not merge the new browser code ahead of the v2 receipt API and installer upload. Deploy with `Deploy_SolarTime_v0.57.cmd` after authorizing the local Cloudflare login, or configure a correctly scoped GitHub Actions secret and re-run the deployment job. No passwords or API tokens should be sent in chat.
+당시 검증에서는 `main`을 v0.56 r2에 유지했고, v2 영수증 API와 설치 파일 업로드보다 브라우저 코드를 먼저 병합하지 않도록 했습니다. 이 내용은 v0.57 당시의 기록이며 현재 배포 상태가 아닙니다. 구버전 배포 실행 파일은 제거되었으므로 현재 작업은 [CI 파이프라인](ci-pipeline.md)을 따릅니다. 비밀번호나 API 토큰을 채팅으로 전달하지 않습니다.
 
 After Cloudflare delivery verification, merge PR #8 to publish the matching Pages files and reinstall the helper from the updated site. Save work before a real shutdown test. An independent Windows `shutdown /a` can cancel a pending system shutdown.
 
