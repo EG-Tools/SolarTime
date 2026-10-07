@@ -13,7 +13,9 @@
     "pt": "3a99ce54d29563cbfbb0bc6965e94a736067f4d5b02877aef82521c8c76202a6",
     "it": "bb38262f7ea38d6bcef052bb5ab0dca1bced6a382de2863af8d4fd67d1e7c2ad",
     "id": "5fd03e94e91cd0ffa449353e0273c614230574ac2cc722641d424b7d2142b1cb",
-    "nl": "b7252aa0848d515b7bc5570549ef1d1bfb7559542ef08f7c0283a5c8fb570533"
+    "nl": "b7252aa0848d515b7bc5570549ef1d1bfb7559542ef08f7c0283a5c8fb570533",
+    "ru": "f804b844b442f53bec35a17d1d7e367e0eef8d132d8d406db2be0a157096c8db",
+    "uk": "f686ef13d60dc88fe0de7420bd3608cfe812e0868995dddae8cde3d20eed63a3"
   },
   "file": {
     "kor": "15709dc5c953dd0fc6687544fe924c689000a52c40215fac795a364e2563ce24",
@@ -28,7 +30,9 @@
     "pt": "3a99ce54d29563cbfbb0bc6965e94a736067f4d5b02877aef82521c8c76202a6",
     "it": "bb38262f7ea38d6bcef052bb5ab0dca1bced6a382de2863af8d4fd67d1e7c2ad",
     "id": "5fd03e94e91cd0ffa449353e0273c614230574ac2cc722641d424b7d2142b1cb",
-    "nl": "b7252aa0848d515b7bc5570549ef1d1bfb7559542ef08f7c0283a5c8fb570533"
+    "nl": "b7252aa0848d515b7bc5570549ef1d1bfb7559542ef08f7c0283a5c8fb570533",
+    "ru": "f804b844b442f53bec35a17d1d7e367e0eef8d132d8d406db2be0a157096c8db",
+    "uk": "f686ef13d60dc88fe0de7420bd3608cfe812e0868995dddae8cde3d20eed63a3"
   },
   "automaticLabels": {
     "kor": [
@@ -82,6 +86,14 @@
     "nl": [
       "AUTO",
       "Taal"
+    ],
+    "ru": [
+      "АВТО",
+      "Язык"
+    ],
+    "uk": [
+      "АВТО",
+      "Мова"
     ]
   },
   "releases": {},
