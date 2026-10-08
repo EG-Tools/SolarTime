@@ -63,11 +63,12 @@ async def main():
                     result = await page.evaluate("""() => ({...__bootAudit,
                       language:SolarTime.getState().copyLanguage,
                       locale:performance.getEntriesByType('resource').filter(r=>r.name.includes('/locales/')).map(r=>({url:r.name,start:r.startTime})),
+                      skyReady:SolarTime.renderer.sky.ready,
                       texturesReady:SolarTime.renderer.surface.visibleTexturesReady(),
                       accepted:SolarTime.renderer.surface.stats.accepted})""")
                     assert not errors, errors
                     assert result['language'] == 'fr' and len(result['locale']) == 1, result
-                    assert result['texturesReady'], result
+                    assert result['skyReady'], result
                     result['optimized'] = optimized
                     rows.append(result)
                     print(json.dumps(result), flush=True)

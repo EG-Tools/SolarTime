@@ -302,27 +302,18 @@
       };
       languageRetry=LanguageData.loaded(activeCopyCode)?0:setInterval(retryLanguage,30000);window.addEventListener('online',retryLanguage);
       cleanups.push(()=>{clearInterval(languageRetry);window.removeEventListener('online',retryLanguage);});
-      const travelResumeKey='solar-time.ring-travel-resume.v1';
       const openingModeKey='solar-time.opening-mode.v1';
       let openingMode=Preferences.read(openingModeKey,'default');
       if(!['default','saturn','none'].includes(openingMode))openingMode='default';
       let openingRunMode=openingMode;
-      let travelSaved=Preferences.read(travelResumeKey)===true;
-      let resumeTravel=openingRunMode==='saturn'||(openingRunMode==='default'&&travelSaved);
+      let resumeTravel=openingRunMode==='saturn';
       renderer.setOption('actualScale',renderer.options.actualScale,false);
       if(!restoredUserCamera)renderer.restoreCamera(renderer.defaultCameraSnapshot(clock.value(performance.now(),Date.now())));
       let openingCameraTarget={...renderer.cameraSnapshot()};
       if(resumeTravel)renderer.prepareCloseup('saturn');
-      function saveTravelState(){
-        // pagehide disposes the renderer before some browsers emit hidden.
-        // Teardown is not an explicit travel cancellation.
-        if(disposed)return;
-        const active=resumeTravel||renderer.ringTour?.state==='cruising';
-        if(active!==travelSaved){travelSaved=active;Preferences.write(travelResumeKey,active);}
-      }
       if(openingCameraTarget.focus===null)overviewCamera={...openingCameraTarget};
       renderer.restoreCamera(openingRunMode==='none'?openingCameraTarget:renderer.openingCameraSnapshot(openingCameraTarget));
-      const loading=$('loading'),OPENING_UNLOCK_BEFORE_END=1000;
+      const loading=$('loading'),OPENING_UNLOCK_BEFORE_END=1000,SATURN_OPENING_HANDOFF_LEAD=250;
       let openingActive=true,openingControlsLocked=true,openingStartedAt=null,openingDuration=0,openingDeparture=false,openingReplayLocked=false;
       const helpReminder=Preferences.createHelpReminder();
       let firstHelpPending=helpReminder.visit(),lastTravelControlLock=null;
@@ -357,9 +348,7 @@
         settings(false);closeBody();timerController?.close();closeLanguageMenu();closeOpeningMenu();
         const returnView=renderer.ringTour?.returnTarget||renderer.cameraSnapshot();
         openingRunMode=openingMode;
-        // T replays the mode selected now. The saved cruising flag is reserved
-        // for restoring a refreshed page and must not turn Default back into
-        // a Saturn opening after the user changed the menu.
+        // Boot and T both follow the selected opening mode.
         resumeTravel=openingMode==='saturn';
         openingCameraTarget={...returnView};
         if(resumeTravel){renderer.prepareCloseup('saturn');renderer.prepareOpeningTour();}
@@ -379,7 +368,7 @@
           renderer.startOpeningParticles(mono,renderer.ringTour?renderer.ringTour.returnDuration*1000:7000);
           if(renderer.openingParticles)renderer.openingParticles.ringReturn=!!renderer.ringTour;
         }
-        saveTravelState();wakePointer();
+        wakePointer();
       }
       function claimOpeningControl(){if(openingControlsLocked)return false;if(openingActive)finishOpening();return true;}
       renderer.setOption('dollyZoom',renderer.options.dollyZoom,false);
@@ -1011,14 +1000,14 @@
         if(openingReplayLocked)return;
         if(openingActive){
           openingDeparture=false;resumeTravel=false;finishOpening();
-          renderer.animateCamera(openingCameraTarget);saveTravelState();return;
+          renderer.animateCamera(openingCameraTarget);return;
         }
         // One press starts the smooth return. A SECOND press may leave
         // fullscreen even while returning; it must not restart/cut the flight.
         if(renderer.ringTour?.openingResume&&['entering','cruising'].includes(renderer.ringTour.state)){
-          renderer.animateCamera(renderer.ringTour.returnTarget||openingCameraTarget);saveTravelState();return;
+          renderer.animateCamera(renderer.ringTour.returnTarget||openingCameraTarget);return;
         }
-        if(renderer.ringTour?.stop()){saveTravelState();return;}
+        if(renderer.ringTour?.stop())return;
         if(document.fullscreenElement){exitFullscreen();return;}
         if(renderer.ringTour)return;
         if(!$('language-menu').hidden){closeLanguageMenu();return;}
@@ -1390,15 +1379,16 @@
       // gesture ends; blur/visibility/pagehide also cover a missing keyup.
       window.addEventListener('keyup',event=>{const key=event.key.toLowerCase();if((key==='arrowup'||key==='arrowdown')&&heldZoomKeys.delete(key)&&!heldZoomKeys.size)persist();},{capture:true});
       window.addEventListener('blur',clearKeyboardZoom,{passive:true});
-      // Fill every initially visible sphere with its small baseline map under
-      // the loading cover. Detail LODs are requested only after this returns, so
-      // a slow 2K/4K response cannot leave later planets blank in Edge/Chrome.
+      // A distant opening renders bodies as points, so it only needs the small
+      // sky before it can start. Baseline planet maps continue loading during
+      // the 6.5-second approach. A disabled opening still waits for every
+      // visible baseline map because it reveals full planet discs immediately.
       async function warmInitialScene(maxMs=8000) {
         const started=performance.now();
         while(performance.now()-started<maxMs){
           const surface=renderer.surface;
           const surfacesReady=surface?.visibleTexturesReady?.()||(surface?.stats?.accepted>0&&!surface.inflight);
-          if(renderer.sky?.ready&&surfacesReady)return true;
+          if(renderer.sky?.ready&&(openingRunMode!=='none'||surfacesReady))return true;
           await new Promise(resolve=>setTimeout(resolve,16));
         }
         return false;
@@ -1498,7 +1488,10 @@
             const replay=renderer.cameraTween?.replay;
             if(openingReplayLocked&&replay)openingStartedAt=Number.isFinite(replay.resetAt)?renderer.cameraTween.start+renderer.replayOpeningAt(replay):null;
             if(resumeTravel)renderer.captureOpeningFlight(motionMono);
-            if(!clock.paused&&resumeTravel&&openingStartedAt!==null&&motionMono-openingStartedAt>=openingDuration){
+            // Begin Saturn's existing momentum handoff before the opening camera
+            // reaches a stop, so the two owners cross-fade instead of pausing
+            // between otherwise continuous moves.
+            if(!clock.paused&&resumeTravel&&openingStartedAt!==null&&motionMono-openingStartedAt>=Math.max(0,openingDuration-SATURN_OPENING_HANDOFF_LEAD)){
               if(renderer.startRingTour(undefined,true,mono,openingRunMode==='saturn',openingCameraTarget)){
                 resumeTravel=false;finishOpening();
               }else if(!renderer.cameraTween){
@@ -1506,7 +1499,6 @@
                 resumeTravel=false;renderer.scheduleOpeningAnnotations(mono,0);
               }
             }
-            saveTravelState();
             // Resize settling can draw the final frame outside this loop.
             // Completion must not depend on observing the previous tween here.
             const openingFinished=openingActive&&openingStartedAt!==null&&!renderer.cameraTween;
@@ -1518,7 +1510,6 @@
         } catch(error){disposed=true;setMusicEnabled(false,{remember:false});timerController?.dispose();cleanup();cancelAnimationFrame(raf);cancelAnimationFrame(resizeFrame);clearAwake();clearTimeout(toastTimer);clearTimeout(materialRefreshTimer);fatal(error);}
       }
       document.addEventListener('visibilitychange',()=>{
-        saveTravelState();
         if(document.hidden){helpReminder.touch(true);clearKeyboardZoom();clearTimeout(pausedWake);pausedWake=0;closePresetDialog(false);renderer.suspend();cancelAnimationFrame(raf);raf=0;lastFrame=0;clearAwake();}
         else if(!disposed){
           firstHelpPending=helpReminder.visit();

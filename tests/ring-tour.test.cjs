@@ -397,11 +397,13 @@ test('completed replay resources are retained once and fade in afresh on the nex
 });
 
 test('automatic opening handoff keeps incoming velocity and suppresses departure annotations',()=>{
- const openingVelocity={eye:[.1,-.2,-1.3],offset:[.03,-.02],orthoScale:-1.3};
- const t=create(123,{openingVelocity}),a=t.entryPose(0),b=t.entryPose(.00001);
+ const startPose={...window.SolarRingTour.viewPose({frame,radius:180,width:1280,height:800,screen:{x:640,y:400}}),perspective:.2};
+ const openingVelocity={eye:[.1,-.2,-1.3],offset:[.03,-.02],orthoScale:-1.3,perspective:.04};
+ const t=create(123,{startPose,openingVelocity}),a=t.entryPose(0),b=t.entryPose(.00001);
  for(const key of ['eye','offset'])a[key].forEach((v,i)=>near((b[key][i]-v)/.00001,openingVelocity[key][i],.005));
  near((b.orthoScale-a.orthoScale)/.00001,openingVelocity.orthoScale,.005);
- near((b.perspective-a.perspective)/.00001,0,.005);
+ near((b.perspective-a.perspective)/.00001,openingVelocity.perspective,.005);
+ near(a.perspective,startPose.perspective);
  vectorNear(t.entryPose(2.5).eye,t.rawEntryPose(2.5).eye);
  vectorNear(t.entryPose(10).eye,t.locatorPose(10).eye);
  for(const age of [0,1,4,10]){t.visualAge=age;assert.equal(t.annotationOpacity(),0);}
@@ -422,6 +424,15 @@ test('automatic opening handoff keeps moving while two very different path direc
  const edge=Math.min(...speeds.slice(0,4),...speeds.slice(-4));
  assert.ok(Math.min(...speeds)>=edge*.9,'the opening-to-S path must not brake into a visible pause');
 });
+test('opening handoff has one direct camera clock and no sampled distance remap',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../src/ring-tour.js'),'utf8');
+ assert.doesNotMatch(source,/openingTiming|openingSourceAge|cumulative=new Float64Array/);
+ const t=create(123,{openingVelocity:{eye:[4.3,.7,7.95],offset:[0,0],right:[0,0,0],up:[0,0,0],forward:[0,0,0],orthoScale:-8,perspective:.03}}),h=.0001;
+ for(const key of ['eye','offset']){
+  const a=t.openingPose(2.5-h)[key],b=t.openingPose(2.5)[key],c=t.openingPose(2.5+h)[key];
+  a.forEach((_,i)=>near((b[i]-a[i])/h,(c[i]-b[i])/h,.02));
+ }
+});
 
 test('shared bank is bounded, scale independent and smooth through a curve reversal',()=>{
  const bank=window.SolarRingTour.smoothBank,right=[1,0,0];
@@ -436,19 +447,13 @@ test('shared bank is bounded, scale independent and smooth through a curve rever
  }
 });
 
-test('handoff bank follows the velocity-bridged camera path, with no opening roll jump',()=>{
+test('opening momentum never becomes a second bank controller or creates a roll jump',()=>{
  const t=create(123,{openingVelocity:{eye:[3,-1,-4],offset:[0,0],orthoScale:-1}});
  const original=t.cruiseBank;let measured;
  t.cruiseBank=(age,angle)=>{measured=angle;return 0;};
- let difference=0;
- for(const age of [.25,.5,1,1.5,2,2.5,2.7,3,4,6]){
-  const pose=t.entryPose(age),actual=measured,u=Math.max(0,Math.min((age-2.5)/3.5,1)),ramp=u*u*u*(u*(u*6-15)+10);
-  if(age<=2.5)near(actual,0);
-  const expected=window.SolarRingTour.smoothBank(s=>t.entryPose(s).eye,age,pose.right)*ramp;
-  near(actual,expected,1e-8);
-  difference=Math.max(difference,Math.abs(actual-window.SolarRingTour.smoothBank(s=>t.entryPosition(s),age,pose.right)*ramp));
- }
- assert.ok(difference>1e-7,'bank still samples the bridged path at its transition edge');
+ let previous=0,largest=0;
+ for(let age=0;age<=6;age+=1/60){t.entryPose(age);const actual=measured;largest=Math.max(largest,Math.abs(actual-previous));previous=actual;}
+ assert.ok(largest<.5*Math.PI/180,`opening bank changed ${largest*180/Math.PI} degrees in one 60 Hz frame`);
  t.cruiseBank=original;
  vectorNear(t.entryPose(0).right,t.startPose.right);
  vectorNear(t.entryPose(0).up,t.startPose.up);
@@ -492,20 +497,36 @@ test('landing keeps the incoming bank and eases into the loop bank',()=>{
 test('entry bank settles gradually before landing and hands the same angle to the loop',()=>{
  for(const seed of [1,23,123,456,789]){
   const t=create(seed,{openingVelocity:{eye:[3,-1,-4],offset:[0,0],orthoScale:-1}}),step=1/60;
-  const bank=age=>{const pose=t.rawEntryPose(t.openingSourceAge(age));return t.entryPathBank(age,pose.right);};
+  const bank=age=>{const pose=t.rawEntryPose(age);return t.entryPathBank(age,pose.right);};
   let previous=bank(6.5),largest=0;
   for(let age=6.5+step;age<=10+1e-9;age+=step){const value=bank(age);largest=Math.max(largest,Math.abs(value-previous));previous=value;}
   assert.ok(largest<.5*Math.PI/180,`landing bank changed ${largest*180/Math.PI} degrees in one 60 Hz frame`);
   near(t.cruiseBank(10,bank(10)),bank(10));
  }
 });
-test('only a pointified departure holds its established bank through the distant landing',()=>{
- const ordinary=create(123,{openingVelocity:{eye:[3,-1,-4],offset:[0,0],orthoScale:-1}}),point=create(123,{openingVelocity:{eye:[3,-1,-4],offset:[0,0],orthoScale:-1},pointified:true});
- assert.equal(ordinary.pointified,false);assert.equal(point.pointified,true);
- const bank=(tour,age)=>{const pose=tour.rawEntryPose(tour.openingSourceAge(age));return tour.entryPathBank(age,pose.right);};
- assert.notEqual(bank(ordinary,9.5),bank(point,9.5));
- near(bank(point,10),point.landingBankAngle());
- near(point.cruiseBank(10,bank(point,10)),bank(point,10));
+test('all Saturn entries share one loose S-curve bank and a smooth landing',()=>{
+ for(const options of [{radius:180},{radius:.2,pointified:true},{radius:180,openingVelocity:{eye:[3,-1,-4],offset:[0,0],orthoScale:-1}},{radius:.2,pointified:true,openingVelocity:{eye:[3,-1,-4],offset:[0,0],orthoScale:-1}}]){
+  const t=create(123,options),bank=age=>{const pose=t.rawEntryPose(age);return t.entryPathBank(age,pose.right);};
+  near(bank(0),0);
+  const pose=t.rawEntryPose(.75),raw=t.rawEntryPathBank(.75,pose.right);
+  assert.ok(Math.abs(bank(.75))<Math.abs(raw),'the first 1.5 seconds admit bank loosely');
+  const threePose=t.rawEntryPose(3),threeRaw=t.rawEntryPathBank(3,threePose.right),oldThree=threeRaw*(.75**3*(.75*(.75*6-15)+10));
+  assert.ok(Math.abs(bank(3))<Math.abs(oldThree),'the same blend stays looser through three seconds');
+  const fourPose=t.rawEntryPose(4),fourRaw=t.rawEntryPathBank(4,fourPose.right),u=4/4.2,loose=1.5/4.2,late=Math.max(0,u-loose),warped=Math.max(0,Math.min(1,u-8*late*late*(1-u)*(1-u))),fourBlend=warped**3*(warped*(warped*6-15)+10);
+  near(bank(4),fourRaw*fourBlend*.9,1e-8);
+  const step=1/60,before=bank(1.5)-bank(1.5-step),after=bank(1.5+step)-bank(1.5);
+  assert.ok(Math.abs(before)>1e-5&&Math.abs(after)>1e-5&&Math.sign(before)===Math.sign(after),'the single blend does not pause and restart at 1.5 seconds');
+  let previous=bank(0),largest=0;
+  for(let age=1/60;age<=10+1e-9;age+=1/60){const current=bank(age);largest=Math.max(largest,Math.abs(current-previous));previous=current;}
+  assert.ok(largest<.5*Math.PI/180,`entry bank changed ${largest*180/Math.PI} degrees in one 60 Hz frame`);
+  const landing=bank(10);near(landing,t.rawLandingBankAngle());near(t.cruiseBank(10,landing),landing);
+  assert.ok(Math.abs(t.cruiseBank(10+1/60,bank(10+1/60))-landing)<.05*Math.PI/180,'loop bank leaves the landing angle smoothly');
+ }
+});
+test('point-particle distance never selects a second bank controller',()=>{
+ const options={radius:180,openingVelocity:{eye:[3,-1,-4],offset:[0,0],orthoScale:-1}},ordinary=create(123,options),point=create(123,{...options,pointified:true});
+ const bank=(tour,age)=>{const pose=tour.rawEntryPose(age);return tour.entryPathBank(age,pose.right);};
+ for(const age of [0,.75,1.5,3,5,6.5,8,9.5,10,10.5,12])near(bank(ordinary,age),bank(point,age));
 });
 test('every applied camera bank is hard-limited to plus or minus forty-five degrees',()=>{
  const t=create(),base=t.rawEntryPose(0),dot=(a,b)=>a.reduce((sum,value,index)=>sum+value*b[index],0);
@@ -669,9 +690,15 @@ test('Saturn opening reaches the requested solar view before its fixed S path be
  assert.doesNotMatch(renderer,/pendingRingTour|beginRingTourApproach/);
  assert.doesNotMatch(app,/saturnApproachState/,'no ordinary-camera Saturn pre-enlargement may precede the S curve');
  assert.equal((app.match(/const openingTarget=openingCameraTarget;/g)||[]).length,2,'boot and T replay share the requested arrival view');
- assert.match(app,/motionMono-openingStartedAt>=openingDuration\)/);
+ assert.match(app,/SATURN_OPENING_HANDOFF_LEAD=250/);
+ assert.match(app,/motionMono-openingStartedAt>=Math\.max\(0,openingDuration-SATURN_OPENING_HANDOFF_LEAD\)\)/);
+ assert.match(renderer,/this\.openingFlight=\{mono,pose,velocity,turn\}/);
+ assert.match(renderer,/velocity\.perspective=\(pose\.perspective-previous\.pose\.perspective\)\/dt/);
+ assert.match(renderer,/startPose,.*openingVelocity:fromOpening\?/);
+ assert.match(renderer,/Number\.isFinite\(capturedTurn\)\?capturedTurn/);
  assert.match(app,/startRingTour\(undefined,true,mono,openingRunMode==='saturn',openingCameraTarget\)/);
- assert.match(app,/let resumeTravel=openingRunMode==='saturn'\|\|\(openingRunMode==='default'&&travelSaved\)/,'refresh can restore an unfinished ring trip');
+ assert.match(app,/let resumeTravel=openingRunMode==='saturn';/,'only the Saturn opening may hand its camera directly to ring travel');
+ assert.doesNotMatch(app,/ring-travel-resume|travelSaved/,'a stale travel flag cannot attach Saturn travel to the default opening');
  assert.match(app,/function replayOpening[\s\S]*?resumeTravel=openingMode==='saturn';/,'T obeys the newly selected opening mode instead of stale travel state');
 });
 test('one Escape spirals out within seven seconds; repeat Escape never restarts or cuts',()=>{
@@ -1515,6 +1542,20 @@ test('opening handoff keeps the rendered projection when its tween anchor is rel
  before.forEach((a,i)=>{for(const k of ['x','y','radius'])near(a[k],after[i][k]);});
 });
 
+test('a saved return projection cannot override the active opening entry',()=>{
+ const r=Object.create(R);Object.assign(r,{w:1280,h:800,cx:620,cy:430,scale:4,camera:{azimuth:.2,elevation:.3,dolly:1.4},projectionAnchor:null,bodyRadiusAtZoom:()=>100});
+ const t=create(),axes={u:{x:1,y:0,z:0},pole:{x:0,y:1,z:0},v:{x:0,y:0,z:1}},saturn={x:2,y:3,z:1},world={x:12,y:-4,z:6};
+ t.entryNormalProjection=r.ringTourNormalProjection();
+ t.returnNormalFrom={origin:[200,100,3],columns:Array.from({length:6},()=>[0,0,0]),radius:400};
+ t.state='entering';t.age=0;t.pose=t.cameraPose();
+ let p=r.prepareRingTourProjection({tour:t,axes,saturn,saturnRadius:100,units:2,focal:r.h/(2*Math.tan(t.pose.fov*Math.PI/360))});
+ const active=r.projectRingTourPoint(p,world,{},25),normal=r.project(world);
+ near(active.x,normal.x,.01);near(active.y,normal.y,.01);near(active.radius,25*normal.perspective,.01);
+ t.state='returning';t.returnAge=0;t.returnDuration=5;t.returnFrom=t.pose;t.returnTo=t.startPose;t.returnMotion={rotationTime:5};
+ p=r.prepareRingTourProjection({tour:t,axes,saturn,saturnRadius:100,units:2,focal:r.h/(2*Math.tan(t.pose.fov*Math.PI/360))});
+ assert.notDeepEqual(p.correction.matrix,r.prepareRingTourProjection({tour:{...t,state:'entering'},axes,saturn,saturnRadius:100,units:2,focal:p.focal}).correction.matrix);
+});
+
 test('point-particle entry releases only its short departure calibration and returns exactly',()=>{
  const r=Object.create(R);Object.assign(r,{w:1280,h:800,cx:620,cy:430,scale:4,camera:{azimuth:.2,elevation:.3,dolly:1.4},projectionAnchor:null,bodyRadiusAtZoom:()=>100});
  const axes={u:{x:1,y:0,z:0},pole:{x:0,y:1,z:0},v:{x:0,y:0,z:1}},saturn={x:2,y:3,z:1},world={x:12,y:-4,z:6};
@@ -1567,6 +1608,47 @@ test('every solar body uses its exact camera depth instead of Saturn magnificati
  assert.equal(hidden.behind,true,'a body behind the camera is not enlarged through the near plane');
  const source=fs.readFileSync(path.join(__dirname,'../src/renderer.js'),'utf8');
  assert.doesNotMatch(source,/overviewBodyRatios|ringTourBodyRatios|RING_TOUR_BODY_DEPTH_RATIO/,'cached size ratios and compressed depth must not control later frames');
+});
+
+test('rotating, stopped and opening views transfer every body into Saturn entry without a jump',()=>{
+ const A=window.SolarAstro,ms=Date.parse('2026-10-08T00:00:00Z');
+ for(const mode of [0,-1,1,'random'])for(const seconds of [0,40,110])for(const opening of [false,true]){
+  const r=Object.create(R);Object.assign(r,{w:1280,h:800,options:{pluto:true,moon:true,overviewOrbitGap:100,actualOrbitSpacing:0},actualScaleMix:0,
+   bodyScales:{},satelliteOrbitScales:{},precisionOrbitPathCache:new Map(),frameItems:new Map(),frameBodies:[],satelliteLayouts:[],frameSerial:0,
+   physicsBodies:new Map(),physicsSatellites:new Map(),clearLabels(){},cameraTween:null,trackingAnchor:null,projectionAnchor:null,flightBank:0,
+   canStartRingTour:()=>true,prepareCloseup(){},startSaturnParticles(){},hitTargets:[]});
+  r.camera=r.defaultCameraSnapshot(ms);
+  if(mode==='random')r.setRandomRotate(true,0);else r.setAutoRotate(mode||1,0);
+  r.advanceAutoRotate(seconds*1000);r.rebuild(ms);
+  if(mode===0)r.stopAutoRotate(seconds*1000);
+  const {bodies}=r.updateFrameBodies(ms);r.updateProjectionAnchor();
+  for(const item of bodies){r.project(item.world,item.screen);item.r*=item.screen.perspective;item.directJob={};}
+  const displayed=bodies.map(item=>({world:{...item.world},screen:{...item.screen},radius:item.r,body:item.body})),camera={...r.camera};
+  if(opening)r.captureOpeningFlight(seconds*1000);
+  r.startRingTour(undefined,opening,seconds*1000);
+  const tour=r.ringTour,saturn=r.currentFrameItem('saturn'),axes=A.bodyAxes(saturn.body);
+  const projection=r.prepareRingTourProjection({tour,axes,saturn:saturn.world,saturnRadius:r.bodyRadiusAtZoom(saturn.body),units:tour.worldUnits,focal:r.h/(2*Math.tan(tour.pose.fov*Math.PI/360))});
+  assert.deepEqual({...r.camera},camera);
+  for(const item of displayed){
+   const actual=r.projectRingTourPoint(projection,item.world,{},r.bodyRadiusAtZoom(item.body));
+   if(item.screen.behind)continue;
+   near(actual.x,item.screen.x,.01);near(actual.y,item.screen.y,.01);near(actual.radius,item.radius,.01);
+  }
+  r.updateFrameBodies(ms);r.updateRingTourTracking(tour,saturn);
+  r.prepareRingTourProjection(projection);
+  for(const item of displayed){
+   if(item.screen.behind)continue;
+   const actual=r.projectRingTourPoint(projection,item.world,{},r.bodyRadiusAtZoom(item.body));
+   near(actual.x,item.screen.x,.01);near(actual.y,item.screen.y,.01);near(actual.radius,item.radius,.01);
+  }
+  tour.age=.001;tour.pose=tour.cameraPose();r.prepareRingTourProjection(projection);
+  for(const item of displayed){
+   if(item.screen.behind)continue;
+   const actual=r.projectRingTourPoint(projection,item.world,{},r.bodyRadiusAtZoom(item.body));
+   near(actual.x,item.screen.x,.1);near(actual.y,item.screen.y,.1);near(actual.radius,item.radius,.1);
+  }
+  tour.dispose();
+ }
 });
 
 test('default and distant Saturn entries keep every visible neighbour below screen-filling size',()=>{
@@ -1743,7 +1825,7 @@ test('retargeting home blends the old normal projection without moving other pla
  const t=create();t.pose={eye:[0,0,-3],forward:[0,0,1],right:[1,0,0],up:[0,1,0],offset:[0,0],orthoScale:4,perspective:.4};
  const axes={u:{x:1,y:0,z:0},pole:{x:0,y:1,z:0},v:{x:0,y:0,z:1}};
  const p={tour:t,axes,saturn:{x:0,y:0,z:0},saturnRadius:100,units:1,focal:550},world={x:2,y:-3,z:1};
- r.prepareRingTourProjection(p);const before=r.projectRingTourPoint(p,world,{},25);t.returnNormalFrom=r.ringTourNormalProjection();
+ r.prepareRingTourProjection(p);const before=r.projectRingTourPoint(p,world,{},25);t.state='returning';t.returnNormalFrom=r.ringTourNormalProjection();
  r.camera={azimuth:1.2,elevation:.6,dolly:1.1};r.scale=12;r.cx=710;r.cy=380;p.saturnRadius=300;
  r.prepareRingTourProjection(p);const after=r.projectRingTourPoint(p,world,{},75);
  near(before.x,after.x);near(before.y,after.y);near(before.radius,after.radius);
@@ -1803,6 +1885,31 @@ test('spatial broad phase exactly matches exhaustive visibility and LOD through 
  }
  assert.ok(checked<total*.7,'broad phase should avoid most individual checks: '+checked+'/'+total);
  t.dispose();assert.equal(spatial.size,0);
+});
+
+test('opening warm-up submits one invisible first draw and restores GPU state even on failure',()=>{
+ const t=create(123,{deferPreparation:true});let draws=0,resets=0;
+ const state={scissor:false,box:[4,5,600,400],mask:[true,true,true,true]};
+ const g={SCISSOR_TEST:1,SCISSOR_BOX:2,COLOR_WRITEMASK:3,isEnabled:()=>state.scissor,getParameter:key=>key===2?[...state.box]:[...state.mask],enable(){state.scissor=true;},disable(){state.scissor=false;},scissor(...v){state.box=v;},colorMask(...v){state.mask=v;}};
+ const gpu={gl:g,textures:new Map([['saturn',{texture:{}}],['saturn-ring',{texture:{}}]]),resetBindings(){resets++;}};
+ t.resources={ready:true,atlas:{}};t.prepare=()=>true;t.preparationReady=true;
+ const pose=t.pose;
+ t.draw=()=>{draws++;assert.deepEqual(state.mask,[false,false,false,false]);assert.deepEqual(state.box,[0,0,1,1]);return true;};
+ assert.equal(t.warm(gpu,1280,800),true);assert.equal(t.warm(gpu,1280,800),true);assert.equal(draws,1);
+ assert.equal(t.pose,pose);assert.equal(t.age,0);assert.equal(resets,1);
+ assert.deepEqual(state,{scissor:false,box:[4,5,600,400],mask:[true,true,true,true]});
+ t.resources.warmed=false;t.draw=()=>{throw Error('driver failure');};
+ assert.throws(()=>t.warm(gpu,1280,800),/driver failure/);
+ assert.deepEqual(state,{scissor:false,box:[4,5,600,400],mask:[true,true,true,true]});assert.equal(resets,2);
+});
+
+test('ring atlas uploads once when decoded and is reused at the first visible draw',()=>{
+ const t=create(123,{deferPreparation:true}),calls=[];
+ t.resources={};t.atlasImage={complete:false,naturalWidth:256,naturalHeight:256};
+ const g={createTexture(){calls.push('create');return {};},activeTexture(){},bindTexture(){},pixelStorei(){},texImage2D(){calls.push('upload');},texParameteri(){},generateMipmap(){calls.push('mipmap');}};
+ t.prepareAtlas({gl:g});assert.equal(calls.length,0);
+ t.atlasImage.complete=true;t.prepareAtlas({gl:g});t.prepareAtlas({gl:g});
+ assert.deepEqual(calls,['create','upload','mipmap']);assert.equal(t.resources.atlasAge,0);
 });
 
 test('incremental scene preparation preserves seeded pools and can be cancelled or transferred',()=>{

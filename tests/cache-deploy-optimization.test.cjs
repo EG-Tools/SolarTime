@@ -5,6 +5,13 @@ function clone(){const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'solar-cache-tes
 test('content cache keys are current, deterministic and line-ending independent',()=>{
  assert.deepEqual(sync(root),[]);const a=revisions(root),b=revisions(root);for(const file of ['src/timer-controller.js','src/assets.js','src/sky.js','styles.css'])assert.equal(a.key(file),b.key(file),file);assert.equal(hash('a\r\nb\r\n'),hash('a\nb\n'));
 });
+test('startup scripts download in parallel while preserving dependency order',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8'),scripts=[...html.matchAll(/<script\b([^>]*)\bsrc="(src\/[^"]+)"[^>]*><\/script>/g)].map(match=>({attributes:match[1],src:match[2],index:match.index}));
+ const runtime=scripts.filter(script=>!['src/consent.js','src/google-analytics.js','src/usage-analytics.js','src/microsoft-clarity.js','src/page-runtime.js'].includes(script.src.split('?')[0]));
+ assert.ok(runtime.length>15);assert.ok(runtime.every(script=>/\bdefer\b/.test(script.attributes)),'every main runtime dependency is queued in parallel');
+ assert.ok(runtime.find(script=>script.src.startsWith('src/ring-tour.js')).index<runtime.find(script=>script.src.startsWith('src/renderer.js')).index);
+ assert.ok(runtime.at(-1).src.startsWith('src/app.js'),'the app still executes after all globals it consumes');
+});
 test('app version-only changes keep unrelated code cache URLs; changed code invalidates only its consumers',()=>{
  const tmp=clone();try{const before=revisions(tmp),oldTimerKey=before.key('src/timer-controller.js'),htmlBefore=fs.readFileSync(path.join(tmp,'index.html'),'utf8');fs.writeFileSync(path.join(tmp,'version.json'),' {"version":"0.60","revision":"r1"}\n');assert.deepEqual(sync(tmp),[]);
  fs.appendFileSync(path.join(tmp,'src/timer-controller.js'),'\n// Changed implementation.\n');assert.throws(()=>sync(tmp),/Stale code cache keys/);assert.deepEqual(sync(tmp,{write:true}),['index.html']);const after=revisions(tmp);assert.notEqual(after.key('src/timer-controller.js'),oldTimerKey);

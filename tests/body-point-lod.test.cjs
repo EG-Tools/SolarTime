@@ -58,15 +58,17 @@ test('opening and warp arrival fade the distant point presentation without fadin
  assert.equal(c.globalAlpha,.4);
  assert.equal(r.drawBodyPoint(c,p,[],0),false);
 });
-test('a pointified opening begins transparent and reaches full alpha over 1.2 seconds',()=>{
+test('a pointified opening begins transparent and reaches full alpha over 1.5 seconds',()=>{
  const {r}=fixture();r.startOpeningPointReveal(1000);
  assert.equal(r.openingPointOpacity(1000,1),0);
  const middle=r.openingPointOpacity(1600,1);assert.ok(middle>0&&middle<1);
- assert.equal(r.openingPointOpacity(2200,1),1);assert.equal(r.openingPointReveal,null);
- assert.equal(r.openingPointOpacity(2300,.4),.4,'ordinary scene opacity remains the upper bound');
+ assert.ok(r.openingPointOpacity(2200,1)<1);
+ assert.equal(r.openingPointOpacity(2500,1),1);assert.equal(r.openingPointReveal,null);
+ assert.equal(r.openingPointOpacity(2600,.4),.4,'ordinary scene opacity remains the upper bound');
 });
 test('boot arms point opacity before both the warm-up and visible opening frames',()=>{
  const source=fs.readFileSync(require.resolve('../src/app.js'),'utf8');
+ assert.match(source,/renderer\.sky\?\.ready&&\(openingRunMode!==['"]none['"]\|\|surfacesReady\)/,'point openings must not wait for unused planet textures');
  assert.match(source,/bootMono=performance\.now\(\),bootMs=clock\.value\(bootMono\);if\(openingRunMode!==['"]none['"]\)renderer\.startOpeningPointReveal\(bootMono\);renderer\.draw/);
  assert.match(source,/revealMono=performance\.now\(\);if\(openingRunMode!==['"]none['"]\)renderer\.startOpeningPointReveal\(revealMono\);renderer\.startOrbitReveal/);
 });

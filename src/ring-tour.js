@@ -19,10 +19,8 @@
   const BANK_LIMIT=20*Math.PI/180;
   const BANK_MAX=45*Math.PI/180;
   const BANK_HANDOFF=2;
-  const POINT_BANK_HANDOFF=5;
   const LANDING_BANK_SETTLE=3.5;
-  const POINT_LANDING_BANK_HOLD=3.5;
-  const POINT_LANDING_BANK_BRAKE=.75;
+  const ENTRY_BANK_BLEND=4.2;
   const MIN_LENS_SCALE=.8;
   const DUST_HEIGHT_RATIO=.7;
   const GRAIN_HEIGHT=.7*.8*.7*.7*.8*1.5; // Shared vertical spread for entry, orbit and return.
@@ -32,6 +30,13 @@
   const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
   // Entry removes and retreat restores opacity with one reversible curve.
   const transition=(time,start,end)=>ease((time-start)/Math.max(.001,end-start));
+  const entryBankBlend=age=>{
+    const u=clamp(age/ENTRY_BANK_BLEND,0,1),loose=1.5/ENTRY_BANK_BLEND,late=Math.max(0,u-loose);
+    // Keep the whole first three seconds slightly looser. A smooth time warp
+    // after 1.5 seconds rejoins the same endpoint; its slope stays continuous,
+    // so this is still one blend, not two starts.
+    return ease(clamp(u-8*late*late*(1-u)*(1-u),0,1));
+  };
   function projectionEye(p){
     const shift=(1-p.perspective)*p.orthoScale/Math.max(p.perspective,.001);
     return p.eye.map((v,i)=>v-p.forward[i]*shift);
@@ -546,13 +551,14 @@
     }catch(error){if(p)gl.deleteProgram(p);throw error;}finally{shaders.forEach(s=>gl.deleteShader(s));}
   }
   class RingTour{
-    constructor({frame,radius,width,height,screen,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,prepared,deferPreparation=false,particleCapacity=1,lensZoom=1,pointified=false}){
+    constructor({frame,radius,width,height,screen,startPose,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,prepared,deferPreparation=false,particleCapacity=1,lensZoom=1,pointified=false}){
       this.particleCapacity=clamp(particleCapacity,.25,1);this.particleBudget=1;
       this.openingResume=!!openingVelocity;this.pointified=!!pointified;
       const rand=random(seed);this.seed=seed;this.phase=phase;this.state='entering';this.age=0;this.lastMono=null;this.speed=1;
       this.radius=SETTINGS.pathRadius-(SETTINGS.pathRadius-1.28)*random(seed^0x6a09e667)()*.2;this.height=.025+rand()*.023;this.direction=rand()<.5?-1:1;this.period=(115+rand()*55)/6;
       this.fov=72;this.lensZoom=Math.max(MIN_LENS_SCALE,Number.isFinite(lensZoom)?lensZoom:1);this.yaw=0;this.pitch=0;this.pan=[0,0];this.resources=null;this.disposed=false;
-      this.startPose=viewPose({frame,radius,width,height,screen,fov:this.fov});
+      const captured=startPose&&['eye','right','up','forward','offset'].every(key=>Array.isArray(startPose[key])&&startPose[key].every(Number.isFinite));
+      this.startPose=captured?{...startPose,eye:[...startPose.eye],right:[...startPose.right],up:[...startPose.up],forward:[...startPose.forward],offset:[...startPose.offset]}:viewPose({frame,radius,width,height,screen,fov:this.fov});
       // A sub-pixel Saturn already represents a camera far enough away for a
       // perspective view. Starting it as an orthographic lens and blending to
       // perspective made every surrounding body follow a different apparent
@@ -604,9 +610,8 @@
         const a=this.rawEntryPose(0),b=this.rawEntryPose(.001),delta={};
         for(const key of ['eye','offset','right','up','forward'])delta[key]=a[key].map((v,i)=>(openingVelocity[key]?.[i]||0)-(b[key][i]-v)/.001);
         delta.orthoScale=(openingVelocity.orthoScale||0)-(b.orthoScale-a.orthoScale)/.001;
-        delta.perspective=-(b.perspective-a.perspective)/.001;
+        delta.perspective=(openingVelocity.perspective||0)-(b.perspective-a.perspective)/.001;
         this.openingMomentum=delta;
-        this.prepareOpeningTiming();
       }
       // Double-click tracking fills one quarter of the short screen edge.
       // Match that departure's 2.5-second proximity; a distant overview must
@@ -931,7 +936,7 @@
       // Distance and perspective must advance on the same clock. Letting a far
       // camera close the gap first made Saturn grow alone, then warped the rest
       // of the solar system when perspective caught up later.
-      const pose={...turnFrame(frame,turn),eye:this.entryPosition(age,motion),offset:blend(this.startOffset,[0,0],weight),perspective:projection,fov,orthoScale:this.orthoScale*motion.distance/this.startDistance};
+      const pose={...turnFrame(frame,turn),eye:this.entryPosition(age,motion),offset:blend(this.startOffset,[0,0],weight),perspective:mix(this.startPose.perspective||0,1,projection),fov,orthoScale:this.orthoScale*motion.distance/this.startDistance};
       if(this.entryView){
         // Follow the moving planet progressively, without changing simulation
         // time or the ring arrival. The live lens also prevents a stale size
@@ -944,67 +949,29 @@
       }
       return pose;
     }
-    openingCurveEye(age){
-      const eye=this.entryPosition(age),bridge=this.openingBridge(age);
-      return bridge?eye.map((v,i)=>v+this.openingMomentum.eye[i]*bridge):eye;
-    }
-    prepareOpeningTiming(){
-      const duration=2.5,count=512,step=duration/count,cumulative=new Float64Array(count+1);
-      let previous=this.openingCurveEye(0);
-      for(let i=1;i<=count;i++){
-        const eye=this.openingCurveEye(i*step);
-        cumulative[i]=cumulative[i-1]+Math.hypot(...eye.map((v,j)=>v-previous[j]));previous=eye;
-      }
-      const speed=age=>{
-        const h=.002,lo=Math.max(0,age-h),hi=Math.min(duration,age+h),a=this.openingCurveEye(lo),b=this.openingCurveEye(hi);
-        return Math.hypot(...b.map((v,i)=>v-a[i]))/(hi-lo);
-      };
-      const derivativeStep=.01,v0=speed(0),v1=speed(duration),a0=(speed(derivativeStep)-v0)/derivativeStep,a1=(v1-speed(duration-derivativeStep))/derivativeStep;
-      const baseAverage=(v0+v1)/2+(a0-a1)*duration/12,boost=cumulative[count]/duration-baseAverage;
-      this.openingTiming={duration,count,step,cumulative,v0,v1,a0,a1,boost};
-    }
-    openingSourceAge(age){
-      const timing=this.openingTiming;
-      if(!timing||age<=0||age>=timing.duration)return age;
-      const u=age/timing.duration,u2=u*u,u3=u2*u,u4=u3*u,u5=u4*u,
-        h00=.5*u4-u3+u,h10=.25*u4-2*u3/3+u2/2,h01=-.5*u4+u3,h11=.25*u4-u3/3;
-      const distance=timing.duration*(timing.v0*h00+timing.a0*timing.duration*h10+timing.v1*h01+timing.a1*timing.duration*h11+timing.boost*(10*u3-15*u4+6*u5));
-      const target=clamp(distance,0,timing.cumulative[timing.count]);let low=0,high=timing.count;
-      while(high-low>1){const middle=(low+high)>>1;if(timing.cumulative[middle]<target)low=middle;else high=middle;}
-      const span=timing.cumulative[high]-timing.cumulative[low],fraction=span>1e-12?(target-timing.cumulative[low])/span:0;
-      return (low+fraction)*timing.step;
-    }
     rawEntryPathBank(age,right){
-      // Bank follows the actual velocity-bridged path, not a different raw
-      // spiral underneath it. Otherwise an opening handoff rolls the wrong way.
-      return smoothBank(t=>this.openingCurveEye(this.openingSourceAge(t)),age,right)*transition(age,this.openingResume?2.5:0,this.openingResume?6:2.5);
+      // One S path owns bank at every distance. Opening momentum still keeps
+      // translation continuous, but feeding that short handoff into roll made
+      // a second bank controller and could change several degrees in one frame.
+      return smoothBank(t=>this.entryPosition(t),age,right);
     }
     entryPathBank(age,right){
       const raw=this.rawEntryPathBank(age,right);
-      if(!this.pointified)return mix(raw,this.rawLandingBankAngle(),transition(age,SETTINGS.entry-LANDING_BANK_SETTLE,SETTINGS.entry));
-      const start=SETTINGS.entry-POINT_LANDING_BANK_HOLD;
-      if(age<=start||age>=SETTINGS.entry)return age>=SETTINGS.entry?this.landingBankPlan().angle:raw;
-      const plan=this.landingBankPlan(),u=clamp((age-start)/POINT_LANDING_BANK_BRAKE,0,1);
-      // Keep the entry roll that was already established before the close
-      // approach. Only its current angular velocity is gently braked; sampling
-      // the changing S curvature until frame ten made the entire solar system
-      // roll to the opposite side and then settle back at the ring.
-      return plan.angle+plan.rate*POINT_LANDING_BANK_BRAKE*initialTangent(u);
+      if(age>=SETTINGS.entry)return raw;
+      // One rule for near, distant, manual and opening entries: one uninterrupted
+      // blend starts level and stays ten percent gentler through four seconds.
+      // It then recovers smoothly before settling into the exact landing frame.
+      const strength=mix(.9,1,transition(age,4,SETTINGS.entry-LANDING_BANK_SETTLE));
+      const eased=raw*entryBankBlend(age)*strength;
+      return mix(eased,this.rawLandingBankAngle(),transition(age,SETTINGS.entry-LANDING_BANK_SETTLE,SETTINGS.entry));
     }
     rawLandingBankAngle(){
       const age=SETTINGS.entry,pose=this.rawEntryPose(age);
       return this.rawEntryPathBank(age,pose.right);
     }
-    landingBankPlan(){
-      if(this.entryLandingPlan)return this.entryLandingPlan;
-      const age=SETTINGS.entry-POINT_LANDING_BANK_HOLD,h=.01,pose=this.rawEntryPose(age),before=this.rawEntryPose(age-h),after=this.rawEntryPose(age+h);
-      const angle=this.rawEntryPathBank(age,pose.right),a=this.rawEntryPathBank(age-h,before.right),b=this.rawEntryPathBank(age+h,after.right);
-      const rate=clamp((b-a)/(2*h),-10*Math.PI/180,10*Math.PI/180);
-      return this.entryLandingPlan={angle,rate};
-    }
     landingBankAngle(){
       if(Number.isFinite(this.entryLandingBank))return this.entryLandingBank;
-      return this.entryLandingBank=this.pointified?this.landingBankPlan().angle:this.rawLandingBankAngle();
+      return this.entryLandingBank=this.rawLandingBankAngle();
     }
     bankEntryPose(pose,age){
       return bankPose(pose,this.cruiseBank(age,this.entryPathBank(age,pose.right)));
@@ -1015,8 +982,7 @@
       // owners on the entry/cruise boundary.
       const laps=(age-SETTINGS.entry)/this.period;
       if(laps<=0){if(laps===0)this.entryLandingBank=pathBank;return pathBank;}
-      const handoff=this.pointified?POINT_BANK_HANDOFF:BANK_HANDOFF;
-      const inherited=mix(this.landingBankAngle(),pathBank,transition(age,SETTINGS.entry,SETTINGS.entry+handoff));
+      const inherited=mix(this.landingBankAngle(),pathBank,transition(age,SETTINGS.entry,SETTINGS.entry+BANK_HANDOFF));
       // X reaches 80% at the end of the first lap. Until then use the settled
       // path bank; afterwards share X/Y's clock and reproducible large swings.
       if(laps<=1)return inherited;
@@ -1032,16 +998,19 @@
       const handoff=2.5;
       return this.openingMomentum&&age>0&&age<handoff?handoff*initialTangent(age/handoff):0;
     }
-    entryPose(age,fov=this.fov){
-      const sourceAge=this.openingSourceAge(age),pose=this.rawEntryPose(sourceAge,fov),carry=this.openingMomentum;
-      const bridge=this.openingBridge(sourceAge);
-      if(!bridge)return this.bankEntryPose(pose,age);
-      // Preserve the incoming velocity without immediately braking it. This
-      // tangent bridge has zero acceleration at both ends of the handoff.
-      for(const key of ['eye','offset','forward','up'])pose[key]=pose[key].map((v,i)=>v+carry[key][i]*bridge);
+    openingPose(age,fov=this.fov){
+      const pose=this.rawEntryPose(age,fov),carry=this.openingMomentum,bridge=this.openingBridge(age);
+      if(!bridge)return pose;
+      // One C2 bridge carries the complete opening camera, including its lens,
+      // directly into the existing S curve. There is no second distance clock.
+      for(const key of ['eye','offset','forward','up'])pose[key]=pose[key].map((v,i)=>v+(carry?.[key]?.[i]||0)*bridge);
       Object.assign(pose,axes(unit(pose.forward),unit(pose.up)));
-      pose.orthoScale=Math.max(.001,pose.orthoScale+carry.orthoScale*bridge);
-      pose.perspective=clamp(pose.perspective+carry.perspective*bridge,0,1);
+      pose.orthoScale=Math.max(.001,pose.orthoScale+(carry?.orthoScale||0)*bridge);
+      pose.perspective=clamp(pose.perspective+(carry?.perspective||0)*bridge,0,1);
+      return pose;
+    }
+    entryPose(age,fov=this.fov){
+      const pose=this.openingPose(age,fov);
       return this.bankEntryPose(pose,age);
     }
     driftStrength(age,eye){
@@ -1344,6 +1313,37 @@
       resources.chip=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,resources.chip);g.bufferData(g.ARRAY_BUFFER,chip,g.STATIC_DRAW);
       resources.ready=true;
     }
+    prepareAtlas(gpu){
+      const g=gpu.gl,r=this.resources,image=this.atlasImage;
+      if(!r||r.atlas||!image?.complete||!image.naturalWidth)return;
+      r.atlasAge=this.visualAge||0;r.atlasBytes=Math.ceil(image.naturalWidth*image.naturalHeight*4*4/3);
+      r.atlas=g.createTexture();g.activeTexture(g.TEXTURE2);g.bindTexture(g.TEXTURE_2D,r.atlas);
+      g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);g.pixelStorei(g.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+      g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,image);
+      for(const key of [g.TEXTURE_WRAP_S,g.TEXTURE_WRAP_T])g.texParameteri(g.TEXTURE_2D,key,g.CLAMP_TO_EDGE);
+      g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
+      g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR_MIPMAP_LINEAR);g.generateMipmap(g.TEXTURE_2D);
+    }
+    needsWarmup(){
+      return !this.disposed&&(!this.preparationReady||!this.resources?.ready||!this.resources?.warmed||(!this.resources?.atlas&&this.atlasImage?.complete&&this.atlasImage.naturalWidth>0));
+    }
+    warm(gpu,width,height,budget=3){
+      const start=performance.now();
+      if(!this.prepare(gpu,budget)||!this.preparationReady||!this.resources.ready)return false;
+      if(!this.resources.atlas&&performance.now()-start<budget)this.prepareAtlas(gpu);
+      if(this.resources.warmed)return true;
+      if(performance.now()-start>=budget||!gpu.textures.get('saturn')?.texture||!gpu.textures.get('saturn-ring')?.texture)return false;
+      // Linking alone does not exercise the driver's first-draw pipeline.
+      // Submit the real scene once without changing any visible pixel or time.
+      const g=gpu.gl,scissor=g.isEnabled(g.SCISSOR_TEST),box=g.getParameter(g.SCISSOR_BOX),mask=g.getParameter(g.COLOR_WRITEMASK);
+      try{
+        g.enable(g.SCISSOR_TEST);g.scissor(0,0,1,1);g.colorMask(false,false,false,false);
+        this.resources.warmed=this.draw(gpu,width,height);
+      }finally{
+        g.colorMask(...mask);g.scissor(...box);if(!scissor)g.disable(g.SCISSOR_TEST);gpu.resetBindings();
+      }
+      return !!this.resources.warmed;
+    }
     draw(gpu,width,height){
       const g=gpu.gl,planet=gpu.textures.get('saturn'),ring=gpu.textures.get('saturn-ring');
       if(!planet?.texture||!ring?.texture||!this.prepare(gpu,3))return false;
@@ -1356,15 +1356,7 @@
       // The orbit-only field is world-fixed; disk/debris/dust retain their
       // shared local ring handoff. Free look never moves the particles.
       this.prepareGrainRoute();
-      for(const [key,image] of [['atlas',this.atlasImage]])if(!r[key]&&image?.complete&&image.naturalWidth){
-        r[key+'Age']=this.visualAge;r[key+'Bytes']=Math.ceil(image.naturalWidth*image.naturalHeight*4*4/3);
-        r[key]=g.createTexture();g.activeTexture(g.TEXTURE2);g.bindTexture(g.TEXTURE_2D,r[key]);
-        g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);g.pixelStorei(g.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
-        g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,image);
-        for(const key of [g.TEXTURE_WRAP_S,g.TEXTURE_WRAP_T])g.texParameteri(g.TEXTURE_2D,key,g.CLAMP_TO_EDGE);
-        g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
-        g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR_MIPMAP_LINEAR);g.generateMipmap(g.TEXTURE_2D);
-      }
+      this.prepareAtlas(gpu);
       g.disable(g.DEPTH_TEST);g.enable(g.BLEND);g.blendFuncSeparate(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA,g.ONE,g.ONE_MINUS_SRC_ALPHA);
       g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,planet.texture);g.activeTexture(g.TEXTURE1);g.bindTexture(g.TEXTURE_2D,ring.texture);
       const set=(shader,pose=p,detailEye=detail.eye,light=this.light)=>{g.useProgram(shader.program);g.uniform3fv(shader.u.eye,pose.eye);g.uniform3fv(shader.u.detailEye,detailEye);g.uniform3fv(shader.u.light,light);g.uniformMatrix3fv(shader.u.basis,false,pose.basis);g.uniform2f(shader.u.lens,width/height*tan,tan);g.uniform2fv(shader.u.offset,pose.offset);g.uniform1f(shader.u.perspective,pose.perspective);g.uniform1f(shader.u.orthoScale,pose.orthoScale);g.uniform1i(shader.u.ringMap,1);};

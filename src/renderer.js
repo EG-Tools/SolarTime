@@ -63,6 +63,7 @@
   const REGION_INSPECTION_ZOOM=250; // Reference disk size only; inspection preserves the user's lens.
   // Screen-space appearance only: never change physical size, lens or camera pose.
   const BODY_POINT=Object.freeze({fadeBegin:2.2,fadeEnd:5.2,growthFullAt:1.2,sizeCurve:.25});
+  const OPENING_POINT_REVEAL=1500;
   const POINT_TOUR_CAMERA_HANDOFF=1.2;
   const RANDOM_ROTATION=2;
   const AUTO_ROTATE_SPEED=1.8*DEG; // radians per real second; independent of orbital time
@@ -121,7 +122,7 @@
       this.orbitRevealStart=Number.isFinite(mono)?mono:performance.now();
       this.invalidatePresentation(ORBIT_REVEAL.duration);
     }
-    startOpeningPointReveal(mono=performance.now(),duration=WARP_PARTICLES.openingAppear) {
+    startOpeningPointReveal(mono=performance.now(),duration=OPENING_POINT_REVEAL) {
       this.openingPointReveal={start:Number.isFinite(mono)?mono:performance.now(),duration:Math.max(1,duration)};
       this.invalidatePresentation(duration,mono);
     }
@@ -163,7 +164,7 @@
       if(duration>0&&Number.isFinite(mono))this.presentationUntil=Math.max(this.presentationUntil,mono+duration);
     }
     needsDraw(mono=performance.now()){
-      return !!(this.preparedRingTour&&!this.preparedRingTour.disposed&&(!this.preparedRingTour.preparationReady||!this.preparedRingTour.resources?.ready))||
+      return !!this.preparedRingTour?.needsWarmup()||
         this.dirty||this.presentationDirty||this.resourceSignature()!==this.presentedResources||
         (!this.animationPaused&&(!!this.ringTour||!!this.cameraTween||!!this.bankRelease||!!this.openingParticles||!!this.autoRotation||this.orbitRevealAlpha(mono)<.9999||mono<this.presentationUntil))||!!this.actualScaleTween||!!this.orbitSpacingTween||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
     }
@@ -2974,16 +2975,43 @@
       }catch(error){this.preparedRingTourError=error.message;this.clearPreparedTour();}
       finally{this.gpu.resetBindings();this.dirty=true;}
     }
+    ringTourDeparturePose(item) {
+      const pose=window.SolarRingTour.viewPose({frame:this.bodyFrame(item.body),radius:item.r,width:this.w,height:this.h,screen:item.screen});
+      if(item.r<BODY_POINT.fadeBegin)return {...pose,perspective:1,pointified:true};
+      // Express the live normal-camera lens in the ring camera's local frame.
+      // The former handoff copied position and rotation but silently reset this
+      // value to orthographic, so a separate screen correction had to catch up
+      // after the transition had already begun.
+      const axes=A.bodyAxes(item.body),units=this.bodyRadiusAtZoom(item.body)/this.scale,f=pose.forward;
+      const delta={
+        x:(axes.u.x*f[0]+axes.pole.x*f[1]+axes.v.x*f[2])*units,
+        y:(axes.u.y*f[0]+axes.pole.y*f[1]+axes.v.y*f[2])*units,
+        z:(axes.u.z*f[0]+axes.pole.z*f[1]+axes.v.z*f[2])*units
+      };
+      const base=this.projectView(item.world,true).denominator??1,probe={
+        x:item.world.x+delta.x,y:item.world.y+delta.y,z:item.world.z+delta.z,
+        depthX:(item.world.depthX??item.world.x)+delta.x,
+        depthY:(item.world.depthY??item.world.y)+delta.y,
+        depthZ:(item.world.depthZ??item.world.z)+delta.z
+      },next=this.projectView(probe,true).denominator??base;
+      pose.perspective=clamp(pose.orthoScale*(next-base)/Math.max(DOLLY.nearRatio,Math.abs(base)),0,1);
+      return pose;
+    }
     captureOpeningFlight(mono){
       mono=this.animationMono(mono);
       const p=this.currentFrameItem('saturn');if(!p||p.screen.behind||!(p.r>0))return;
-      const pose=window.SolarRingTour.viewPose({frame:this.bodyFrame(p.body),radius:p.r,width:this.w,height:this.h,screen:p.screen}),previous=this.openingFlight;
+      const pose=this.ringTourDeparturePose(p),previous=this.openingFlight;
+      const move=this.cameraTween?.timing==='opening'?this.cameraTween:null;
+      // Keep the last opening curvature as well as velocity. A slow frame may
+      // finish the tween before the app performs the Saturn handoff.
+      const turn=move?this.openingTurn(move,clamp((mono-move.start)/move.duration,0,1)):(previous?.turn||0);
       const dt=previous?(mono-previous.mono)/1000:0,velocity={};
       if(dt>0&&dt<.25){
         for(const key of ['eye','offset','right','up','forward'])velocity[key]=pose[key].map((v,i)=>(v-previous.pose[key][i])/dt);
         velocity.orthoScale=(pose.orthoScale-previous.pose.orthoScale)/dt;
+        velocity.perspective=(pose.perspective-previous.pose.perspective)/dt;
       }
-      this.openingFlight={mono,pose,velocity};
+      this.openingFlight={mono,pose,velocity,turn};
     }
     startRingTour(target,fromOpening=false,mono=performance.now(),returnAfterLap=false,returnTargetOverride=null) {
       mono=this.animationMono(mono);
@@ -2999,13 +3027,15 @@
       const returnCamera={...returnSource};
       if(fromOpening){
         const axis=window.SolarRingTour.screenAxis(this.bodyFrame(p.body));
-        const move=this.cameraTween,turn=move?this.openingTurn(move,clamp((mono-move.start)/move.duration,0,1)):0;
+        const move=this.cameraTween,capturedTurn=this.openingFlight?.turn;
+        const turn=Number.isFinite(capturedTurn)?capturedTurn:(move?this.openingTurn(move,clamp((mono-move.start)/move.duration,0,1)):0);
         target={side:(p.screen.x-this.w/2)*axis[0]+(p.screen.y-this.h/2)*axis[1]<0?-1:1,turnSign:-Math.sign(turn)};
         // Freeze the camera while its existing particle afterglow continues.
         if(this.cameraTween)this.cancelCameraTween(mono,true);
       }
       this.prepareCloseup('saturn');this.ringTourHover=false;
-      this.ringTour=new window.SolarRingTour({frame:this.bodyFrame(p.body),radius:p.r,width:this.w,height:this.h,screen:p.screen,target,light:p.directJob.light,phase:p.directJob.phase||0,grainStyle:rand=>this.flightParticleStyle(rand),openingVelocity:fromOpening?(this.openingFlight?.velocity||{}):null,prepared:fromOpening?this.preparedRingTour:null,particleCapacity:window.SolarPerformance?.particleCapacity?.(this.options.quality)??1,lensZoom:this.camera.zoom,deferPreparation:true,pointified:p.r<BODY_POINT.fadeBegin});
+      const startPose=fromOpening&&this.openingFlight?.pose?this.openingFlight.pose:this.ringTourDeparturePose(p);
+      this.ringTour=new window.SolarRingTour({frame:this.bodyFrame(p.body),radius:p.r,width:this.w,height:this.h,screen:p.screen,startPose,target,light:p.directJob.light,phase:p.directJob.phase||0,grainStyle:rand=>this.flightParticleStyle(rand),openingVelocity:fromOpening?(this.openingFlight?.velocity||{}):null,prepared:fromOpening?this.preparedRingTour:null,particleCapacity:window.SolarPerformance?.particleCapacity?.(this.options.quality)??1,lensZoom:this.camera.zoom,deferPreparation:true,pointified:p.r<BODY_POINT.fadeBegin});
       if(fromOpening)this.preparedRingTour=null;
       if(openingProjection)this.ringTour.entryNormalProjection=openingProjection;
       this.flightLook=null;this.lookRelease=null;
@@ -3162,6 +3192,7 @@
       // approach takes over. A frozen snapshot makes only Saturn stop moving
       // at high time rates, while the shared body projection keeps orbiting.
       tour.entryView=this.ringTourReturnView(item);
+      tour.entryView.perspective=tour.startPose.perspective;
       tour.pose=tour.cameraPose();
     }
     ringTourReturnNormalFrom(tour) {
@@ -3214,10 +3245,26 @@
         }
         matrix[0][0]-=(this.w/2+reference.offset[0]*f)*w;
         matrix[1][0]-=(this.h/2-reference.offset[1]*f)*w;matrix[2][0]-=w;
-        return {matrix,radius:(map.radius*gain-k)/saturnRadius};
+        const perspective=reference.perspective||0;
+        if(perspective>0&&perspective<1){
+          // Subtract the captured lens, not an orthographic stand-in. Otherwise
+          // its depth is applied twice on the very first travel frame.
+          const forward=reference.forward,coeff=['x','y','z'].map(key=>(axes.u[key]*forward[0]+axes.pole[key]*forward[1]+axes.v[key]*forward[2])/units/unit);
+          const constant=-coeff[0]*saturn.x-coeff[1]*saturn.y-coeff[2]*saturn.z-flightDot(forward,reference.eye)/unit-w;
+          for(const [row,gain] of [[0,this.w/2+reference.offset[0]*f],[1,this.h/2-reference.offset[1]*f],[2,1]]){
+            matrix[row][0]-=gain*perspective*constant;
+            for(let i=0;i<3;i++)matrix[row][i+1]-=gain*perspective*coeff[i];
+            matrix[row]=matrix[row].map(value=>value/(1-perspective));
+          }
+        }
+        return {matrix,radius:(map.radius*gain-k)/saturnRadius/(perspective>0&&perspective<1?1-perspective:1)};
       };
       let current=correction(tour.returnTo||tour.entryView||tour.startPose,tour.entryNormalProjection||this.ringTourNormalProjection(saturnRadius));
-      if(tour.returnNormalFrom){
+      // A banked/warped normal view is captured early for the eventual exit,
+      // but it must not participate while the entry camera owns the scene.
+      // Applying the return map with returnProgress(0) replaced the opening map
+      // on every entering frame and created a second, hidden handoff.
+      if(tour.returnNormalFrom&&(tour.state==='returning'||tour.state==='complete')){
         const reference=tour.entryView||tour.startPose;
         const from=correction(tour.liveReturn?this.ringTourMappedView(saturn,tour.returnNormalFrom,reference):reference,tour.returnNormalFrom),t=tour.returnProgress(tour.returnNormalStart||0);
         current={matrix:current.matrix.map((row,i)=>row.map((v,j)=>mix(from.matrix[i][j],v,t))),radius:mix(from.radius,current.radius,t)};
@@ -3290,8 +3337,8 @@
       mono=this.animationMono(mono);
       this.updateTravelParticleBudget(mono);
       const prepared=this.preparedRingTour;
-      if(prepared&&!prepared.disposed&&(!prepared.preparationReady||!prepared.resources?.ready)){
-        try{prepared.prepare(this.gpu,3);}
+      if(prepared?.needsWarmup()){
+        try{prepared.warm(this.gpu,this.w,this.h,3);}
         catch(error){this.preparedRingTourError=error.message;this.clearPreparedTour();}
         finally{this.gpu.resetBindings();}
       }
