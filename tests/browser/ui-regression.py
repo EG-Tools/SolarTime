@@ -48,7 +48,9 @@ def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seo
  try:
   page.wait_for_function('!!window.SolarTime',timeout=15000)
   home=page.evaluate("SolarTime.renderer.defaultCameraSnapshot()")
-  opening=page.evaluate("({state:SolarTime.getState().opening,zoom:SolarTime.renderer.camera.zoom,dolly:SolarTime.renderer.camera.dolly,focus:SolarTime.renderer.camera.focus})")
+  # Startup can already have advanced a frame before this browser round trip.
+  # Verify the captured departure, not a timing-dependent live camera sample.
+  opening=page.evaluate("() => {const r=SolarTime.renderer,c=r.cameraTween?.from||r.camera;return {state:SolarTime.getState().opening,zoom:c.zoom,dolly:c.dolly,focus:c.focus};}")
   assert opening['state'] and abs(opening['zoom']-home['zoom'])<1e-9 and abs(opening['dolly']-.001)<1e-9 and opening['focus'] is None,opening
   page.wait_for_function("document.getElementById('loading').hidden&&!SolarTime.getState().opening",timeout=12000)
   arrived=page.evaluate("({state:SolarTime.getState().opening,zoom:SolarTime.renderer.camera.zoom,dolly:SolarTime.renderer.camera.dolly,panX:SolarTime.renderer.camera.panX,panY:SolarTime.renderer.camera.panY})")
