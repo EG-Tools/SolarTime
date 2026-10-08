@@ -11,12 +11,12 @@ test('production requires the latest successful exact-main verification, not a P
 test('all platform, browser and aggregate jobs must pass; a skipped browser never authorizes deployment',()=>{
  const jobs=REQUIRED.map(name=>({name,status:'completed',conclusion:'success'}));assertJobs(jobs);
  for(let i=0;i<jobs.length;i++)assert.throws(()=>assertJobs(jobs.filter((_,j)=>i!==j)));
- assert.throws(()=>assertJobs(jobs.map(j=>j.name==='browser (ui)'?{...j,conclusion:'skipped'}:j)));
+ for(const name of REQUIRED.filter(name=>name.startsWith('browser ')))assert.throws(()=>assertJobs(jobs.map(j=>j.name===name?{...j,conclusion:'skipped'}:j)));
  assertMain(sha,sha);assert.throws(()=>assertMain(sha,'b'.repeat(40)));
 });
 test('one candidate workflow owns the full matrix, independent browser suites and Windows native checks',()=>{
  const text=fs.readFileSync(path.join(root,'.github/workflows/verify.yml'),'utf8');
- assert.match(text,/os: \[ubuntu-latest, windows-latest\]/);assert.match(text,/node: \['22', '24'\]/);assert.match(text,/suite: \[ui, tiny-star\]/);assert.match(text,/windows-shutdown.integration.ps1/);assert.match(text,/if: always\(\)/);assert.doesNotMatch(text,/secrets\.|verify-public-release/);
+ assert.match(text,/os: \[ubuntu-latest, windows-latest\]/);assert.match(text,/node: \['22', '24'\]/);assert.match(text,/suite: \[opening, features, desktop, mobile, installed, tiny-star\]/);assert.match(text,/windows-shutdown.integration.ps1/);assert.match(text,/if: always\(\)/);assert.doesNotMatch(text,/secrets\.|verify-public-release/);
  for(const file of ['alarm-music-verification.yml','shutdown-verification.yml'])assert.equal(fs.existsSync(path.join(root,'.github/workflows',file)),false);
 });
 test('manual and automatic production paths share the guard and never grant PRs cloud credentials',()=>{

@@ -17,7 +17,10 @@ def png(w=32,h=16):
  def chunk(t,d):return struct.pack('!I',len(d))+t+d+struct.pack('!I',zlib.crc32(t+d)&0xffffffff)
  return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('!2I5B',w,h,8,2,0,0,0))+chunk(b'IDAT',zlib.compress((b'\x00'+b'\x24\x32\x48'*w)*h))+chunk(b'IEND',b'')
 image=png()
-def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seoul'):
+UI_CASES={'desktop':[((1280,800),False)],'mobile':[((390,844),False),((844,390),False)],'installed':[((390,844),True),((844,390),True)]}
+UI_GROUPS=['opening','features',*UI_CASES]
+
+def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seoul',verify_opening=False):
  context=browser.new_context(viewport=dict(width=size[0],height=size[1]),locale=locale,timezone_id=timezone_id,reduced_motion='reduce',has_touch=standalone)
  page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  diagnostics.attach(context,page,str(size)+(' installed-simulation' if standalone else ' browser'))
@@ -29,7 +32,7 @@ def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seo
  page.route('**/*',lambda route:route.abort())
  page.set_content(html,wait_until='domcontentloaded')
  import base64
- payload={'image':'data:image/png;base64,'+base64.b64encode(image).decode(),'standalone':standalone,'locales':{p.stem:json.loads(p.read_text(encoding='utf8')) for p in (root/'src/locales').glob('*.json')},'notes':(root/'src/release-notes.js').read_text(encoding='utf8')}
+ payload={'image':'data:image/png;base64,'+base64.b64encode(image).decode(),'standalone':standalone,'opening':verify_opening,'locales':{p.stem:json.loads(p.read_text(encoding='utf8')) for p in (root/'src/locales').glob('*.json')},'notes':(root/'src/release-notes.js').read_text(encoding='utf8')}
  page.evaluate(r"""p=>{
   Date.now=()=>1789732800000;
   if(p.standalone)Object.defineProperty(navigator,'standalone',{get:()=>true});
@@ -37,6 +40,7 @@ def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seo
   // General UI checks start as a returning visitor; help_onboarding.cjs tests first-visit help separately.
   for(const name of ['localStorage','sessionStorage']){const memory=new Map(name==='localStorage'?[['solarTimeCookieConsentV1','denied']]:[]);Object.defineProperty(window,name,{value:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)},configurable:true});}
   localStorage.setItem('solar-time.help-seen.v1','true');
+  localStorage.setItem('solar-time.opening-mode.v1',JSON.stringify(p.opening?'default':'none'));
   const NativeImage=window.Image;window.Image=class extends NativeImage{set src(value){super.src=p.image;}get src(){return super.src;}};
   window.__fixtureRequests=[];
   window.fetch=async input=>{const url=String(input);__fixtureRequests.push(url);const match=/locales\/([^.]+)\.json/.exec(url);if(match)return new Response(JSON.stringify(p.locales[match[1]]),{headers:{'Content-Type':'application/json'}});const bytes=Uint8Array.from(atob(p.image.split(',')[1]),c=>c.charCodeAt(0));return new Response(bytes,{headers:{'Content-Type':'image/png'}});};
@@ -50,8 +54,9 @@ def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seo
   home=page.evaluate("SolarTime.renderer.defaultCameraSnapshot()")
   # Startup can already have advanced a frame before this browser round trip.
   # Verify the captured departure, not a timing-dependent live camera sample.
-  opening=page.evaluate("() => {const r=SolarTime.renderer,c=r.cameraTween?.from||r.camera;return {state:SolarTime.getState().opening,zoom:c.zoom,dolly:c.dolly,focus:c.focus};}")
-  assert opening['state'] and abs(opening['zoom']-home['zoom'])<1e-9 and abs(opening['dolly']-.001)<1e-9 and opening['focus'] is None,opening
+  if verify_opening:
+   opening=page.evaluate("() => {const r=SolarTime.renderer,c=r.cameraTween?.from||r.camera;return {state:SolarTime.getState().opening,zoom:c.zoom,dolly:c.dolly,focus:c.focus};}")
+   assert opening['state'] and abs(opening['zoom']-home['zoom'])<1e-9 and abs(opening['dolly']-.001)<1e-9 and opening['focus'] is None,opening
   page.wait_for_function("document.getElementById('loading').hidden&&!SolarTime.getState().opening",timeout=12000)
   arrived=page.evaluate("({state:SolarTime.getState().opening,zoom:SolarTime.renderer.camera.zoom,dolly:SolarTime.renderer.camera.dolly,panX:SolarTime.renderer.camera.panX,panY:SolarTime.renderer.camera.panY})")
   assert not arrived['state'] and abs(arrived['zoom']-home['zoom'])<1e-9 and abs(arrived['dolly']-home['dolly'])<1e-9 and abs(arrived['panX']-home['panX'])<1e-9 and abs(arrived['panY']-home['panY'])<1e-9,(arrived,home)
@@ -346,21 +351,34 @@ def suite(browser,root,size,installed):
 def main():
  global diagnostics
  root=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path(__file__).resolve().parents[2]
- diagnostics=BrowserDiagnostics(root,'ui-regression',checks)
+ group=os.environ.get('SOLAR_UI_GROUP','all')
+ if group not in ['all',*UI_GROUPS]:raise ValueError('Unknown UI group: '+group)
+ diagnostics=BrowserDiagnostics(root,'ui-'+group,checks)
  with sync_playwright() as p:
   options={'headless':True,'args':['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']}
   if os.environ.get('SOLAR_CHROMIUM_EXECUTABLE'):options['executable_path']=os.environ['SOLAR_CHROMIUM_EXECUTABLE']
   browser=p.chromium.launch(**options)
   try:
-   verify_consent_controls(browser,root,check,diagnostics,load)
-   verify_google_tag(browser,root,check,diagnostics)
-   verify_usage_analytics(browser,root,check,diagnostics,load)
-   verify_closeup_textures(browser,root,check,diagnostics)
-   verify_cloud_weather(browser,root,check,diagnostics)
+   if group in ['all','opening']:
+    for cases in UI_CASES.values():
+     for size,installed in cases:
+      ctx,page,_,errors=load(browser,root,size,installed,verify_opening=True)
+      check(not errors,str(size)+' opening and arrival')
+      ctx.close()
+   if group in ['all','features']:
+    verify_consent_controls(browser,root,check,diagnostics,load)
+    verify_google_tag(browser,root,check,diagnostics)
+    verify_usage_analytics(browser,root,check,diagnostics,load)
+    verify_closeup_textures(browser,root,check,diagnostics)
+    verify_cloud_weather(browser,root,check,diagnostics)
    # Browser contexts isolate storage, clocks and WebGL state. Reusing one
    # Chromium process avoids paying its launch cost for every viewport.
-   for size,installed in [((1280,800),False),((390,844),False),((844,390),False),((390,844),True),((844,390),True)]:
-    suite(browser,root,size,installed)
+   for name,cases in UI_CASES.items():
+    if group in ['all',name]:
+     for size,installed in cases:suite(browser,root,size,installed)
+   if group not in ['all','features']:
+    print('UI group',group,'checks passed:',len(checks),flush=True)
+    return
    ctx,page,requests,errors=load(browser,root,(1280,800),False,locale='en-US')
    state=page.evaluate('SolarTime.getState()')
    check(state['language']=='kor' and state['copyLanguage']=='en' and state['region']=='KOREA','automatic country and browser copy are independent')
