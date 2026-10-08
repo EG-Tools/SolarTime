@@ -1,5 +1,116 @@
 [
   {
+    "version": "0.74",
+    "date": "2026.10.08",
+    "localized": {
+      "kor": [
+        "기본 시점과 먼 거리의 행성 표시를 개선했습니다.",
+        "오프닝·워프·토성 고리 여행의 카메라 이동을 더욱 자연스럽게 개선했습니다.",
+        "먼 거리에서 토성 여행을 시작하거나 돌아올 때 행성의 크기와 궤도가 어긋나는 문제를 수정했습니다.",
+        "토성 여행 파티클과 배경 별의 거리감을 개선했습니다.",
+        "러시아·우크라이나 언어 및 지역과 설정 슬라이더의 개별 초기화 기능을 추가했습니다."
+      ],
+      "en": [
+        "Improved the default view and the display of distant planets.",
+        "Made camera movement smoother in the opening, warp and Saturn ring travel sequences.",
+        "Fixed planet sizes and orbits shifting when starting or returning from Saturn travel at long distances.",
+        "Improved Saturn travel particles and the sense of depth in background stars.",
+        "Added Russian and Ukrainian language and region support and individual reset controls for setting sliders."
+      ],
+      "chn": [
+        "改进了默认视角和远距离行星的显示。",
+        "让开场、曲速和土星环旅行中的镜头移动更加自然。",
+        "修复了从远距离开始或返回土星旅行时行星大小和轨道错位的问题。",
+        "改进了土星旅行粒子和背景星空的纵深感。",
+        "新增俄语、乌克兰语及相应地区支持，并为设置滑块加入单独重置功能。"
+      ],
+      "zht": [
+        "改善了預設視角和遠距離行星的顯示。",
+        "讓開場、曲速和土星環旅行中的鏡頭移動更加自然。",
+        "修正了從遠距離開始或返回土星旅行時行星大小和軌道錯位的問題。",
+        "改善了土星旅行粒子和背景星空的縱深感。",
+        "新增俄語、烏克蘭語及相應地區支援，並為設定滑桿加入個別重設功能。"
+      ],
+      "jpn": [
+        "標準視点と遠距離にある惑星の表示を改善しました。",
+        "オープニング、ワープ、土星の環の旅におけるカメラ移動をより自然にしました。",
+        "遠距離から土星旅行を開始したり戻ったりする際に、惑星の大きさと軌道がずれる問題を修正しました。",
+        "土星旅行のパーティクルと背景の星の奥行き感を改善しました。",
+        "ロシア語・ウクライナ語と地域を追加し、設定スライダーごとのリセット機能を追加しました。"
+      ],
+      "hi": [
+        "डिफ़ॉल्ट दृश्य और दूर स्थित ग्रहों के प्रदर्शन में सुधार किया गया।",
+        "आरंभ, वॉर्प और शनि के छल्लों की यात्रा में कैमरे की गति को अधिक सहज बनाया गया।",
+        "दूर से शनि यात्रा शुरू करने या वापस लौटने पर ग्रहों के आकार और कक्षाओं के खिसकने की समस्या ठीक की गई।",
+        "शनि यात्रा के कणों और पृष्ठभूमि के तारों की गहराई का अनुभव बेहतर किया गया।",
+        "रूसी और यूक्रेनी भाषा व क्षेत्र जोड़े गए और प्रत्येक सेटिंग स्लाइडर के लिए अलग रीसेट सुविधा जोड़ी गई।"
+      ],
+      "es": [
+        "Se mejoraron la vista predeterminada y la visualización de los planetas lejanos.",
+        "Se suavizó el movimiento de la cámara en la apertura, el salto y el viaje por los anillos de Saturno.",
+        "Se corrigieron los cambios de tamaño y órbita de los planetas al iniciar o regresar de un viaje a Saturno desde muy lejos.",
+        "Se mejoraron las partículas del viaje a Saturno y la sensación de profundidad de las estrellas de fondo.",
+        "Se añadieron el idioma y la región de Rusia y Ucrania, además de controles de restablecimiento individuales para los deslizadores."
+      ],
+      "de": [
+        "Die Standardansicht und die Darstellung weit entfernter Planeten wurden verbessert.",
+        "Die Kamerabewegung in der Eröffnung, beim Warp und auf der Reise durch die Saturnringe wurde flüssiger gestaltet.",
+        "Verschobene Planetengrößen und Umlaufbahnen beim Start oder bei der Rückkehr einer Saturnreise aus großer Entfernung wurden behoben.",
+        "Die Partikel der Saturnreise und die Tiefenwirkung der Hintergrundsterne wurden verbessert.",
+        "Russische und ukrainische Sprache und Regionen sowie einzelne Rücksetzfunktionen für Einstellungsregler wurden hinzugefügt."
+      ],
+      "fr": [
+        "La vue par défaut et l’affichage des planètes lointaines ont été améliorés.",
+        "Les mouvements de caméra ont été rendus plus fluides dans l’ouverture, le voyage en distorsion et le voyage dans les anneaux de Saturne.",
+        "Les décalages de taille et d’orbite des planètes lors d’un départ ou d’un retour de Saturne à grande distance ont été corrigés.",
+        "Les particules du voyage vers Saturne et la profondeur des étoiles d’arrière-plan ont été améliorées.",
+        "Le russe et l’ukrainien, leurs régions et des commandes de réinitialisation individuelles pour les curseurs ont été ajoutés."
+      ],
+      "pt": [
+        "Melhoramos a vista padrão e a exibição dos planetas distantes.",
+        "Tornamos o movimento da câmara mais suave na abertura, no salto e na viagem pelos anéis de Saturno.",
+        "Corrigimos alterações no tamanho e nas órbitas dos planetas ao iniciar ou regressar de uma viagem a Saturno a grande distância.",
+        "Melhoramos as partículas da viagem a Saturno e a sensação de profundidade das estrelas de fundo.",
+        "Adicionamos os idiomas e regiões da Rússia e da Ucrânia e controlos individuais para repor os seletores das definições."
+      ],
+      "it": [
+        "Migliorate la visuale predefinita e la resa dei pianeti lontani.",
+        "Resi più fluidi i movimenti della telecamera nell’apertura, nel salto e nel viaggio tra gli anelli di Saturno.",
+        "Corretti gli spostamenti delle dimensioni e delle orbite dei pianeti iniziando o terminando un viaggio verso Saturno da grande distanza.",
+        "Migliorate le particelle del viaggio verso Saturno e la profondità delle stelle sullo sfondo.",
+        "Aggiunti lingua e regione russe e ucraine, oltre ai comandi di ripristino individuali per i cursori delle impostazioni."
+      ],
+      "id": [
+        "Meningkatkan tampilan bawaan dan tampilan planet yang sangat jauh.",
+        "Membuat gerakan kamera lebih mulus pada pembukaan, warp, dan perjalanan cincin Saturnus.",
+        "Memperbaiki ukuran planet dan orbit yang bergeser saat memulai atau kembali dari perjalanan Saturnus dari jarak jauh.",
+        "Meningkatkan partikel perjalanan Saturnus dan kesan kedalaman bintang latar.",
+        "Menambahkan dukungan bahasa dan wilayah Rusia serta Ukraina, beserta kontrol atur ulang terpisah untuk setiap penggeser pengaturan."
+      ],
+      "nl": [
+        "De standaardweergave en de weergave van verre planeten zijn verbeterd.",
+        "De camerabeweging in de opening, warp en reis door de ringen van Saturnus is vloeiender gemaakt.",
+        "Verschuivende planeetgroottes en banen bij het starten van of terugkeren uit een Saturnusreis op grote afstand zijn verholpen.",
+        "De deeltjes van de Saturnusreis en de dieptewerking van de achtergrondsterren zijn verbeterd.",
+        "Russische en Oekraïense taal- en regio-ondersteuning en afzonderlijke resetknoppen voor instellingsschuifregelaars zijn toegevoegd."
+      ],
+      "ru": [
+        "Улучшены стандартный вид и отображение удалённых планет.",
+        "Движение камеры во вступлении, варп-переходе и путешествии по кольцам Сатурна стало плавнее.",
+        "Исправлено смещение размеров и орбит планет при начале путешествия к Сатурну с большого расстояния и при возвращении.",
+        "Улучшены частицы путешествия к Сатурну и ощущение глубины фоновых звёзд.",
+        "Добавлены русский и украинский языки и регионы, а также отдельные кнопки сброса для ползунков настроек."
+      ],
+      "uk": [
+        "Поліпшено стандартний вигляд і відображення віддалених планет.",
+        "Рух камери у вступі, варп-переході та подорожі кільцями Сатурна став плавнішим.",
+        "Виправлено зміщення розмірів і орбіт планет під час початку подорожі до Сатурна з великої відстані та повернення.",
+        "Поліпшено частинки подорожі до Сатурна й відчуття глибини фонових зірок.",
+        "Додано російську й українську мови та регіони, а також окремі кнопки скидання для повзунків налаштувань."
+      ]
+    }
+  },
+  {
     "version": "0.73",
     "date": "2026.10.04",
     "localized": {
@@ -845,87 +956,6 @@
         "Наявне вимірювання відвідувань зберігається, а фактичне використання функцій після згоди записується окремими подіями.",
         "Відтворення музики, стеження за тілами, будильники й підтверджені дії вимкнення розрізняються без запису особистого введення та хибних конверсій.",
         "Відвідування відокремлені від використання функцій; наявний вигляд, якість зображення, будильники та музика залишаються без змін."
-      ]
-    }
-  },
-  {
-    "version": "0.64",
-    "date": "2026.09.28",
-    "localized": {
-      "kor": [
-        "기존 Google 태그에 Google Ads를 연결하고 쿠키 동의 설정을 유지합니다.",
-        "가장 오래된 업데이트 내역 절반과 해당 내역의 모든 언어 번역을 함께 삭제했습니다.",
-        "최근 업데이트 탐색, 지역 시계, 알람·음악 및 4K 표시 동작은 유지합니다."
-      ],
-      "en": [
-        "Connect Google Ads to the existing Google tag while preserving cookie consent choices.",
-        "Remove the oldest half of the release history together with its translations in every supported language.",
-        "Preserve recent release navigation, regional clocks, alarms, music and 4K display behavior."
-      ],
-      "chn": [
-        "在现有 Google 标签中接入 Google Ads，并保留 Cookie 同意设置。",
-        "删除最早的一半更新记录，以及这些记录的所有支持语言译文。",
-        "保留近期更新记录浏览、地区时钟、闹钟、音乐和 4K 显示行为。"
-      ],
-      "zht": [
-        "在既有 Google 代碼中連接 Google Ads，並保留 Cookie 同意設定。",
-        "刪除最早的一半更新記錄，以及這些記錄的所有支援語言譯文。",
-        "保留近期更新記錄瀏覽、地區時鐘、鬧鐘、音樂及 4K 顯示行為。"
-      ],
-      "jpn": [
-        "既存の Google タグに Google Ads を接続し、Cookie の同意設定を維持します。",
-        "最も古い更新履歴の半分と、それらの全対応言語の翻訳を削除しました。",
-        "最近の更新履歴の閲覧、地域別時計、アラーム、音楽、4K 表示の動作は維持します。"
-      ],
-      "hi": [
-        "कुकी सहमति के विकल्प बनाए रखते हुए मौजूदा Google टैग से Google Ads जोड़ता है।",
-        "सबसे पुराने आधे अपडेट रिकॉर्ड और सभी समर्थित भाषाओं में उनके अनुवाद हटा दिए गए हैं।",
-        "हाल के अपडेट देखना, क्षेत्रीय घड़ियाँ, अलार्म, संगीत और 4K प्रदर्शन का व्यवहार यथावत रहता है।"
-      ],
-      "es": [
-        "Se conecta Google Ads a la etiqueta de Google existente y se mantienen las preferencias de consentimiento de cookies.",
-        "Se elimina la mitad más antigua del historial de versiones junto con sus traducciones en todos los idiomas compatibles.",
-        "Se conservan la navegación por las versiones recientes, los relojes regionales, las alarmas, la música y la visualización 4K."
-      ],
-      "de": [
-        "Google Ads wird mit dem bestehenden Google-Tag verbunden; die Cookie-Einwilligungen bleiben erhalten.",
-        "Die älteste Hälfte des Versionsverlaufs wird einschließlich aller Übersetzungen in den unterstützten Sprachen entfernt.",
-        "Die Navigation durch neuere Versionen, regionale Uhren, Alarme, Musik und die 4K-Anzeige bleiben unverändert."
-      ],
-      "fr": [
-        "Google Ads est connecté à la balise Google existante, tout en conservant les choix de consentement aux cookies.",
-        "La moitié la plus ancienne de l’historique des versions est supprimée, avec ses traductions dans toutes les langues prises en charge.",
-        "La navigation dans les versions récentes, les horloges régionales, les alarmes, la musique et l’affichage 4K sont conservés."
-      ],
-      "pt": [
-        "O Google Ads é ligado à etiqueta Google existente, mantendo as escolhas de consentimento de cookies.",
-        "A metade mais antiga do histórico de versões é removida, juntamente com as traduções em todos os idiomas suportados.",
-        "Mantêm-se a navegação pelas versões recentes, os relógios regionais, os alarmes, a música e a apresentação 4K."
-      ],
-      "it": [
-        "Google Ads viene collegato al tag Google esistente, mantenendo le scelte di consenso per i cookie.",
-        "La metà più vecchia della cronologia delle versioni viene rimossa insieme alle relative traduzioni in tutte le lingue supportate.",
-        "La navigazione nelle versioni recenti, gli orologi regionali, le sveglie, la musica e la visualizzazione 4K restano invariati."
-      ],
-      "id": [
-        "Google Ads dihubungkan ke tag Google yang sudah ada dengan tetap mempertahankan pilihan persetujuan cookie.",
-        "Separuh riwayat pembaruan yang paling lama dihapus beserta terjemahannya dalam semua bahasa yang didukung.",
-        "Navigasi pembaruan terbaru, jam regional, alarm, musik, dan tampilan 4K tetap dipertahankan."
-      ],
-      "nl": [
-        "Google Ads wordt aan de bestaande Google-tag gekoppeld met behoud van de keuzes voor cookietoestemming.",
-        "De oudste helft van de versiegeschiedenis wordt verwijderd, inclusief alle vertalingen in de ondersteunde talen.",
-        "Navigatie door recente versies, regionale klokken, alarmen, muziek en de 4K-weergave blijven behouden."
-      ],
-      "ru": [
-        "Google Ads подключён к существующему тегу Google с сохранением выбора согласия на cookie.",
-        "Удалена самая старая половина истории выпусков вместе с переводами на все поддерживаемые языки.",
-        "Сохранены навигация по недавним выпускам, региональные часы, будильники, музыка и отображение 4K."
-      ],
-      "uk": [
-        "Google Ads підключено до наявного тегу Google зі збереженням вибору згоди на cookie.",
-        "Видалено найстарішу половину історії випусків разом із перекладами всіма підтримуваними мовами.",
-        "Збережено навігацію недавніми випусками, регіональні годинники, будильники, музику та відображення 4K."
       ]
     }
   }

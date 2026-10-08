@@ -1,7 +1,9 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function fixture(gpu=false){
- const stars=[[.2,0,1,1,1,0]],window={SolarVisualEffects:{drawCount:()=>1,starsFor:()=>stars}},calls=[];
+ const stars=[[.2,0,1,1,1,0]],window={},calls=[];
+ vm.runInNewContext(fs.readFileSync(require.resolve('../src/visual-effects.js'),'utf8'),{window});
+ window.SolarVisualEffects={...window.SolarVisualEffects,drawCount:()=>1,starsFor:()=>stars};
  vm.runInNewContext(fs.readFileSync(require.resolve('../src/sky.js'),'utf8'),{window,performance:{now:()=>1000}});
  const sky=Object.create(window.SolarSky.prototype);
  Object.assign(sky,{ready:true,w:1000,h:600,canvas:{width:1000,height:600},offset:0,lastEffect:null,stats:{skipped:0,frames:0,starProjections:0},rayTables:new Map(),softwarePump(){}});

@@ -445,11 +445,15 @@ module.exports=async({root,evaluate,send,session})=>{
    await evaluate('SolarTime.renderer.startRingTour()');await until('!!SolarTime.renderer.ringTour?.resources?.atlas');
    await evaluate('SolarTime.renderer.endRingTour()');
   }
-  await evaluate('SolarTime.renderer.restoreCamera({...SolarTime.renderer.defaultCameraSnapshot(),zoom:.35})');await delay(250);
+  await evaluate('(()=>{const r=SolarTime.renderer,home=r.defaultCameraSnapshot();r.restoreCamera({...home,zoom:.8,dolly:home.dolly*.35/.8});})()');await delay(250);
   const farPoint=await evaluate("(()=>{const r=SolarTime.renderer,p=r.currentFrameItem('saturn'),f=r.bodyFrame(p.body);for(let i=0;i<32;i++){const a=i*Math.PI/16,x=p.screen.x+p.r*1.77*(f.u.x*Math.cos(a)+f.v.x*Math.sin(a)),y=p.screen.y+p.r*1.77*(f.u.y*Math.cos(a)+f.v.y*Math.sin(a));if(r.ringTourHit(x,y))return {x,y,radius:p.r,focus:r.camera.focus};}throw Error('No distant ring hit');})()");
   assert.equal(farPoint.focus,null);assert.ok(farPoint.radius<20);
   await mouse('mouseMoved',farPoint.x,farPoint.y);assert.equal(await evaluate('SolarTime.renderer.ringTourHover'),true);
   await mouse('mousePressed',farPoint.x,farPoint.y,'left',1);await mouse('mouseReleased',farPoint.x,farPoint.y,'left',0);
+  await until('!!SolarTime.renderer.ringTour');
+  const directApproach=await evaluate('(()=>{const r=SolarTime.renderer,t=r.ringTour;return {local:!!t,tween:!!r.cameraTween,state:t?.state,entry:SolarRingTour.settings.entry,startDistance:t?.startDistance,eye:t?.pose.eye};})()');
+  assert.equal(directApproach.local,true);assert.equal(directApproach.tween,false);assert.equal(directApproach.state,'entering');assert.equal(directApproach.entry,10);
+  assert.ok(directApproach.startDistance>4,'the distant camera must follow the same full S route instead of centring Saturn first');
   await until('SolarTime.renderer.ringTour?.age>=5');
   await send('Input.dispatchKeyEvent',{type:'keyDown',key:'0',code:'Digit0',windowsVirtualKeyCode:48},session);
   await send('Input.dispatchKeyEvent',{type:'keyUp',key:'0',code:'Digit0',windowsVirtualKeyCode:48},session);

@@ -260,7 +260,7 @@ module.exports=async({root,evaluate,send,session})=>{
       const normal={...r.defaultCameraSnapshot(),azimuth:2.1,elevation:.51,zoom:1.4,dolly:1.7,panX:.06,panY:.1};
       r.setOption('actualScale',false,false);r.restoreCamera(normal);button.click();
       r.draw(ms,0,r.actualScaleTween.started+2000);
-      r.restoreCamera({...normal,zoom:.1,dolly:.002,focus:null});const moved=r.cameraSnapshot();button.click();
+      r.restoreCamera({...normal,zoom:.8,dolly:.002,focus:null});const moved=r.cameraSnapshot();button.click();
       const saved=JSON.parse(localStorage.getItem('eg.solar-time.v0.01')),start=r.actualScaleTween.started;
       for(let step=0;step<=20;step++)r.draw(ms,0,start+step*100);
       return {moved,current:r.cameraSnapshot(),saved:saved.camera,tween:!!r.cameraTween,mix:r.actualScaleMix,glError:r.gpu.gl.getError()};

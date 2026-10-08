@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
-  <meta name="solar-time-version" content="0.73">
+  <meta name="solar-time-version" content="0.74">
   <meta name="solar-time-revision" content="r1">
   <meta name="google-adsense-account" content="ca-pub-5773171100052324">
   <meta name="solar-time-ad-slot" content="">
@@ -24,7 +24,7 @@
   <script src="src/usage-analytics.js?v=889c5a4755d5"></script>
   <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
   <script src="src/page-runtime.js?v=839041070d8d"></script>
-  <link rel="stylesheet" href="styles.css?v=925aef689775">
+  <link rel="stylesheet" href="styles.css?v=862bdac076ff">
   <link rel="stylesheet" href="src/runtime-optimizations.css?v=7bdfbe73bd18">
 </head>
 <body>
@@ -61,7 +61,7 @@
         </div>
       </div>
       <div id="language-control" class="language-control">
-        <button id="language-toggle" class="icon-button language-toggle" type="button" aria-label="언어 변경. 현재 한국어" aria-expanded="false" aria-controls="language-menu" title="언어 변경 · KOR">KOR</button>
+        <button id="language-toggle" class="icon-button language-toggle" type="button" aria-label="언어 변경. 현재 한국어" aria-expanded="false" aria-controls="language-menu" title="언어 변경 · KR">KR</button>
         <div id="language-menu" class="language-menu card-surface" role="menu" aria-label="언어 선택" hidden>
           <button type="button" class="language-auto" role="menuitemradio" data-language-auto><strong id="auto-language-mode">자동</strong><span id="auto-language-name">언어</span></button>
           <div class="language-list">
@@ -75,7 +75,7 @@
           <button type="button" role="menuitemradio" data-language="br"><strong>BR</strong><span>Brasil</span></button>
           <button type="button" role="menuitemradio" data-language="ca"><strong>CA</strong><span>Canada</span></button>
           <button type="button" role="menuitemradio" data-language="cl"><strong>CL</strong><span>Chile</span></button>
-          <button type="button" role="menuitemradio" data-language="chn"><strong>CHN</strong><span>中国</span></button>
+          <button type="button" role="menuitemradio" data-language="chn"><strong>CN</strong><span>中国</span></button>
           <button type="button" role="menuitemradio" data-language="co"><strong>CO</strong><span>Colombia</span></button>
           <button type="button" role="menuitemradio" data-language="cr"><strong>CR</strong><span>Costa Rica</span></button>
           <button type="button" role="menuitemradio" data-language="dk"><strong>DK</strong><span>Denmark</span></button>
@@ -92,8 +92,8 @@
           <button type="button" role="menuitemradio" data-language="id"><strong>ID</strong><span>Indonesia</span></button>
           <button type="button" role="menuitemradio" data-language="ie"><strong>IE</strong><span>Ireland</span></button>
           <button type="button" role="menuitemradio" data-language="it"><strong>IT</strong><span>Italia</span></button>
-          <button type="button" role="menuitemradio" data-language="jpn"><strong>JPN</strong><span>日本</span></button>
-          <button type="button" role="menuitemradio" data-language="kor"><strong>KOR</strong><span>한국</span></button>
+          <button type="button" role="menuitemradio" data-language="jpn"><strong>JP</strong><span>日本</span></button>
+          <button type="button" role="menuitemradio" data-language="kor"><strong>KR</strong><span>한국</span></button>
           <button type="button" role="menuitemradio" data-language="my"><strong>MY</strong><span>Malaysia</span></button>
           <button type="button" role="menuitemradio" data-language="mt"><strong>MT</strong><span>Malta</span></button>
           <button type="button" role="menuitemradio" data-language="mx"><strong>MX</strong><span>México</span></button>
@@ -114,7 +114,7 @@
           <button type="button" role="menuitemradio" data-language="tw"><strong>TW</strong><span>台灣</span></button>
           <button type="button" role="menuitemradio" data-language="ua"><strong>UA</strong><span>Україна</span></button>
           <button type="button" role="menuitemradio" data-language="eu"><strong>UK</strong><span>United Kingdom</span></button>
-          <button type="button" role="menuitemradio" data-language="en"><strong>EN</strong><span>USA</span></button>
+          <button type="button" role="menuitemradio" data-language="en"><strong>US</strong><span>USA</span></button>
           <button type="button" role="menuitemradio" data-language="uy"><strong>UY</strong><span>Uruguay</span></button>
           <button type="button" role="menuitemradio" data-language="ve"><strong>VE</strong><span>Venezuela</span></button>
           </div>
@@ -159,10 +159,10 @@
     <div class="panel-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2 data-i18n="settings">화면 설정</h2></div><button id="settings-close" class="close-button" aria-label="설정 닫기" data-i18n-aria="settingsClose">×</button></div>
     <div id="settings-scroll" class="settings-scroll card-scroll">
     <div class="setting-row"><label for="actual-scale" data-i18n="actualScale">실제 크기 비율</label><input id="actual-scale" type="checkbox" role="switch"></div>
-    <div id="overview-orbit-gap-control" class="setting-range"><label for="overview-orbit-gap"><span data-i18n="orbitSpacing">궤도 간격</span><output id="overview-orbit-gap-output" for="overview-orbit-gap">100%</output></label><input id="overview-orbit-gap" class="solar-range" type="range" min="50" max="400" step="1" value="100" aria-label="행성 궤도 간격" data-i18n-aria="orbitSpacingAria"></div>
-    <div id="orbit-brightness-control" class="setting-range"><label for="orbit-brightness"><span data-i18n="orbitBrightness">궤도 밝기</span><output id="orbit-brightness-output" for="orbit-brightness">50%</output></label><input id="orbit-brightness" class="solar-range" type="range" min="0" max="100" step="1" value="50" aria-label="궤도선 밝기. 0이면 궤도선이 숨겨집니다." data-i18n-aria="orbitBrightnessAria"></div>
-    <div id="star-density-control" class="setting-range"><label for="star-density"><span id="star-density-label">별 밀도</span><output id="star-density-output" for="star-density">100%</output></label><input id="star-density" class="solar-range" type="range" min="0" max="300" step="10" value="100" aria-label="파티클 별 밀도. 0이면 파티클 별을 숨깁니다."></div>
-    <div id="clock-size-control" class="setting-range"><label for="clock-size"><span data-i18n="clockSize">시계 크기</span><output id="clock-size-output" for="clock-size">100%</output></label><input id="clock-size" class="solar-range" type="range" min="50" max="200" step="5" value="100" aria-label="시계 크기"></div>
+    <div id="overview-orbit-gap-control" class="setting-range"><div class="range-heading"><span class="range-title"><label for="overview-orbit-gap" data-i18n="orbitSpacing">궤도 간격</label><button id="overview-orbit-gap-reset" class="range-reset" type="button" aria-label="초기화" data-i18n-aria="resetDefaults"></button></span><output id="overview-orbit-gap-output" for="overview-orbit-gap">100%</output></div><input id="overview-orbit-gap" class="solar-range" type="range" min="50" max="400" step="1" value="100" aria-label="행성 궤도 간격" data-i18n-aria="orbitSpacingAria"></div>
+    <div id="orbit-brightness-control" class="setting-range"><div class="range-heading"><span class="range-title"><label for="orbit-brightness" data-i18n="orbitBrightness">궤도 밝기</label><button id="orbit-brightness-reset" class="range-reset" type="button" aria-label="초기화" data-i18n-aria="resetDefaults"></button></span><output id="orbit-brightness-output" for="orbit-brightness">50%</output></div><input id="orbit-brightness" class="solar-range" type="range" min="0" max="100" step="1" value="50" aria-label="궤도선 밝기. 0이면 궤도선이 숨겨집니다." data-i18n-aria="orbitBrightnessAria"></div>
+    <div id="star-density-control" class="setting-range"><div class="range-heading"><span class="range-title"><label id="star-density-label" for="star-density">별 밀도</label><button id="star-density-reset" class="range-reset" type="button" aria-label="초기화" data-i18n-aria="resetDefaults"></button></span><output id="star-density-output" for="star-density">100%</output></div><input id="star-density" class="solar-range" type="range" min="0" max="300" step="10" value="100" aria-label="파티클 별 밀도. 0이면 파티클 별을 숨깁니다."></div>
+    <div id="clock-size-control" class="setting-range"><div class="range-heading"><span class="range-title"><label for="clock-size" data-i18n="clockSize">시계 크기</label><button id="clock-size-reset" class="range-reset" type="button" aria-label="초기화" data-i18n-aria="resetDefaults"></button></span><output id="clock-size-output" for="clock-size">100%</output></div><input id="clock-size" class="solar-range" type="range" min="50" max="200" step="5" value="100" aria-label="시계 크기"></div>
     <div class="setting-row"><label for="clock-font" data-i18n="clockFont">시계 숫자 폰트</label><select id="clock-font" aria-label="시계 숫자 폰트" data-i18n-aria="clockFont">
       <option value="aptos">Aptos Display</option><option value="segoe-variable">Segoe UI Variable</option><option value="segoe">Segoe UI Light</option>
       <option value="bahnschrift">Bahnschrift Light</option><option value="calibri">Calibri Light</option><option value="corbel">Corbel Light</option>
@@ -236,10 +236,10 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
     </div>
     <p id="body-material" class="material-source"></p>
     <div id="body-size-control" class="body-size-control">
-      <div class="body-size-heading"><label for="body-size-slider" data-i18n="displaySize">화면 표시 크기</label><output id="body-size-output" for="body-size-slider">100%</output></div>
+      <div class="body-size-heading"><span class="range-title"><label for="body-size-slider" data-i18n="displaySize">화면 표시 크기</label><button id="body-size-slider-reset" class="range-reset" type="button" aria-label="초기화" data-i18n-aria="resetDefaults"></button></span><output id="body-size-output" for="body-size-slider">100%</output></div>
       <input id="body-size-slider" class="solar-range" type="range" min="100" max="100" step="0.1" value="100" aria-label="선택한 천체의 화면 표시 크기" data-i18n-aria="displaySizeAria">
       <div id="satellite-orbit-control" class="body-orbit-control" hidden>
-        <div class="body-size-heading"><label id="body-orbit-label" for="satellite-orbit-slider">위성 궤도 간격</label><output id="satellite-orbit-output" for="satellite-orbit-slider">100%</output></div>
+        <div class="body-size-heading"><span class="range-title"><label id="body-orbit-label" for="satellite-orbit-slider">위성 궤도 간격</label><button id="satellite-orbit-slider-reset" class="range-reset" type="button" aria-label="초기화" data-i18n-aria="resetDefaults"></button></span><output id="satellite-orbit-output" for="satellite-orbit-slider">100%</output></div>
         <input id="satellite-orbit-slider" class="solar-range" type="range" min="1" max="100" step="1" value="100" aria-label="선택한 행성의 위성 궤도 간격">
       </div>
       <button id="body-size-reset" type="button" class="text-button" data-i18n="resetSize">크기, 궤도 리셋</button>
@@ -270,7 +270,7 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
     <!-- General body appearance controls belong in this final card section. -->
     <div id="body-card-options" class="body-card-options">
       <div id="earth-cloud-control" class="body-option-range" hidden>
-        <div class="body-size-heading"><label for="earth-cloud-amount" data-i18n="atmosphericClouds">대기권 구름</label><output id="earth-cloud-amount-output" for="earth-cloud-amount">100%</output></div>
+        <div class="body-size-heading"><span class="range-title"><label for="earth-cloud-amount" data-i18n="atmosphericClouds">대기권 구름</label><button id="earth-cloud-amount-reset" class="range-reset" type="button" aria-label="초기화" data-i18n-aria="resetDefaults"></button></span><output id="earth-cloud-amount-output" for="earth-cloud-amount">100%</output></div>
         <input id="earth-cloud-amount" class="solar-range" type="range" min="0" max="100" step="1" value="100" aria-label="대기권 구름" data-i18n-aria="atmosphericClouds">
       </div>
       <div id="earth-night-lights-control" class="setting-row body-option-row" hidden>
@@ -278,7 +278,7 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
         <input id="earth-night-lights" type="checkbox" role="switch" checked aria-label="지구 야간 불빛" data-i18n-aria="earthNightLights">
       </div>
       <div id="venus-cloud-control" class="body-option-range" hidden>
-        <div class="body-size-heading"><label for="venus-cloud-amount" data-i18n="atmosphericClouds">대기권 구름</label><output id="venus-cloud-amount-output" for="venus-cloud-amount">80%</output></div>
+        <div class="body-size-heading"><span class="range-title"><label for="venus-cloud-amount" data-i18n="atmosphericClouds">대기권 구름</label><button id="venus-cloud-amount-reset" class="range-reset" type="button" aria-label="초기화" data-i18n-aria="resetDefaults"></button></span><output id="venus-cloud-amount-output" for="venus-cloud-amount">80%</output></div>
         <input id="venus-cloud-amount" class="solar-range" type="range" min="0" max="100" step="1" value="80" aria-label="대기권 구름" data-i18n-aria="atmosphericClouds">
       </div>
       <div id="sun-shine-control" class="setting-row body-option-row" hidden>
@@ -331,18 +331,19 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
       <div class="speed-control" aria-label="공전 속도" data-i18n-aria="orbitSpeed">
         <input id="speed-slider" class="solar-range" type="range" min="1" max="24" step="1" value="1" aria-label="1초당 진행하는 시간" data-i18n-aria="speedSlider">
         <button id="speed-mode-button" class="speed-mode-button" type="button" data-speed-mode="hour" aria-label="속도 단위 시간. 누르면 다음 단위로 전환">시간</button>
+        <button id="speed-slider-reset" class="range-reset" type="button" aria-label="초기화" data-i18n-aria="resetDefaults"></button>
       </div>
     </div>
   </section>
 
   <footer class="footer ui">
     <div class="signature">
-      <span class="credit-line">Solar Time v0.73</span>
+      <span class="credit-line">Solar Time v0.74</span>
       <span class="credit-line"><a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
       <span class="credit-line"><span data-i18n="scaleNoteLineOne">평균 궤도 근사
 크기 거리 측정 조정</span></span>
       <span class="credit-line"><span data-i18n="scaleNoteLineTwo">자전·공전 시간 연동</span> · <a class="source-link" href="https://github.com/EG-Tools/SolarTime/blob/main/assets/CREDITS.md" target="_blank" rel="noopener" data-i18n="sources">출처</a></span>
-      <nav class="site-policy-links" aria-label="Site information"><a href="about.html">ABOUT</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a></nav>
+      <nav class="site-policy-links" aria-label="Site information"><a href="guide.html">GUIDE</a><a href="about.html">ABOUT</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a></nav>
       <span class="credit-line">© 2026 Life User. All rights reserved.</span>
     </div>
     <nav id="planet-nav" class="planet-nav" aria-label="천체 선택" data-i18n-aria="bodySelect"></nav>
@@ -409,7 +410,7 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
       <button id="release-notes-toggle" class="release-notes-toggle" type="button" aria-expanded="false" aria-controls="release-notes-panel"><span data-i18n="releaseNotes">업데이트 내역</span><span class="release-notes-toggle-mark" aria-hidden="true"></span></button>
       <section id="release-notes-panel" class="release-notes-panel" hidden>
         <div class="release-notes-header">
-          <div class="release-notes-heading"><h3 id="release-notes-version">v0.73</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
+          <div class="release-notes-heading"><h3 id="release-notes-version">v0.74</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
           <div class="release-notes-navigation step-navigation" aria-label="업데이트 내역 이동">
             <button id="release-notes-newer" class="step-previous" type="button" aria-label="최신 업데이트 내역" data-i18n-aria="releaseNotesNewer"></button>
             <span id="release-notes-position" aria-live="polite">1 / 1</span>
@@ -448,7 +449,7 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
         <div class="shortcut-row"><span class="shortcut-item"><kbd class="shortcut-arrows">← →</kbd><span data-i18n="planetSwitch">행성 전환</span></span><span class="shortcut-item"><kbd class="shortcut-arrows">↑ ↓</kbd><span data-i18n="cameraTravel">전진·후진</span></span></div>
         <div class="shortcut-row shortcut-mouse-row"><span class="shortcut-item"><span class="mouse-control-icon mouse-left-click" aria-hidden="true"><i></i></span><span data-i18n="cameraRotate">회전</span></span><span class="shortcut-item"><span class="mouse-control-icon mouse-right-click" aria-hidden="true"><i></i></span><span data-i18n="zoomInOut">줌인·아웃</span></span><span class="shortcut-item"><span class="mouse-control-icon mouse-middle-click" aria-hidden="true"><i></i></span><span data-i18n="screenPan">이동</span></span><span class="shortcut-item"><img class="mouse-wheel-zoom-icon" src="assets/mouse-wheel-zoom.svg" width="34" height="32" alt="" aria-hidden="true"><span data-i18n="cameraTravel">전진·후진</span></span></div>
       </div>
-      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="wechat-pay-link" class="support-link" href="wechat-pay-qr.svg" aria-haspopup="dialog" aria-controls="wechat-pay-dialog">WeChat</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="alarm-music-credit" class="music-credit support-credit">Alram Music - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.73 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
+      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="wechat-pay-link" class="support-link" href="wechat-pay-qr.svg" aria-haspopup="dialog" aria-controls="wechat-pay-dialog">WeChat</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="alarm-music-credit" class="music-credit support-credit">Alram Music - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.74 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true"></span>
   </dialog>
@@ -474,6 +475,7 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
   <dialog id="site-policy-dialog" class="modal card-surface site-policy-dialog" aria-label="Solar Time site information">
     <button id="site-policy-close" class="close-button" type="button" aria-label="Close">×</button>
     <nav class="site-policy-tabs" role="tablist" aria-label="Site information">
+      <button class="site-policy-tab" type="button" role="tab" data-policy-page="guide.html" aria-selected="false">GUIDE</button>
       <button class="site-policy-tab" type="button" role="tab" data-policy-page="about.html" aria-selected="false">ABOUT</button>
       <button class="site-policy-tab" type="button" role="tab" data-policy-page="privacy.html" aria-selected="false">PRIVACY</button>
       <button class="site-policy-tab" type="button" role="tab" data-policy-page="terms.html" aria-selected="false">TERMS</button>
@@ -512,11 +514,11 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
   <script src="src/astronomy-engine.min.js?v=f41139a87941"></script>
   <script src="src/astro.js?v=4a67df7aa4bf"></script>
   <script src="src/surface-style.js?v=c87f2d9734f7"></script>
-  <script src="src/surface.js?v=15b769b1ab2c"></script>
-  <script src="src/sky.js?v=89f71e4d029d"></script>
-  <script src="src/visual-effects.js?v=44159ae6ea99"></script>
-  <script src="src/ring-tour.js?v=a35c48130f5d"></script>
-  <script src="src/renderer.js?v=6ad51d9eec99"></script>
+  <script src="src/surface.js?v=2c8dff4ffc13"></script>
+  <script src="src/sky.js?v=8ed5a6828ef3"></script>
+  <script src="src/visual-effects.js?v=be30bf9121fd"></script>
+  <script src="src/ring-tour.js?v=e3ad45a5c599"></script>
+  <script src="src/renderer.js?v=c103d8a57a62"></script>
   <script src="src/performance.js?v=4ac7ad7ac498"></script>
   <script src="src/language-data.js?v=aeda7d4122f4"></script>
   <script src="src/localization.js?v=13800b308b1b"></script>
@@ -525,11 +527,11 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
   <script src="src/windows-shutdown.js?v=3109e303c919"></script>
   <script src="src/alarm-sound.js?v=a9cd1f76b67a"></script>
   <script src="src/timer-controller.js?v=3e186bbe4d85"></script>
-  <script src="src/policy-dialog.js?v=4f327ee92740"></script>
+  <script src="src/policy-dialog.js?v=525a7f777bf7"></script>
   <script src="src/music-player.js?v=59c6928f8573"></script>
   <script src="src/adsense.js?v=b76b7bd64d36"></script>
   <script src="src/cookie-consent.js?v=1494a5b88bc9"></script>
-  <script src="src/app.js?v=336d014e47f8"></script>
+  <script src="src/app.js?v=a755a638ac88"></script>
   <!-- Cloudflare Web Analytics -->
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}'></script>
   <!-- End Cloudflare Web Analytics -->

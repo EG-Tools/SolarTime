@@ -153,6 +153,17 @@ test('latest release uses reviewed translations; explicit Korean-only fixtures r
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 
+test('early locale request is shared with hydration and uses the loading-label language',async()=>{
+ const {loader,requests}=runtime(),app=read('src/app.js');
+ const regions=vm.runInNewContext(app.slice(app.indexOf('  const LANG_ORDER='),app.indexOf('  const REGIONS='))+';({LANG_ORDER,LANG_META})');
+ const source=app.slice(app.indexOf('  function showLoadingLanguage(){'),app.indexOf('  const COPY=Object.create(null)'));
+ const label={style:{visibility:'hidden'}},context={...regions,Preferences:{read:()=>({language:'fr',languageMode:'manual'})},STORAGE_KEY:'test',detectedCopyLanguage:()=> 'kor',LanguageData:loader,COPY_META:loader.metadata,document:{documentElement:{},querySelector:()=>label}};
+ vm.runInNewContext(source,context);
+ assert.equal(requests.length,1);assert.match(requests[0],/\/fr\.json\?v=/);
+ assert.equal(label.textContent,loader.loadingText.fr);
+ await loader.load('fr');assert.equal(requests.length,1,'hydration shares the early download');
+});
+
 test('loading bootstrap uses canonical saved-region or AUTO copy before fetching a bundle',()=>{
  const {loader,requests}=runtime(),app=read('src/app.js');
  const regions=vm.runInNewContext(app.slice(app.indexOf("  const LANG_ORDER="),app.indexOf("  const REGIONS="))+';({LANG_ORDER,LANG_META})');

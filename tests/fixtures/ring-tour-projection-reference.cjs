@@ -1,5 +1,5 @@
 'use strict';
-// Frozen pre-simplification projection, used only to verify the compiled frame transform.
+// Independent scalar projection, used only to verify the compiled frame transform.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),mix=(a,b,t)=>a+(b-a)*t;
 module.exports=function projectRingTourPoint(projection,world,out,radius=0,normal=projection.normal||(projection.normal={})) {
       // One transform for planetary centres AND entry/return annotation paths.
@@ -8,11 +8,9 @@ module.exports=function projectRingTourPoint(projection,world,out,radius=0,norma
       const x=(world.x-saturn.x)/units,y=(world.y-saturn.y)/units,z=(world.z-saturn.z)/units;
       out.localX=axes.u.x*x+axes.u.y*y+axes.u.z*z;out.localY=axes.pole.x*x+axes.pole.y*y+axes.pole.z*z;out.localZ=axes.v.x*x+axes.v.y*y+axes.v.z*z;
       const dx=out.localX-pose.eye[0],dy=out.localY-pose.eye[1],dz=out.localZ-pose.eye[2];
-      const dot=v=>v[0]*dx+v[1]*dy+v[2]*dz,depth=dot(pose.forward),denominator=mix(pose.orthoScale,depth,pose.perspective);
-      // All bodies use the SAME moving projection as the Saturn ray shader.
-      // Blending an unmoving overview into this result held other planets in
-      // place while Saturn alone grew. Only correct the initial lens mismatch,
-      // not the camera's motion. A fixed clip unit keeps that correction affine.
+      const dot=v=>v[0]*dx+v[1]*dy+v[2]*dz,depth=dot(pose.forward);
+      const denominator=mix(pose.orthoScale,depth,pose.perspective);
+      // Every centre, radius and orbit point uses this same moving camera depth.
       const unit=tour.startPose.orthoScale,ratio=radius/saturnRadius,tourW=denominator/unit;
       out.clipW=tourW;
       out.clipX=(this.w/2+pose.offset[0]*focal)*tourW+dot(pose.right)*focal/unit;

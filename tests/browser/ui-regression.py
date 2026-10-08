@@ -256,11 +256,12 @@ def suite(browser,root,size,installed):
  # Country inspection keeps the 250x equivalent disk size via camera travel,
  # while the lens readout and wheel input remain independent.
  page.evaluate("SolarTime.renderer.setAutoRotate(0,performance.now())")
+ country_lens=page.evaluate('SolarTime.renderer.camera.zoom')
  page.locator('#timezone-button').click()
  page.wait_for_function('!SolarTime.renderer.cameraTween',timeout=7000)
  country=page.evaluate("""()=>{const r=SolarTime.renderer,c=r.camera,b=r.sceneBodies().find(b=>b.id==='earth');return {zoom:c.zoom,dolly:c.dolly,radius:r.bodyRadiusForState(b,c),reference:r.bodyRadiusForState(b,{...c,zoom:250,dolly:1})}}""")
- check(country['zoom']==1 and country['dolly']>1 and abs(country['radius']-country['reference'])<1e-6,tag+' country retains 250x equivalent size through travel')
- check(page.locator('#zoom-value').inner_text()=='1.0×',tag+' lens readout excludes travel magnification')
+ check(country['zoom']==country_lens and country['dolly']>1 and abs(country['radius']-country['reference'])<1e-6,tag+' country retains 250x equivalent size through travel')
+ check(page.locator('#zoom-value').inner_text()==f'{country_lens:.1f}×',tag+' lens readout excludes travel magnification')
  page.mouse.move(size[0]*.6,size[1]*.55);page.mouse.wheel(0,-120)
  page.wait_for_timeout(350)
  check(page.evaluate('SolarTime.renderer.camera.dolly')>country['dolly'] and page.evaluate('SolarTime.renderer.camera.zoom')==country['zoom'],tag+' wheel approaches without changing lens')

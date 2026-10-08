@@ -2,6 +2,23 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'../src/visual-effects.js'),'utf8');
 function api(extra={}){const window={...extra};vm.runInNewContext(source,{window});return window.SolarVisualEffects;}
+test('background depths are stable random 8–99 percent layers with unchanged appearance',()=>{
+ const effects=api(),source=effects.buildNaturalStarData(30000,123),data=effects.starWorldData(source),bins=Array(10).fill(0);
+ assert.equal(effects.starWorldData(source),data,'reuse the uploaded world positions');
+ let min=Infinity,max=0;
+ for(let o=0;o<data.length;o+=6){
+  const depth=Math.hypot(data[o],data[o+1],data[o+2]);min=Math.min(min,depth);max=Math.max(max,depth);
+  assert.ok(depth>=8-1e-5&&depth<=99+1e-5,depth);
+  bins[Math.min(9,Math.floor((depth-8)/91*10))]++;
+  for(let k=3;k<6;k++)assert.equal(data[o+k],source[o+k]);
+  const length=Math.hypot(source[o],source[o+1],source[o+2]);
+  for(let k=0;k<3;k++)assert.ok(Math.abs(data[o+k]/depth-source[o+k]/length)<1e-7);
+ }
+ assert.ok(min<8.1&&max>98.9);assert.ok(bins.every(count=>count>2700&&count<3300),bins);
+ const list=Array.from({length:source.length/6},(_,i)=>Array.from(source.slice(i*6,i*6+6)));
+ assert.deepEqual(Array.from(effects.starWorldData(list)),Array.from(data),'GPU and software share exactly the same positions');
+ assert.notDeepEqual(Array.from(effects.starWorldData(effects.buildNaturalStarData(10,456))),Array.from(data.slice(0,60)));
+});
 test('warm star shares drop 30 percent; the freed probability is shared equally by white and blue',()=>{
  const effects=api(),colors=[[1,.80,.74],[1,.93,.79],[.985,.99,1],[.77,.88,1]],counts=[0,0,0,0],n=100000;
  for(let i=0;i<n;i++){const color=effects.starColor((i+.5)/n),index=colors.findIndex(c=>c.every((v,k)=>v===color[k]));assert.ok(index>=0);counts[index]++;}

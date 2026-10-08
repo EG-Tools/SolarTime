@@ -58,7 +58,7 @@ test('invalid saved choice remains denied and integration creates no conversion 
 });
 test('all published pages load the same consent-first owner once, with current cache keys',()=>{
  const {urlFor}=require('../tools/code-revisions.cjs');
- for(const file of ['index.html','about.html','privacy.html','terms.html','changelog.html']){
+ for(const file of ['index.html','guide.html','about.html','privacy.html','terms.html','changelog.html']){
   const html=read(file);assert.equal((html.match(/src="src\/google-analytics\.js\?/g)||[]).length,1,file);
   assert.ok(html.includes(urlFor(root,'src/google-analytics.js')),file);assert.ok(html.indexOf('src/consent.js')<html.indexOf('src/google-analytics.js'),file);
   assert.doesNotMatch(html,/<script[^>]+src="https:\/\/www\.googletagmanager\.com\/gtag\/js/);

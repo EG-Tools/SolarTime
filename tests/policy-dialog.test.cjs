@@ -7,35 +7,30 @@ const root=path.resolve(__dirname,'..');
 const cacheUrl=file=>require('../tools/code-revisions.cjs').urlFor(root,file);
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('site information links share the in-app translucent dialog',()=>{
-  const html=read('index.html'),code=read('src/policy-dialog.js'),css=read('styles.css');
-  assert.ok(html.includes('id="site-policy-dialog"'));
-  assert.ok(html.includes('id="site-policy-frame"'));
-  assert.equal((html.match(/class="site-policy-tab"/g)||[]).length,3);
-  assert.ok(html.includes('src="'+cacheUrl('src/policy-dialog.js')+'"'));
-  assert.ok(code.includes('.site-policy-links a[href$=".html"],#cookie-consent a[href="privacy.html"]'));
-  assert.ok(code.includes('new URL(href,root.document.baseURI)'));
-  assert.ok(code.includes("url.searchParams.set('embed','1')"));
-  assert.ok(code.includes("tab.setAttribute('aria-selected',String(selected))"));
-  assert.ok(code.includes("tab.addEventListener('click',()=>selectDocument(tab.dataset.policyPage))"));
-  for(const key of ['ArrowRight','ArrowLeft','Home','End'])assert.ok(code.includes("event.key==='"+key+"'"),key);
-  assert.ok(code.includes("frame.contentDocument?.addEventListener('keydown'"));
-  assert.ok(code.includes("event.key==='Escape'"));
-  assert.ok(code.includes('UI.show(dialog,()=>dialog.showModal())'));
-  assert.ok(css.includes('.site-policy-dialog{width:min(820px,calc(100% - 36px))'));
-  assert.ok(css.includes('.site-policy-dialog[open]{display:grid;grid-template-rows:auto minmax(0,1fr)}'));
-  assert.ok(css.includes('.site-policy-tab[aria-selected=true]'));
-  assert.ok(css.includes('.site-policy-frame{display:block;width:100%;height:100%;min-height:0;border:0;background:transparent'));
+test('main information buttons navigate to standalone HTML pages',()=>{
+  const html=read('index.html'),code=read('src/policy-dialog.js');
+  const nav=/<nav class="site-policy-links"[^>]*>(.*?)<\/nav>/.exec(html)?.[1]||'';
+  assert.match(nav,/href="guide\.html">GUIDE<\/a><a href="about\.html">ABOUT<\/a><a href="privacy\.html">PRIVACY<\/a><a href="terms\.html">TERMS<\/a>/);
+  assert.doesNotMatch(nav,/target=/);
+  assert.ok(code.includes("const intercepted=links.filter(link=>!link.closest('.site-policy-links'))"));
+  assert.ok(code.includes("for(const link of intercepted)link.addEventListener('click'"));
+  assert.ok(!code.includes("for(const link of links)link.addEventListener('click'"));
 });
 
-test('standalone policy pages keep canonical URLs and support embedded presentation',()=>{
-  const css=read('site-info.css');
+test('cookie privacy can reuse the dialog while public pages stay independently crawlable',()=>{
+  const html=read('index.html'),code=read('src/policy-dialog.js'),css=read('site-info.css');
+  assert.ok(html.includes('id="site-policy-dialog"'));
+  assert.ok(html.includes('id="site-policy-frame"'));
+  assert.equal((html.match(/class="site-policy-tab"/g)||[]).length,4);
+  assert.ok(html.includes('src="'+cacheUrl('src/policy-dialog.js')+'"'));
+  assert.ok(code.includes('#cookie-consent a[href="privacy.html"]'));
+  assert.ok(code.includes("url.searchParams.set('embed','1')"));
+  assert.ok(code.includes('UI.show(dialog,()=>dialog.showModal())'));
   assert.ok(css.includes('html.embedded body{min-height:0;background:transparent}'));
-  assert.ok(css.includes('html.embedded .info-card{border-color:rgba(193,215,236,.12);background:linear-gradient'));
-  for(const file of ['about.html','privacy.html','terms.html']){
+  for(const file of ['guide.html','about.html','privacy.html','terms.html']){
     const page=read(file);
     assert.ok(page.includes('src="'+cacheUrl('src/policy-dialog.js')+'"'),file);
-    assert.ok(page.includes(`rel="canonical" href="https://solartime.app/${file}"`),file);
-    assert.ok(!page.includes('pagead2.googlesyndication.com'),file+' cannot request ads inside the in-app frame');
+    assert.ok(page.includes('rel="canonical" href="https://solartime.app/'+file+'"'),file);
+    assert.ok(!page.includes('pagead2.googlesyndication.com'),file);
   }
 });

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="A practical guide to Solar Time: camera controls, simulation time, planets, cinematic travel, display settings, music, timers, and troubleshooting.">
+  <meta name="google-adsense-account" content="ca-pub-5773171100052324">
+  <link rel="canonical" href="https://solartime.app/guide.html"><script src="src/policy-dialog.js?v=525a7f777bf7"></script><link rel="stylesheet" href="site-info.css?v=fe2d59833b93">
+  <script src="src/consent.js?v=9639455022b5"></script>
+  <script src="src/google-analytics.js?v=e24144b73eb2"></script>
+  <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
+  <title>Solar Time Guide</title>
+</head>
+<body><div class="site-shell">
+  <header class="site-header"><a class="site-brand" href="./">SOLAR TIME</a><nav class="site-nav" aria-label="Site information"><a href="guide.html" aria-current="page">GUIDE</a><a href="about.html">ABOUT</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a><a href="changelog.html">UPDATES</a></nav></header>
+  <main>
+    <p class="eyebrow">EXPLORE · OBSERVE · TRAVEL</p><h1>Guide to Solar Time</h1>
+    <p class="lead">Solar Time turns the current time into a navigable view of the solar system. This guide explains how to move through the scene, change simulation time, follow a planet, use cinematic travel, and keep the experience running smoothly.</p>
+    <nav class="guide-toc" aria-label="Guide sections">
+      <a href="#start">Start here</a><a href="#camera">Camera</a><a href="#time">Time</a><a href="#bodies">Planets</a><a href="#travel">Travel</a><a href="#display">Display</a><a href="#shortcuts">Shortcuts</a><a href="#troubleshooting">Help</a>
+    </nav>
+
+    <section id="start" class="guide-section">
+      <h2>Start here</h2>
+      <ol class="guide-steps">
+        <li><strong>Let the opening finish</strong><span>The solar system settles into your saved or default view. You can skip or replay cinematic travel later.</span></li>
+        <li><strong>Move the camera</strong><span>Drag to rotate, use the wheel to move forward or backward, and select a body from the list along the bottom.</span></li>
+        <li><strong>Choose how time flows</strong><span>Keep Real time on for the live clock, or turn it off and set a faster rate in hours, days, or years per second.</span></li>
+      </ol>
+      <p class="guide-tip"><strong>Good first view:</strong> press <kbd>0</kbd> whenever you want to return to the home composition, then select Earth or Saturn from the footer.</p>
+    </section>
+
+    <section id="camera" class="guide-section">
+      <h2>Move and compose the camera</h2>
+      <div class="info-grid">
+        <article class="info-card"><h3>Orbit the view</h3><p>Left-drag to rotate around the current focus. Middle-drag pans the composition without changing the viewing angle.</p></article>
+        <article class="info-card"><h3>Distance and lens</h3><p>Use the mouse wheel to move forward or backward. Right-drag changes the lens from telephoto to wide angle while keeping the camera position.</p></article>
+        <article class="info-card"><h3>Follow a body</h3><p>Double-click a planet or major moon to follow it. The camera approaches smoothly and continues to track the body as simulation time advances.</p></article>
+        <article class="info-card"><h3>Save a composition</h3><p>Camera slots 1–3 store favorite viewpoints. Open a numbered slot to save, recall, or remove its view.</p></article>
+      </div>
+      <p>Default View restores the overview without erasing saved camera slots. The forward/back control can switch the wheel between a flat zoom and physical camera travel, which changes the sense of depth around nearby bodies.</p>
+    </section>
+
+    <section id="time" class="guide-section">
+      <h2>Control simulation time</h2>
+      <p>The clock at the top follows the selected region. With <strong>Real time</strong> enabled, the model follows the current clock. Turn Real time off to use the lower slider. Click the unit button to cycle through hours, days, and years; Solar Time remembers the unit you last selected.</p>
+      <p>The available ranges are 1 minute–24 hours, 1–365 days, and 1–20 years advanced per real second. Planets follow elliptical paths, so their apparent speed varies across an orbit. The Moon and Europa continue around their parent planets at the selected simulation time.</p>
+      <div class="notice"><strong>Accuracy note.</strong> Solar Time is an educational and artistic visualization. Long-term perturbations and small distance changes are simplified, so confirm observation dates, navigation, and eclipse predictions with an authoritative ephemeris.</div>
+    </section>
+
+    <section id="bodies" class="guide-section">
+      <h2>Select and inspect celestial bodies</h2>
+      <p>Use the footer list to select the Sun, planets, Moon, Europa, and Pluto. The information card shows useful facts and body-specific controls. The left and right arrow keys move through the same list; when tracking is active, the camera transfers smoothly to the new target.</p>
+      <p>The normal overview adjusts sizes and orbit spacing so the whole system remains readable. <strong>True size ratio</strong> reduces those visual adjustments for comparison. Display Size changes individual bodies, while Orbit Spacing changes their visual separation. These controls affect presentation rather than rewriting the selected simulation date.</p>
+      <p>Earth and Venus include cloud controls. High-resolution surfaces are loaded as you approach a body, so a sharper texture may replace the first image after a short moment.</p>
+    </section>
+
+    <section id="travel" class="guide-section">
+      <h2>Opening, warp, and Saturn ring travel</h2>
+      <p>Press <kbd>T</kbd> to start the selected travel sequence. The UFO control chooses the opening style. A journey may pass through a departure, continuous flight, and arrival sequence before restoring the solar-system view.</p>
+      <p>Saturn ring travel approaches Saturn, enters the ring field, and continues around the rings. Press <kbd>Space</kbd> to pause the cinematic camera. During the ring tour, a paused view can still be rotated for screenshots; during warp, manual camera control remains locked so the flight direction stays coherent. Press Space again to continue.</p>
+      <p>Cinematic travel temporarily locks settings that would change planet size, orbit spacing, eclipse or alignment targets, scale mode, reset state, close-up targets, or regional clock selection. The controls become available again when the sequence ends or is exited.</p>
+    </section>
+
+    <section id="display" class="guide-section">
+      <h2>Display, music, and viewing tools</h2>
+      <div class="info-grid">
+        <article class="info-card"><h3>Viewing mode</h3><p>Press <kbd>H</kbd> to hide interface panels for an unobstructed scene. Moving the pointer brings controls back when interaction is available.</p></article>
+        <article class="info-card"><h3>Background music</h3><p>Press <kbd>M</kbd> to start or stop ambient music. Track controls appear while music is playing, and your preference is stored in this browser.</p></article>
+        <article class="info-card"><h3>Fullscreen and screenshots</h3><p>Press <kbd>F</kbd> for fullscreen. Pause motion, hide the interface, and compose the camera before using your device's screenshot command.</p></article>
+        <article class="info-card"><h3>Timer</h3><p>The timer can play an alarm in the browser. Windows scheduled shutdown is optional and requires the separately verified Solar Time helper.</p></article>
+      </div>
+      <p>For steadier performance, Solar Time automatically budgets particles and detail for the device. Closing other graphics-heavy tabs, leaving hardware acceleration enabled, and avoiding extreme browser zoom can also help.</p>
+    </section>
+
+    <section id="shortcuts" class="guide-section">
+      <h2>Keyboard shortcuts</h2>
+      <div class="control-table" role="table" aria-label="Keyboard shortcuts">
+        <div role="row"><span role="cell"><kbd>Space</kbd></span><span role="cell">Pause or resume motion and cinematic playback</span></div>
+        <div role="row"><span role="cell"><kbd>R</kbd></span><span role="cell">Return the simulation to real time</span></div>
+        <div role="row"><span role="cell"><kbd>F</kbd></span><span role="cell">Enter or leave fullscreen</span></div>
+        <div role="row"><span role="cell"><kbd>M</kbd></span><span role="cell">Start or stop background music</span></div>
+        <div role="row"><span role="cell"><kbd>H</kbd></span><span role="cell">Toggle viewing mode</span></div>
+        <div role="row"><span role="cell"><kbd>+</kbd></span><span role="cell">Toggle true size ratio</span></div>
+        <div role="row"><span role="cell"><kbd>0</kbd></span><span role="cell">Return to the default view</span></div>
+        <div role="row"><span role="cell"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span role="cell">Recall a saved camera view</span></div>
+        <div role="row"><span role="cell"><kbd>T</kbd></span><span role="cell">Start travel</span></div>
+        <div role="row"><span role="cell"><kbd>←</kbd> <kbd>→</kbd></span><span role="cell">Select the previous or next celestial body</span></div>
+        <div role="row"><span role="cell"><kbd>↑</kbd> <kbd>↓</kbd></span><span role="cell">Move the camera forward or backward</span></div>
+      </div>
+    </section>
+
+    <section id="troubleshooting" class="guide-section">
+      <h2>Troubleshooting</h2>
+      <h3>The view feels lost or too close</h3><p>Press <kbd>0</kbd> to restore the default view. If the lens still feels unusual, right-drag until the magnification indicator returns to a comfortable value.</p>
+      <h3>A texture looks soft</h3><p>Stay near the selected body for a moment. Detailed textures load progressively and may take longer on a slow connection or a device with a limited graphics budget.</p>
+      <h3>Music or an alarm is silent</h3><p>Interact with the page once and check the browser tab, operating-system volume, and site autoplay permission. A user gesture is required by many browsers before audio can begin.</p>
+      <h3>A cinematic control is disabled</h3><p>Finish or exit the current opening, warp, or travel sequence. Controls that could break the camera composition are intentionally restored afterward.</p>
+      <h3>Settings did not persist</h3><p>Local preferences depend on browser storage. Private browsing, storage cleanup, or restrictive browser settings can reset them. Solar Time does not require an account.</p>
+      <p class="guide-tip">Still need help? Send the browser name, device type, and steps that reproduce the issue to <a href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a>.</p>
+    </section>
+  </main>
+  <footer class="site-footer">© 2026 Life User. All rights reserved.<a href="./">Open Solar Time</a></footer>
+</div></body></html>

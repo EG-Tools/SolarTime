@@ -17,6 +17,13 @@
   const MESH_MIN_SIZE=.0025;
   const DEBRIS_LAYER_HEIGHT=.055*1.5;
   const BANK_LIMIT=20*Math.PI/180;
+  const BANK_MAX=45*Math.PI/180;
+  const BANK_HANDOFF=2;
+  const POINT_BANK_HANDOFF=5;
+  const LANDING_BANK_SETTLE=3.5;
+  const POINT_LANDING_BANK_HOLD=3.5;
+  const POINT_LANDING_BANK_BRAKE=.75;
+  const MIN_LENS_SCALE=.8;
   const DUST_HEIGHT_RATIO=.7;
   const GRAIN_HEIGHT=.7*.8*.7*.7*.8*1.5; // Shared vertical spread for entry, orbit and return.
   const GRAIN_WIDTH=.9*.7;
@@ -29,6 +36,13 @@
     const shift=(1-p.perspective)*p.orthoScale/Math.max(p.perspective,.001);
     return p.eye.map((v,i)=>v-p.forward[i]*shift);
   }
+  // A parent rotating +phase around the local north (Y) axis is rendered by
+  // observing its immutable local geometry through the inverse transform.
+  // Keeping the points immutable preserves the spatial index and GPU buffers.
+  function inverseParentVector(v,phase){
+    const a=(Number.isFinite(phase)?phase:0)*TAU,c=Math.cos(a),s=Math.sin(a);
+    return [c*v[0]+s*v[2],v[1],c*v[2]-s*v[0]];
+  }
   function axes(forward,up){const right=unit(cross(up,forward));return {right,up:unit(cross(forward,right)),forward};}
   // Shared cinematic bank: lateral turn rate, independent of scene scale.
   // Ring flight bank is capped at +/-20 degrees. Opening samples curvature
@@ -40,6 +54,7 @@
     return BANK_LIMIT*Math.tanh(lateral*1.2/BANK_LIMIT);
   }
   function bankPose(pose,angle){
+    angle=clamp(Number.isFinite(angle)?angle:0,-BANK_MAX,BANK_MAX);
     const c=Math.cos(angle),s=Math.sin(angle),r=pose.right,u=pose.up;
     return {...pose,right:r.map((v,i)=>c*v-s*u[i]),up:u.map((v,i)=>c*v+s*r[i])};
   }
@@ -302,8 +317,9 @@
     return locators.map(p=>({...p,cost:Math.acos(clamp(dot(unit(from.forward),unit(p.direction)),-1,1))}))
       .sort((a,b)=>a.cost-b.cost).slice(0,3);
   }
-  const returnTravel=(u,slope)=>ease(u)+slope*initialTangent(u);
-  const returnVelocity=(u,slope)=>(1-u)**2*(slope+2*slope*u+(30-15*slope)*u*u);
+  const tangentVelocity=u=>(1-u)**2*(1+2*u-15*u*u);
+  const returnTurn=(u,angle,angularVelocity,duration)=>angle*ease(u)+angularVelocity*duration*initialTangent(u);
+  const returnTurnVelocity=(u,angle,angularVelocity,duration)=>angle/duration*30*u*u*(1-u)**2+angularVelocity*tangentVelocity(u);
   function controlledPose(pose,{yaw=0,pitch=0,pan=[0,0]}){
     let {eye,forward,right,up}=pose;
     forward=unit(forward.map((v,i)=>v*Math.cos(yaw)+right[i]*Math.sin(yaw)));
@@ -530,13 +546,19 @@
     }catch(error){if(p)gl.deleteProgram(p);throw error;}finally{shaders.forEach(s=>gl.deleteShader(s));}
   }
   class RingTour{
-    constructor({frame,radius,width,height,screen,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,prepared,deferPreparation=false,particleCapacity=1}){
+    constructor({frame,radius,width,height,screen,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,prepared,deferPreparation=false,particleCapacity=1,lensZoom=1,pointified=false}){
       this.particleCapacity=clamp(particleCapacity,.25,1);this.particleBudget=1;
-      this.openingResume=!!openingVelocity;
+      this.openingResume=!!openingVelocity;this.pointified=!!pointified;
       const rand=random(seed);this.seed=seed;this.phase=phase;this.state='entering';this.age=0;this.lastMono=null;this.speed=1;
       this.radius=SETTINGS.pathRadius-(SETTINGS.pathRadius-1.28)*random(seed^0x6a09e667)()*.2;this.height=.025+rand()*.023;this.direction=rand()<.5?-1:1;this.period=(115+rand()*55)/6;
-      this.fov=72;this.yaw=0;this.pitch=0;this.pan=[0,0];this.resources=null;this.disposed=false;
-      this.startPose=viewPose({frame,radius,width,height,screen,fov:this.fov});this.orthoScale=this.startPose.orthoScale;
+      this.fov=72;this.lensZoom=Math.max(MIN_LENS_SCALE,Number.isFinite(lensZoom)?lensZoom:1);this.yaw=0;this.pitch=0;this.pan=[0,0];this.resources=null;this.disposed=false;
+      this.startPose=viewPose({frame,radius,width,height,screen,fov:this.fov});
+      // A sub-pixel Saturn already represents a camera far enough away for a
+      // perspective view. Starting it as an orthographic lens and blending to
+      // perspective made every surrounding body follow a different apparent
+      // route before rejoining the real S-curve camera.
+      if(this.pointified)this.startPose={...this.startPose,perspective:1,pointified:true};
+      this.orthoScale=this.startPose.orthoScale;
       this.startEye=this.startPose.eye;
       this.startAngle=Math.atan2(this.startEye[2],this.startEye[0]);this.entryAngle=this.startAngle+(rand()-.5)*.65;
       if(target?.point?.length===3&&target.point.every(Number.isFinite)){
@@ -584,6 +606,7 @@
         delta.orthoScale=(openingVelocity.orthoScale||0)-(b.orthoScale-a.orthoScale)/.001;
         delta.perspective=-(b.perspective-a.perspective)/.001;
         this.openingMomentum=delta;
+        this.prepareOpeningTiming();
       }
       // Double-click tracking fills one quarter of the short screen edge.
       // Match that departure's 2.5-second proximity; a distant overview must
@@ -650,7 +673,8 @@
       if(this.state==='returning'){
         this.returnAge=this.replayBridge?clamp((mono-this.replayBridge.start)/1000,0,this.returnDuration):Math.min(this.returnDuration,this.returnAge+dt);this.fadeAge=(this.fadeAge||0)+dt;
         const m=this.returnMotion,u=clamp(this.returnAge/Math.max(m.rotationTime,.001),0,1);
-        this.speed=(m.rewind?m.angularVelocity*(1-smooth(u)):m.turn/m.rotationTime*returnVelocity(u,m.slope))/(TAU/this.period);
+        const angularSpeed=m.rewind?m.angularVelocity*(1-smooth(u)):returnTurnVelocity(u,m.turn,m.angularVelocity,m.rotationTime);
+        this.speed=Math.abs(angularSpeed)/(TAU/this.period);
         this.pose=this.cameraPose();if(this.returnAge>=this.returnDuration)this.state='complete';this.prepareGrainRoute();return this.pose;
       }
       if(this.state==='complete')return this.pose;
@@ -730,7 +754,7 @@
       const exiting=this.state==='returning',retargetStart=exiting&&this.returnAge===0,from=withoutDrift(this.pose);
       const dt=retargetStart?this.returnMotion.dt:Math.min(.001,exiting?this.returnAge:this.age);
       const previous=retargetStart?this.returnMotion.previous:dt>0?withoutDrift(this.cameraPose(this.age-dt,(this.returnAge||0)-dt)):from,a=polar(from.eye),b=polar(view.eye),old=polar(previous.eye);
-      const angularVelocity=dt>0?Math.abs(Math.atan2(Math.sin(a.angle-old.angle),Math.cos(a.angle-old.angle))/dt):0;
+      const angularVelocity=dt>0?Math.atan2(Math.sin(a.angle-old.angle),Math.cos(a.angle-old.angle))/dt:0;
       const detail=this.ringDetailState(),baseline=this.returnTarget?SETTINGS.returnFar:mix(SETTINGS.return,SETTINGS.returnFar,smooth((this.startDistance-4)/24));
       this.returnDetail=detail;
       this.returnAnnotation=this.annotationOpacity();
@@ -747,12 +771,18 @@
         if(view!==this.startPose)this.returnRedirect={at:0,view};
         this.pose=this.cameraPose();return;
       }
-      let turn=(this.direction*(b.angle-a.angle)%TAU+TAU)%TAU;
-      if(turn<1e-7&&angularVelocity>1e-6)turn=TAU;
-      const naturalTime=angularVelocity>1e-6?2*turn/(angularVelocity*SETTINGS.returnSpeed):baseline/SETTINGS.returnSpeed;
-      const rotationTime=Math.min(SETTINGS.returnMax,naturalTime);
-      this.returnDuration=Math.min(SETTINGS.returnMax,Math.max(baseline/SETTINGS.returnSpeed,rotationTime));
-      this.returnMotion={a,b,turn,rotationTime,slope:turn>1e-8?angularVelocity*rotationTime/turn:0,angularVelocity,dt,previous,
+      // Return by the shortest signed arc. The previous implementation always
+      // kept orbiting in the cruise direction and could add almost a complete
+      // lap before Home. At overview distances that swept unrelated planets
+      // vertically across the screen. A bounded tangent term keeps the exact
+      // takeoff velocity, then bends onto the direct return arc and stops.
+      const turn=Math.atan2(Math.sin(b.angle-a.angle),Math.cos(b.angle-a.angle));
+      const angularSpeed=Math.abs(angularVelocity);
+      const naturalTime=angularSpeed>1e-6&&Math.abs(turn)>1e-6?2*Math.abs(turn)/(angularSpeed*SETTINGS.returnSpeed):baseline/SETTINGS.returnSpeed;
+      const desiredTime=Math.min(SETTINGS.returnMax,naturalTime);
+      this.returnDuration=Math.min(SETTINGS.returnMax,Math.max(baseline/SETTINGS.returnSpeed,desiredTime));
+      const rotationTime=this.returnDuration;
+      this.returnMotion={a,b,turn,rotationTime,angularVelocity,dt,previous,
         radiusVelocity:dt>0?Math.log(a.radius/old.radius)/dt:0,elevationVelocity:dt>0?(a.elevation-old.elevation)/dt:0};
       this.returnFrom=from;this.returnTo=view;this.returnAge=0;this.state='returning';
       this.returnControls={yaw:this.yaw,pitch:this.pitch,pan:[...this.pan],fov:this.fov};
@@ -794,16 +824,15 @@
       if(this.replayBridge?.takeoff)return this.takeoffPose(elapsed);
       if(this.returnMotion.rewind)return this.rewindPose(elapsed);
       const m=this.returnMotion,from=this.returnFrom,to=this.returnTo,t=clamp(elapsed/this.returnDuration,0,1),weight=ease(t),u=clamp(elapsed/m.rotationTime,0,1);
-      const travel=returnTravel(u,m.slope);
       // Carry the current radial/lens velocity briefly, even when interrupted
       // halfway through entry. Bounded momentum cannot drag a long return
       // through Saturn. The radius itself is always outside the solid planet.
       const momentum=elapsed*Math.exp(-elapsed/.35)*(1-weight);
-      const turn=this.direction*m.turn*travel;
+      const turn=returnTurn(u,m.turn,m.angularVelocity,m.rotationTime);
       const radius=Math.max(Math.min(m.a.radius,m.b.radius,1.08),Math.exp(mix(Math.log(m.a.radius),Math.log(m.b.radius),weight)+m.radiusVelocity*momentum));
       const elevation=mix(m.a.elevation,m.b.elevation,weight)+m.elevationVelocity*momentum,angle=m.a.angle+turn,r=radius*Math.cos(elevation);
-      const start=m.dt>0?orientation(turnFrame(m.previous,this.direction*m.angularVelocity*m.dt),from,1+momentum/m.dt):from;
-      const frame=turnFrame(orientation(start,turnFrame(to,-this.direction*m.turn),weight),turn);
+      const start=m.dt>0?orientation(turnFrame(m.previous,m.angularVelocity*m.dt),from,1+momentum/m.dt):from;
+      const frame=turnFrame(orientation(start,turnFrame(to,-m.turn),weight),turn);
       const value=(key)=>mix(from[key],to[key],weight)+(m.dt>0?(from[key]-m.previous[key])/m.dt*momentum:0);
       return {...frame,eye:[r*Math.cos(angle),radius*Math.sin(elevation),r*Math.sin(angle)],
         offset:from.offset.map((v,i)=>mix(v,to.offset[i],weight)+(m.dt>0?(v-m.previous.offset[i])/m.dt*momentum:0)),
@@ -830,7 +859,12 @@
         this.lookEyeAge=this.visualAge||0;
       }
     }
-    zoom(factor){if(factor>0&&Number.isFinite(factor))this.fov=clamp(this.fov/factor,35,100);}
+    lensScale(fov=this.fov){return this.lensZoom*Math.tan(this.startPose.fov*Math.PI/360)/Math.tan(fov*Math.PI/360);}
+    zoom(factor){
+      if(!(factor>0&&Number.isFinite(factor)))return;
+      const maximum=Math.min(100,360/Math.PI*Math.atan(this.lensZoom*Math.tan(this.startPose.fov*Math.PI/360)/MIN_LENS_SCALE));
+      this.fov=clamp(this.fov/factor,35,maximum);
+    }
     move(x,y){this.pan[0]=clamp(this.pan[0]+x,-.12,.12);this.pan[1]=clamp(this.pan[1]+y,-.012,.16);}
     cruiseTarget(index){
       // X uses the full visible ring width (0..80%); Y is relative to the
@@ -868,19 +902,23 @@
       return {...axes(forward,[0,this.upSign,0]),eye:[wave.radius*c,wave.height,wave.radius*s]};
     }
     entryMotion(age,startDistance=this.startDistance){
-      // Slightly lead the radial acceleration, with no jump at departure and
-      // no change to the ten-second arrival or the locator's final velocity.
-      const p=clamp(age/SETTINGS.entry,0,1),weight=entryWeight(age,this.openingResume),far=smooth((startDistance-4)/8);
+      // Keep the same ten-second S path at every starting distance. The old
+      // far-distance shortcut cubed the remaining distance and rushed the
+      // camera through overview orbits during the first few seconds, which
+      // looked like the orbit geometry itself was expanding. Distance now
+      // follows the shared camera clock and still matches cruise velocity at
+      // the landing tangent.
+      const p=clamp(age/SETTINGS.entry,0,1),weight=entryWeight(age,this.openingResume);
       const gap=Math.log(startDistance/this.landingDistance);
       const flow=gap>0?clamp(this.boardingSpeed(startDistance)*SETTINGS.entry/(this.radius*gap),0,1):0;
       // The old radial ease ended at zero speed, then the first lap accelerated
       // again. This monotonic blend ends with the same tangent as cruiseWave.
-      const radial=mix(mix(weight,1-(1-weight)**3,far),p*p*(2-p),flow);
+      const radial=mix(weight,p*p*(2-p),flow);
       const distance=Math.exp(mix(Math.log(startDistance),Math.log(this.landingDistance),radial));
       // A contracting spiral from departure, not a radial flight followed by
       // a last-second turn. Position and orientation share this angular clock;
       // the radius only shrinks, so there is no outward loop or Saturn crossing.
-      return {weight,distance,curve:weight};
+      return {weight,distance,curve:weight,projection:this.pointified?1:radial};
     }
     entryPosition(age,motion=this.entryMotion(age)){
       if(age>=SETTINGS.entry)return this.locatorPose(age).eye;
@@ -888,9 +926,12 @@
       return spiralPoint(this.startAngle,this.entryTurn,TAU/this.period*this.direction,age,curve,distance,mix(this.startElevation,this.landingElevation,curve));
     }
     rawEntryPose(age,fov=this.fov){
-      const motion=this.entryMotion(age),{weight,curve}=motion;
+      const motion=this.entryMotion(age),{weight,curve,projection}=motion;
       const frame=orientation(this.startPose,this.approachHeading,curve),turn=(this.entryTurn+age*TAU/this.period*this.direction)*curve;
-      const pose={...turnFrame(frame,turn),eye:this.entryPosition(age,motion),offset:blend(this.startOffset,[0,0],weight),perspective:weight,fov,orthoScale:this.orthoScale*motion.distance/this.startDistance};
+      // Distance and perspective must advance on the same clock. Letting a far
+      // camera close the gap first made Saturn grow alone, then warped the rest
+      // of the solar system when perspective caught up later.
+      const pose={...turnFrame(frame,turn),eye:this.entryPosition(age,motion),offset:blend(this.startOffset,[0,0],weight),perspective:projection,fov,orthoScale:this.orthoScale*motion.distance/this.startDistance};
       if(this.entryView){
         // Follow the moving planet progressively, without changing simulation
         // time or the ring arrival. The live lens also prevents a stale size
@@ -903,35 +944,97 @@
       }
       return pose;
     }
-    bankEntryPose(pose,age){
+    openingCurveEye(age){
+      const eye=this.entryPosition(age),bridge=this.openingBridge(age);
+      return bridge?eye.map((v,i)=>v+this.openingMomentum.eye[i]*bridge):eye;
+    }
+    prepareOpeningTiming(){
+      const duration=2.5,count=512,step=duration/count,cumulative=new Float64Array(count+1);
+      let previous=this.openingCurveEye(0);
+      for(let i=1;i<=count;i++){
+        const eye=this.openingCurveEye(i*step);
+        cumulative[i]=cumulative[i-1]+Math.hypot(...eye.map((v,j)=>v-previous[j]));previous=eye;
+      }
+      const speed=age=>{
+        const h=.002,lo=Math.max(0,age-h),hi=Math.min(duration,age+h),a=this.openingCurveEye(lo),b=this.openingCurveEye(hi);
+        return Math.hypot(...b.map((v,i)=>v-a[i]))/(hi-lo);
+      };
+      const derivativeStep=.01,v0=speed(0),v1=speed(duration),a0=(speed(derivativeStep)-v0)/derivativeStep,a1=(v1-speed(duration-derivativeStep))/derivativeStep;
+      const baseAverage=(v0+v1)/2+(a0-a1)*duration/12,boost=cumulative[count]/duration-baseAverage;
+      this.openingTiming={duration,count,step,cumulative,v0,v1,a0,a1,boost};
+    }
+    openingSourceAge(age){
+      const timing=this.openingTiming;
+      if(!timing||age<=0||age>=timing.duration)return age;
+      const u=age/timing.duration,u2=u*u,u3=u2*u,u4=u3*u,u5=u4*u,
+        h00=.5*u4-u3+u,h10=.25*u4-2*u3/3+u2/2,h01=-.5*u4+u3,h11=.25*u4-u3/3;
+      const distance=timing.duration*(timing.v0*h00+timing.a0*timing.duration*h10+timing.v1*h01+timing.a1*timing.duration*h11+timing.boost*(10*u3-15*u4+6*u5));
+      const target=clamp(distance,0,timing.cumulative[timing.count]);let low=0,high=timing.count;
+      while(high-low>1){const middle=(low+high)>>1;if(timing.cumulative[middle]<target)low=middle;else high=middle;}
+      const span=timing.cumulative[high]-timing.cumulative[low],fraction=span>1e-12?(target-timing.cumulative[low])/span:0;
+      return (low+fraction)*timing.step;
+    }
+    rawEntryPathBank(age,right){
       // Bank follows the actual velocity-bridged path, not a different raw
       // spiral underneath it. Otherwise an opening handoff rolls the wrong way.
-      const bank=this.cruiseBank(age,smoothBank(t=>{
-        const eye=this.entryPosition(t),bridge=this.openingBridge(t);
-        return bridge?eye.map((v,i)=>v+this.openingMomentum.eye[i]*bridge):eye;
-      },age,pose.right)*transition(age,this.openingResume?2.5:0,this.openingResume?6:2.5));
-      return bankPose(pose,bank);
+      return smoothBank(t=>this.openingCurveEye(this.openingSourceAge(t)),age,right)*transition(age,this.openingResume?2.5:0,this.openingResume?6:2.5);
+    }
+    entryPathBank(age,right){
+      const raw=this.rawEntryPathBank(age,right);
+      if(!this.pointified)return mix(raw,this.rawLandingBankAngle(),transition(age,SETTINGS.entry-LANDING_BANK_SETTLE,SETTINGS.entry));
+      const start=SETTINGS.entry-POINT_LANDING_BANK_HOLD;
+      if(age<=start||age>=SETTINGS.entry)return age>=SETTINGS.entry?this.landingBankPlan().angle:raw;
+      const plan=this.landingBankPlan(),u=clamp((age-start)/POINT_LANDING_BANK_BRAKE,0,1);
+      // Keep the entry roll that was already established before the close
+      // approach. Only its current angular velocity is gently braked; sampling
+      // the changing S curvature until frame ten made the entire solar system
+      // roll to the opposite side and then settle back at the ring.
+      return plan.angle+plan.rate*POINT_LANDING_BANK_BRAKE*initialTangent(u);
+    }
+    rawLandingBankAngle(){
+      const age=SETTINGS.entry,pose=this.rawEntryPose(age);
+      return this.rawEntryPathBank(age,pose.right);
+    }
+    landingBankPlan(){
+      if(this.entryLandingPlan)return this.entryLandingPlan;
+      const age=SETTINGS.entry-POINT_LANDING_BANK_HOLD,h=.01,pose=this.rawEntryPose(age),before=this.rawEntryPose(age-h),after=this.rawEntryPose(age+h);
+      const angle=this.rawEntryPathBank(age,pose.right),a=this.rawEntryPathBank(age-h,before.right),b=this.rawEntryPathBank(age+h,after.right);
+      const rate=clamp((b-a)/(2*h),-10*Math.PI/180,10*Math.PI/180);
+      return this.entryLandingPlan={angle,rate};
+    }
+    landingBankAngle(){
+      if(Number.isFinite(this.entryLandingBank))return this.entryLandingBank;
+      return this.entryLandingBank=this.pointified?this.landingBankPlan().angle:this.rawLandingBankAngle();
+    }
+    bankEntryPose(pose,age){
+      return bankPose(pose,this.cruiseBank(age,this.entryPathBank(age,pose.right)));
     }
     cruiseBank(age,pathBank){
-      // X reaches 80% at the end of the first lap. Until then use path bank;
-      // afterwards share X/Y's clock, easing and reproducible large swings.
+      // The incoming bank owns the landing frame. Once on the ring, ease from
+      // that exact value into the live loop curvature instead of changing bank
+      // owners on the entry/cruise boundary.
       const laps=(age-SETTINGS.entry)/this.period;
-      if(laps<=1)return pathBank;
+      if(laps<=0){if(laps===0)this.entryLandingBank=pathBank;return pathBank;}
+      const handoff=this.pointified?POINT_BANK_HANDOFF:BANK_HANDOFF;
+      const inherited=mix(this.landingBankAngle(),pathBank,transition(age,SETTINGS.entry,SETTINGS.entry+handoff));
+      // X reaches 80% at the end of the first lap. Until then use the settled
+      // path bank; afterwards share X/Y's clock and reproducible large swings.
+      if(laps<=1)return inherited;
       const lap=Math.floor(laps),weight=ease(laps-lap);
       const target=index=>{
         const rand=random(this.seed^Math.imul(index,0x27d4eb2d));
         const sign=((index+(this.seed&1))%2?1:-1);
         return sign*(.58+.42*rand())*BANK_LIMIT;
       };
-      return mix(lap===1?pathBank:target(lap),target(lap+1),weight);
+      return mix(lap===1?inherited:target(lap),target(lap+1),weight);
     }
     openingBridge(age){
       const handoff=2.5;
       return this.openingMomentum&&age>0&&age<handoff?handoff*initialTangent(age/handoff):0;
     }
     entryPose(age,fov=this.fov){
-      const pose=this.rawEntryPose(age,fov),carry=this.openingMomentum;
-      const bridge=this.openingBridge(age);
+      const sourceAge=this.openingSourceAge(age),pose=this.rawEntryPose(sourceAge,fov),carry=this.openingMomentum;
+      const bridge=this.openingBridge(sourceAge);
       if(!bridge)return this.bankEntryPose(pose,age);
       // Preserve the incoming velocity without immediately braking it. This
       // tangent bridge has zero acceleration at both ends of the handoff.
@@ -1136,10 +1239,10 @@
       for(const c of cells.values()){c.center=c.min.map((v,k)=>(v+c.max[k])*.5);c.radius=Math.hypot(...c.max.map((v,k)=>(v-c.min[k])*.5))+1e-9;delete c.min;delete c.max;}
       return {points,cells:[...cells.values()],membership,visible:new Uint8Array(cells.size)};
     }
-    instanceCandidates(points,indices,range,frustum){
+    instanceCandidates(points,indices,range,frustum,pose=this.pose){
       const spatial=this.instanceSpatial?.get(indices);
       if(!spatial||spatial.points!==points)return indices;
-      const out=this.spatialCandidates||(this.spatialCandidates=[]),p=this.pose;out.length=0;spatial.visible.fill(0);
+      const out=this.spatialCandidates||(this.spatialCandidates=[]),p=pose;out.length=0;spatial.visible.fill(0);
       for(const c of spatial.cells){
         const x=c.center[0]-p.eye[0],y=c.center[1]-p.eye[1],z=c.center[2]-p.eye[2];
         if(x*x+y*y+z*z>(range+c.radius)**2)continue;
@@ -1161,25 +1264,25 @@
       const rank=.85*clamp(distanceSquared,0,1)+.15*((seed*97.31)%1);
       return 1-smooth((rank-budget)/.12);
     }
-    instanceFrustum(width,height){
+    instanceFrustum(width,height,pose=this.pose){
       // Four view-space planes for the SAME blended lens used by the shaders.
       // Sphere margins include rotation and the most stretched angular mesh
       // (1.18 * 1.4 * 1.5 * 1.4 < 3.5), so screen-edge rocks never pop.
-      const p=this.pose,tan=Math.tan(p.fov*Math.PI/360),x=width/height*tan,y=tan;
+      const p=pose,tan=Math.tan(p.fov*Math.PI/360),x=width/height*tan,y=tan;
       return [x-p.offset[0],x+p.offset[0],y-p.offset[1],y+p.offset[1]].map(a=>[a,Math.hypot(1,a*p.perspective)*3.5]);
     }
-    visibleInstances(points,range,out,order,indices,sorted=true,frustum=null,lod=null,frame=0,pack=true){
-      order.length=0;const p=this.pose,rangeSquared=range*range;
+    visibleInstances(points,range,out,order,indices,sorted=true,frustum=null,lod=null,frame=0,pack=true,pose=this.pose){
+      order.length=0;const p=pose,rangeSquared=range*range;
       // LODs share culling, depth, hysteresis and stable ordering within this draw.
       const cache=frame&&lod?(this.instanceVisibility||(this.instanceVisibility=new Map())):null;
       let record=cache?.get(indices);
-      if(record?.frame===frame&&record.points===points&&record.range===range&&record.focal===lod.focal){
+      if(record?.frame===frame&&record.points===points&&record.range===range&&record.focal===lod.focal&&record.pose===p){
         this.instanceChecks=0;
         for(const i of record.order)if(this.meshDetail[i/5]===lod.level)order.push(i);
       }else{
         if(cache&&!record){record={order:[]};cache.set(indices,record);}
         const selected=cache?record.order:order;selected.length=0;
-        const candidates=this.instanceCandidates(points,indices,range,frustum);this.instanceChecks=candidates.length;
+        const candidates=this.instanceCandidates(points,indices,range,frustum,p);this.instanceChecks=candidates.length;
         for(const i of candidates){
           const x=points[i]-p.eye[0],y=points[i+1]-p.eye[1],z=points[i+2]-p.eye[2],depth=x*p.forward[0]+y*p.forward[1]+z*p.forward[2];
           const projectedDepth=mix(p.orthoScale,depth,p.perspective);
@@ -1201,10 +1304,14 @@
           this.depths[i/5]=depth;selected.push(i);
         }
         if(sorted)selected.sort((a,b)=>this.depths[b/5]-this.depths[a/5]);
-        if(cache){Object.assign(record,{frame,points,range,focal:lod.focal});for(const i of selected)if(this.meshDetail[i/5]===lod.level)order.push(i);}
+        if(cache){Object.assign(record,{frame,points,range,focal:lod.focal,pose:p});for(const i of selected)if(this.meshDetail[i/5]===lod.level)order.push(i);}
       }
       if(pack)this.packInstances(points,order,out);
       return order.length;
+    }
+    parentPose(pose=this.pose,phase=this.phase){
+      const eye=inverseParentVector(pose.eye,phase),right=inverseParentVector(pose.right,phase),up=inverseParentVector(pose.up,phase),forward=inverseParentVector(pose.forward,phase);
+      return {...pose,eye,right,up,forward,basis:new Float32Array([...right,...up,...forward])};
     }
     packInstances(points,order,out){
       for(let j=0;j<order.length;j++)for(let k=0;k<5;k++)out[j*5+k]=points[order[j]+k];
@@ -1242,6 +1349,10 @@
       if(!planet?.texture||!ring?.texture||!this.prepare(gpu,3))return false;
       const r=this.resources,{scene,dust,instances}=r,p=this.pose,tan=Math.tan(p.fov*Math.PI/360);
       const viewEye=projectionEye(p),detail=this.ringDetailState(viewEye);
+      // The planet phase is simulation time. Observe immutable debris through
+      // its inverse parent transform so high time scales rotate the complete
+      // ring system without rebuilding buffers or desynchronising CPU culling.
+      const parentPose=this.parentPose(p),parentViewEye=projectionEye(parentPose),parentDetailEye=inverseParentVector(detail.eye,this.phase),parentLight=inverseParentVector(this.light,this.phase);
       // The orbit-only field is world-fixed; disk/debris/dust retain their
       // shared local ring handoff. Free look never moves the particles.
       this.prepareGrainRoute();
@@ -1256,7 +1367,7 @@
       }
       g.disable(g.DEPTH_TEST);g.enable(g.BLEND);g.blendFuncSeparate(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA,g.ONE,g.ONE_MINUS_SRC_ALPHA);
       g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,planet.texture);g.activeTexture(g.TEXTURE1);g.bindTexture(g.TEXTURE_2D,ring.texture);
-      const set=shader=>{g.useProgram(shader.program);g.uniform3fv(shader.u.eye,p.eye);g.uniform3fv(shader.u.detailEye,detail.eye);g.uniform3fv(shader.u.light,this.light);g.uniformMatrix3fv(shader.u.basis,false,p.basis);g.uniform2f(shader.u.lens,width/height*tan,tan);g.uniform2fv(shader.u.offset,p.offset);g.uniform1f(shader.u.perspective,p.perspective);g.uniform1f(shader.u.orthoScale,p.orthoScale);g.uniform1i(shader.u.ringMap,1);};
+      const set=(shader,pose=p,detailEye=detail.eye,light=this.light)=>{g.useProgram(shader.program);g.uniform3fv(shader.u.eye,pose.eye);g.uniform3fv(shader.u.detailEye,detailEye);g.uniform3fv(shader.u.light,light);g.uniformMatrix3fv(shader.u.basis,false,pose.basis);g.uniform2f(shader.u.lens,width/height*tan,tan);g.uniform2fv(shader.u.offset,pose.offset);g.uniform1f(shader.u.perspective,pose.perspective);g.uniform1f(shader.u.orthoScale,pose.orthoScale);g.uniform1i(shader.u.ringMap,1);};
       const proximity=this.preparationReady&&r.ready?detail.amount:0,layers=this.entryLayers(proximity);
       const ready=r.atlas?smooth((this.visualAge-r.atlasAge)/.8)*layers.debris:0;
       g.activeTexture(g.TEXTURE2);g.bindTexture(g.TEXTURE_2D,r.atlas||planet.texture);
@@ -1270,18 +1381,18 @@
       // showing through nearer ones. Fog reads depth but never writes it.
       g.clearDepth(1);g.depthMask(true);g.clear(g.DEPTH_BUFFER_BIT);g.enable(g.DEPTH_TEST);g.depthFunc(g.LEQUAL);
       let calls=1;this.nearCount=0;this.fogCount=0;this.chipCount=0;this.submittedInstances=0;this.submittedVertices=0;this.instanceUploadBytes=0;this.instanceFrame=(this.instanceFrame||0)+1;
-      const range=2.92+Math.hypot(...detail.eye.map((v,i)=>v-p.eye[i])),frustum=this.instanceFrustum(width,height);
+      const range=2.92+Math.hypot(...parentDetailEye.map((v,i)=>v-parentPose.eye[i])),frustum=this.instanceFrustum(width,height,parentPose);
       for(const layer of this.instanceLayers){
         const {mesh,fog,chips,points,indices}=layer,texture=fog||chips?planet.texture:r.atlas,shader=mesh?r.rock:dust;
         const opacity=fog||chips?smooth(this.visualAge/1.2)*(fog?layers.dust:layers.debris):ready;
         const lod=layer.lod===undefined?null:{level:layer.lod,focal:height*(gpu.dpr||1)/(2*tan)};
-        layer.count=texture&&opacity>0?this.visibleInstances(points,fog?1.85:range,this.instanceData,this.instanceOrder,indices,!!mesh||!!fog||!!chips,frustum,lod,this.instanceFrame,false):0;
+        layer.count=texture&&opacity>0?this.visibleInstances(points,fog?1.85:range,this.instanceData,this.instanceOrder,indices,!!mesh||!!fog||!!chips,frustum,lod,this.instanceFrame,false,parentPose):0;
         const count=layer.count;if(!count)continue;
         if(mesh)this.nearCount+=count;if(fog)this.fogCount=count;this.submittedInstances+=count;
         if(chips)this.chipCount=count;const vertices=mesh?r[mesh+'Vertices']:chips?r.chipVertices:6;
         this.submittedVertices+=count*vertices;
         g.depthMask(!fog);g.activeTexture(g.TEXTURE2);g.bindTexture(g.TEXTURE_2D,texture);
-        set(shader);g.uniform3fv(shader.u.viewEye,viewEye);g.uniform1i(shader.u.atlas,2);
+        set(shader,parentPose,parentDetailEye,parentLight);g.uniform3fv(shader.u.viewEye,parentViewEye);g.uniform1i(shader.u.atlas,2);
         g.uniform1f(shader.u.elapsed,this.visualAge||0);g.uniform1f(shader.u.debrisReady,opacity);g.uniform1f(shader.u.particleBudget,this.particleBudget);g.uniform1f(shader.u.budgetRange,fog?1.85:range);
         if(!mesh){g.uniform2f(shader.u.atlasGrid,fog?2:4,2);g.uniform1f(shader.u.fogPass,fog?1:0);g.uniform1f(shader.u.chipPass,chips?1:0);}
         const attributes=shader.attributes,corner=mesh?attributes.corner:attributes.a,{position,detail}=attributes;
@@ -1345,7 +1456,8 @@
   RingTour.screenAxis=screenAxis;
   RingTour.viewPose=viewPose;
   RingTour.bankAngle=bankAngle;
-  RingTour.bankLimit=BANK_LIMIT;
+  RingTour.bankLimit=BANK_MAX;
+  RingTour.cinematicBankLimit=BANK_LIMIT;
   RingTour.smoothBank=smoothBank;
   RingTour.orientation=orientation;
   RingTour.transportFrame=transportFrame;

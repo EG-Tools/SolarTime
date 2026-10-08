@@ -209,9 +209,9 @@ class Sky{
    if(!g.getProgramParameter(this.starProgram,g.LINK_STATUS))throw Error(g.getProgramInfoLog(this.starProgram)||'Star link failed');
    const stars=starField(root.SolarAssets?.starData||root.SolarAssets?.stars),starData=stars instanceof Float32Array?stars:new Float32Array(stars.length*6);
    if(!(stars instanceof Float32Array))stars.forEach((star,index)=>starData.set(star,index*6));this.starCount=Math.floor(starData.length/6);
-   this.starBuffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.starBuffer);g.bufferData(g.ARRAY_BUFFER,starData,g.STATIC_DRAW);
+   this.starBuffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.starBuffer);g.bufferData(g.ARRAY_BUFFER,root.SolarVisualEffects.starWorldData(starData),g.STATIC_DRAW);
    this.starA={position:g.getAttribLocation(this.starProgram,'position'),appearance:g.getAttribLocation(this.starProgram,'appearance')};
-   this.starU=Object.fromEntries(['right','down','forward','size','fov','pointScale','seconds'].map(k=>[k,g.getUniformLocation(this.starProgram,k)]));
+   this.starU=Object.fromEntries(['right','down','forward','size','fov','pointScale','seconds','manualEye'].map(k=>[k,g.getUniformLocation(this.starProgram,k)]));
    this.stats.backend='gpu';this.stats.starCount=this.starCount;this.ready=true;this.invalidate();if(this.detailRequested)this.startDetailUpgrade();
   }catch(error){
    if(this.disposed||ticket!==this.initTicket)return;
@@ -301,7 +301,7 @@ class Sky{
   this.starAxes=Object.fromEntries(keys.map(key=>[key,[0,1,2].map(i=>keys.reduce((sum,k)=>sum+from[k][i]*dot(this.panAxes[key],to[k]),0))]));
   this.starSource=this.panAxes;this.starMapping=this.starRemap;
  }
- draw(seconds,camera,options){
+ draw(seconds,camera,options,manualEye=null){
   if(this.disposed||this.paused)return;
   const drawCount=root.SolarVisualEffects.drawCount(this,options);
   if(this.lastEffect!==null&&options.skyMotion)this.offset=(this.offset+Math.max(0,seconds-this.lastEffect)*DRIFT)%TAU;
@@ -314,10 +314,11 @@ class Sky{
   this.tanFov=Math.tan(clamp(camera.transitionFov??60.8,40,120)*Math.PI/360);
   // Stars retain their 60.8-degree projection throughout the jump.
   this.starTanFov=replay?Math.tan(30.4*Math.PI/180):this.tanFov;
+  this.manualX=manualEye?.[0]||0;this.manualY=manualEye?.[1]||0;this.manualZ=manualEye?.[2]||0;
   if(!this.ready||!this.w||!this.h)return;
   const drawStars=options.twinkle&&!camera.hideStars;
   const now=performance.now(),a=camera.azimuth,e=camera.elevation,pose=this.lastPose,shade=edgeShadeStrength(),starTick=drawStars?Math.floor(seconds*30):0;
-  const cameraChanged=!pose||pose.axes!==camera.viewAxes||pose.a!==a||pose.e!==e||pose.w!==this.w||pose.h!==this.h||pose.shade!==shade||pose.fov!==this.tanFov||pose.drawStars!==drawStars||pose.starAxes!==this.starAxes;
+  const cameraChanged=!pose||pose.axes!==camera.viewAxes||pose.a!==a||pose.e!==e||pose.w!==this.w||pose.h!==this.h||pose.shade!==shade||pose.fov!==this.tanFov||pose.drawStars!==drawStars||pose.starAxes!==this.starAxes||pose.manualX!==this.manualX||pose.manualY!==this.manualY||pose.manualZ!==this.manualZ;
   const unchanged=!cameraChanged&&pose.offset===this.offset&&pose.starTick===starTick;
   if(unchanged){this.stats.skipped++;return;}
   if(!this.gl){
@@ -345,9 +346,10 @@ class Sky{
    for(const k of ['right','down','forward'])g.uniform3fv(this.starU[k],this.starAxes[k]);
    g.uniform2f(this.starU.size,this.w,this.h);g.uniform1f(this.starU.fov,this.starTanFov);
    g.uniform1f(this.starU.pointScale,this.canvas.width/this.w);g.uniform1f(this.starU.seconds,seconds);
+   g.uniform3f(this.starU.manualEye,this.manualX,this.manualY,this.manualZ);
    g.drawArrays(g.POINTS,0,drawCount);g.disable(g.BLEND);
   }
-  this.lastPose={a,e,axes:camera.viewAxes,offset:this.offset,w:this.w,h:this.h,starTick,shade,fov:this.tanFov,drawStars,starAxes:this.starAxes};this.lastGPU=now;this.stats.frames++;
+  this.lastPose={a,e,axes:camera.viewAxes,offset:this.offset,w:this.w,h:this.h,starTick,shade,fov:this.tanFov,drawStars,starAxes:this.starAxes,manualX:this.manualX,manualY:this.manualY,manualZ:this.manualZ};this.lastGPU=now;this.stats.frames++;
  }
  rayTable(sw,sh,aspect,shade=edgeShadeStrength(),fov=this.tanFov){
   const key=[sw,sh,aspect,fov,shade].join(':');let table=this.rayTables.get(key);if(table)return table;
@@ -420,10 +422,20 @@ class Sky{
   if(!this.axesNow||this.paused||this.disposed||!options.twinkle)return;
   const axes=this.starAxes||this.panAxes,fov=this.starTanFov||this.tanFov;
    const stars=root.SolarVisualEffects.starsFor(this,options),pose=this.starPose;
-   if(!pose||pose.source!==stars||pose.axes!==axes||pose.w!==this.w||pose.h!==this.h||pose.fov!==fov){
+   const ex=this.manualX||0,ey=this.manualY||0,ez=this.manualZ||0;
+   if(!pose||pose.source!==stars||pose.axes!==axes||pose.w!==this.w||pose.h!==this.h||pose.fov!==fov||pose.ex!==ex||pose.ey!==ey||pose.ez!==ez){
     this.visibleStars=[];
-    for(const [x,y,z,r,brightness,phase]of stars){const p=this.project({x,y,z},axes,fov);if(p&&p.x>=0&&p.x<=this.w&&p.y>=0&&p.y<=this.h)this.visibleStars.push([p.x,p.y,r,brightness,phase]);}
-    this.starPose={source:stars,axes,w:this.w,h:this.h,fov};this.stats.starProjections+=stars.length;
+    const data=root.SolarVisualEffects.starWorldData(stars),focal=this.h/(2*fov);
+    for(let i=0;i<data.length;i+=6){
+      const x=data[i]-ex,y=data[i+1]-ey,z=data[i+2]-ez;
+      const distance2=x*x+y*y+z*z,depth=-(x*axes.forward[0]+y*axes.forward[1]+z*axes.forward[2]);
+      if(depth<=0||depth*depth<=.0064*distance2)continue;
+      const px=this.w*.5+focal*(x*axes.right[0]+y*axes.right[1]+z*axes.right[2])/depth;
+      const py=this.h*.5+focal*(x*axes.down[0]+y*axes.down[1]+z*axes.down[2])/depth;
+      if(px<0||px>this.w||py<0||py>this.h)continue;
+      this.visibleStars.push([px,py,data[i+3],data[i+4],data[i+5]]);
+    }
+    this.starPose={source:stars,axes,w:this.w,h:this.h,fov,ex,ey,ez};this.stats.starProjections+=stars.length;
    }
    const starRatio=ctx.getTransform().a||1;
    for(const [x,y,r,brightness,phase]of this.visibleStars){if(occluders.some(p=>!p.screen.behind&&(x-p.screen.x)**2+(y-p.screen.y)**2<p.r*p.r))continue;if(r<.55){root.SolarVisualEffects.drawTinyStar(ctx,x,y,r,brightness,phase,starRatio);continue;}const period=5+Math.abs(Math.sin(phase*.754877666))*20,primary=.5+.5*Math.sin(seconds/period*TAU+phase),secondary=.5+.5*Math.sin(seconds/(period*1.618+3)*TAU+phase*.37),irregular=primary*.68+secondary*.32;glow(ctx,x,y,r*.66,brightness*(.62+.30*irregular));}

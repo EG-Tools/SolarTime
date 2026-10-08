@@ -79,7 +79,7 @@ module.exports=async({root,evaluate,send,session})=>{
     const r=SolarTime.renderer,button=document.getElementById('camera-mode-toggle');r.stopAutoRotate();r.setOption('actualScale',false,false);
     const normal={...r.defaultCameraSnapshot(),azimuth:2.1,elevation:.51,zoom:1.4,dolly:1.7,panX:.06,panY:.1};
     r.restoreCamera(normal);button.click();
-    r.restoreCamera({...normal,azimuth:1.8,elevation:.63,zoom:.1,dolly:.002,panX:.3,panY:-.1,focus:${JSON.stringify(control==='settings'?'earth':null)}});
+    r.restoreCamera({...normal,azimuth:1.8,elevation:.63,zoom:.8,dolly:.002,panX:.3,panY:-.1,focus:${JSON.stringify(control==='settings'?'earth':null)}});
     const moved=r.cameraSnapshot();
     if(${JSON.stringify(control)}==='toolbar')button.click();
     else if(${JSON.stringify(control)}==='settings')document.getElementById('actual-scale').click();

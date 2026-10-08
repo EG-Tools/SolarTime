@@ -135,7 +135,7 @@ function changelogPage(root,releases,archive){
   <title>Solar Time 전체 업데이트 내역</title>
 </head>
 <body><div class="site-shell">
-  <header class="site-header"><a class="site-brand" href="./">SOLAR TIME</a><nav class="site-nav" aria-label="사이트 정보"><a href="about.html">ABOUT</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a><a href="changelog.html" aria-current="page">UPDATES</a></nav></header>
+  <header class="site-header"><a class="site-brand" href="./">SOLAR TIME</a><nav class="site-nav" aria-label="사이트 정보"><a href="guide.html">GUIDE</a><a href="about.html">ABOUT</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a><a href="changelog.html" aria-current="page">UPDATES</a></nav></header>
   <main>
     <p class="eyebrow">UPDATE ARCHIVE · KOREAN</p><h1>전체 업데이트 내역</h1>
     <p class="lead">Solar Time의 현재 및 과거 업데이트 기록입니다. Git 저장소에 남아 있는 초기 기록까지 한국어로 한곳에 정리했습니다.</p>

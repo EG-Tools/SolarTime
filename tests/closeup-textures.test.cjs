@@ -2,14 +2,14 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const turn=()=>new Promise(resolve=>setImmediate(resolve));
-function fixture({hold=false,mobile=false}={}){
- let now=0,serial=0;const requests=[],uploads=[],deleted=[],closed=[],window={SolarSurfaceStyle:require('../src/surface-style.js')};
+function fixture({hold=false,mobile=false,holdDecode=false}={}){
+ let now=0,serial=0;const requests=[],decodes=[],uploads=[],deleted=[],closed=[],window={SolarSurfaceStyle:require('../src/surface-style.js')};
  const context={window,URL,Blob,AbortController,DOMException,setTimeout,clearTimeout,performance:{now:()=>now},navigator:{userAgent:mobile?'iPhone':'Desktop'},matchMedia:()=>({matches:mobile}),screen:{width:mobile?390:1920,height:mobile?844:1080}};
  context.fetch=(url,{signal})=>new Promise((resolve,reject)=>{
   const width=Number(/(\d+)\.webp/.exec(url)[1]),row={url,width,signal,finish:()=>resolve({ok:true,blob:async()=>({width})}),fail:()=>reject(Error('offline'))};
   requests.push(row);signal.addEventListener('abort',()=>reject(signal.reason),{once:true});if(!hold)row.finish();
  });
- context.createImageBitmap=async b=>({width:b.width,height:b.width/2,close:()=>closed.push(b.width)});
+ context.createImageBitmap=b=>new Promise(resolve=>{const finish=()=>resolve({width:b.width,height:b.width/2,close:()=>closed.push(b.width)});decodes.push({finish});if(!holdDecode)finish();});
  vm.createContext(context);vm.runInContext(read('src/performance.js'),context);vm.runInContext(read('src/surface.js'),context);
  const r=Object.create(window.SolarSurface.DirectRenderer.prototype),gl={createTexture:()=>({id:++serial}),deleteTexture:t=>{if(t)deleted.push(t.id);},texImage2D:(...args)=>uploads.push(args.at(-1).width)};
  for(const n of ['activeTexture','bindTexture','pixelStorei','texParameteri','deleteBuffer','deleteProgram'])gl[n]=()=>{};
@@ -17,12 +17,20 @@ function fixture({hold=false,mobile=false}={}){
  const material=name=>({base:'https://media.test/'+name+'/',seamBaked:true,tiers:[256,512,1024,2048,4096].map(width=>({width,path:width+'.webp'})),fallback:'https://media.test/'+name+'/256.webp'});
  window.SolarAssets={materials:Object.fromEntries(['earth','earth-night','clouds','moon','mars','venus','jupiter','saturn'].map(n=>[n,material(n)]))};
  const focus=(name,width=4096)=>{r.desired.clear();r.desired.set(name,{id:name,textureWidth:width,priority:2});};
- return {r,window,requests,uploads,deleted,closed,focus,time:n=>now=n,turn};
+ return {r,window,requests,decodes,uploads,deleted,closed,focus,time:n=>now=n,turn};
 }
 async function full(f,name='earth'){
  f.focus(name);f.r.textureFor(name,4096);await turn();f.r.textureFor(name,4096);await turn();f.r.textureFor(name,4096);await turn();
  assert.equal(f.r.textures.get(name).width,4096);
 }
+test('Saturn and Uranus rings inherit the same parent phase frame as their body',()=>{
+ const f=fixture(),source=read('src/surface.js'),frame={u:[1,0,0],v:[0,0,1],pole:[0,1,0]};
+ const quarter=f.r.bodyRingFrame(frame,.25);
+ const close=(actual,expected)=>actual.forEach((value,i)=>assert.ok(Math.abs(value-expected[i])<1e-6));
+ close([...quarter.u],[0,0,1]);close([...quarter.v],[-1,0,0]);close([...quarter.pole],frame.pole);
+ const whole=f.r.bodyRingFrame(frame,1);close([...whole.u],frame.u);close([...whole.v],frame.v);
+ assert.match(source,/body\.id==='saturn'\|\|body\.id==='uranus'\?this\.bodyRingFrame\(frame,job\.phase\):frame/);
+});
 test('cold detail publishes baseline, then 1024 preview, then original 4096; no 512/2048 chain',async()=>{
  const f=fixture();await full(f);assert.deepEqual(f.requests.map(r=>r.width),[256,1024,4096]);assert.deepEqual(f.uploads,[256,1024,4096]);f.r.dispose();
 });
@@ -61,9 +69,25 @@ test('failed high tier and its coarse fallback cannot replace an already good pr
 });
 test('latest focus preview overtakes unrelated queued high-detail requests; slots remain bounded',async()=>{
  const f=fixture({hold:true});f.focus('earth');f.r.textureFor('earth',256);f.r.textureFor('jupiter',256);
- f.r.textureFor('venus',256);f.r.textureFor('mars',256);f.r.prefetchBody('moon');assert.equal(f.r.activeLoads,2);
- f.requests[0].finish();await turn();assert.match(f.requests[2].url,/moon\/1024/);assert.equal(f.r.activeLoads,2);
+ f.r.textureFor('venus',256);f.r.textureFor('mars',256);f.r.textureFor('saturn',256);f.r.prefetchBody('moon');assert.equal(f.r.activeLoads,4);
+ for(let i=0;i<3;i++){f.requests[i].finish();await turn();}
+ assert.match(f.requests[4].url,/moon\/1024/);assert.match(f.requests[5].url,/saturn\/256/);assert.equal(f.r.activeLoads,3);
  f.r.pause();await turn();assert.equal(f.r.activeLoads,0);assert.equal(f.r.pendingCount,0);assert.equal(f.r.loadQueue.length,0);f.r.dispose();
+});
+test('baseline downloads overlap in four slots but decoding stays bounded at two',async()=>{
+ const f=fixture({hold:true,holdDecode:true});
+ try{
+  for(const name of ['earth','jupiter','venus','mars','saturn'])f.r.textureFor(name,256);
+  assert.equal(f.requests.length,4);assert.equal(f.r.activeLoads,4);
+  for(const request of f.requests)request.finish();await turn();
+  assert.equal(f.decodes.length,2);assert.equal(f.r.activeDecodes,2);assert.equal(f.r.decodeWaiters.length,2);
+  f.decodes[0].finish();await turn();assert.equal(f.decodes.length,3);assert.equal(f.r.activeDecodes,2);
+  assert.equal(f.requests.length,5);assert.equal(f.r.activeLoads,4);
+  f.r.pause();await turn();assert.equal(f.r.decodeWaiters.length,0);
+  for(const decode of f.decodes)decode.finish();await turn();
+  assert.equal(f.r.activeLoads,0);assert.equal(f.r.activeDecodes,0);assert.equal(f.r.pendingCount,0);
+  assert.equal(f.uploads.length,1,'aborted decodes never upload after pause');
+ }finally{f.r.pause();for(const decode of f.decodes)decode.finish();await turn();f.r.dispose();}
 });
 test('obsolete waiting textures are cancelled, while current preview stays protected',async()=>{
  const f=fixture({hold:true});f.focus('earth');f.r.textureFor('earth',256);f.r.textureFor('jupiter',256);f.r.textureFor('venus',256);

@@ -5,7 +5,7 @@
   "src/surface-style.js": "c87f2d9734f73e39d1976e20843e2f5134cc8a23dbf845d9b876e19104dbffe6",
   "windows/SolarTimeShutdownHelper.cmd": "6388c8c6a8f397c2a0a3763a0ddb4960f61c4bc4db76899246027e7f581c4b37",
   "src/windows-shutdown.js": "3109e303c919cf6bbb4490bd74423595958854d0b2d4275d4bd000fd7705070a",
-  "src/sky.js": "89f71e4d029d141f65bc5125ba667bfd0721fb20f96adbbfad82ee08412eedf4",
-  "styles.css": "cb5f249aaa4e90c56800f588d9e7c3d3e746d985223a279153aaa424c8398de8",
+  "src/sky.js": "8ed5a6828ef363cc09dedbef10a10406d4cec0e2148b7f0bd384969647d97b38",
+  "styles.css": "1002fdcb4b14c3b49741d5c51bf51c44dc379bf195c1dbebeb7476dc1ac013b9",
   "src/runtime-optimizations.css": "7bdfbe73bd18477300dae5f9643f6ff2d0ab87d1dc3be9a813c87db2868e9267"
 }

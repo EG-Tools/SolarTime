@@ -271,7 +271,7 @@ function surfaceKernel(style){
     const remote=asset.base?new URL(tier.path,asset.base).href:'',url=remote||asset.fallback;
     return {url,fallback:remote&&asset.fallback!==remote?asset.fallback:'',key:url+'|'+(remote?asset.fallback:''),seamBaked:!!asset.seamBaked};
   }
-  async function bitmapFor(source,width=null,height=null,{signal,timeoutMs=15000}={}){
+  async function bitmapFor(source,width=null,height=null,{signal,timeoutMs=15000,decode=createImageBitmap}={}){
     const resize=width&&height?{resizeWidth:width,resizeHeight:height,resizeQuality:'high'}:{};
     let lastError;
     for(const url of [...new Set([source.url,source.fallback].filter(Boolean))]){
@@ -281,9 +281,9 @@ function surfaceKernel(style){
       const timer=setTimeout(()=>controller.abort(new DOMException('Material download timed out','TimeoutError')),timeoutMs);
       try{
         let bitmap;
-        if(url.startsWith('data:'))bitmap=await createImageBitmap(dataBlob(url),resize);
-        else if(!url.startsWith('file:')){const response=await fetch(url,{mode:'cors',credentials:'omit',cache:'force-cache',signal:controller.signal});if(!response.ok)throw Error('HTTP '+response.status);bitmap=await createImageBitmap(await response.blob(),resize);}
-        else if(typeof document==='object'){const image=new Image();image.decoding='async';image.src=url;await image.decode();bitmap=await createImageBitmap(image,resize);}
+        if(url.startsWith('data:'))bitmap=await decode(dataBlob(url),resize);
+        else if(!url.startsWith('file:')){const response=await fetch(url,{mode:'cors',credentials:'omit',cache:'force-cache',signal:controller.signal});if(!response.ok)throw Error('HTTP '+response.status);bitmap=await decode(await response.blob(),resize);}
+        else if(typeof document==='object'){const image=new Image();image.decoding='async';image.src=url;await image.decode();bitmap=await decode(image,resize);}
         if(controller.signal.aborted){bitmap?.close();controller.signal.throwIfAborted();}
         if(bitmap)return bitmap;
       }catch(error){if(signal?.aborted)throw signal.reason;lastError=error;}
@@ -1017,14 +1017,30 @@ class DirectRenderer{
   pumpTextureQueue(){
     if(this.disposed||this.paused||this.contextLost)return;
     // Re-evaluate queued work against the latest focus. Never start all tiers
-    // or prefetch every planet, and keep the existing two-slot bound.
+    // or prefetch every planet. Small baseline downloads may overlap in four
+    // slots; detail downloads and bitmap decoding retain the two-slot bound.
     this.loadQueue.sort((a,b)=>this.texturePriority(b)-this.texturePriority(a)||a.token-b.token);
-    while(this.activeLoads<2&&this.loadQueue.length){
+    while(this.loadQueue.length&&this.activeLoads<(this.loadQueue[0].target<=256?4:2)){
       const task=this.loadQueue.shift(),record=this.textures.get(task.name);
       if(task.generation!==this.generation||!record||record.token!==task.token||record.source.key!==task.source.key){if(task.generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);continue;}
       const controller=new AbortController();record.controller=controller;
       this.activeLoads++;this.loadTexture(task.name,task.source,task.target,task.token,task.generation,controller.signal).finally(()=>{this.activeLoads=Math.max(0,this.activeLoads-1);if(record.controller===controller)record.controller=null;this.pumpTextureQueue();});
     }
+  }
+  async decodeTexture(image,resize,signal){
+    signal?.throwIfAborted();
+    this.decodeWaiters ||= [];
+    while((this.activeDecodes||0)>=2){
+      await new Promise((resolve,reject)=>{
+        const wake=()=>{signal?.removeEventListener('abort',abort);resolve();};
+        const abort=()=>{const i=this.decodeWaiters.indexOf(wake);if(i>=0)this.decodeWaiters.splice(i,1);reject(signal.reason);};
+        this.decodeWaiters.push(wake);signal?.addEventListener('abort',abort,{once:true});
+      });
+      signal?.throwIfAborted();
+    }
+    this.activeDecodes=(this.activeDecodes||0)+1;
+    try{return await createImageBitmap(image,resize);}
+    finally{this.activeDecodes--;this.decodeWaiters.shift()?.();}
   }
   recentKey(name,source,width){return name+':'+width+'|'+source.key;}
   discardRecent(key){
@@ -1071,7 +1087,7 @@ class DirectRenderer{
     let bitmap,canvas,texture;
     try{
       const requested=this.textures.get(name);if(!requested||requested.token!==token||requested.source.key!==source.key||generation!==this.generation)return;
-      bitmap=await materialSource.bitmapFor(source,null,null,{signal});
+      bitmap=await materialSource.bitmapFor(source,null,null,{signal,decode:(image,resize)=>this.decodeTexture(image,resize,signal)});
       if(this.disposed||signal?.aborted||generation!==this.generation||this.textures.get(name)?.token!==token)return;
       const radial=name==='saturn-ring',natural=2**Math.floor(Math.log2(Math.max(2,bitmap.width))),width=Math.max(2,Math.min(target,natural)),height=radial?1:width/2;
       let upload=bitmap;
@@ -1204,6 +1220,15 @@ class DirectRenderer{
     g.uniform1f(p.u.radius,radius);g.uniform1f(p.u.inner,inner);g.uniform1f(p.u.outer,outer);g.uniform1f(p.u.front,front?1:0);g.uniform1f(p.u.saturn,saturn?1:0);g.uniform1f(p.u.pixel,1/Math.max(radius,1));
     g.uniform3f(p.u.ringColor,saturn?.88:.62,saturn?.75:.78,saturn?.55:.80);g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
   }
+  bodyRingFrame(frame,phase=0){
+    // Saturn and Uranus own their complete ring plane. Rotate the shared
+    // equatorial axes by the same simulation phase as the planet surface so a
+    // future close ring view cannot leave either ring behind its parent body.
+    const a=(Number.isFinite(phase)?phase:0)*Math.PI*2,c=Math.cos(a),s=Math.sin(a);
+    const out=this.parentRingFrame||(this.parentRingFrame={u:new Float32Array(3),v:new Float32Array(3),pole:new Float32Array(3)});
+    for(let i=0;i<3;i++){out.u[i]=frame.u[i]*c+frame.v[i]*s;out.v[i]=frame.v[i]*c-frame.u[i]*s;out.pole[i]=frame.pole[i];}
+    return out;
+  }
   planet(job,body,screen,radius,time,activity){
     this.desired.set(job.id,job);
     const colorId=job.id==='venus'&&job.cloudAmount<1?'venus-surface':job.id;
@@ -1228,10 +1253,12 @@ class DirectRenderer{
     const requestedDetail=Number.isFinite(job.cloudDetail)?Math.max(0,Math.min(1,job.cloudDetail)):1;
     const ready=cloudState?Math.max(0,Math.min(1,(performance.now()-(weather.readyAt??-Infinity))/300)):0;
     const cloudDetail=requestedDetail*ready*ready*(3-2*ready);
-    // Rings are children of this body: the surface and both ring halves share
-    // exactly one parent transform and cannot drift into separate orientations.
     const frame=job.frame;
-    if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,false,job.light);
+    // Both halves use one parented phase frame. This is intentionally shared
+    // by Saturn and Uranus even though their present radial bands are visually
+    // symmetric: later ring travel must inherit the same ownership contract.
+    const ringFrame=body.id==='saturn'||body.id==='uranus'?this.bodyRingFrame(frame,job.phase):frame;
+    if(body.id==='saturn'||body.id==='uranus')this.rings(body,ringFrame,screen,radius,false,job.light);
     const g=this.gl,p=this.planetProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius);g.uniform3fv(p.u.axisU,frame.u);g.uniform3fv(p.u.axisV,frame.v);g.uniform3fv(p.u.pole,frame.pole);g.uniform3fv(p.u.light,job.light);
     g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='venus'?5:job.id==='uranus'?4:['jupiter','saturn','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);g.uniform1f(p.u.nightTexel,1/(night?.width||color.width));g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);g.uniform1f(p.u.cloudAmount,clouds?cloudAmount:0);
     g.uniform1f(p.u.cloudAltMix,altMix);
@@ -1242,7 +1269,7 @@ class DirectRenderer{
     this.bindTextureUnit(4,weather?.texture||this.black);
     this.bindTextureUnit(5,cloudsAlt?.texture||this.black);
     g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
-    if(body.id==='saturn'||body.id==='uranus')this.rings(body,frame,screen,radius,true,job.light);
+    if(body.id==='saturn'||body.id==='uranus')this.rings(body,ringFrame,screen,radius,true,job.light);
     let frameRecord=this.frames.get(job.id);if(!frameRecord){frameRecord={job:null,image:{width:0,height:0,gpu:true}};this.frames.set(job.id,frameRecord);}
     frameRecord.job=job;frameRecord.image.width=Math.round(radius*2*this.dpr);frameRecord.image.height=Math.round(radius*2*this.dpr);return true;
   }

@@ -4,6 +4,8 @@
 
   const BASE_STAR_COUNT=10000,MAX_STAR_MULTIPLIER=3,MAX_STAR_COUNT=BASE_STAR_COUNT*MAX_STAR_MULTIPLIER;
   const TAU=Math.PI*2;
+  // Percentage depths in the preview's 100-unit background volume.
+  const STAR_DEPTH_RANGE=Object.freeze({min:8,max:99});
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   const randomGenerator=seed=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   function runtimeSeed(){
@@ -46,13 +48,28 @@
   }
   function buildNaturalStarPool(_source,total=MAX_STAR_COUNT,seed=runtimeSeed()){return starArrayFromData(buildNaturalStarData(total,seed));}
 
+  const starWorldCache=new WeakMap();
+  function starWorldData(source){
+    const cached=starWorldCache.get(source);if(cached)return cached;
+    const flat=source instanceof Float32Array;
+    const count=flat?Math.floor(source.length/6):source.length,data=new Float32Array(count*6);
+    for(let i=0;i<count;i++){
+      const o=i*6,p=flat?source:source[i],start=flat?o:0;
+      const x=p[start],y=p[start+1],z=p[start+2],seed=p[start+5];
+      const depth=STAR_DEPTH_RANGE.min+(STAR_DEPTH_RANGE.max-STAR_DEPTH_RANGE.min)*(seed*.125-Math.floor(seed*.125));
+      const gain=depth/(Math.hypot(x,y,z)||1);
+      data[o]=x*gain;data[o+1]=y*gain;data[o+2]=z*gain;
+      data[o+3]=p[start+3];data[o+4]=p[start+4];data[o+5]=seed;
+    }
+    starWorldCache.set(source,data);return data;
+  }
   function uploadStarPoolToSky(sky,stars){
     if(!sky)return;
     let data;if(stars instanceof Float32Array)data=stars;else{const list=Array.isArray(stars)?stars:[];data=new Float32Array(list.length*6);for(let i=0;i<list.length;i++)data.set(list[i],i*6);}
     const count=Math.floor(data.length/6);
     sky.__solarMaxStarCount=count;sky.__solarStarDrawCount=-1;sky.__solarStarSubsetSource=null;sky.__solarStarSubsetCount=-1;sky.__solarStarSubset=null;sky.starPose=null;
     if(sky.gl&&sky.starBuffer&&count){
-      sky.gl.bindBuffer(sky.gl.ARRAY_BUFFER,sky.starBuffer);sky.gl.bufferData(sky.gl.ARRAY_BUFFER,data,sky.gl.STATIC_DRAW);
+      sky.gl.bindBuffer(sky.gl.ARRAY_BUFFER,sky.starBuffer);sky.gl.bufferData(sky.gl.ARRAY_BUFFER,starWorldData(data),sky.gl.STATIC_DRAW);
       sky.starCount=count;if(sky.stats){sky.stats.starCount=count;sky.stats.visibleStarCount=0;}
     }
     sky.invalidate?.();
@@ -109,15 +126,18 @@
     ctx.globalAlpha=alpha;ctx.fillStyle=fill;
   }
   function starShaderSources(precision){return {vertex:`precision highp float;
-    attribute vec3 position,appearance;uniform vec3 right,down,forward;uniform vec2 size;uniform float fov,pointScale,seconds;
+    attribute vec3 position,appearance;uniform vec3 right,down,forward,manualEye;uniform vec2 size;uniform float fov,pointScale,seconds;
     varying ${precision} float intensity,starTone,flarePulse,tinyStar,pointPixels,tinyRadius,tinyEnergy;
     void main(){
-     float z=dot(position,forward),seed=appearance.z;float twinklePeriod=mix(5.0,25.0,fract(seed*.754877666));float behavior=fract(seed*.2718281828+appearance.y*.53);float twinkles=step(.70,behavior);float rests=step(.972,behavior);float restVisible=mix(42.0,105.0,fract(seed*.4142135623));float restHidden=mix(5.0,10.0,fract(seed*.318309886));float restCycle=restVisible+restHidden;float restTime=mod(seconds+fract(seed*.56984029)*restCycle,restCycle);float visible=1.-rests*step(restVisible,restTime);float lively=step(.55,appearance.x);tinyStar=1.-lively;
+     vec3 relative=position-manualEye;
+     float distance2=dot(relative,relative);
+     float depth=dot(relative,forward);
+     if(depth>=0.||depth*depth<=.0064*distance2){gl_Position=vec4(2.,2.,1.,1.);gl_PointSize=1.;return;}
+     float seed=appearance.z;float twinklePeriod=mix(5.0,25.0,fract(seed*.754877666));float behavior=fract(seed*.2718281828+appearance.y*.53);float twinkles=step(.70,behavior);float rests=step(.972,behavior);float restVisible=mix(42.0,105.0,fract(seed*.4142135623));float restHidden=mix(5.0,10.0,fract(seed*.318309886));float restCycle=restVisible+restHidden;float restTime=mod(seconds+fract(seed*.56984029)*restCycle,restCycle);float visible=1.-rests*step(restVisible,restTime);float lively=step(.55,appearance.x);tinyStar=1.-lively;
      float phase=fract(seed*.6180339887)*6.28318530718;float primary=.5+.5*sin(seconds/twinklePeriod*6.28318530718+phase);float secondary=.5+.5*sin(seconds/(twinklePeriod*1.618+3.0)*6.28318530718+fract(seed*.141421356)*6.28318530718);float irregular=primary*.68+secondary*.32;float variation=mix(.96+.04*irregular,.58+.42*irregular,twinkles);float flareWave=pow(max(0.,primary),18.);
      intensity=appearance.y*mix(1.0,variation,lively)*mix(1.0,visible,lively);starTone=fract(seed*.173205+appearance.x*.37);flarePulse=step(.9985,fract(seed*.91337+appearance.y*.71))*flareWave*smoothstep(.50,.84,appearance.y)*lively*mix(1.0,visible,lively);
      if(tinyStar>.5){intensity=appearance.y;flarePulse=0.;}
-     if(z>=-.08){gl_Position=vec4(2.,2.,1.,1.);gl_PointSize=1.;return;}
-     vec2 ndc=vec2(dot(position,right)/(-z*fov*size.x/size.y),-dot(position,down)/(-z*fov));
+     vec2 ndc=vec2(dot(relative,right)/(-depth*fov*size.x/size.y),-dot(relative,down)/(-depth*fov));
      gl_Position=vec4(ndc,0.,1.);float basePoint=(appearance.x*10.+flarePulse*13.12)*pointScale;float point=clamp(max(basePoint,3.0),3.0,29.);
      pointPixels=mix(point,ceil(point),tinyStar);tinyRadius=max(1.,point*.312);tinyEnergy=point*point*${TINY_PROFILE_INTEGRAL};gl_PointSize=pointPixels;
     }`,fragment:`precision ${precision} float;varying ${precision} float intensity,starTone,flarePulse,tinyStar,pointPixels,tinyRadius,tinyEnergy;
@@ -141,5 +161,5 @@
      vec3 color=mix(starColor(starTone),vec3(1.),core*.16);
      gl_FragColor=vec4(color,alpha);
     }`};}
-  root.SolarVisualEffects=Object.freeze({BASE_STAR_COUNT,MAX_STAR_MULTIPLIER,MAX_STAR_COUNT,runtimeSeed,buildNaturalStarData,buildNaturalStarPool,regenerateStars,drawCount,starsFor,starShaderSources,STAR_PALETTE,starColor,tinyStarMetrics,tinyStarCoverage,drawTinyStar});
+  root.SolarVisualEffects=Object.freeze({BASE_STAR_COUNT,MAX_STAR_MULTIPLIER,MAX_STAR_COUNT,runtimeSeed,buildNaturalStarData,buildNaturalStarPool,regenerateStars,drawCount,starsFor,STAR_DEPTH_RANGE,starWorldData,starShaderSources,STAR_PALETTE,starColor,tinyStarMetrics,tinyStarCoverage,drawTinyStar});
 })(window);

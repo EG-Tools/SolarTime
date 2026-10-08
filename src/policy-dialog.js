@@ -6,6 +6,7 @@
   if(!dialog)return;
   const UI=root.SolarModules?.UI,frame=root.document.getElementById('site-policy-frame'),close=root.document.getElementById('site-policy-close'),tabs=[...root.document.querySelectorAll('.site-policy-tab[data-policy-page]')];
   const links=[...root.document.querySelectorAll('.site-policy-links a[href$=".html"],#cookie-consent a[href="privacy.html"]')];
+  const intercepted=links.filter(link=>!link.closest('.site-policy-links'));
   let trigger=null;
   const closeDialog=({restoreFocus=true}={})=>{
     const previous=trigger;trigger=null;
@@ -25,7 +26,7 @@
     if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     event.preventDefault();showDocument(link);
   };
-  for(const link of links)link.addEventListener('click',event=>openDialog(link,event));
+  for(const link of intercepted)link.addEventListener('click',event=>openDialog(link,event));
   for(const tab of tabs){
     tab.addEventListener('click',()=>selectDocument(tab.dataset.policyPage));
     tab.addEventListener('keydown',event=>{

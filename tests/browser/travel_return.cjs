@@ -11,7 +11,7 @@ module.exports=async({evaluate,until,esc,delay,send,session})=>{
  })()`);
  await delay(1600);
  const expected=await evaluate('SolarTime.renderer.cameraSnapshot()');
- assert.equal(expected.zoom,.1);assert.equal(expected.dolly,.002);
+ assert.equal(expected.zoom,.8);assert.equal(expected.dolly,.001);
  const sameCamera=value=>{for(const [key,wanted]of Object.entries(expected)){if(typeof wanted==='number')assert.ok(Math.abs(value[key]-wanted)<1e-12,key+': '+value[key]+' != '+wanted);else assert.equal(value[key],wanted,key);}};
  const check=async()=>{await until('!SolarTime.getState().opening&&!SolarTime.renderer.ringTour&&!SolarTime.renderer.cameraTween');sameCamera(await evaluate('SolarTime.renderer.cameraSnapshot()'));assert.deepEqual(await evaluate('[SolarTime.renderer.options.actualScale,SolarTime.renderer.options.actualOrbitSpacing]'),[true,1]);};
  // Direct Saturn trip, then Esc, including the farthest and widest manual settings.
@@ -32,8 +32,14 @@ module.exports=async({evaluate,until,esc,delay,send,session})=>{
  sameCamera(await evaluate('SolarTime.renderer.cameraTween.to'));
  await until('!!SolarTime.renderer.ringTour&&!SolarTime.getState().opening',55000);
  sameCamera(await evaluate('SolarTime.renderer.ringTour.returnTarget'));
- await evaluate('SolarTime.renderer.ringTour.homeAfterAge=SolarTime.renderer.ringTour.age');
- await until('SolarTime.renderer.ringTour?.state==="cruising"||SolarTime.renderer.ringTour?.state==="returning"');
- await check();
- return {extremeScale:true,orbitSpacing:1,zoom:expected.zoom,dolly:expected.dolly,directEsc:true,openingArrival:true,saturnOpeningEsc:true,refreshAndLapReturn:true};
+ await until('SolarTime.renderer.ringTour?.state==="cruising"',55000);
+ const home=await evaluate('SolarTime.renderer.defaultCameraSnapshot()');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'0',code:'Digit0',windowsVirtualKeyCode:48,text:'0'},session);
+ await send('Input.dispatchKeyEvent',{type:'keyUp',key:'0',code:'Digit0',windowsVirtualKeyCode:48},session);
+ await until('SolarTime.renderer.ringTour?.returnTargetApplied===true');
+ assert.equal(await evaluate('SolarTime.renderer.ringTour.returnNormalFrom'),null,'a landed tour must not reuse the stale pre-entry overview map');
+ await until('!SolarTime.renderer.ringTour&&!SolarTime.renderer.cameraTween');
+ const returned=await evaluate('SolarTime.renderer.cameraSnapshot()');
+ for(const [name,wanted] of Object.entries(home)){if(typeof wanted==='number')assert.ok(Math.abs(returned[name]-wanted)<1e-12,name);else assert.equal(returned[name],wanted,name);}
+ return {extremeScale:true,orbitSpacing:1,zoom:expected.zoom,dolly:expected.dolly,directEsc:true,openingArrival:true,saturnOpeningEsc:true,refreshAndHomeReturn:true};
 };

@@ -20,6 +20,75 @@ function renderer(seed=.127694){
  return {r,R,sandbox,now:value=>{now=value;}};
 }
 const ms=Date.parse('2026-09-19T12:00:00Z');
+test('manual background parallax is reversible, bounded and never follows Saturn travel',()=>{
+ const {r}=renderer();r.sky.starAxes={forward:[0,0,1]};
+ r.shiftBackgroundForManualDolly(1,2);const first=[...r.manualBackgroundStars.offset];
+ assert.ok(first[2]<0&&Math.hypot(...first)<4);
+ r.shiftBackgroundForManualDolly(2,1);close(Math.hypot(...r.manualBackgroundStars.offset),0);
+ r.shiftBackgroundForManualDolly(.001,1e9);assert.ok(Math.hypot(...r.manualBackgroundStars.offset)<=4);
+ const held=plain(r.manualBackgroundStars);r.ringTour={};r.shiftBackgroundForManualDolly(1,4);
+ assert.deepEqual(plain(r.manualBackgroundStars),held);
+});
+test('wheel background parallax follows each eased camera frame, not the target jump',()=>{
+ const {r}=renderer();r.sky.starAxes={forward:[0,0,1]};
+ const from=r.camera.dolly;r.smoothDolly(from*2,null,0);
+ assert.equal(r.manualBackgroundStars,undefined);
+ r.advanceCamera(75);const middle=r.manualBackgroundStars.offset[2];
+ assert.ok(middle<0);r.advanceCamera(150);const end=r.manualBackgroundStars.offset[2];
+ assert.ok(end<middle);close(end,-4*Math.tanh(2.2*Math.log(2)/4));
+ r.smoothDolly(from,null,150);r.advanceCamera(300);close(r.manualBackgroundStars.offset[2],0);
+ r.animateCamera({...r.cameraSnapshot(),dolly:from*2},300,150);r.advanceCamera(450);
+ close(r.manualBackgroundStars.offset[2],0);
+});
+
+test('opening and warp arrival reveal the whole solar system on their camera clock',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();
+ r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,100,6500);
+ for(const [age,alpha] of [[0,0],[1000,.5],[2000,1],[6000,1]])close(r.replayPresentation(100+age).solar,alpha);
+ r.animationPaused=true;r.animationPauseAt=1100;close(r.replayPresentation(9000).solar,.5);
+ r.animationPaused=false;r.cancelCameraTween(1100);close(r.replayPresentation(1100).solar,1);
+ r.animateOpeningReplay(target,r.openingCameraSnapshot(target),100,6500);
+ const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;
+ const arrival=100+r.replayOpeningAt(path);
+ close(r.replayPresentation(100).solar,1);close(r.replayPresentation(5000).solar,0);
+ close(r.replayPresentation(7100).solar,0);
+ for(const [age,alpha] of [[0,0],[1000,.5],[2000,1]])close(r.replayPresentation(arrival+age).solar,alpha);
+ r.gpu={canvas:{style:{opacity:'',transition:'opacity .2s'}}};
+ r.setReplaySolarOpacity(.5);assert.equal(r.gpu.canvas.style.opacity,'1');assert.equal(r.gpu.canvas.style.visibility,undefined);
+ r.cancelCameraTween(arrival+1000);assert.equal(r.gpu.canvas.style.opacity,'');
+ close(r.replayPresentation(arrival+1000).solar,1);
+});
+
+function entryTour(){return {seed:123,age:0,visualAge:0,state:'entering',pose:{fov:72,perspective:0,orthoScale:1,offset:[0,0],eye:[0,0,10],right:[1,0,0],up:[0,1,0],forward:[0,0,-1]}};}
+test('Saturn entry alone uses the reviewed t1 warp lifecycle and particle pool',()=>{
+ const {r}=renderer(),tour=entryTour();r.ringTour=tour;r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};
+ r.startSaturnParticles(tour,0);const field=r.openingParticles;
+ assert.strictEqual(field.replay.saturnTour,tour);assert.equal(tour.usesWarpParticles,true);
+ assert.equal(typeof r.startSaturnEntryParticles,'undefined');assert.equal(typeof r.drawV071Particles,'undefined');
+ assert.equal(field.saturnDrawPoints.length,1440);assert.equal(field.saturnFadeRetire.size,432);
+ assert.ok(field.points.every(p=>p.size>=1.8&&p.size<4.6&&p.glow>=.8&&p.glow<2.6&&p.life>=1000&&p.life<5000));
+});
+test('Saturn t1 entry accelerates from rest and keeps the ordinary warp clock unchanged',()=>{
+ const {r}=renderer(),tour=entryTour();r.ringTour=tour;r.startSaturnParticles(tour,0);const path=r.openingParticles.replay;
+ const start={},middle={},landing={};r.saturnDustSample(path,0,start);r.saturnDustSample(path,4000,middle);r.saturnDustSample(path,10000,landing);
+ close(start.velocity,0);close(start.travel,0);assert.ok(middle.velocity>0&&middle.travel>0);assert.ok(landing.velocity>middle.velocity);
+ const {r:warp}=renderer(),target=warp.cameraSnapshot();warp.animateOpeningReplay(target,warp.openingCameraSnapshot(target),0,6500);warp.startOpeningParticles(0,14000);
+ const ordinary=warp.openingParticleFrame(999);
+ assert.ok(ordinary.points.every(p=>warp.projectOpeningParticle({...p,speed:0,depth:2,brightness:1,formationAt:0},ordinary,{}).alpha===0),'ordinary T still waits one second');
+});
+test('Saturn t1 painter uses the warp glow style with non-additive Saturn compositing',()=>{
+ const source=read('src/renderer.js'),method=source.slice(source.indexOf('    drawSaturnFlightParticles('),source.indexOf('    drawFlightParticles('));
+ for(const value of ["field.replay.saturnTour)?'source-over':'lighter'","FLIGHT_GLOW_COLORS[p.color??0]","this.saturnEntryParticleAlpha(p,field)"])assert.ok(method.includes(value),value);
+ assert.doesNotMatch(method,/saturn-entry-v071|saturnEntrySprite/);
+});
+test('Saturn t1 grains fade independently over 6.5 seconds and are released at landing',()=>{
+ const {r}=renderer(),tour=entryTour();r.ringTour=tour;r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};r.startSaturnParticles(tour,0);
+ const field=r.openingParticles,early={rotation:0},late={rotation:Math.PI*2};
+ field.elapsed=3500;close(r.saturnEntryParticleAlpha(early,field),1);close(r.saturnEntryParticleAlpha(late,field),1);
+ field.elapsed=7000;assert.ok(r.saturnEntryParticleAlpha(early,field)<r.saturnEntryParticleAlpha(late,field));
+ field.elapsed=10000;close(r.saturnEntryParticleAlpha(early,field),0);close(r.saturnEntryParticleAlpha(late,field),0);
+ tour.state='cruising';tour.age=10;assert.equal(r.openingParticleFrame(10000),null);assert.equal(r.openingParticles,null);assert.equal(field.points.length,0);
+});
 
 test('warp picks the three directions away from the projected orbital disc',()=>{
  const {r}=renderer(),departure={from:{forward:[0,1,0],right:[-1,0,0],up:[0,0,1]},velocity:[0,0,0]};
@@ -146,15 +215,25 @@ test('normal-view warp preserves the transported frame through a vertical 180-de
  }
 });
 
-test('warp-to-opening handoff keeps the transported bank frame continuous',()=>{
- const {r}=renderer(),target=r.cameraSnapshot();r.flightBank=.17;
- r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
- const move=r.cameraTween,p=move.replay;p.brakeAt=4300;p.resetAt=7000;move.duration=r.replayOpeningAt(p)+p.inbound;
- const before=r.openingReplayPose(move,p.resetAt-.001),at=r.openingReplayPose(move,p.resetAt),after=r.openingReplayPose(move,p.resetAt+.001);
- const axes=sample=>{const saved=r.camera;r.camera=sample.state;const old=r.flightLook;r.flightLook=sample.look;const value=r.bankedSkyCamera().viewAxes;r.flightLook=old;r.camera=saved;return value;};
- const a=axes(before),b=axes(at),c=axes(after),dot=(x,y)=>x.reduce((sum,v,i)=>sum+v*y[i],0);
- for(const key of ['right','down','forward']){assert.ok(dot(a[key],b[key])>.999999,'no reset at handoff');assert.ok(dot(b[key],c[key])>.999999,'continuous quaternion blend');}
- close(r.flightBank,.17);
+test('warp arrival lead adds no turn toward the random opening and returns to the saved view',()=>{
+ for(const seed of [.127694,.45,.8])for(const bank of [0,.17]){
+  const {r}=renderer(seed),target={...r.cameraSnapshot(),azimuth:1.2,elevation:.4,panX:.1,panY:-.1,zoom:2,dolly:.6};r.flightBank=bank;
+  r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+  const move=r.cameraTween,p=move.replay;p.brakeAt=4300;p.resetAt=7000;
+  const opening=r.replayOpeningAt(p);move.duration=opening+p.inbound;
+  const axes=()=>[{x:1,y:0,z:0},{x:0,y:1,z:0},{x:0,y:0,z:1}].map(v=>r.viewDirection(v));
+  r.advanceCamera(p.resetAt);const initial=axes();
+  for(let time=p.resetAt+10;time<=opening;time+=10){
+   r.advanceCamera(time);const current=axes();
+   for(let i=0;i<3;i++)for(const key of ['x','y','z'])close(current[i][key],initial[i][key]);
+   close(r.flightBank,bank);
+  }
+  r.advanceCamera(opening+1);const next=axes();
+  for(let i=0;i<3;i++)for(const key of ['x','y','z'])close(next[i][key],initial[i][key],1e-5);
+  r.advanceCamera(move.duration);
+  for(const key of ['azimuth','elevation','panX','panY','zoom','dolly'])close(r.camera[key],target[key]);
+  assert.equal(r.cameraTween,null);close(r.flightBank,bank);
+ }
 });
 
 
@@ -612,11 +691,11 @@ test('Space resume shifts sky sampling clocks so a paused handoff cannot catch u
 
 
 
-test('T restores the GPU layer style after hiding or cancelling without changing body sizes',()=>{
+test('T keeps planet surfaces opaque, hides them as a binary layer and restores the prior style',()=>{
  const {r}=renderer(),style={opacity:'.8',transition:'opacity .4s'},sizes=JSON.stringify(r.bodyScales);
  r.gpu={canvas:{style}};
  r.setReplaySolarOpacity(.4);r.setReplaySolarOpacity(0);
- assert.equal(style.opacity,'0');assert.equal(style.transition,'none');
+ assert.equal(style.opacity,'1');assert.equal(style.visibility,'hidden');assert.equal(style.transition,'none');
  r.setReplaySolarOpacity(1);
  assert.deepEqual(style,{opacity:'.8',transition:'opacity .4s'});assert.equal(r.replayLayerStyle,null);
  const target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,5000);
@@ -639,23 +718,31 @@ test('temporary forward look has identity projection and releases smoothly on Es
  r.advanceCamera(3500);close(r.flightLook.yaw,look.yaw+(A.wrap(r.camera.azimuth-look.yaw+Math.PI)-Math.PI)*.5);
  r.advanceCamera(4000);assert.equal(r.flightLook,null);
 });
-test('country inspection ends at 250x and removes inherited zoom/dolly/pan',()=>{
+test('country inspection preserves the lens and reaches the reference size by travel',()=>{
  const {r}=renderer();Object.assign(r.camera,{zoom:1800,dolly:12,panX:.5,panY:-.4});
+ const earth=A.BODIES.find(b=>b.id==='earth'),radius=r.bodyRadiusForState(earth,{...r.camera,zoom:250,dolly:1});
  assert.equal(r.animateFeature('earth',37.5665,126.978,ms,0,1000),true);r.advanceCamera(1000);
- assert.equal(r.camera.zoom,250);assert.equal(r.camera.dolly,1);assert.equal(r.camera.focus,'earth');assert.equal(r.camera.panX,0);assert.equal(r.camera.panY,0);
+ assert.equal(r.camera.zoom,1800);close(r.bodyRadiusForState(earth,r.camera),radius);assert.equal(r.camera.focus,'earth');assert.equal(r.camera.panX,0);assert.equal(r.camera.panY,0);
  const n=A.surfaceDirection(A.BODIES.find(b=>b.id==='earth'),37.5665,126.978,ms),view=r.viewDirection(n);
  close(view.x,0);close(view.y,0);assert.ok(view.z>0);
  r.smoothZoom(500,null,1100);r.advanceCamera(1300);assert.equal(r.camera.zoom,500);
  r.smoothZoom(125,null,1400);r.advanceCamera(1600);assert.equal(r.camera.zoom,125);
  assert.equal(r.zoomLimits.maxZoom,2048);
 });
-test('lens zoom keeps 0.1x while camera travel retreats to a point-like 0.002x overview',()=>{
+test('lens zoom stops at 0.8x while home and wheel share the 0.001x travel floor',()=>{
  const {r,R}=renderer();
- assert.equal(r.zoomLimits.minZoom,.1);assert.equal(r.zoomLimits.minDolly,.002);
- r.setZoom(.001);assert.equal(r.camera.zoom,.1);assert.ok(R.validCamera(r.cameraSnapshot()));
- r.setZoom(1);r.setDolly(.0001);assert.equal(r.camera.dolly,.002);assert.ok(R.validCamera(r.cameraSnapshot()));
- r.smoothZoom(.001,null,0);assert.equal(r.cameraTween.to.zoom,.1);r.advanceCamera(150);assert.equal(r.camera.zoom,.1);
- r.smoothDolly(.0001,null,200);assert.equal(r.cameraTween.to.dolly,.002);r.advanceCamera(350);assert.equal(r.camera.dolly,.002);
+ assert.equal(r.zoomLimits.minZoom,.8);assert.equal(r.zoomLimits.minDolly,.001);
+ r.setZoom(.001);assert.equal(r.camera.zoom,.8);assert.ok(R.validCamera(r.cameraSnapshot()));
+ r.setZoom(1);r.setDolly(.0001);assert.equal(r.camera.dolly,.001);assert.ok(R.validCamera(r.cameraSnapshot()));
+ r.smoothZoom(.001,null,0);assert.equal(r.cameraTween.to.zoom,.8);r.advanceCamera(150);assert.equal(r.camera.zoom,.8);
+ r.smoothDolly(.0001,null,200);assert.equal(r.cameraTween.to.dolly,.001);r.advanceCamera(350);assert.equal(r.camera.dolly,.001);
+});
+
+test('wheel retreat from the portrait true-scale home never jumps forward to the old limit',()=>{
+ const {r,R}=renderer();r.w=390;r.h=844;r.actualScaleMix=1;r.options.actualOrbitSpacing=1;
+ const home=r.defaultCameraSnapshot();assert.ok(home.dolly<.002&&home.dolly>r.zoomLimits.minDolly);
+ r.restoreCamera(home);r.smoothDolly(home.dolly*.95,null,0);r.advanceCamera(150);
+ close(r.camera.dolly,home.dolly*.95);assert.ok(R.validCamera(r.cameraSnapshot()));
 });
 test('opening accelerates more gently over 40% and decelerates over 60% into the saved camera',()=>{
  const {r}=renderer(),target={...r.defaultCameraSnapshot(),azimuth:2.4,elevation:.31,zoom:7,dolly:1.6,panX:.2,panY:-.1};
@@ -1217,13 +1304,50 @@ test('Move country inspection preserves wheel mode and matches the 250x Earth ra
  r.options.dollyZoom=true;Object.assign(r.camera,{zoom:1700,dolly:12});
  const targetRadius=r.bodyRadiusForState(earth,{...r.camera,focus:'earth',zoom:250,dolly:1});
  assert.ok(r.animateFeature('earth',1.2833333,103.85,ms,0,1000));assert.ok(R.validCamera(r.cameraTween.to));r.advanceCamera(1000);
- assert.equal(r.options.dollyZoom,true);assert.equal(r.camera.zoom,1);close(r.bodyRadiusForState(earth,r.camera),targetRadius);
+ assert.equal(r.options.dollyZoom,true);assert.equal(r.camera.zoom,1700);close(r.bodyRadiusForState(earth,r.camera),targetRadius);
  const d=r.camera.dolly;r.smoothDolly(d*1.5,'earth',1100);r.advanceCamera(1300);close(r.camera.dolly,d*1.5);
 });
-test('all supported country coordinates use the same 250x camera command',()=>{
+test('all supported country coordinates preserve the lens and reference disk size',()=>{
  const app=read('src/app.js'),start=app.indexOf('  const REGIONS='),end=app.indexOf('  const FACTORY_OPTIONS=',start);
  const regions=vm.runInNewContext(app.slice(start,end)+';REGIONS');
- for(const region of Object.values(regions)) {const {r}=renderer();assert.ok(r.animateFeature('earth',region.latitude,region.longitude,ms,0,1000),region.label);assert.equal(r.cameraTween.to.zoom,250);}
+ for(const region of Object.values(regions)) {
+  const {r}=renderer(),zoom=r.camera.zoom,earth=A.BODIES.find(b=>b.id==='earth');
+  const radius=r.bodyRadiusForState(earth,{...r.camera,zoom:250,dolly:1});
+  assert.ok(r.animateFeature('earth',region.latitude,region.longitude,ms,0,1000),region.label);
+  assert.equal(r.cameraTween.to.zoom,zoom);close(r.bodyRadiusForState(earth,r.cameraTween.to),radius);
+ }
+});
+
+test('saved wide-angle cameras migrate without losing pose or accepting corrupt data',()=>{
+ const {r,R}=renderer(),base={...r.cameraSnapshot(),azimuth:2.3,elevation:.6,panX:.2,panY:-.1,focus:'saturn',dolly:7,mode:'zoom'};
+ for(const zoom of [.1,.35,.79,.8,1.2,2048]){
+  const saved={...base,zoom},before=plain(saved),migrated=R.savedCameraState(saved);
+  assert.deepEqual(plain(migrated),{...before,zoom:Math.max(.8,zoom),mode:'move'});
+  assert.deepEqual(plain(saved),before);assert.equal(R.validCamera(saved),zoom>=.8);
+ }
+ assert.equal(R.savedCameraState({...base,dolly:undefined}).dolly,1);
+ for(const bad of [null,{}, {...base,zoom:.09},{...base,zoom:Infinity},{...base,zoom:2049},{...base,dolly:NaN},{...base,panY:9},{...base,focus:'unknown'}])assert.equal(R.savedCameraState(bad),null);
+});
+
+test('all tracking paths keep the lens fixed throughout dolly-in and dolly-out',()=>{
+ for(const actual of [0,1])for(const zoom of [.8,1.185,64])for(const initialDolly of [.001,1e6]){
+  const {r}=renderer();r.actualScaleMix=actual;
+  for(const id of ['earth','saturn','moon','europa']){
+   Object.assign(r.camera,{zoom,dolly:initialDolly});r.options.dollyZoom=false;
+   assert.ok(r.animateFocus(id,0,1000));const target=r.cameraTween.to;
+   close(r.bodyRadiusForState(r.sceneBodies().find(b=>b.id===id),target),r.h*.25);
+   let previous=initialDolly;const direction=Math.sign(target.dolly-initialDolly);
+   for(const mono of [0,100,250,500,750,1000]){
+    r.advanceCamera(mono);close(r.camera.zoom,zoom);assert.ok((r.camera.dolly-previous)*direction>=-1e-8);previous=r.camera.dolly;
+   }
+   r.focusBody(id);close(r.camera.zoom,zoom);close(r.camera.dolly,target.dolly);
+  }
+  Object.assign(r.camera,{zoom,dolly:initialDolly});
+  for(const id of ['earth','jupiter']){
+   assert.ok(r.animateFeature(id,20,70,ms,0,1000));
+   for(const mono of [0,250,500,750,1000]){r.advanceCamera(mono);close(r.camera.zoom,zoom);}
+  }
+ }
 });
 test('ordinary planet focus and Jupiter feature view derive framing from the current baseline sizes',()=>{
  const {r}=renderer(),jupiter=A.BODIES.find(b=>b.id==='jupiter'),mars=A.BODIES.find(b=>b.id==='mars'),radius=Math.min(r.w,r.h)*.25;
@@ -1233,9 +1357,10 @@ test('ordinary planet focus and Jupiter feature view derive framing from the cur
  close(follow.zoom,feature.zoom);assert.equal(follow.mode,'move');close(r.bodyRadiusForState(mars,follow),radius);
 });
 
-test('default view, reset and home share the user-framed camera captured on 2026-10-02',()=>{
+test('default view, reset and home share the orbit-framed camera and approved viewing angle',()=>{
  const {r}=renderer(),home=r.defaultCameraSnapshot();
- assert.deepEqual(plain(home),{azimuth:6.24870825667827,elevation:.25293208858658467,zoom:1.1853048513203654,dolly:1.4049475905635938,focus:null,panY:.033915866075961185,panX:0,mode:'move'});
+ assert.deepEqual(plain({...home,dolly:1,panY:0}),{azimuth:6.24870825667827,elevation:.25293208858658467,zoom:1.1853048513203654,dolly:1,focus:null,panY:0,panX:0,mode:'move'});
+ assert.ok(home.dolly>0);close(home.panY,.02);
  r.bodyScales={};assert.equal(r.openingCameraDuration(home),6500);
  Object.assign(r.camera,{elevation:1,zoom:5,dolly:3,focus:'earth'});
  assert.ok(r.animateHome(0,1100));assert.deepEqual(plain(r.cameraTween.to),plain(home));
