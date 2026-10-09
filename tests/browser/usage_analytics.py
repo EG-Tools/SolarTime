@@ -6,6 +6,7 @@ def verify_usage_analytics(browser, root, check, diagnostics, load):
     try:
         # The offline page is deliberately not a production host. Enable only
         # an in-memory owner to test feature hooks, not Google ingestion.
+        page.evaluate("SolarConsent.choose('denied')")
         page.evaluate('''code=>{
           delete window.SolarUsageAnalytics;
           window.SolarGoogleAnalytics=Object.freeze({production:true,measurementId:'G-4MP85CMH64'});
