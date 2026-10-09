@@ -29,7 +29,7 @@ def verify_google_tag(browser, root, check, diagnostics):
         page.route('**/*', route_request)
         try:
             page.goto('https://' + host + '/__google_tag_test__', wait_until='load')
-            state = page.evaluate('({calls:dataLayer.map(x=>Array.from(x)),production:SolarGoogleAnalytics.production,adsId:SolarGoogleAnalytics.adsId})')
+            state = page.evaluate('({calls:dataLayer.map(x=>Array.from(x)),production:SolarGoogleAnalytics.production,adsId:SolarGoogleAnalytics.adsId,saved:localStorage.getItem(SolarConsent.storageKey)})')
             label = 'Google tag ' + host + ' ' + (saved or 'new')
             check(state['adsId'] == 'AW-18454135815', label + ' exact approved Ads ID')
             check(state['calls'][0][:2] == ['consent', 'default'], label + ' consent first')
@@ -38,8 +38,10 @@ def verify_google_tag(browser, root, check, diagnostics):
             configs = [c[1] for c in state['calls'] if c[0] == 'config']
             check(configs == (['G-4MP85CMH64', 'AW-18454135815'] if state['production'] else []), label + ' correct destination scope')
             check(len(external) == (1 if state['production'] else 0), label + ' one or no loader')
-            if saved:
+            if saved == 'granted':
                 check(state['calls'][1][:2] == ['consent', 'update'] and all(state['calls'][1][2][key] == saved for key in keys), label + ' restored before configuration')
+            elif saved == 'denied':
+                check(not any(c[:2] == ['consent', 'update'] for c in state['calls']) and state['saved'] is None, label + ' old rejection is discarded before configuration')
             for value in [True, False]:
                 last = page.evaluate('(v)=>{SolarGoogleAnalytics.updateConsent(v);return Array.from(dataLayer.at(-1));}', value)
                 check(last[:2] == ['consent', 'update'] and all(last[2][key] == ('granted' if value else 'denied') for key in keys), label + ' consent change ' + str(value))
