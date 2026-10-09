@@ -22,4 +22,4 @@ Windows 예약 종료에는 별도의 보조 모듈이 필요합니다. 종료 �
 
 교육·감상용 시뮬레이션이며, 정밀 관측·항법·일식 예측용이 아닙니다. 천체 크기와 거리는 보기 쉽게 조정될 수 있습니다.
 
-[업데이트 내역](https://solartime.app/changelog.html) · [개인정보처리방침](https://solartime.app/privacy.html) · [출처와 라이선스](assets/CREDITS.md)
+[업데이트 내역](https://solartime.app/changelog.html) · [개인정보처리방침](https://solartime.app/privacy.html) · [크레딧](https://solartime.app/credits.html) · [상세 출처와 라이선스](assets/CREDITS.md)

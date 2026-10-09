@@ -22,9 +22,9 @@ test('ads.txt authorizes only the configured Google publisher',()=>{
 
 test('policy and original-content pages are public, linked and crawlable',()=>{
  const html=read('index.html'),robots=read('robots.txt'),sitemap=read('sitemap.xml');
- for(const file of ['guide.html','about.html','privacy.html','terms.html','changelog.html']){
+ for(const file of ['guide.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
   const page=read(file);
-  for(const destination of ['guide.html','about.html','privacy.html','terms.html','changelog.html'])assert.ok(page.includes(`href="${destination}"`),`${file} links to ${destination}`);
+  for(const destination of ['guide.html','about.html','credits.html','privacy.html','terms.html','changelog.html'])assert.ok(page.includes(`href="${destination}"`),`${file} links to ${destination}`);
   assert.ok(html.includes(`href="${file}"`),file);
   assert.ok(sitemap.includes(`https://solartime.app/${file}`),file);
   assert.ok(page.includes(`content="${publisher}"`),file);
@@ -33,6 +33,17 @@ test('policy and original-content pages are public, linked and crawlable',()=>{
  assert.match(robots,/User-agent: Mediapartners-Google\s+Allow: \//);
  assert.match(robots,/User-agent: Google-Display-Ads-Bot\s+Allow: \//);
  assert.ok(robots.includes('https://solartime.app/sitemap.xml'));
+});
+
+test('credits page identifies authorship, scientific sources, media and licenses',()=>{
+ const page=read('credits.html');
+ assert.match(page,/Life User designed and maintains/);
+ assert.match(page,/NASA\/JPL approximate positions/);
+ assert.match(page,/Solar System Scope \/ INOVE/);
+ assert.match(page,/Creative Commons Attribution 4\.0 International/);
+ assert.match(page,/Lyrikey with Suno AI/);
+ assert.match(page,/Soft Morning/);
+ assert.match(page,/assets\/CREDITS\.md/);
 });
 
 test('desktop ad stays hidden until a real slot or an explicit local preview is requested',()=>{
@@ -62,7 +73,7 @@ test('desktop ad stays hidden until a real slot or an explicit local preview is 
 
 test('Cloudflare site build publishes every AdSense review file',()=>{
  const build=read('tools/cloudflare-site.cjs');
- for(const file of ['ads.txt','robots.txt','sitemap.xml','guide.html','about.html','privacy.html','terms.html','changelog.html','site-info.css'])assert.ok(build.includes(`'${file}'`),file);
+ for(const file of ['ads.txt','robots.txt','sitemap.xml','guide.html','about.html','credits.html','privacy.html','terms.html','changelog.html','site-info.css'])assert.ok(build.includes(`'${file}'`),file);
 });
 
 test('Google Analytics runs only on the production domain with denied consent defaults',()=>{
@@ -74,7 +85,7 @@ test('Google Analytics runs only on the production domain with denied consent de
  assert.ok(code.includes('document.querySelector(`script[src="${source}"]`)'));
  assert.ok(code.includes("root.gtag('config',measurementId)"));
  for(const key of ['ad_storage','ad_user_data','ad_personalization','analytics_storage'])assert.ok(consent.includes(`${key}:'denied'`),key);
- for(const file of ['index.html','about.html','privacy.html','terms.html','changelog.html']){
+ for(const file of ['index.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
   const page=read(file);assert.ok(page.includes(cacheUrl('src/consent.js')),file);assert.ok(page.includes(cacheUrl('src/google-analytics.js')),file);
   assert.ok(page.indexOf('src/consent.js')<page.indexOf('src/google-analytics.js'),file+' consent order');
  }

@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 
-const pages=['index.html','guide.html','about.html','privacy.html','terms.html','changelog.html'];
+const pages=['index.html','guide.html','about.html','credits.html','privacy.html','terms.html','changelog.html'];
 function localReference(value){
  const clean=String(value||'').split('#')[0].split('?')[0].replace(/^\.\//,'').replace(/^\//,'');
  if(!clean||/^(?:data:|https?:|mailto:|tel:|javascript:)/i.test(value)||clean.includes('..'))return '';

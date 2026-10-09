@@ -128,14 +128,14 @@ function changelogPage(root,releases,archive){
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Solar Time의 현재 및 과거 전체 업데이트 내역입니다.">
   <meta name="google-adsense-account" content="ca-pub-5773171100052324">
-  <link rel="canonical" href="https://solartime.app/changelog.html"><link rel="stylesheet" href="${cache('site-info.css')}">
+  <link rel="canonical" href="https://solartime.app/changelog.html"><script src="${cache('src/policy-dialog.js')}"></script><link rel="stylesheet" href="${cache('site-info.css')}">
   <script src="${cache('src/consent.js')}"></script>
   <script src="${cache('src/google-analytics.js')}"></script>
   <script src="${cache('src/microsoft-clarity.js')}"></script>
   <title>Solar Time 전체 업데이트 내역</title>
 </head>
 <body><div class="site-shell">
-  <header class="site-header"><a class="site-brand" href="./">SOLAR TIME</a><nav class="site-nav" aria-label="사이트 정보"><a href="guide.html">GUIDE</a><a href="about.html">ABOUT</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a><a href="changelog.html" aria-current="page">UPDATES</a></nav></header>
+  <header class="site-header"><a class="site-brand" href="./">SOLAR TIME</a><nav class="site-nav" aria-label="사이트 정보"><a href="guide.html">GUIDE</a><a href="about.html">ABOUT</a><a href="credits.html">CREDITS</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a><a href="changelog.html" aria-current="page">UPDATES</a></nav></header>
   <main>
     <p class="eyebrow">UPDATE ARCHIVE · KOREAN</p><h1>전체 업데이트 내역</h1>
     <p class="lead">Solar Time의 현재 및 과거 업데이트 기록입니다. Git 저장소에 남아 있는 초기 기록까지 한국어로 한곳에 정리했습니다.</p>
