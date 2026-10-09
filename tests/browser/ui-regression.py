@@ -38,7 +38,7 @@ def load(browser,root,size,standalone=False,locale='ko-KR',timezone_id='Asia/Seo
   if(p.standalone)Object.defineProperty(navigator,'standalone',{get:()=>true});
   window.Worker=undefined;
   // General UI checks start as a returning visitor; help_onboarding.cjs tests first-visit help separately.
-  for(const name of ['localStorage','sessionStorage']){const memory=new Map(name==='localStorage'?[['solarTimeCookieConsentV1','denied']]:[]);Object.defineProperty(window,name,{value:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)},configurable:true});}
+  for(const name of ['localStorage','sessionStorage']){const memory=new Map(name==='localStorage'?[['solarTimeCookieConsentV1','granted']]:[]);Object.defineProperty(window,name,{value:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k)},configurable:true});}
   localStorage.setItem('solar-time.help-seen.v1','true');
   localStorage.setItem('solar-time.opening-mode.v1',JSON.stringify(p.opening?'default':'none'));
   const NativeImage=window.Image;window.Image=class extends NativeImage{set src(value){super.src=p.image;}get src(){return super.src;}};
