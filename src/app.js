@@ -4,115 +4,71 @@
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
   const Localization=Modules.Localization,LanguageData=Modules.LanguageData,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
-  const LANG_ORDER=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','dk','do','ec','fi','fr','de','gh','gt','hk','is','hi','id','ie','it','jpn','kor','my','mt','mx','mz','nl','nz','ng','no','pa','pe','ph','pt','ru','sg','za','es','se','tw','ua','eu','en','uy','ve'];
-  const LANG_META={
-    no:{"code":"NO","name":"Norway","locale":"en-NO","html":"en-NO","copy":"en"},
-    se:{"code":"SE","name":"Sweden","locale":"en-SE","html":"en-SE","copy":"en"},
-    dk:{"code":"DK","name":"Denmark","locale":"en-DK","html":"en-DK","copy":"en"},
-    fi:{"code":"FI","name":"Finland","locale":"en-FI","html":"en-FI","copy":"en"},
-    is:{"code":"IS","name":"Iceland","locale":"en-IS","html":"en-IS","copy":"en"},
-    mt:{"code":"MT","name":"Malta","locale":"en-MT","html":"en-MT","copy":"en"},
-    ph:{"code":"PH","name":"Philippines","locale":"en-PH","html":"en-PH","copy":"en"},
-    my:{"code":"MY","name":"Malaysia","locale":"en-MY","html":"en-MY","copy":"en"},
-    za:{"code":"ZA","name":"South Africa","locale":"en-ZA","html":"en-ZA","copy":"en"},
-    ng:{"code":"NG","name":"Nigeria","locale":"en-NG","html":"en-NG","copy":"en"},
-    gh:{"code":"GH","name":"Ghana","locale":"en-GH","html":"en-GH","copy":"en"},
-    do:{"code":"DO","name":"República Dominicana","locale":"es-DO","html":"es-DO","copy":"es"},
-    gt:{"code":"GT","name":"Guatemala","locale":"es-GT","html":"es-GT","copy":"es"},
-    kor:{code:'KR',name:'한국',locale:'ko-KR',html:'ko',copy:'kor'},
-    en:{code:'US',name:'USA',locale:'en-US',html:'en',copy:'en'},
-    chn:{code:'CN',name:'中国',locale:'zh-CN',html:'zh-Hans',copy:'chn'},
-    tw:{code:'TW',name:'台灣',locale:'zh-TW',html:'zh-Hant-TW',copy:'zht'},
-    hk:{code:'HK',name:'香港',locale:'zh-HK',html:'zh-Hant-HK',copy:'zht'},
-    jpn:{code:'JP',name:'日本',locale:'ja-JP',html:'ja',copy:'jpn'},
-    eu:{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'},
-    hi:{code:'HI',name:'भारत',locale:'hi-IN',html:'hi',copy:'hi'},
-    es:{code:'ES',name:'España',locale:'es-ES',html:'es',copy:'es'},
-    de:{code:'DE',name:'Deutschland',locale:'de-DE',html:'de',copy:'de'},
-    fr:{code:'FR',name:'France',locale:'fr-FR',html:'fr',copy:'fr'},
-    ru:{code:'RU',name:'Россия',locale:'ru-RU',html:'ru',copy:'ru'},
-    ua:{code:'UA',name:'Україна',locale:'uk-UA',html:'uk',copy:'uk'}
-,
-    pt:{code:'PT',name:'Portugal',locale:'pt-PT',html:'pt-PT',copy:'pt'},
-    be:{code:'BE',name:'België',locale:'nl-BE',html:'nl-BE',copy:'nl'},
-    nl:{code:'NL',name:'Nederland',locale:'nl-NL',html:'nl-NL',copy:'nl'},
-    br:{code:'BR',name:'Brasil',locale:'pt-BR',html:'pt-BR',copy:'pt'},
-    it:{code:'IT',name:'Italia',locale:'it-IT',html:'it',copy:'it'},
-    mx:{code:'MX',name:'México',locale:'es-MX',html:'es-MX',copy:'es'},
-    id:{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'},
-    ao:{code:"AO",name:"Angola",locale:"pt-AO",html:"pt-AO",copy:"pt"},
-    ar:{code:"AR",name:"Argentina",locale:"es-AR",html:"es-AR",copy:"es"},
-    au:{code:"AU",name:"Australia",locale:"en-AU",html:"en-AU",copy:"en"},
-    at:{code:"AT",name:"Österreich",locale:"de-AT",html:"de-AT",copy:"de"},
-    ca:{code:"CA",name:"Canada",locale:"en-CA",html:"en-CA",copy:"en"},
-    cl:{code:"CL",name:"Chile",locale:"es-CL",html:"es-CL",copy:"es"},
-    co:{code:"CO",name:"Colombia",locale:"es-CO",html:"es-CO",copy:"es"},
-    cr:{code:"CR",name:"Costa Rica",locale:"es-CR",html:"es-CR",copy:"es"},
-    ec:{code:"EC",name:"Ecuador",locale:"es-EC",html:"es-EC",copy:"es"},
-    ie:{code:"IE",name:"Ireland",locale:"en-IE",html:"en-IE",copy:"en"},
-    mz:{code:"MZ",name:"Moçambique",locale:"pt-MZ",html:"pt-MZ",copy:"pt"},
-    sg:{code:'SG',name:'Singapore',locale:'en-SG',html:'en-SG',copy:'en'},
-    nz:{code:"NZ",name:"New Zealand",locale:"en-NZ",html:"en-NZ",copy:"en"},
-    pa:{code:"PA",name:"Panamá",locale:"es-PA",html:"es-PA",copy:"es"},
-    pe:{code:"PE",name:"Perú",locale:"es-PE",html:"es-PE",copy:"es"},
-    uy:{code:"UY",name:"Uruguay",locale:"es-UY",html:"es-UY",copy:"es"},
-    ve:{code:"VE",name:"Venezuela",locale:"es-VE",html:"es-VE",copy:"es"}
-  };
-  const REGIONS={
-    // Representative city coordinates: IANA tzdb zone.tab. Reuse English/Spanish copy.
-    no:{"label":"NORWAY","timeZone":"Europe/Oslo","latitude":59.916666666666664,"longitude":10.75,"region":"Norway","city":"Oslo"},
-    se:{"label":"SWEDEN","timeZone":"Europe/Stockholm","latitude":59.333333333333336,"longitude":18.05,"region":"Sweden","city":"Stockholm"},
-    dk:{"label":"DENMARK","timeZone":"Europe/Copenhagen","latitude":55.666666666666664,"longitude":12.583333333333334,"region":"Denmark","city":"Copenhagen"},
-    fi:{"label":"FINLAND","timeZone":"Europe/Helsinki","latitude":60.166666666666664,"longitude":24.966666666666665,"region":"Finland","city":"Helsinki"},
-    is:{"label":"ICELAND","timeZone":"Atlantic/Reykjavik","latitude":64.15,"longitude":-21.85,"region":"Iceland","city":"Reykjavik"},
-    mt:{"label":"MALTA","timeZone":"Europe/Malta","latitude":35.9,"longitude":14.516666666666667,"region":"Malta","city":"Valletta"},
-    ph:{"label":"PHILIPPINES","timeZone":"Asia/Manila","latitude":14.586666666666668,"longitude":120.96777777777778,"region":"Philippines","city":"Manila"},
-    my:{"label":"MALAYSIA","timeZone":"Asia/Kuala_Lumpur","latitude":3.1666666666666665,"longitude":101.7,"region":"Malaysia","city":"Kuala Lumpur"},
-    za:{"label":"SOUTH AFRICA","timeZone":"Africa/Johannesburg","latitude":-26.25,"longitude":28,"region":"South Africa","city":"Johannesburg"},
-    ng:{"label":"NIGERIA","timeZone":"Africa/Lagos","latitude":6.45,"longitude":3.4,"region":"Nigeria","city":"Lagos"},
-    gh:{"label":"GHANA","timeZone":"Africa/Accra","latitude":5.55,"longitude":-0.21666666666666667,"region":"Ghana","city":"Accra"},
-    do:{"label":"DOMINICAN REPUBLIC","timeZone":"America/Santo_Domingo","latitude":18.466666666666665,"longitude":-69.9,"region":"República Dominicana","city":"Santo Domingo"},
-    gt:{"label":"GUATEMALA","timeZone":"America/Guatemala","latitude":14.633333333333333,"longitude":-90.51666666666667,"region":"Guatemala","city":"Ciudad de Guatemala"},
-    kor:{label:'KOREA',timeZone:'Asia/Seoul',latitude:37.5665,longitude:126.978,region:'한국',city:'서울'},
-    en:{label:'USA',timeZone:'America/New_York',latitude:39.8283,longitude:-98.5795,region:'United States',city:'mainland center'},
-    chn:{label:'CHINA',timeZone:'Asia/Shanghai',latitude:35.8617,longitude:104.1954,region:'中国',city:'国土中心'},
-    tw:{label:'TAIWAN',timeZone:'Asia/Taipei',latitude:23.6978,longitude:120.9605,region:'台灣',city:'地理中心'},
-    hk:{label:'HONG KONG',timeZone:'Asia/Hong_Kong',latitude:22.3193,longitude:114.1694,region:'香港',city:'地理中心'},
-    jpn:{label:'JAPAN',timeZone:'Asia/Tokyo',latitude:35.6762,longitude:139.6503,region:'日本',city:'東京'},
-    eu:{label:'UNITED KINGDOM',timeZone:'Europe/London',latitude:55.3781,longitude:-3.436,region:'United Kingdom',city:'geographic center'},
-    hi:{label:'INDIA',timeZone:'Asia/Kolkata',latitude:22.5937,longitude:78.9629,region:'भारत',city:'देश का केंद्र'},
-    es:{label:'SPAIN',timeZone:'Europe/Madrid',latitude:40.4637,longitude:-3.7492,region:'España',city:'centro geográfico'},
-    de:{label:'GERMANY',timeZone:'Europe/Berlin',latitude:51.1657,longitude:10.4515,region:'Deutschland',city:'geografische Mitte'},
-    fr:{label:'FRANCE',timeZone:'Europe/Paris',latitude:46.2276,longitude:2.2137,region:'France',city:'centre géographique'},
-    ru:{label:'RUSSIA',timeZone:'Europe/Moscow',latitude:55.7558,longitude:37.6173,region:'Россия',city:'Москва'},
-    ua:{label:'UKRAINE',timeZone:'Europe/Kyiv',latitude:50.4501,longitude:30.5234,region:'Україна',city:'Київ'}
-,
-    pt:{label:'PORTUGAL',timeZone:'Europe/Lisbon',latitude:39.3999,longitude:-8.2245,region:'Portugal',city:'centro de Portugal'},
-    // Representative cities from tzdb zone.tab; both regions share Dutch copy.
-    be:{label:'BELGIUM',timeZone:'Europe/Brussels',latitude:50.833333333333336,longitude:4.333333333333333,region:'België',city:'Brussel'},
-    nl:{label:'NETHERLANDS',timeZone:'Europe/Amsterdam',latitude:52.36666666666667,longitude:4.9,region:'Nederland',city:'Amsterdam'},
-    br:{label:'BRAZIL',timeZone:'America/Sao_Paulo',latitude:-14.235,longitude:-51.9253,region:'Brasil',city:'centro do Brasil'},
-    it:{label:'ITALY',timeZone:'Europe/Rome',latitude:41.8719,longitude:12.5674,region:'Italia',city:"centro d'Italia"},
-    mx:{label:'MEXICO',timeZone:'America/Mexico_City',latitude:23.6345,longitude:-102.5528,region:'México',city:'centro de México'},
-    id:{label:'INDONESIA',timeZone:'Asia/Jakarta',latitude:-2.5489,longitude:118.0149,region:'Indonesia',city:'pusat Indonesia'},
-    ao:{label:"ANGOLA",timeZone:"Africa/Luanda",latitude:-11.2027,longitude:17.8739,region:"Angola",city:"centro geográfico"},
-    ar:{label:"ARGENTINA",timeZone:"America/Argentina/Buenos_Aires",latitude:-38.4161,longitude:-63.6167,region:"Argentina",city:"centro geográfico"},
-    au:{label:"AUSTRALIA",timeZone:"Australia/Sydney",latitude:-25.2744,longitude:133.7751,region:"Australia",city:"geographic center"},
-    at:{label:"AUSTRIA",timeZone:"Europe/Vienna",latitude:47.5162,longitude:14.5501,region:"Österreich",city:"geografische Mitte"},
-    ca:{label:"CANADA",timeZone:"America/Toronto",latitude:56.1304,longitude:-106.3468,region:"Canada",city:"geographic center"},
-    cl:{label:"CHILE",timeZone:"America/Santiago",latitude:-35.6751,longitude:-71.543,region:"Chile",city:"centro geográfico"},
-    co:{label:"COLOMBIA",timeZone:"America/Bogota",latitude:4.5709,longitude:-74.2973,region:"Colombia",city:"centro geográfico"},
-    cr:{label:"COSTA RICA",timeZone:"America/Costa_Rica",latitude:9.7489,longitude:-83.7534,region:"Costa Rica",city:"centro geográfico"},
-    ec:{label:"ECUADOR",timeZone:"America/Guayaquil",latitude:-1.8312,longitude:-78.1834,region:"Ecuador",city:"centro geográfico"},
-    ie:{label:"IRELAND",timeZone:"Europe/Dublin",latitude:53.1424,longitude:-7.6921,region:"Ireland",city:"geographic center"},
-    mz:{label:"MOZAMBIQUE",timeZone:"Africa/Maputo",latitude:-18.6657,longitude:35.5296,region:"Moçambique",city:"centro geográfico"},
-    sg:{label:'SINGAPORE',timeZone:'Asia/Singapore',latitude:1.2833333333333334,longitude:103.85,region:'Singapore',city:'Singapore'},
-    nz:{label:"NEW ZEALAND",timeZone:"Pacific/Auckland",latitude:-40.9006,longitude:174.886,region:"New Zealand",city:"geographic center"},
-    pa:{label:"PANAMA",timeZone:"America/Panama",latitude:8.538,longitude:-80.7821,region:"Panamá",city:"centro geográfico"},
-    pe:{label:"PERU",timeZone:"America/Lima",latitude:-9.19,longitude:-75.0152,region:"Perú",city:"centro geográfico"},
-    uy:{label:"URUGUAY",timeZone:"America/Montevideo",latitude:-32.5228,longitude:-55.7658,region:"Uruguay",city:"centro geográfico"},
-    ve:{label:"VENEZUELA",timeZone:"America/Caracas",latitude:6.4238,longitude:-66.5897,region:"Venezuela",city:"centro geográfico"}
-  };
+  const REGION_CATALOG=Object.freeze([
+    Object.freeze({"id":"ao","code":"AO","name":"Angola","locale":"pt-AO","html":"pt-AO","copy":"pt","label":"ANGOLA","timeZone":"Africa/Luanda","latitude":-11.2027,"longitude":17.8739,"region":"Angola","city":"centro geográfico"}),
+    Object.freeze({"id":"ar","code":"AR","name":"Argentina","locale":"es-AR","html":"es-AR","copy":"es","label":"ARGENTINA","timeZone":"America/Argentina/Buenos_Aires","latitude":-38.4161,"longitude":-63.6167,"region":"Argentina","city":"centro geográfico"}),
+    Object.freeze({"id":"au","code":"AU","name":"Australia","locale":"en-AU","html":"en-AU","copy":"en","label":"AUSTRALIA","timeZone":"Australia/Sydney","latitude":-25.2744,"longitude":133.7751,"region":"Australia","city":"geographic center"}),
+    Object.freeze({"id":"at","code":"AT","name":"Österreich","locale":"de-AT","html":"de-AT","copy":"de","label":"AUSTRIA","timeZone":"Europe/Vienna","latitude":47.5162,"longitude":14.5501,"region":"Österreich","city":"geografische Mitte"}),
+    Object.freeze({"id":"be","code":"BE","name":"België","locale":"nl-BE","html":"nl-BE","copy":"nl","label":"BELGIUM","timeZone":"Europe/Brussels","latitude":50.833333333333336,"longitude":4.333333333333333,"region":"België","city":"Brussel"}),
+    Object.freeze({"id":"br","code":"BR","name":"Brasil","locale":"pt-BR","html":"pt-BR","copy":"pt","label":"BRAZIL","timeZone":"America/Sao_Paulo","latitude":-14.235,"longitude":-51.9253,"region":"Brasil","city":"centro do Brasil"}),
+    Object.freeze({"id":"ca","code":"CA","name":"Canada","locale":"en-CA","html":"en-CA","copy":"en","label":"CANADA","timeZone":"America/Toronto","latitude":56.1304,"longitude":-106.3468,"region":"Canada","city":"geographic center"}),
+    Object.freeze({"id":"cl","code":"CL","name":"Chile","locale":"es-CL","html":"es-CL","copy":"es","label":"CHILE","timeZone":"America/Santiago","latitude":-35.6751,"longitude":-71.543,"region":"Chile","city":"centro geográfico"}),
+    Object.freeze({"id":"chn","code":"CN","name":"中国","locale":"zh-CN","html":"zh-Hans","copy":"chn","label":"CHINA","timeZone":"Asia/Shanghai","latitude":35.8617,"longitude":104.1954,"region":"中国","city":"国土中心"}),
+    Object.freeze({"id":"co","code":"CO","name":"Colombia","locale":"es-CO","html":"es-CO","copy":"es","label":"COLOMBIA","timeZone":"America/Bogota","latitude":4.5709,"longitude":-74.2973,"region":"Colombia","city":"centro geográfico"}),
+    Object.freeze({"id":"cr","code":"CR","name":"Costa Rica","locale":"es-CR","html":"es-CR","copy":"es","label":"COSTA RICA","timeZone":"America/Costa_Rica","latitude":9.7489,"longitude":-83.7534,"region":"Costa Rica","city":"centro geográfico"}),
+    Object.freeze({"id":"dk","code":"DK","name":"Denmark","locale":"en-DK","html":"en-DK","copy":"en","label":"DENMARK","timeZone":"Europe/Copenhagen","latitude":55.666666666666664,"longitude":12.583333333333334,"region":"Denmark","city":"Copenhagen"}),
+    Object.freeze({"id":"do","code":"DO","name":"República Dominicana","locale":"es-DO","html":"es-DO","copy":"es","label":"DOMINICAN REPUBLIC","timeZone":"America/Santo_Domingo","latitude":18.466666666666665,"longitude":-69.9,"region":"República Dominicana","city":"Santo Domingo"}),
+    Object.freeze({"id":"ec","code":"EC","name":"Ecuador","locale":"es-EC","html":"es-EC","copy":"es","label":"ECUADOR","timeZone":"America/Guayaquil","latitude":-1.8312,"longitude":-78.1834,"region":"Ecuador","city":"centro geográfico"}),
+    Object.freeze({"id":"fi","code":"FI","name":"Finland","locale":"en-FI","html":"en-FI","copy":"en","label":"FINLAND","timeZone":"Europe/Helsinki","latitude":60.166666666666664,"longitude":24.966666666666665,"region":"Finland","city":"Helsinki"}),
+    Object.freeze({"id":"fr","code":"FR","name":"France","locale":"fr-FR","html":"fr","copy":"fr","label":"FRANCE","timeZone":"Europe/Paris","latitude":46.2276,"longitude":2.2137,"region":"France","city":"centre géographique"}),
+    Object.freeze({"id":"de","code":"DE","name":"Deutschland","locale":"de-DE","html":"de","copy":"de","label":"GERMANY","timeZone":"Europe/Berlin","latitude":51.1657,"longitude":10.4515,"region":"Deutschland","city":"geografische Mitte"}),
+    Object.freeze({"id":"gh","code":"GH","name":"Ghana","locale":"en-GH","html":"en-GH","copy":"en","label":"GHANA","timeZone":"Africa/Accra","latitude":5.55,"longitude":-0.21666666666666667,"region":"Ghana","city":"Accra"}),
+    Object.freeze({"id":"gt","code":"GT","name":"Guatemala","locale":"es-GT","html":"es-GT","copy":"es","label":"GUATEMALA","timeZone":"America/Guatemala","latitude":14.633333333333333,"longitude":-90.51666666666667,"region":"Guatemala","city":"Ciudad de Guatemala"}),
+    Object.freeze({"id":"hk","code":"HK","name":"香港","locale":"zh-HK","html":"zh-Hant-HK","copy":"zht","label":"HONG KONG","timeZone":"Asia/Hong_Kong","latitude":22.3193,"longitude":114.1694,"region":"香港","city":"地理中心"}),
+    Object.freeze({"id":"is","code":"IS","name":"Iceland","locale":"en-IS","html":"en-IS","copy":"en","label":"ICELAND","timeZone":"Atlantic/Reykjavik","latitude":64.15,"longitude":-21.85,"region":"Iceland","city":"Reykjavik"}),
+    Object.freeze({"id":"hi","code":"HI","name":"भारत","locale":"hi-IN","html":"hi","copy":"hi","label":"INDIA","timeZone":"Asia/Kolkata","latitude":22.5937,"longitude":78.9629,"region":"भारत","city":"देश का केंद्र"}),
+    Object.freeze({"id":"id","code":"ID","name":"Indonesia","locale":"id-ID","html":"id","copy":"id","label":"INDONESIA","timeZone":"Asia/Jakarta","latitude":-2.5489,"longitude":118.0149,"region":"Indonesia","city":"pusat Indonesia"}),
+    Object.freeze({"id":"ie","code":"IE","name":"Ireland","locale":"en-IE","html":"en-IE","copy":"en","label":"IRELAND","timeZone":"Europe/Dublin","latitude":53.1424,"longitude":-7.6921,"region":"Ireland","city":"geographic center"}),
+    Object.freeze({"id":"it","code":"IT","name":"Italia","locale":"it-IT","html":"it","copy":"it","label":"ITALY","timeZone":"Europe/Rome","latitude":41.8719,"longitude":12.5674,"region":"Italia","city":"centro d'Italia"}),
+    Object.freeze({"id":"jpn","code":"JP","name":"日本","locale":"ja-JP","html":"ja","copy":"jpn","label":"JAPAN","timeZone":"Asia/Tokyo","latitude":35.6762,"longitude":139.6503,"region":"日本","city":"東京"}),
+    Object.freeze({"id":"kor","code":"KR","name":"한국","locale":"ko-KR","html":"ko","copy":"kor","label":"KOREA","timeZone":"Asia/Seoul","latitude":37.5665,"longitude":126.978,"region":"한국","city":"서울"}),
+    Object.freeze({"id":"my","code":"MY","name":"Malaysia","locale":"en-MY","html":"en-MY","copy":"en","label":"MALAYSIA","timeZone":"Asia/Kuala_Lumpur","latitude":3.1666666666666665,"longitude":101.7,"region":"Malaysia","city":"Kuala Lumpur"}),
+    Object.freeze({"id":"mt","code":"MT","name":"Malta","locale":"en-MT","html":"en-MT","copy":"en","label":"MALTA","timeZone":"Europe/Malta","latitude":35.9,"longitude":14.516666666666667,"region":"Malta","city":"Valletta"}),
+    Object.freeze({"id":"mx","code":"MX","name":"México","locale":"es-MX","html":"es-MX","copy":"es","label":"MEXICO","timeZone":"America/Mexico_City","latitude":23.6345,"longitude":-102.5528,"region":"México","city":"centro de México"}),
+    Object.freeze({"id":"mz","code":"MZ","name":"Moçambique","locale":"pt-MZ","html":"pt-MZ","copy":"pt","label":"MOZAMBIQUE","timeZone":"Africa/Maputo","latitude":-18.6657,"longitude":35.5296,"region":"Moçambique","city":"centro geográfico"}),
+    Object.freeze({"id":"nl","code":"NL","name":"Nederland","locale":"nl-NL","html":"nl-NL","copy":"nl","label":"NETHERLANDS","timeZone":"Europe/Amsterdam","latitude":52.36666666666667,"longitude":4.9,"region":"Nederland","city":"Amsterdam"}),
+    Object.freeze({"id":"nz","code":"NZ","name":"New Zealand","locale":"en-NZ","html":"en-NZ","copy":"en","label":"NEW ZEALAND","timeZone":"Pacific/Auckland","latitude":-40.9006,"longitude":174.886,"region":"New Zealand","city":"geographic center"}),
+    Object.freeze({"id":"ng","code":"NG","name":"Nigeria","locale":"en-NG","html":"en-NG","copy":"en","label":"NIGERIA","timeZone":"Africa/Lagos","latitude":6.45,"longitude":3.4,"region":"Nigeria","city":"Lagos"}),
+    Object.freeze({"id":"no","code":"NO","name":"Norway","locale":"en-NO","html":"en-NO","copy":"en","label":"NORWAY","timeZone":"Europe/Oslo","latitude":59.916666666666664,"longitude":10.75,"region":"Norway","city":"Oslo"}),
+    Object.freeze({"id":"pa","code":"PA","name":"Panamá","locale":"es-PA","html":"es-PA","copy":"es","label":"PANAMA","timeZone":"America/Panama","latitude":8.538,"longitude":-80.7821,"region":"Panamá","city":"centro geográfico"}),
+    Object.freeze({"id":"pe","code":"PE","name":"Perú","locale":"es-PE","html":"es-PE","copy":"es","label":"PERU","timeZone":"America/Lima","latitude":-9.19,"longitude":-75.0152,"region":"Perú","city":"centro geográfico"}),
+    Object.freeze({"id":"ph","code":"PH","name":"Philippines","locale":"en-PH","html":"en-PH","copy":"en","label":"PHILIPPINES","timeZone":"Asia/Manila","latitude":14.586666666666668,"longitude":120.96777777777778,"region":"Philippines","city":"Manila"}),
+    Object.freeze({"id":"pt","code":"PT","name":"Portugal","locale":"pt-PT","html":"pt-PT","copy":"pt","label":"PORTUGAL","timeZone":"Europe/Lisbon","latitude":39.3999,"longitude":-8.2245,"region":"Portugal","city":"centro de Portugal"}),
+    Object.freeze({"id":"ru","code":"RU","name":"Россия","locale":"ru-RU","html":"ru","copy":"ru","label":"RUSSIA","timeZone":"Europe/Moscow","latitude":55.7558,"longitude":37.6173,"region":"Россия","city":"Москва"}),
+    Object.freeze({"id":"sg","code":"SG","name":"Singapore","locale":"en-SG","html":"en-SG","copy":"en","label":"SINGAPORE","timeZone":"Asia/Singapore","latitude":1.2833333333333334,"longitude":103.85,"region":"Singapore","city":"Singapore"}),
+    Object.freeze({"id":"za","code":"ZA","name":"South Africa","locale":"en-ZA","html":"en-ZA","copy":"en","label":"SOUTH AFRICA","timeZone":"Africa/Johannesburg","latitude":-26.25,"longitude":28,"region":"South Africa","city":"Johannesburg"}),
+    Object.freeze({"id":"es","code":"ES","name":"España","locale":"es-ES","html":"es","copy":"es","label":"SPAIN","timeZone":"Europe/Madrid","latitude":40.4637,"longitude":-3.7492,"region":"España","city":"centro geográfico"}),
+    Object.freeze({"id":"se","code":"SE","name":"Sweden","locale":"en-SE","html":"en-SE","copy":"en","label":"SWEDEN","timeZone":"Europe/Stockholm","latitude":59.333333333333336,"longitude":18.05,"region":"Sweden","city":"Stockholm"}),
+    Object.freeze({"id":"tw","code":"TW","name":"台灣","locale":"zh-TW","html":"zh-Hant-TW","copy":"zht","label":"TAIWAN","timeZone":"Asia/Taipei","latitude":23.6978,"longitude":120.9605,"region":"台灣","city":"地理中心"}),
+    Object.freeze({"id":"ua","code":"UA","name":"Україна","locale":"uk-UA","html":"uk","copy":"uk","label":"UKRAINE","timeZone":"Europe/Kyiv","latitude":50.4501,"longitude":30.5234,"region":"Україна","city":"Київ"}),
+    Object.freeze({"id":"eu","code":"UK","name":"United Kingdom","locale":"en-GB","html":"en-GB","copy":"en","label":"UNITED KINGDOM","timeZone":"Europe/London","latitude":55.3781,"longitude":-3.436,"region":"United Kingdom","city":"geographic center"}),
+    Object.freeze({"id":"en","code":"US","name":"USA","locale":"en-US","html":"en","copy":"en","label":"USA","timeZone":"America/New_York","latitude":39.8283,"longitude":-98.5795,"region":"United States","city":"mainland center"}),
+    Object.freeze({"id":"uy","code":"UY","name":"Uruguay","locale":"es-UY","html":"es-UY","copy":"es","label":"URUGUAY","timeZone":"America/Montevideo","latitude":-32.5228,"longitude":-55.7658,"region":"Uruguay","city":"centro geográfico"}),
+    Object.freeze({"id":"ve","code":"VE","name":"Venezuela","locale":"es-VE","html":"es-VE","copy":"es","label":"VENEZUELA","timeZone":"America/Caracas","latitude":6.4238,"longitude":-66.5897,"region":"Venezuela","city":"centro geográfico"})
+  ]);
+  const LANG_ORDER=Object.freeze(REGION_CATALOG.map(region=>region.id));
+  const LANG_META=Object.freeze(Object.fromEntries(REGION_CATALOG.map(({id,code,name,locale,html,copy})=>[id,Object.freeze({code,name,locale,html,copy})])));
+  const REGIONS=Object.freeze(Object.fromEntries(REGION_CATALOG.map(({id,label,timeZone,latitude,longitude,region,city})=>[id,Object.freeze({label,timeZone,latitude,longitude,region,city})])));
+  function populateLanguageMenu(){
+    const list=document.getElementById('language-scroll');if(!list)return;
+    const fragment=document.createDocumentFragment();
+    for(const region of REGION_CATALOG){
+      const button=document.createElement('button'),code=document.createElement('strong'),name=document.createElement('span');
+      button.type='button';button.setAttribute('role','menuitemradio');button.dataset.language=region.id;
+      code.textContent=region.code;name.textContent=region.name;button.append(code,name);fragment.append(button);
+    }
+    list.replaceChildren(fragment);
+  }
   function randomCloudSeed(previous=-1){
     let value;
     try{const sample=new Uint32Array(1);globalThis.crypto.getRandomValues(sample);value=sample[0]/4294967296;}
@@ -170,6 +126,7 @@
   });
   const interpolate=Localization.interpolate,showFading=UI.show,hideFading=UI.hide,uiElementVisible=UI.visible;
   UI.installDocumentGuards(document);
+  populateLanguageMenu();
   const LIFE_USER_WATERMARK_KEY='releases/content/ui/life-user-watermark.webp?v=0.46-r1';
   function hydrateLifeUserWatermarks(){
     const base=window.SolarAssets?.materials?.earth?.base;if(!base)return;
@@ -313,7 +270,7 @@
       if(resumeTravel)renderer.prepareCloseup('saturn');
       if(openingCameraTarget.focus===null)overviewCamera={...openingCameraTarget};
       renderer.restoreCamera(openingRunMode==='none'?openingCameraTarget:renderer.openingCameraSnapshot(openingCameraTarget));
-      const loading=$('loading'),OPENING_UNLOCK_BEFORE_END=1000,SATURN_OPENING_HANDOFF_LEAD=250;
+      const loading=$('loading'),OPENING_UNLOCK_BEFORE_END=1000,SATURN_OPENING_HANDOFF_LEAD=renderer.saturnOpeningHandoffLead;
       let openingActive=true,openingControlsLocked=true,openingStartedAt=null,openingDuration=0,openingDeparture=false,openingReplayLocked=false;
       const helpReminder=Preferences.createHelpReminder();
       let firstHelpPending=helpReminder.visit(),lastTravelControlLock=null;
@@ -1098,7 +1055,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=c0f4947fdd64','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=a02013176a00','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1524,7 +1481,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){firstHelpPending=helpReminder.visit();renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive&&!openingDeparture&&!clock.paused)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.74',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.75',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);if(openingRunMode!=='none')renderer.startOpeningPointReveal(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

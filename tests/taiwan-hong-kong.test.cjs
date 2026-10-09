@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 const localeHash=code=>require('../tools/code-revisions.cjs').hash(read('src/locales/'+code+'.json'));
 const plain=value=>JSON.parse(JSON.stringify(value));
-function metadata(){const app=read('src/app.js'),a=app.indexOf('  const LANG_ORDER='),b=app.indexOf('  const FACTORY_OPTIONS=',a);return vm.runInNewContext(app.slice(a,b)+';({order:LANG_ORDER,meta:LANG_META,regions:REGIONS})');}
+const {metadata}=require('./helpers/region-metadata.cjs');
 function detect(zone,languages){const window={};require('./helpers/i18n-runtime.cjs').localization({window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
 
 test('Taiwan and Hong Kong use one complete Traditional Chinese payload with distinct regional formats',()=>{
@@ -28,6 +28,7 @@ test('Traditional Chinese covers every interface, body and lunar phase key',()=>
 
 test('an older public site missing zht falls back without showing a 404',async()=>{
  const source=read('src/language-data.js'),chn=JSON.parse(read('src/locales/chn.json')),requests=[],window={SolarModules:{}},location={protocol:'file:',href:'file:///D:/_Program/SolarTime/index.html'};
+ vm.runInNewContext(read('src/language-file-copy.js'),{window});
  vm.runInNewContext(source,{window,location,document:{currentScript:{src:'file:///D:/_Program/SolarTime/src/language-data.js?v=0.51-r2'}},URL,AbortSignal,fetch:async url=>{
   requests.push(String(url));return String(url).includes('/zht.json')?{ok:false,status:404}:{ok:true,status:200,json:async()=>structuredClone(chn)};
  }});

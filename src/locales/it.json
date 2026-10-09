@@ -221,7 +221,7 @@
     "starDensityAria": "Densità delle stelle particellari. Zero nasconde le stelle particellari.",
     "cookieSettings": "Impostazioni cookie",
     "cookieDismiss": "Chiudi senza modificare la scelta",
-    "cookieChoiceNote": "L’accettazione e il rifiuto vengono ricordati per 6 mesi. X non modifica la scelta; senza una scelta, la richiesta riappare alla prossima visita.",
+    "cookieChoiceNote": "Il consenso viene ricordato per 6 mesi. Il rifiuto e la X non vengono salvati, quindi verrà chiesto di nuovo alla prossima visita.",
     "music": "Musica",
     "timer": "Timer",
     "timerClose": "Chiudi timer",

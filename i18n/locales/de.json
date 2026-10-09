@@ -221,7 +221,7 @@
     "starDensityAria": "Dichte der Partikelsterne. Bei 0 werden Partikelsterne ausgeblendet.",
     "cookieSettings": "Cookie-Einstellungen",
     "cookieDismiss": "Schließen, ohne die Auswahl zu ändern",
-    "cookieChoiceNote": "Zustimmung und Ablehnung werden 6 Monate gespeichert. X ändert die Auswahl nicht; ohne Auswahl fragen wir beim nächsten Besuch erneut.",
+    "cookieChoiceNote": "Zulassen wird 6 Monate gespeichert. Ablehnen und X werden nicht gespeichert, daher fragen wir beim nächsten Besuch erneut.",
     "music": "Musik"
   },
   "timer": {

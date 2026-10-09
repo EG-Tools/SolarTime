@@ -1,6 +1,6 @@
 # Current implementation contracts
 
-현재 검증·배포 절차는 [CI 파이프라인](ci-pipeline.md), [GitHub 자동 배포](cloudflare-github-deployment.md), [Windows 종료 보조 모듈](windows-shutdown.md)을 참고합니다. 버전 번호가 붙은 문서는 당시의 검증 기록이며 현재 배포 상태를 뜻하지 않습니다.
+현재 코드의 책임과 의존 방향은 [프로젝트 구조](architecture.md)를 먼저 참고합니다. 검증·배포 절차는 [CI 파이프라인](ci-pipeline.md), [GitHub 자동 배포](cloudflare-github-deployment.md), [Windows 종료 보조 모듈](windows-shutdown.md)을 참고합니다. 버전 번호가 붙은 문서는 당시의 검증 기록이며 현재 배포 상태를 뜻하지 않습니다.
 
 루트의 버전별 배포 실행 파일 대신 기존 npm 명령과 GitHub Actions를 사용합니다. 미디어 빌드는 `npm run build:assets`를 사용합니다. 로컬 백업(`.backup/`), 패치 묶음(`patch/`), 일회성 프리뷰 실행 파일은 Git에 올리지 않습니다.
 

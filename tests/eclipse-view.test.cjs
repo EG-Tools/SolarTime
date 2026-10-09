@@ -43,6 +43,7 @@ test('Direct file launches overlay current eclipse copy on older public locale b
   const source=read('src/language-data.js'),files=fs.readdirSync(path.join(root,'src','locales')).filter(file=>file.endsWith('.json'));
   for(const file of files){
  const code=path.basename(file,'.json'),window={SolarModules:{}},location={protocol:'file:',href:'file:///D:/_Program/SolarTime/index.html'},document={currentScript:{src:'file:///D:/_Program/SolarTime/src/language-data.js?v=0.58-r1'}};
+    vm.runInNewContext(read('src/language-file-copy.js'),{window});
     vm.runInNewContext(source,{window,location,document,URL,AbortSignal,fetch:async()=>({ok:true,json:async()=>({copy:{},bodies:{},phases:{}})})});
     const copy=(await window.SolarModules.LanguageData.load(code)).copy,expected=JSON.parse(read(path.join('src','locales',file))).copy;
     for(const key of ['eclipseView','eclipsePrevious','eclipseNext','eclipseUnavailable'])assert.equal(copy[key],expected[key],`${file}: ${key}`);

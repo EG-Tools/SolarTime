@@ -221,7 +221,7 @@
     "starDensityAria": "파티클 별 밀도. 0이면 파티클 별을 숨깁니다.",
     "cookieSettings": "쿠키 설정",
     "cookieDismiss": "선택을 변경하지 않고 닫기",
-    "cookieChoiceNote": "허용·거부는 6개월간 기억합니다. X는 선택을 바꾸지 않으며, 미선택 상태에서는 다음 접속 때 다시 묻습니다.",
+    "cookieChoiceNote": "허용은 6개월간 기억합니다. 거부와 X는 저장하지 않으며, 다음 접속 때 다시 묻습니다.",
     "music": "배경 음악"
   },
   "timer": {

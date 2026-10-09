@@ -221,7 +221,7 @@
     "starDensityAria": "Particle star density. Zero hides particle stars.",
     "cookieSettings": "Cookie settings",
     "cookieDismiss": "Close without changing your choice",
-    "cookieChoiceNote": "Acceptance and rejection are remembered for 6 months. X leaves your choice unchanged; with no choice, we ask again on your next visit.",
+    "cookieChoiceNote": "Allow is remembered for 6 months. Reject and X are not saved, so we ask again on your next visit.",
     "music": "Background Music"
   },
   "timer": {

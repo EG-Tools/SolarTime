@@ -15,6 +15,18 @@ test('ring debris inherits simulation phase through one parent transform',()=>{
  vectorNear([...parent.basis],[0,0,-1,0,1,0,1,0,0],1e-7);
  vectorNear(t.parentPose(pose,1).eye,pose.eye,1e-7);
 });
+test('reused parent draw frame keeps exact transforms without mutating captured poses',()=>{
+ const t=Object.create(window.SolarRingTour.prototype),pose={eye:[2,3,5],right:[1,0,0],up:[0,1,0],forward:[0,0,1],fov:72,offset:[.1,.2],perspective:.7,orthoScale:4};
+ const frame={pose:{},eye:[0,0,0],right:[0,0,0],up:[0,0,0],forward:[0,0,0],basis:new Float32Array(9)};
+ const refs=[frame.eye,frame.right,frame.up,frame.forward,frame.basis],captured=t.parentPose(pose,.25),eye=[...captured.eye];
+ for(const phase of [0,.25,.71,1,NaN]){
+  const rotation=t.parentRotation(phase);assert.equal(t.parentRotation(phase),rotation);
+  const actual=t.parentPose(pose,phase,frame),expected=t.parentPose(pose,phase);
+  for(const key of ['eye','right','up','forward','basis'])vectorNear([...actual[key]],[...expected[key]],1e-7);
+  refs.forEach((ref,i)=>assert.equal(actual[['eye','right','up','forward','basis'][i]],ref));
+ }
+ vectorNear(captured.eye,eye);vectorNear(pose.eye,[2,3,5]);
+});
 
 test('fallback Saturn and Uranus rings use their body rotation as the parent frame',()=>{
  const r=Object.create(R),local={u:{x:1,y:0,z:0},v:{x:0,y:0,z:1},pole:{x:0,y:1,z:0}},ms=Date.UTC(2044,5,1);
@@ -399,10 +411,16 @@ test('completed replay resources are retained once and fade in afresh on the nex
 test('automatic opening handoff keeps incoming velocity and suppresses departure annotations',()=>{
  const startPose={...window.SolarRingTour.viewPose({frame,radius:180,width:1280,height:800,screen:{x:640,y:400}}),perspective:.2};
  const openingVelocity={eye:[.1,-.2,-1.3],offset:[.03,-.02],orthoScale:-1.3,perspective:.04};
- const t=create(123,{startPose,openingVelocity}),a=t.entryPose(0),b=t.entryPose(.00001);
- for(const key of ['eye','offset'])a[key].forEach((v,i)=>near((b[key][i]-v)/.00001,openingVelocity[key][i],.005));
- near((b.orthoScale-a.orthoScale)/.00001,openingVelocity.orthoScale,.005);
- near((b.perspective-a.perspective)/.00001,openingVelocity.perspective,.005);
+ const openingAcceleration={eye:[.35,-.18,.24],offset:[.012,-.008],orthoScale:.3,perspective:-.015},h=.001;
+ const t=create(123,{startPose,openingVelocity,openingAcceleration}),a=t.entryPose(0),b=t.entryPose(h),c=t.entryPose(h*2);
+ for(const key of ['eye','offset'])a[key].forEach((v,i)=>{
+  near((b[key][i]-v)/h,openingVelocity[key][i],.01);
+  near((c[key][i]-2*b[key][i]+v)/(h*h),openingAcceleration[key][i],.04);
+ });
+ near((b.orthoScale-a.orthoScale)/h,openingVelocity.orthoScale,.01);
+ near((c.orthoScale-2*b.orthoScale+a.orthoScale)/(h*h),openingAcceleration.orthoScale,.04);
+ near((b.perspective-a.perspective)/h,openingVelocity.perspective,.01);
+ near((c.perspective-2*b.perspective+a.perspective)/(h*h),openingAcceleration.perspective,.04);
  near(a.perspective,startPose.perspective);
  vectorNear(t.entryPose(2.5).eye,t.rawEntryPose(2.5).eye);
  vectorNear(t.entryPose(10).eye,t.locatorPose(10).eye);
@@ -690,9 +708,11 @@ test('Saturn opening reaches the requested solar view before its fixed S path be
  assert.doesNotMatch(renderer,/pendingRingTour|beginRingTourApproach/);
  assert.doesNotMatch(app,/saturnApproachState/,'no ordinary-camera Saturn pre-enlargement may precede the S curve');
  assert.equal((app.match(/const openingTarget=openingCameraTarget;/g)||[]).length,2,'boot and T replay share the requested arrival view');
- assert.match(app,/SATURN_OPENING_HANDOFF_LEAD=250/);
+ assert.match(renderer,/boardingHold:250/);
+ assert.match(renderer,/get saturnOpeningHandoffLead\(\) \{return PARTICLE_TRANSITION\.boardingHold;\}/);
+ assert.match(app,/SATURN_OPENING_HANDOFF_LEAD=renderer\.saturnOpeningHandoffLead/);
  assert.match(app,/motionMono-openingStartedAt>=Math\.max\(0,openingDuration-SATURN_OPENING_HANDOFF_LEAD\)\)/);
- assert.match(renderer,/this\.openingFlight=\{mono,pose,velocity,turn\}/);
+ assert.match(renderer,/this\.transitionManager\(\)\.set\('handoff',\{mono,pose,velocity,acceleration,sampleDt:dt,turn\}\)/);
  assert.match(renderer,/velocity\.perspective=\(pose\.perspective-previous\.pose\.perspective\)\/dt/);
  assert.match(renderer,/startPose,.*openingVelocity:fromOpening\?/);
  assert.match(renderer,/Number\.isFinite\(capturedTurn\)\?capturedTurn/);
@@ -1612,12 +1632,12 @@ test('every solar body uses its exact camera depth instead of Saturn magnificati
 
 test('rotating, stopped and opening views transfer every body into Saturn entry without a jump',()=>{
  const A=window.SolarAstro,ms=Date.parse('2026-10-08T00:00:00Z');
- for(const mode of [0,-1,1,'random'])for(const seconds of [0,40,110])for(const opening of [false,true]){
+ for(const distance of [1,.03,.001])for(const mode of [0,-1,1,'random'])for(const seconds of [0,40,110])for(const opening of [false,true]){
   const r=Object.create(R);Object.assign(r,{w:1280,h:800,options:{pluto:true,moon:true,overviewOrbitGap:100,actualOrbitSpacing:0},actualScaleMix:0,
    bodyScales:{},satelliteOrbitScales:{},precisionOrbitPathCache:new Map(),frameItems:new Map(),frameBodies:[],satelliteLayouts:[],frameSerial:0,
    physicsBodies:new Map(),physicsSatellites:new Map(),clearLabels(){},cameraTween:null,trackingAnchor:null,projectionAnchor:null,flightBank:0,
    canStartRingTour:()=>true,prepareCloseup(){},startSaturnParticles(){},hitTargets:[]});
-  r.camera=r.defaultCameraSnapshot(ms);
+  r.camera=r.defaultCameraSnapshot(ms);r.camera.dolly=Math.max(.001,r.camera.dolly*distance);
   if(mode==='random')r.setRandomRotate(true,0);else r.setAutoRotate(mode||1,0);
   r.advanceAutoRotate(seconds*1000);r.rebuild(ms);
   if(mode===0)r.stopAutoRotate(seconds*1000);
@@ -1627,25 +1647,28 @@ test('rotating, stopped and opening views transfer every body into Saturn entry 
   if(opening)r.captureOpeningFlight(seconds*1000);
   r.startRingTour(undefined,opening,seconds*1000);
   const tour=r.ringTour,saturn=r.currentFrameItem('saturn'),axes=A.bodyAxes(saturn.body);
+  // Point-like views use the established subpixel projection calibration.
+  // Protect visible continuity to half a pixel; resolved bodies remain exact.
+  const tolerance=saturn.r<2.2?.5:.01;
   const projection=r.prepareRingTourProjection({tour,axes,saturn:saturn.world,saturnRadius:r.bodyRadiusAtZoom(saturn.body),units:tour.worldUnits,focal:r.h/(2*Math.tan(tour.pose.fov*Math.PI/360))});
   assert.deepEqual({...r.camera},camera);
   for(const item of displayed){
    const actual=r.projectRingTourPoint(projection,item.world,{},r.bodyRadiusAtZoom(item.body));
    if(item.screen.behind)continue;
-   near(actual.x,item.screen.x,.01);near(actual.y,item.screen.y,.01);near(actual.radius,item.radius,.01);
+   near(actual.x,item.screen.x,tolerance);near(actual.y,item.screen.y,tolerance);near(actual.radius,item.radius,tolerance);
   }
   r.updateFrameBodies(ms);r.updateRingTourTracking(tour,saturn);
   r.prepareRingTourProjection(projection);
   for(const item of displayed){
    if(item.screen.behind)continue;
    const actual=r.projectRingTourPoint(projection,item.world,{},r.bodyRadiusAtZoom(item.body));
-   near(actual.x,item.screen.x,.01);near(actual.y,item.screen.y,.01);near(actual.radius,item.radius,.01);
+   near(actual.x,item.screen.x,tolerance);near(actual.y,item.screen.y,tolerance);near(actual.radius,item.radius,tolerance);
   }
   tour.age=.001;tour.pose=tour.cameraPose();r.prepareRingTourProjection(projection);
   for(const item of displayed){
    if(item.screen.behind)continue;
    const actual=r.projectRingTourPoint(projection,item.world,{},r.bodyRadiusAtZoom(item.body));
-   near(actual.x,item.screen.x,.1);near(actual.y,item.screen.y,.1);near(actual.radius,item.radius,.1);
+   near(actual.x,item.screen.x,Math.max(.1,tolerance));near(actual.y,item.screen.y,Math.max(.1,tolerance));near(actual.radius,item.radius,Math.max(.1,tolerance));
   }
   tour.dispose();
  }
@@ -1762,20 +1785,24 @@ test('accelerated Saturn return reaches the live normal projection without a fin
  }
 });
 
-test('distant Saturn travel returns every body and orbit point exactly to Home projection',()=>{
+test('normal, distant and point-like Saturn travel returns every body and orbit to saved or Home projection',()=>{
+ for(const distance of [1,.03,.001])for(const destination of ['saved','home']){
  const A=window.SolarAstro,ms=Date.parse('2026-10-08T00:00:00Z'),r=Object.create(R);
  Object.assign(r,{w:1280,h:800,options:{pluto:true,moon:true,overviewOrbitGap:100,actualOrbitSpacing:0},actualScaleMix:0,
   bodyScales:{},satelliteOrbitScales:{},precisionOrbitPathCache:new Map(),frameItems:new Map(),frameBodies:[],satelliteLayouts:[],frameSerial:0,
   physicsBodies:new Map(),physicsSatellites:new Map(),clearLabels(){},cameraTween:null,trackingAnchor:null,projectionAnchor:null,flightBank:0});
- const home=r.defaultCameraSnapshot(ms);r.camera={...home,zoom:.8,dolly:home.dolly*.35/.8};r.rebuild(ms);
+ const home=r.defaultCameraSnapshot(ms),saved={...home,zoom:.8,dolly:Math.max(.001,home.dolly*distance),panX:.12,panY:-.08};r.camera={...saved};r.rebuild(ms);
  let bodies=r.updateFrameBodies(ms).bodies;r.updateProjectionAnchor();for(const item of bodies){r.project(item.world,item.screen);item.r*=item.screen.perspective;}
  let saturn=r.currentFrameItem('saturn');const tour=create(123,{frame:r.bodyFrame(saturn.body),radius:saturn.r,width:r.w,height:r.h,screen:saturn.screen,deferPreparation:true});
  tour.worldUnits=r.bodyRadiusAtZoom(saturn.body)/r.scale;tour.entryView=r.ringTourReturnView(saturn);tour.age=12;tour.state='cruising';tour.pose=tour.cameraPose();tour.stop();
- tour.returnNormalFrom=r.ringTourNormalProjection();r.camera={...home};r.rebuild(ms);bodies=r.updateFrameBodies(ms).bodies;r.updateProjectionAnchor();saturn=r.currentFrameItem('saturn');tour.setReturnView(r.ringTourReturnView(saturn));tour.returnTargetApplied=true;
+ tour.returnNormalFrom=r.ringTourNormalProjection();r.camera={...(destination==='home'?home:saved)};r.rebuild(ms);bodies=r.updateFrameBodies(ms).bodies;r.updateProjectionAnchor();saturn=r.currentFrameItem('saturn');tour.setReturnView(r.ringTourReturnView(saturn));tour.returnTargetApplied=true;
  tour.returnAge=tour.returnDuration;tour.pose=tour.cameraPose();const axes=A.bodyAxes(saturn.body),saturnRadius=r.bodyRadiusAtZoom(saturn.body),focal=r.h/(2*Math.tan(tour.pose.fov*Math.PI/360));
  const projection=r.prepareRingTourProjection({tour,axes,saturn:saturn.world,saturnRadius,units:tour.worldUnits,focal});
- for(const item of bodies){const expected=r.project(item.world,{}),actual=r.projectRingTourPoint(projection,item.world,{},r.bodyRadiusAtZoom(item.body));near(actual.x,expected.x,.0001);near(actual.y,expected.y,.0001);near(actual.radius,r.bodyRadiusAtZoom(item.body)*expected.perspective,.0001);}
- for(const orbit of r.paths)for(let i=0;i<orbit.points.length;i+=37){const world=r.displaySolarPoint(orbit.points[i],orbit.body),expected=r.project(world,{}),actual=r.projectRingTourPoint(projection,world,{});near(actual.x,expected.x,.0001);near(actual.y,expected.y,.0001);}
+ const tolerance=tour.returnTo.pointified?.5:.0001;
+ for(const item of bodies){const expected=r.project(item.world,{}),actual=r.projectRingTourPoint(projection,item.world,{},r.bodyRadiusAtZoom(item.body));near(actual.x,expected.x,tolerance);near(actual.y,expected.y,tolerance);near(actual.radius,r.bodyRadiusAtZoom(item.body)*expected.perspective,tolerance);}
+ for(const orbit of r.paths)for(let i=0;i<orbit.points.length;i+=37){const world=r.displaySolarPoint(orbit.points[i],orbit.body),expected=r.project(world,{}),actual=r.projectRingTourPoint(projection,world,{});near(actual.x,expected.x,tolerance);near(actual.y,expected.y,tolerance);}
+ tour.dispose();
+ }
 });
 
 test('compiled frame projection matches the independent solver across entry, free look, true-depth and retargeted exits',()=>{

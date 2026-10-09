@@ -8,13 +8,64 @@
   // The radial map includes transparent inner padding: visible ink starts
   // near 1.35 Saturn radii, not the texture quad's 1.28 boundary.
   const SATURN_RING_SELECTION=Object.freeze({inner:1.35,outer:2.26,hitOuter:2.24});
-  // Cosmetic cruise dust is near-field only (distances in Saturn radii).
-  const SATURN_NEAR_DUST=Object.freeze({sparseRange:.90,denseRange:.42,crowdStart:1200,crowdEnd:7000,fadeStart:.35,responseMs:350});
   function random(seed) { return function() { let t=seed+=0x6D2B79F5; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
   const mix=(a,b,t)=>a+(b-a)*t;
-  const REPLAY_TRANSITION=Object.freeze({departure:4300,warp:4700,particleLead:0,clearHold:250,fadeOut:8000,openingLead:2000,skyFov:60.8,particleDepth:5,particleRate:.8});
+  const REPLAY_TRANSITION=Object.freeze({departure:4300,maxDeparture:15000,warp:4700,particleLead:0,clearHold:250,fadeOut:8000,openingLead:2000,skyFov:60.8,particleDepth:5,particleRate:.8});
   const FLIGHT_GLOW_COLORS=Object.freeze(['#76bfff','#f3d6aa','#b8a1ff','#bfecff']);
   const WARP_PARTICLES=Object.freeze({peakAt:7000,entryDelay:1000,entrySpread:1200,entryFade:450,exitLead:300,openingAppear:1200,openingTail:.175,appear:700,speed:1.44,arrivalSpeed:.3,arrivalDrift:.06,tail:.8,edgeTail:.5,arrivalTail:.25,alpha:.64,speedAlpha:.7,arrivalAlpha:1.2,arrivalHold:.25,afterglow:2000,loopSpread:1200,loopFade:800,blend:450});
+  const SATURN_APPEAR=Object.freeze({delay:300,duration:1000,linger:500,glowScale:.7,alpha:.9,extraCohorts:2});
+  const PARTICLE_TRANSITION=Object.freeze({finalFade:1200,boardingHold:250});
+  // Absolute presentation timestamps only. Particle ages, simulation dates and
+  // wall-clock time never belong to this registry. Aliases are shifted once.
+  const ANIMATION_TIMESTAMPS=[
+    ['', ['orbitRevealStart','openingAnnotationStart','openingOrbitStart','cameraChangeAt','presentationUntil']],
+    ['cameraTween',['start']],['cameraTween.replay',['clearSince']],
+    ['openingPointReveal',['start']],['lookRelease',['start']],['bankRelease',['start']],
+    ['ringTour.replayBridge',['start']],['ringTour',['lastMono']],['autoRotation',['mono']],['openingFlight',['mono']],
+    ['sky.skySample',['time']],['sky.skyPrevious',['time']],['cameraTween.replay.skyFrom',['time']],
+    ['sky.starRemap',['start']],['actualScaleTween',['started']],['orbitSpacingTween',['started']]
+  ].map(([path,keys])=>({path:path?path.split('.'):[],keys}));
+  function cameraFrame(state,bank=0){
+    const a=state.azimuth,e=state.elevation,ca=Math.cos(a),sa=Math.sin(a),ce=Math.cos(e),se=Math.sin(e),cr=Math.cos(bank),sr=Math.sin(bank);
+    return {ca,sa,ce,se,cr,sr,right:[ca*cr-sa*se*sr,-sa*cr-ca*se*sr,-ce*sr],
+      up:[ca*sr+sa*se*cr,-sa*sr+ca*se*cr,ce*cr],forward:[sa*ce,ca*ce,-se]};
+  }
+  class CameraTransitionManager {
+    constructor(){this.camera=null;this.tour=null;this.handoff=null;this.revision=0;}
+    set(slot,value){
+      const next=value||null;if(this[slot]===next)return next;
+      this[slot]=next;this.revision++;return next;
+    }
+    get mode(){
+      if(this.camera?.replay)return 'warp';
+      if(this.tour)return 'ring';
+      if(this.camera?.timing==='opening')return 'opening';
+      return this.camera?'camera':'idle';
+    }
+  }
+  class FlightParticleLifecycle {
+    constructor(){this.active=null;this.retiring=[];}
+    activate(field){this.active=field||null;return this.active;}
+    retire(field){
+      if(!field)return false;
+      if(this.active===field)this.active=null;
+      if(!this.retiring.includes(field))this.retiring.push(field);
+      return true;
+    }
+    remove(field){
+      if(!field)return false;
+      if(this.active===field)this.active=null;
+      const index=this.retiring.indexOf(field);if(index>=0)this.retiring.splice(index,1);
+      return true;
+    }
+    fields(){return this.active?[...this.retiring.filter(field=>field!==this.active),this.active]:[...this.retiring];}
+    clear(dispose){
+      const fields=this.fields();this.active=null;this.retiring.length=0;
+      if(dispose)for(const field of fields)dispose(field);
+      return fields.length;
+    }
+    get size(){return this.retiring.length+(this.active?1:0);}
+  }
   // The ordinary endpoint is a parent-centered circle. Only Pluto retains
   // inclination there; the physical endpoint always keeps its full 3D vector.
   function blendOrbitPoint(point,normal,actual,depthNormal,depthActual,inclined,out){
@@ -26,6 +77,28 @@
   const ease=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
   const flightUnit=v=>{const n=Math.hypot(...v)||1;return v.map(x=>x/n);};
   const flightDot=(a,b)=>a.reduce((sum,v,i)=>sum+v*b[i],0);
+  const frameValue=(value,index,key)=>value?.[key]??value?.[index]??0;
+  function frameVectorToLocal(axes,value,out=[0,0,0]){
+    const x=frameValue(value,0,'x'),y=frameValue(value,1,'y'),z=frameValue(value,2,'z');
+    out[0]=axes.u.x*x+axes.u.y*y+axes.u.z*z;
+    out[1]=axes.pole.x*x+axes.pole.y*y+axes.pole.z*z;
+    out[2]=axes.v.x*x+axes.v.y*y+axes.v.z*z;return out;
+  }
+  function frameVectorToWorld(axes,value,out=[0,0,0]){
+    const x=frameValue(value,0,'x'),y=frameValue(value,1,'y'),z=frameValue(value,2,'z');
+    out[0]=axes.u.x*x+axes.pole.x*y+axes.v.x*z;
+    out[1]=axes.u.y*x+axes.pole.y*y+axes.v.y*z;
+    out[2]=axes.u.z*x+axes.pole.z*y+axes.v.z*z;return out;
+  }
+  function framePointToLocal(axes,origin,units,value,out=[0,0,0]){
+    const x=(frameValue(value,0,'x')-origin.x)/units,y=(frameValue(value,1,'y')-origin.y)/units,z=(frameValue(value,2,'z')-origin.z)/units;
+    out[0]=axes.u.x*x+axes.u.y*y+axes.u.z*z;
+    out[1]=axes.pole.x*x+axes.pole.y*y+axes.pole.z*z;
+    out[2]=axes.v.x*x+axes.v.y*y+axes.v.z*z;return out;
+  }
+  function framePointToWorld(axes,origin,units,value,out=[0,0,0]){
+    frameVectorToWorld(axes,value,out);out[0]=origin.x+out[0]*units;out[1]=origin.y+out[1]*units;out[2]=origin.z+out[2]*units;return out;
+  }
   const easeIntegral=u=>u**4*(2.5-3*u+u*u);
   // Reparameterize any existing path: keep velocity at brake entry, then
   // stop both translation and rotation over the sky transition, without a new path.
@@ -82,6 +155,17 @@
   }
   function fbm(x,y) { return noise(x,y)*.53+noise(x*2.03+19,y*2.03)*.27+noise(x*4.11,y*4.11+37)*.13+noise(x*8.17,y*8.17)*.07; }
   class Renderer {
+    transitionManager(){return this._cameraTransitions||(this._cameraTransitions=new CameraTransitionManager());}
+    particleLifecycle(){return this._flightParticles||(this._flightParticles=new FlightParticleLifecycle());}
+    get cameraTween(){return this.transitionManager().camera;}
+    set cameraTween(value){this.transitionManager().set('camera',value);}
+    get ringTour(){return this.transitionManager().tour;}
+    set ringTour(value){this.transitionManager().set('tour',value);}
+    get openingFlight(){return this.transitionManager().handoff;}
+    set openingFlight(value){this.transitionManager().set('handoff',value);}
+    get openingParticles(){return this.particleLifecycle().active;}
+    set openingParticles(value){this.particleLifecycle().activate(value);}
+    get transitionMode(){return this.transitionManager().mode;}
     constructor(background,canvas) {
       this.bg=background;this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:true});
       if(!this.ctx)throw new Error('Canvas 2D is unavailable.');
@@ -102,7 +186,7 @@
       this.stats={orbitProjections:0,orbitBufferBuilds:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
       this.selected=null;this.hover=null;this.alignmentGuide=null;this.lastPathMs=NaN;this.dirty=true;this.presentationDirty=true;this.presentationUntil=0;this.presentedResources='';this.frameCount=0;
       this.orbitRevealStart=performance.now();this.openingAnnotationStart=NaN;this.openingOrbitStart=NaN;this.openingPointReveal=null;
-      this.openingParticles=null;this.openingParticleSprite=null;this.ringTour=null;
+      this._flightParticles=new FlightParticleLifecycle();this.openingParticleSprite=null;this.ringTour=null;
       this.lastSurfaceSubmit=-Infinity;this.lastSurfaceSimMs=NaN;this.lastSurfaceMono=NaN;
       this.sky=new window.SolarSky(background);
       this.resize();
@@ -127,6 +211,7 @@
       this.invalidatePresentation(duration,mono);
     }
     openingPointOpacity(mono=performance.now(),sceneAlpha=1) {
+      mono=this.animationMono(mono);
       const reveal=this.openingPointReveal;
       if(!reveal)return clamp(sceneAlpha,0,1);
       const alpha=ease((mono-reveal.start)/reveal.duration);
@@ -166,7 +251,7 @@
     needsDraw(mono=performance.now()){
       return !!this.preparedRingTour?.needsWarmup()||
         this.dirty||this.presentationDirty||this.resourceSignature()!==this.presentedResources||
-        (!this.animationPaused&&(!!this.ringTour||!!this.cameraTween||!!this.bankRelease||!!this.openingParticles||!!this.autoRotation||this.orbitRevealAlpha(mono)<.9999||mono<this.presentationUntil))||!!this.actualScaleTween||!!this.orbitSpacingTween||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
+        (!this.animationPaused&&(!!this.ringTour||!!this.cameraTween||!!this.bankRelease||this.particleLifecycle().size>0||!!this.autoRotation||this.orbitRevealAlpha(mono)<.9999||mono<this.presentationUntil))||!!this.actualScaleTween||!!this.orbitSpacingTween||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
     }
     starGlow(c,x,y,r,alpha) {
       if(!(r>0)||!(alpha>0))return;
@@ -235,7 +320,7 @@
     cameraBasis() {
       const {azimuth:a,elevation:e}=this.camera,r=this.flightBank||0;
       if(!this.basis||this.basis.a!==a||this.basis.e!==e||this.basis.r!==r||this.basis.look!==this.flightLook){
-        this.basis={a,e,r,look:this.flightLook,ca:Math.cos(a),sa:Math.sin(a),ce:Math.cos(e),se:Math.sin(e),cr:Math.cos(r),sr:Math.sin(r)};
+        this.basis={a,e,r,look:this.flightLook,...cameraFrame(this.camera,r)};
         this.frameCache?.clear();
       }
       return this.basis;
@@ -244,10 +329,8 @@
     // materials, rings and markers. This keeps every sphere in the same 3D
     // camera space instead of making its material behave like a billboard.
     viewDirection(p,base=false) {
-      const {ca,sa,ce,se,cr,sr}=this.cameraBasis();
-      const x=p.x*ca-p.y*sa,y=p.x*sa+p.y*ca;
-      const down=-(y*se+p.z*ce);
-      const v={x:x*cr+down*sr,y:down*cr-x*sr,z:-y*ce+p.z*se};
+      const {right,up,forward}=this.cameraBasis();
+      const v={x:p.x*right[0]+p.y*right[1]+p.z*right[2],y:-(p.x*up[0]+p.y*up[1]+p.z*up[2]),z:-(p.x*forward[0]+p.y*forward[1]+p.z*forward[2])};
       if(!base&&this.flightLook){const q=[v.x,-v.y,-v.z],look=this.flightLook;return {x:flightDot(q,look.right),y:-flightDot(q,look.up),z:-flightDot(q,look.forward)};}
       return v;
     }
@@ -789,6 +872,7 @@
       this.prepareCloseup(id);this.restoreCamera(to);
     }
     get zoomLimits() {return VIEW;}
+    get saturnOpeningHandoffLead() {return PARTICLE_TRANSITION.boardingHold;}
     bodyVisibleRadius(body,r,{surface=false}={}) {
       if(surface&&body.id!=='saturn'&&body.id!=='uranus')return r+2;
       return r*(body.id==='sun'?5.1:body.id==='saturn'?2.3:body.id==='uranus'?2:1.3)+16;
@@ -865,15 +949,15 @@
       return validFocus;
     }
     restoreCamera(state) {
-      this.endRingTour();
-      this.setReplaySolarOpacity(1);
       if(!Renderer.validCamera(state))return false;
       if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
+      this.endRingTour();
+      this.setReplaySolarOpacity(1);
       const mono=performance.now(),direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
       // Bank belongs to the camera lineage, not to an individual transition.
       // The first camera after refresh establishes it (normally zero); every
       // restore/preset/opening keeps that same roll instead of re-leveling.
-      this.cameraTween=null;this.flightBank=Number.isFinite(this.flightBank)?this.flightBank:0;this.flightLook=null;this.lookRelease=null;this.bankRelease=null;this.openingParticles=null;this.autoRotation=null;this.pendingAutoRotation=null;this.trackingAnchor=null;if(state.mode!==undefined)this.setDollyMode(state.mode==='move',false);
+      this.cameraTween=null;this.flightBank=Number.isFinite(this.flightBank)?this.flightBank:0;this.flightLook=null;this.lookRelease=null;this.bankRelease=null;this.clearOpeningParticleFields();this.autoRotation=null;this.pendingAutoRotation=null;this.trackingAnchor=null;if(state.mode!==undefined)this.setDollyMode(state.mode==='move',false);
       // Commit one camera transaction. Time, selected body and display toggles are not preset data.
       this.camera={azimuth:state.azimuth,elevation:state.elevation,zoom:state.zoom,dolly:state.dolly??1,
         focus:state.focus,panX:state.panX,panY:state.panY};
@@ -932,26 +1016,32 @@
       if(animated){this.scheduleOpeningAnnotations(mono,duration);if(this.cameraTween)this.startOpeningParticles(mono,duration);}
       return animated;
     }
+    cameraTransitionPose(mono=performance.now(),anchor=this.trackingAnchor||this.currentFrameItem(this.camera.focus)?.world||{x:0,y:0,z:0}){
+      const state=this.camera,eye=flightEye(state).map((v,i)=>v*DOLLY.baseDistance+anchor[['x','y','z'][i]]);
+      const frame=cameraFrame(state,this.flightBank||0),view=this.bankedSkyCamera().viewAxes;
+      const from={eye,
+        forward:view?view.forward.map(v=>-v):frame.forward,
+        right:view?view.right.map(v=>-v):frame.right.map(v=>-v),
+        up:view?view.down.map(v=>-v):frame.up,
+        bank:this.flightBank||0,look:this.flightLook||null};
+      const rates=this.autoRotation?this.rotationRates(this.autoRotation.direction,this.autoRotation.generation):{yawRate:0,pitchRate:0};
+      const ca=state.azimuth,ce=state.elevation,d=DOLLY.baseDistance/(state.dolly??1);
+      let velocity=[d*(-Math.cos(ca)*Math.cos(ce)*rates.yawRate+Math.sin(ca)*Math.sin(ce)*rates.pitchRate),d*(Math.sin(ca)*Math.cos(ce)*rates.yawRate+Math.cos(ca)*Math.sin(ce)*rates.pitchRate),d*Math.cos(ce)*rates.pitchRate];
+      const move=this.cameraTween;
+      if(move&&mono>move.start&&mono<move.start+move.duration){
+        const previous=this.cameraTweenState(move,clamp((mono-move.start-1)/move.duration,0,1)).state,now=flightEye(state),before=flightEye(previous);
+        velocity=now.map((v,i)=>(v-before[i])*DOLLY.baseDistance/.001);
+      }
+      return {from,velocity};
+    }
     warpDeparture(mono=performance.now()){
       const tour=this.ringTour,anchor=this.trackingAnchor||this.currentFrameItem(this.camera.focus)?.world||{x:0,y:0,z:0};
       if(tour?.projection){
         const {axes,saturn,units}=tour.projection;
-        const {from,velocity}=tour.takeoffStart(),world=v=>['x','y','z'].map(k=>axes.u[k]*v[0]+axes.pole[k]*v[1]+axes.v[k]*v[2]);
-        return {from:{eye:world(from.eye).map((v,i)=>saturn[['x','y','z'][i]]+v*units),forward:world(from.forward),up:world(from.up),right:world(from.right),bankRate:from.bankRate,cruiseDeparture:true},velocity:world(velocity).map(v=>v*units)};
+        const {from,velocity}=tour.takeoffStart(),worldVelocity=frameVectorToWorld(axes,velocity);for(let i=0;i<3;i++)worldVelocity[i]*=units;
+        return {from:{eye:framePointToWorld(axes,saturn,units,from.eye),forward:frameVectorToWorld(axes,from.forward),up:frameVectorToWorld(axes,from.up),right:frameVectorToWorld(axes,from.right),bankRate:from.bankRate,cruiseDeparture:true},velocity:worldVelocity};
       }
-      const eye=flightEye(this.camera).map((v,i)=>v*DOLLY.baseDistance+anchor[['x','y','z'][i]]);
-      const a=this.flightLook?.world?this.flightLook.yaw:this.camera.azimuth,e=this.flightLook?.world?this.flightLook.pitch:this.camera.elevation;
-      const forward=[Math.sin(a)*Math.cos(e),Math.cos(a)*Math.cos(e),-Math.sin(e)],right=[Math.cos(a),-Math.sin(a),0],up=[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)];
-      const rates=this.autoRotation?this.rotationRates(this.autoRotation.direction,this.autoRotation.generation):{yawRate:0,pitchRate:0};
-      const ca=this.camera.azimuth,ce=this.camera.elevation,d=DOLLY.baseDistance/(this.camera.dolly??1);
-      let velocity=[d*(-Math.cos(ca)*Math.cos(ce)*rates.yawRate+Math.sin(ca)*Math.sin(ce)*rates.pitchRate),d*(Math.sin(ca)*Math.cos(ce)*rates.yawRate+Math.cos(ca)*Math.sin(ce)*rates.pitchRate),d*Math.cos(ce)*rates.pitchRate];
-      const move=this.cameraTween;
-      if(move&&mono>move.start&&mono<move.start+move.duration){
-        const previous=this.cameraTweenState(move,clamp((mono-move.start-1)/move.duration,0,1)).state,now=flightEye(this.camera),before=flightEye(previous);
-        velocity=now.map((v,i)=>(v-before[i])*DOLLY.baseDistance/.001);
-      }
-      const view=this.bankedSkyCamera().viewAxes;
-      return {from:{eye,forward:view?view.forward.map(v=>-v):forward,right:view?view.right.map(v=>-v):right.map(v=>-v),up:view?view.down.map(v=>-v):up},velocity};
+      return this.cameraTransitionPose(mono,anchor);
     }
     warpExitDirections(departure){
       const visible=(this.projected||[]).filter(p=>!p.screen.behind&&Number.isFinite(p.screen.x)&&Number.isFinite(p.screen.y));
@@ -1017,8 +1107,9 @@
         const axes=A.bodyAxes(A.BODIES.find(body=>body.id==='saturn'));
         const solarUp=[axes.u.z,axes.pole.z,axes.v.z];
         const saturn=this.currentFrameItem('saturn'),units=tour.worldUnits||this.bodyRadiusAtZoom(saturn.body)/this.scale;
-        const local=v=>[axes.u,axes.pole,axes.v].map(axis=>axis.x*v[0]+axis.y*v[1]+axis.z*v[2]);
-        const warp={...ring,retreat:ring.retreat?local(ring.retreat.map(value=>value/units)):undefined,duration:REPLAY_TRANSITION.departure/1000,center:local(ring.center.map((v,i)=>(v-saturn.world[['x','y','z'][i]])/units)),normal:local(ring.normal),u:local(ring.u),entryForward:local(ring.entryForward),entryUp:local(ring.entryUp),viewUp:ring.viewUp?local(ring.viewUp):undefined,viewTurnUp:ring.viewTurnUp?local(ring.viewTurnUp):undefined,radius:ring.radius/units,speed:ring.speed/units};
+        const local=v=>frameVectorToLocal(axes,v),retreat=ring.retreat?local(ring.retreat):undefined;
+        if(retreat)for(let i=0;i<3;i++)retreat[i]/=units;
+        const warp={...ring,retreat,duration:REPLAY_TRANSITION.departure/1000,center:framePointToLocal(axes,saturn.world,units,ring.center),normal:local(ring.normal),u:local(ring.u),entryForward:local(ring.entryForward),entryUp:local(ring.entryUp),viewUp:ring.viewUp?local(ring.viewUp):undefined,viewTurnUp:ring.viewTurnUp?local(ring.viewTurnUp):undefined,radius:ring.radius/units,speed:ring.speed/units};
         tour.startTakeoff(mono,Infinity,turn,solarUp,null,[],warp);
         tour.returnTarget=null;tour.returnTargetApplied=true;tour.annotationReveal=false;
       }
@@ -1028,21 +1119,6 @@
       this.openingOrbitStart=this.openingAnnotationStart=Infinity;
       this.startOpeningParticles(mono,move.duration);
       return true;
-    }
-    openingReplayEye(path,elapsed){
-      const t=replayFlightTime(Math.max(0,elapsed)/1000,Math.max(path.brakeAt/1000,path.ring.accelerationDuration||0));
-      return window.SolarRingTour.warpSceneEye(path.path,t);
-    }
-    replayDepartureScore(tour,pose){
-      // Preview through the same lens/correction as the flight, without
-      // moving any live camera, body or particle. Largest occluders count most.
-      const projection={...tour.projection,tour:{...tour,pose}},screen={};let score=0;
-      for(const item of this.projected){
-        this.projectRingTourPoint(projection,item.world,screen,this.bodyRadiusAtZoom(item.body));
-        const r=screen.radius*(item.body.id==='saturn'?2.3:item.body.id==='sun'?5.1:2);
-        if(!screen.behind&&this.visible(screen,r+24))score+=1+Math.max(0,Math.min(this.w,screen.x+r)-Math.max(0,screen.x-r))*Math.max(0,Math.min(this.h,screen.y+r)-Math.max(0,screen.y-r));
-      }
-      return score;
     }
     replayOpeningAt(path){return path.resetAt+REPLAY_TRANSITION.openingLead;}
     replaySceneDistance(steering,right,up){
@@ -1063,15 +1139,20 @@
       const slide=path.sceneSlide,weight=ease(elapsed*(1.1*.75)/REPLAY_TRANSITION.departure);
       return {...slide,x:slide.direction[0]*slide.distance*weight,y:slide.direction[1]*slide.distance*weight};
     }
-    beginReplayScene(slide,ms){
-      if(!slide)return null;
-      const saved={};
-      for(const key of ['camera','flightBank','flightLook','trackingAnchor','projectionAnchor','scale','centerX','centerY','cx','cy','homeCx','homeCy','bodyScale'])saved[key]=this[key];
-      this.camera=slide.camera;this.flightBank=slide.bank;this.flightLook=slide.look;this.trackingAnchor=slide.anchor;
-      this.rebuild(ms);this.centerX+=slide.x;this.centerY+=slide.y;
-      return saved;
+    replaySceneContext(slide,ms){
+      if(!slide)return this;
+      const scene=this.replayRenderContext||(this.replayRenderContext=Object.create(Renderer.prototype));
+      const frameCache=scene.replayFrameCache||(scene.replayFrameCache=new Map());
+      Object.assign(scene,this);scene.replayRenderContext=null;scene.replayFrameCache=frameCache;frameCache.clear();scene.frameCache=frameCache;
+      scene.camera=slide.camera;scene.flightBank=slide.bank;scene.flightLook=slide.look;scene.trackingAnchor=slide.anchor;
+      scene.basis=null;scene.bankSkyBasis=null;scene.bankSkyAxes=null;
+      scene.rebuild(ms);scene.centerX+=slide.x;scene.centerY+=slide.y;scene.cx+=slide.x;scene.cy+=slide.y;
+      return scene;
     }
-    endReplayScene(saved){if(saved){Object.assign(this,saved);this.dirty=true;}}
+    adoptReplayScene(scene){
+      if(scene===this)return;
+      for(const key of ['frameSerial','projected','presentationDirty','presentedResources','replayLayerStyle','openingPointReveal','openingParticles','lastLabelMono','lastSurfaceSubmit','lastSurfaceSimMs','lastSurfaceMono','coronaTexture','coronaBuild','coronaBuildKey'])this[key]=scene[key];
+    }
     replaySkyCamera(camera,mono){
       const frame=this.replayPresentation(mono),path=this.cameraTween?.replay;
       return {...camera,transitionFov:frame.fov,replaySky:path?{...frame,from:path.skyFrom,clock:mono,carry:Math.max(0,(mono-this.cameraTween.start-path.resetAt)/1000)}:null};
@@ -1096,18 +1177,26 @@
       mono=this.animationMono(mono);
       const move=this.cameraTween,path=move?.replay;
       const {warp,openingLead,skyFov}=REPLAY_TRANSITION,reset=warp-openingLead;
+      const cache=this.replayPresentationCache||(this.replayPresentationCache={value:{solar:1,cover:0,reveal:false,fov:skyFov}});
+      const brakeAt=path?.brakeAt,resetAt=path?.resetAt,inbound=path?.inbound;
+      if(cache.mono===mono&&cache.move===move&&cache.path===path&&cache.start===move?.start&&cache.brakeAt===brakeAt&&cache.resetAt===resetAt&&cache.inbound===inbound&&cache.duration===move?.duration)return cache.value;
+      cache.mono=mono;cache.move=move;cache.path=path;cache.start=move?.start;cache.brakeAt=brakeAt;cache.resetAt=resetAt;cache.inbound=inbound;cache.duration=move?.duration;
+      const frame=cache.value;frame.cover=0;frame.reveal=false;frame.fov=skyFov;
       // Share the camera clock across CPU bodies, distant glows and GPU surfaces.
       const reveal=(elapsed,duration)=>ease(clamp(elapsed/Math.min(2000,duration),0,1));
-      if(!path)return {solar:move?.timing==='opening'?reveal(mono-move.start,move.duration):1,cover:0,fov:skyFov};
+      if(!path){frame.solar=move?.timing==='opening'?reveal(mono-move.start,move.duration):1;return frame;}
       const elapsed=mono-move.start,age=elapsed-path.brakeAt;
-      if(age<0)return {solar:1,cover:0,fov:skyFov};
+      if(age<0){frame.solar=1;return frame;}
       // One unchanged galaxy/star lens throughout warp and opening handoff.
       // Speed comes from the flight and particles, never background scaling.
-      return {solar:age<reset?0:reveal(elapsed-this.replayOpeningAt(path),path.inbound),cover:0,reveal:age>=reset,fov:skyFov};
+      frame.solar=age<reset?0:reveal(elapsed-this.replayOpeningAt(path),path.inbound);frame.reveal=age>=reset;return frame;
     }
     prepareReplayFrame(mono){
       mono=this.animationMono(mono);
       const move=this.cameraTween,path=move?.replay;if(!path)return;
+      // A stalled clearance test must not keep extending the journey forever.
+      // Use the paused animation clock and the normal braking/arrival timeline.
+      if(!Number.isFinite(path.resetAt)&&mono-move.start>=REPLAY_TRANSITION.maxDeparture)this.checkReplayClearance(mono,[]);
       // Keep only the arrival preview wanted while normal surface submissions pause.
       if(move.to?.focus&&this.replayPresentation(mono).solar<=0&&mono>=(path.arrivalPrefetchAt??-Infinity)){
         this.prepareCloseup(move.to.focus);path.arrivalPrefetchAt=mono+1000;
@@ -1122,6 +1211,7 @@
       path.skyCaptured=!!path.skyFrom;
     }
     checkReplayClearance(mono,bodies){
+      mono=this.animationMono(mono);
       const move=this.cameraTween,path=move?.replay;
       if(!path||Number.isFinite(path.resetAt))return;
       const elapsed=mono-move.start;
@@ -1129,8 +1219,12 @@
       // Only resolvable bodies can delay hiding the scene: in true scale a
       // subpixel distant planet must not block a warp for an entire orbit.
       const visible=bodies.some(p=>!p.screen.behind&&p.r>=.5&&this.visible(p.screen,p.r*(p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3)+24));
-      if(visible){path.clearSince=null;return;}
-      path.clearSince??=mono;if(mono-path.clearSince<REPLAY_TRANSITION.clearHold||elapsed<REPLAY_TRANSITION.departure)return;
+      const timedOut=elapsed>=REPLAY_TRANSITION.maxDeparture;
+      if(!timedOut){
+        if(visible){path.clearSince=null;return;}
+        path.clearSince??=mono;if(mono-path.clearSince<REPLAY_TRANSITION.clearHold||elapsed<REPLAY_TRANSITION.departure)return;
+      }
+      path.clearanceTimedOut=timedOut;
       // The ring guides the approach; completing its docking is optional.
       path.brakeAt=elapsed;
       path.resetAt=path.brakeAt+REPLAY_TRANSITION.warp-REPLAY_TRANSITION.openingLead;path.outbound=this.replayOpeningAt(path);move.duration=path.outbound+path.inbound;
@@ -1166,7 +1260,7 @@
       return {eye,right,up,forward};
     }
     replayDustSample(path,elapsed,field){
-      if(path.saturnTour)return this.saturnDustSample(path,elapsed,field);
+      if(path.saturnTour||path.saturnProfile)return this.saturnDustSample(path,elapsed,field);
       const active=Math.max(0,elapsed-path.particleAt)/1000;
       const acceleration=path.ring.accelerationDuration||REPLAY_TRANSITION.departure/1000;
       const peakAt=WARP_PARTICLES.peakAt/1000,rise=Math.min(acceleration,peakAt);
@@ -1215,7 +1309,7 @@
     }
     replayDustMotion(path,elapsed,field){
       this.replayDustSample(path,elapsed,field);
-      if(path.saturnTour){field.distance=field.travel;field.lateralX=field.lateralY=0;return;}
+      if(path.saturnTour||path.saturnProfile){field.distance=field.travel;field.lateralX=field.lateralY=0;return;}
       const start=path.openingMove?this.replayOpeningAt(path):0;
       // Integrate direction against distance, never reapply the latest
       // heading to distance already travelled. Fixed samples make this
@@ -1250,18 +1344,16 @@
       // Blend in WORLD view angles. The local transform is relative to the
       // inherited banked camera, not an artificial zero-roll Euler frame.
       // Otherwise a preserved baseline bank is applied twice at handoffs.
-      const basis=(a,e,r=this.flightBank||0)=>{
-        const right=[Math.cos(a),-Math.sin(a),0],up=[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)],forward=[Math.sin(a)*Math.cos(e),Math.cos(a)*Math.cos(e),-Math.sin(e)],c=Math.cos(r),s=Math.sin(r);
-        return [right.map((v,i)=>c*v-s*up[i]),up.map((v,i)=>c*v+s*right[i]),forward];
-      };
-      const base=basis(state.azimuth,state.elevation),view=frame?[frame.right.map(v=>-v),frame.up,frame.forward]:basis(yaw,pitch),local=view.map(axis=>base.map(v=>flightDot(axis,v)));
+      const base=state===this.camera?this.cameraBasis():cameraFrame(state,this.flightBank||0),target=frame||cameraFrame({azimuth:yaw,elevation:pitch},this.flightBank||0);
+      const view=[frame?target.right.map(v=>-v):target.right,target.up,target.forward],local=view.map(axis=>[base.right,base.up,base.forward].map(v=>flightDot(axis,v)));
       return {yaw,pitch,world:true,right:local[0],up:local[1],forward:local[2]};
     }
     flightLookAt(yaw,pitch){
       const c=Math.cos(yaw),s=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
       return {yaw,pitch,right:[c,0,-s],up:[-s*sp,cp,-c*sp],forward:[s*cp,sp,c*cp]};
     }
-    // Legacy opening/warp and resident ring-grain style. Saturn entry is independent.
+    // Shared grain generator. Opening and Saturn entry select one reviewed
+    // presentation profile; warp keeps its existing presentation.
     flightParticleStyle(rand) {
       const size=1.8+rand()*2.8,glow=.8+rand()*1.8,variant=rand();
       // Keep the same random-call count and particle budgets. Small grains
@@ -1284,21 +1376,30 @@
       this.flightParticleImage=null;this.openingParticleSprite=null;this.saturnEntrySprite=null;
     }
     animationMono(mono=performance.now()){return this.animationPaused?this.animationPauseAt:mono;}
+    shiftAnimationTime(delay){
+      const seen=new Map();
+      const shift=(object,keys)=>{
+        if(!object)return;
+        let shifted=seen.get(object);if(!shifted){shifted=new Set();seen.set(object,shifted);}
+        for(const key of keys){
+          const time=object[key];if(shifted.has(key)||!Number.isFinite(time)||Math.abs(time)>1e15)continue;
+          shifted.add(key);object[key]=time+delay;
+        }
+      };
+      for(const {path,keys} of ANIMATION_TIMESTAMPS){
+        let object=this;for(const key of path)object=object?.[key];if(!object)continue;
+        shift(object,keys);
+      }
+      for(const field of this.particleLifecycle().fields()){
+        shift(field,['start','exitAt']);shift(field.replay?.openingMove,['start']);
+      }
+    }
     setAnimationPaused(paused,mono=performance.now()){
+      if(!Number.isFinite(mono))return 0;
       paused=!!paused;if(paused===!!this.animationPaused)return 0;
       if(this.ringTour)this.ringTour.animationPaused=paused;
       if(paused){this.animationPaused=true;this.animationPauseAt=mono;this.dirty=true;return 0;}
-      const delay=Math.max(0,mono-this.animationPauseAt),seen=new Map();
-      const shift=(object,key)=>{
-        if(!object||!Number.isFinite(object[key])||Math.abs(object[key])>1e15)return;
-        const keys=seen.get(object)||new Set();if(keys.has(key))return;keys.add(key);seen.set(object,keys);object[key]+=delay;
-      };
-      for(const object of [this.cameraTween,this.openingParticles?.replay?.openingMove,this.openingParticles,this.lookRelease,this.bankRelease,this.ringTour?.replayBridge])shift(object,'start');
-      shift(this.openingParticles,'exitAt');shift(this.autoRotation,'mono');shift(this.ringTour,'lastMono');shift(this.openingFlight,'mono');
-      for(const sample of [this.sky?.skySample,this.sky?.skyPrevious,this.cameraTween?.replay?.skyFrom])shift(sample,'time');
-      shift(this.sky?.starRemap,'start');
-      for(const object of [this.actualScaleTween,this.orbitSpacingTween])shift(object,'started');
-      for(const key of ['orbitRevealStart','openingAnnotationStart','openingOrbitStart','cameraChangeAt','presentationUntil'])shift(this,key);
+      const delay=Math.max(0,mono-this.animationPauseAt);this.shiftAnimationTime(delay);
       this.animationPaused=false;this.animationPauseAt=null;this.dirty=true;return delay;
     }
     updateTravelParticleBudget(mono){
@@ -1310,11 +1411,13 @@
     }
     startOpeningParticles(mono,duration) {
       mono=this.animationMono(mono);
-      this.openingParticles=null;
+      const previous=this.openingParticles;
+      if(previous)this.retireOpeningParticleField(previous,mono);
       const move=this.cameraTween;
-      if(!move||(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches))return;
-      // Boot opens directly at the existing warp arrival phase. The camera
-      // keeps its original opening tween; only the particle clock is offset.
+      if(!move)return;
+      if(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches){this.clearOpeningParticleFields();return;}
+      // Boot keeps the existing opening camera timeline. Its shared particle
+      // profile receives a separate local clock below.
       const offset=move.replay?0:REPLAY_TRANSITION.departure+REPLAY_TRANSITION.warp;
       const replay=move.replay||(move.timing==='opening'?{openingMove:move,
         ring:{accelerationDuration:REPLAY_TRANSITION.departure/1000},particleAt:0,
@@ -1322,26 +1425,78 @@
       if(!replay)return;
       this.createOpeningParticleField(mono,duration,replay,offset,!!replay.openingMove);
     }
-    createOpeningParticleField(mono,duration,replay,offset=0,openingStyle=false,reuse=null) {
-      const rand=random(Math.floor(Math.random()*4294967296)>>>0);
+    createOpeningParticleField(mono,duration,replay,offset=0,openingStyle=false) {
+      const particleSeed=Math.floor(Math.random()*4294967296)>>>0,rand=random(particleSeed);
       const budget=this.options.quality==='low'?320:Math.min(this.w,this.h)<600?520:960;
       const capacity=window.SolarPerformance?.particleCapacity?.(this.options.quality)??1;
       const count=Math.floor(budget*capacity*(openingStyle?.9:1));
       // One fixed pool for the entire T journey. Depths are staggered so the
       // loop cannot pulse; a grain wraps only after it has left the view.
-      const points=reuse||Array.from({length:count},(_,i)=>{
+      const points=Array.from({length:count},(_,i)=>{
         const angle=rand()*TAU,radius=.07+Math.pow(rand(),.65)*2.2;
         return {...this.flightParticleStyle(rand),x:Math.cos(angle)*radius,y:Math.sin(angle)*radius,
           depth:.04+(i+rand())/count*REPLAY_TRANSITION.particleDepth,
           speed:.65+rand()*.7,stretch:.55+rand()*1.2,brightness:.45+rand()*.55,
-          formationAt:rand()*.35,edgeKeep:i%2===0,earlyKeep:i%2===0&&(i/2*37)%(count/2)<200};
+          formationAt:rand()*.35,retirePhase:rand(),edgeKeep:i%2===0,earlyKeep:i%2===0&&(i/2*37)%(count/2)<200};
       });
-      if(!reuse)for(const p of points){
+      for(const p of points){
         p.sizeScale=openingStyle?(1.5+rand()*1.3)*1.1:1+rand();
         p.haloAlpha=.045+.035*clamp(((p.glow??.8)-.8)/1.8,0,1);
       }
-      this.openingParticles={capacity,start:mono-offset,duration:duration+offset,replay,points,projected:{},exitAt:null,elapsed:offset,alpha:0};
+      const field=this.openingParticles={capacity,particleSeed,start:mono-offset,duration:duration+offset,replay,points,projected:{},exitAt:null,elapsed:offset,alpha:0};
       this.invalidatePresentation(duration,mono);
+      return field;
+    }
+    applySaturnEntryParticleProfile(field,seed=(field?.particleSeed||0)^0x444f5542) {
+      if(!field||field.particleProfile==='saturn-entry')return field;
+      field.particleProfile='saturn-entry';field.particleProfileOrigin=field.elapsed||0;
+      field.particleProfileBrakeAt=(window.SolarRingTour?.settings?.entry||10)*1000;
+      field.particlePath=field.replay.saturnTour?field.replay:{saturnProfile:true,
+        ring:{accelerationDuration:field.particleProfileBrakeAt/1000},particleAt:0,
+        brakeAt:field.particleProfileBrakeAt,resetAt:Infinity,inbound:5000};
+      field.saturnBirths=new Map();
+      // Saturn's visible entry cohort is half the base pool plus two matching
+      // cohorts. The ordinary opening retains its own reviewed presentation.
+      field.saturnDrawPoints=field.points.filter(p=>p.edgeKeep!==false);
+      const entryRandom=random(seed>>>0),baseEntry=field.saturnDrawPoints;
+      const added=baseEntry.length?Array.from({length:baseEntry.length*SATURN_APPEAR.extraCohorts},(_,i)=>{
+        const p=baseEntry[i%baseEntry.length],style=this.flightParticleStyle(entryRandom);
+        return {...p,...style,retirePhase:entryRandom(),haloAlpha:.045+.035*clamp((style.glow-.8)/1.8,0,1),
+          saturnAddedAt:entryRandom()*600};
+      }):[];
+      field.points.push(...added);field.saturnDrawPoints.push(...added);
+      field.saturnLoopKeep=new Set(field.saturnDrawPoints);
+      field.saturnFadeRetire=new Set([...field.saturnLoopKeep].filter((_,i)=>i%10<3));
+      return field;
+    }
+    fadeOpeningParticleField(mono=performance.now(),duration=PARTICLE_TRANSITION.finalFade,field=this.openingParticles) {
+      mono=this.animationMono(mono);
+      if(!field||field.exitAt!==null)return false;
+      field.exitAt=mono;field.exitElapsed=field.elapsed;field.exitBaseAlpha=Math.max(0,Number(field.alpha)||0);field.fadeDuration=Math.max(1,duration);
+      this.invalidatePresentation(field.fadeDuration,mono);return true;
+    }
+    retireOpeningParticleField(field=this.openingParticles,mono=performance.now(),duration=PARTICLE_TRANSITION.finalFade) {
+      if(!field)return false;
+      // An opening held for Saturn deliberately bypasses its normal arrival
+      // fade. Preserve that exact envelope while the independent per-grain
+      // retirement runs; re-enabling the old arrival fade here erased the
+      // complete source layer on the handoff frame.
+      field.holdExitEnvelope=!!field.awaitingSaturn;
+      field.awaitingSaturn=false;this.fadeOpeningParticleField(mono,duration,field);
+      this.particleLifecycle().retire(field);return true;
+    }
+    clearOpeningParticleField(field=this.openingParticles) {
+      if(!field)return false;
+      field.points.length=0;if(field.saturnDrawPoints&&field.saturnDrawPoints!==field.points)field.saturnDrawPoints.length=0;
+      field.saturnBirths?.clear();field.saturnLoopKeep?.clear();field.saturnFadeRetire?.clear();
+      if(field.cameraFrames)field.cameraFrames.length=0;
+      if(field.saturnProjected)field.saturnProjected.length=0;
+      field.handoff=null;field.motionCarry=null;field.particlePath=null;field.saturnLoopShape=null;field.saturnVolume=null;field.holdExitEnvelope=false;field.alpha=0;
+      this.particleLifecycle().remove(field);
+      return true;
+    }
+    clearOpeningParticleFields() {
+      return this.particleLifecycle().clear(field=>this.clearOpeningParticleField(field));
     }
     keepOpeningParticlesUntilBoarding() {
       const field=this.openingParticles;
@@ -1350,65 +1505,31 @@
       field.awaitingSaturn=true;return true;
     }
     startSaturnParticles(tour,mono,fromOpening=false) {
-      if(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches){this.openingParticles=null;return false;}
+      if(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches){this.clearOpeningParticleFields();return false;}
       const previous=fromOpening?this.openingParticles:null;
       const inherited=previous?.replay&&previous.exitAt===null&&previous.cameraFrames?.length&&Number.isFinite(previous.distance);
-      const lead=inherited?previous.elapsed:0;
-      const carry=inherited?this.captureSaturnParticleHandoff(previous):null;
+      const motionCarry=inherited?{at:0,distance:previous.distance,velocity:previous.velocity,tailScale:previous.tailScale}:null;
       const entry=window.SolarRingTour.settings.entry*1000;
-      // Only the lifecycle clock differs. Creation, staggered births, camera
-      // transport, looping, streaks and arrival retirement belong to warp.
-      const replay={saturnTour:tour,saturnLead:lead,ring:{accelerationDuration:(entry+lead)/1000},
-        particleAt:0,brakeAt:entry+lead,resetAt:Infinity,inbound:5000};
-      if(carry){
-        // Retain the entire coordinate history, not just random particle styles.
-        // No second overlay, reprojected duplicate or reset at the camera handoff.
-        previous.replay=replay;previous.awaitingSaturn=false;previous.handoff=null;
-        previous.duration=lead+entry;previous.saturnCarry=carry;previous.motion=null;
-      }else this.createOpeningParticleField(mono,entry,replay,0,false);
-      const field=this.openingParticles;field.saturnBirths=carry?.births||new Map();tour.usesWarpParticles=true;
-      // The volume already distributes points in all directions. Do not halve
-      // the 50% entry cohort a second time: that left only 25% before culling.
-      field.saturnDrawPoints=field.points.filter(p=>p.edgeKeep!==false);
-      // Increase the previous 2x entry cohort by 50% (3x the base cohort).
-      // Opening/warp counts are unchanged. New grains keep staggered births.
-      const entryRandom=random((tour.seed||0)^0x444f5542);
-      const baseEntry=field.saturnDrawPoints;
-      const added=Array.from({length:baseEntry.length*2},(_,i)=>{
-        const p=baseEntry[i%baseEntry.length],style=this.flightParticleStyle(entryRandom);
-        return {...p,...style,haloAlpha:.045+.035*clamp((style.glow-.8)/1.8,0,1),
-          saturnAddedAt:lead+entryRandom()*600};
-      });
-      field.points.push(...added);field.saturnDrawPoints.push(...added);
-      field.saturnLoopKeep=new Set(field.saturnDrawPoints);
-      // Retire a stable 30% of the entry cohort at the beginning of the fade.
-      // Selection is once per journey, never frame-random or extra emissions.
-      field.saturnFadeRetire=new Set([...field.saturnLoopKeep].filter((_,i)=>i%10<3));
-      // Keep entry density intact; retire a fixed half over the first 1.2s of
-      // cruise. Reuse that sparse cohort near the ring, without new births.
-      field.saturnCruiseKeep=new Set([...field.saturnLoopKeep].filter((_,i)=>i%2===0));
+      // Motion may inherit the source velocity, but a destination field always
+      // owns a fresh local lifetime. Reusing the opening age made the complete
+      // Saturn cohort appear in one frame because every birth was already due.
+      const replay={saturnTour:tour,ring:{accelerationDuration:entry/1000},
+        particleAt:0,brakeAt:entry,resetAt:Infinity,inbound:5000};
+      // The source keeps its own projector and fades as an independent layer.
+      // Never copy visible grains into the destination coordinate system.
+      if(previous)this.retireOpeningParticleField(previous,mono);
+      const field=this.createOpeningParticleField(mono,entry+SATURN_APPEAR.linger,replay);
+      field.motionCarry=motionCarry;
+      this.applySaturnEntryParticleProfile(field,(tour.seed||0)^0x444f5542);tour.usesWarpParticles=true;
       return true;
     }
-    captureSaturnParticleHandoff(field){
-      const frame=this.openingParticleProjection(field),births=new Map(),grains=new Map();
-      for(const p of field.points){
-        births.set(p,this.warpParticleBirth(p,field,frame));
-        const q=this.projectOpeningParticle(p,field,{},false,frame);
-        const lifetime=clamp((p.life-1000)/4000,0,1),timing=p.rotation/TAU;
-        const contraction=ease((frame.arrival-timing*200)/(1000+lifetime*800));
-        const tail=mix(1,WARP_PARTICLES.arrivalTail,contraction)*(field.replay.openingMove?WARP_PARTICLES.openingTail:1);
-        grains.set(p,{opacity:q.opacity||0,alpha:q.alpha||0,tail,tailPixels:q.tail||0,angle:q.angle||0,
-          size:q.size,glowSize:q.glowSize,x:q.x,y:q.y,depth:q.cameraDepth,
-          visible:!!q.visible&&q.alpha>1e-4});
-      }
-      return {at:field.elapsed,distance:field.distance,velocity:field.velocity,tailScale:field.tailScale,births,grains};
-    }
     saturnParticleTime(field,mono) {
-      // Saturn particles are released at return start by openingParticleFrame.
-      return Math.max(0,field.replay.saturnTour.age||0)*1000+(field.replay.saturnLead||0);
+      // Travel age is the field lifetime. Source motion is inherited separately.
+      return Math.max(0,field.replay.saturnTour.age||0)*1000;
     }
     saturnDustSample(path,elapsed,field) {
-      const entry=path.brakeAt/1000,t=Math.max(0,elapsed)/1000;
+      // The Saturn entry profile owns one ten-second acceleration envelope.
+      const entry=Math.max(.001,path.ring?.accelerationDuration||path.brakeAt/1000),t=Math.max(0,elapsed)/1000;
       const peak=REPLAY_TRANSITION.particleRate*1.5*WARP_PARTICLES.speed;
       const out=this.replayOpeningAt(path)/1000,active=Math.min(t,out),u=clamp(active/entry,0,1);
       const base=peak*(entry*easeIntegral(u)+Math.max(0,active-entry));
@@ -1420,8 +1541,8 @@
       field.velocity=mix(incoming,WARP_PARTICLES.arrivalDrift,ease(v));
       field.formation=ease(t/(WARP_PARTICLES.appear/1000));
       field.tailScale=WARP_PARTICLES.tail*mix(WARP_PARTICLES.edgeTail,1,ease((elapsed-path.brakeAt)/WARP_PARTICLES.blend));
-      if(field.saturnCarry){
-        const c=field.saturnCarry,seconds=Math.max(0,elapsed-c.at)/1000;
+      if(field.motionCarry){
+        const c=field.motionCarry,seconds=Math.max(0,elapsed-c.at)/1000;
         const duration=(path.brakeAt-c.at)/1000,u=clamp(seconds/duration,0,1);
         field.travel=c.distance+c.velocity*seconds+(peak-c.velocity)*(duration*easeIntegral(u)+Math.max(0,seconds-duration));
         field.velocity=mix(c.velocity,peak,ease(u));field.formation=1;
@@ -1434,34 +1555,28 @@
       mono=this.animationMono(mono);
       if(!field)return null;
       const path=field.replay,tour=path.saturnTour;
-      // Saturn particles are entry-only. Release them at landing and keep
-      // cruise/return empty, including early ESC and automatic return.
+      // Keep the entry field alive for a short afterglow after landing. A
+      // return or replacement uses the same soft exit as every other flight.
       // Leave usesWarpParticles set so the old ring-particle fallback stays off.
       // Ordinary T warp/opening fields do not have a saturnTour and are unchanged.
-      if(tour&&(tour!==this.ringTour||tour.disposed||tour.state==='cruising'||tour.state==='returning'||tour.state==='complete')){
-        field.points.length=0;field.saturnBirths?.clear();field.saturnLoopKeep?.clear();field.saturnCruiseKeep?.clear();field.saturnFadeRetire?.clear();
-        if(field.cameraFrames)field.cameraFrames.length=0;
-        field.handoff=null;field.saturnLoopShape=null;field.saturnVolume=null;field.alpha=0;
-        if(field===this.openingParticles)this.openingParticles=null;
-        return null;
-      }
-      const elapsed=path.saturnTour?this.saturnParticleTime(field,mono):Math.max(0,mono-field.start);
+      const particleTime=tour?this.saturnParticleTime(field,mono):0;
+      const landed=tour?.state==='cruising'&&particleTime>=path.brakeAt+SATURN_APPEAR.linger;
+      const retiring=tour&&(tour!==this.ringTour||tour.disposed||tour.state==='returning'||tour.state==='complete');
+      if(retiring)this.fadeOpeningParticleField(mono,PARTICLE_TRANSITION.finalFade,field);
+      const elapsed=path.saturnTour?particleTime:Math.max(0,mono-field.start);
       if(field.awaitingSaturn&&!this.cameraTween?.flyThrough)field.awaitingSaturn=false;
-      // Normal T warp/opening and the incoming handoff keep their own fades.
-      const exit=field.exitAt===null?1:1-ease((mono-field.exitAt)/(field.fadeDuration||220));
+      // Retirement keeps the layer brightness stable. Individual grains own
+      // staggered fades in particleRetirementAlpha(), so a handoff never dims
+      // the complete field like a single light switch.
+      const exitAge=field.exitAt===null?0:Math.max(0,mono-field.exitAt);
+      field.exitAge=exitAge;
       const end=this.replayOpeningAt(path)+(path.openingMove?path.inbound+WARP_PARTICLES.afterglow:Math.max(0,path.inbound-WARP_PARTICLES.exitLead));
-      if((!field.awaitingSaturn&&!field.handoffOnly&&elapsed>=end)||exit<=0){
-        if(field===this.openingParticles){field.points.length=0;field.saturnBirths?.clear();field.handoff=null;this.openingParticles=null;}
-        return null;
-      }
+      if((field.exitAt===null&&(landed||(!field.awaitingSaturn&&!field.handoffOnly&&elapsed>=end)))
+        ||(field.exitAt!==null&&exitAge>=field.fadeDuration)){this.clearOpeningParticleField(field);return null;}
       field.elapsed=elapsed;this.replayDustMotion(path,elapsed,field);
       if(path.saturnTour){
-        const shape=field.saturnLoopShape||(field.saturnLoopShape={world:[0,0,0],before:[0,0,0]});
-        // Keep entry projection and planet occlusion only. No cruise morph,
-        // adaptive loop range or previous-loop camera sampling is needed.
-        shape.amount=field.saturnCruiseFade=0;
-        shape.pose=tour.pose;shape.age=tour.age||0;
-        shape.previousPose=tour.pose;
+        // Entry particles only need the current pose for solid-body occlusion.
+        const shape=field.saturnLoopShape||(field.saturnLoopShape={});shape.pose=tour.pose;
       }
       if(this.sky?.starAxes){
         const rows=field.cameraFrames||(field.cameraFrames=[]),last=rows[rows.length-1];
@@ -1477,7 +1592,8 @@
           if(first)rows.splice(0,first);
         }
       }
-      field.alpha=this.replayParticleAlpha(elapsed,path,field.velocity)*exit;
+      const baseAlpha=this.replayParticleAlpha(elapsed,path,field.velocity);
+      field.alpha=field.exitAt===null?baseAlpha:field.exitBaseAlpha;
       if(tour)this.prepareSaturnEntryVolume(field);
       return field;
     }
@@ -1489,20 +1605,38 @@
       if(!field)return null;
       const elapsed=Math.max(0,mono-field.start),path=field.replay;
       if(field.awaitingSaturn&&!this.cameraTween?.flyThrough)field.awaitingSaturn=false;
-      const exit=field.exitAt===null?1:1-ease((mono-field.exitAt)/220);
+      const exitAge=field.exitAt===null?0:Math.max(0,mono-field.exitAt);
+      field.exitAge=exitAge;
       const end=this.replayOpeningAt(path)+(path.openingMove?path.inbound+WARP_PARTICLES.afterglow:Math.max(0,path.inbound-WARP_PARTICLES.exitLead));
-      if((!field.awaitingSaturn&&elapsed>=end)||exit<=0){field.points.length=0;if(field===this.openingParticles)this.openingParticles=null;return null;}
-      field.elapsed=elapsed;this.replayDustMotion(path,elapsed,field);
+      if((field.exitAt===null&&!field.awaitingSaturn&&elapsed>=end)
+        ||(field.exitAt!==null&&exitAge>=field.fadeDuration)){this.clearOpeningParticleField(field);return null;}
+      field.elapsed=elapsed;
+      const particleElapsed=this.particleFieldElapsed(field),particlePath=this.particleFieldPath(field);
+      this.replayDustMotion(particlePath,particleElapsed,field);
       if(this.sky?.starAxes){
         const rows=field.cameraFrames||(field.cameraFrames=[]),last=rows[rows.length-1];
-        if(!last||elapsed>last.time){
+        if(!last||particleElapsed>last.time){
           const axes=this.sky.starAxes,delta=last?field.distance-last.distance:0;
           const position=last?last.position.map((x,i)=>x-delta*(last.axes.forward[i]+axes.forward[i])*.5):[0,0,0];
-          rows.push({time:elapsed,distance:field.distance,axes,position});
+          rows.push({time:particleElapsed,distance:field.distance,axes,position});
         }
       }
-      field.alpha=this.replayParticleAlpha(elapsed,path,field.velocity)*exit;
+      const finish=field.awaitingSaturn?1:1-ease((elapsed-(end-PARTICLE_TRANSITION.finalFade))/PARTICLE_TRANSITION.finalFade);
+      const baseAlpha=this.replayParticleAlpha(particleElapsed,particlePath,field.velocity)*finish;
+      field.alpha=field.exitAt===null?baseAlpha:field.exitBaseAlpha;
       return field;
+    }
+    particleRetirementAlpha(p,field) {
+      if(field.exitAt===null)return 1;
+      const duration=Math.max(1,field.fadeDuration||PARTICLE_TRANSITION.finalFade);
+      const progress=clamp((field.exitAge||0)/duration,0,1);
+      // Fixed per-grain phases make the same particle fade consistently at
+      // every frame rate. The first grains begin immediately, while the last
+      // retain full brightness through 40% of the shared retirement window.
+      const phase=clamp(Number.isFinite(p.retirePhase)?p.retirePhase:
+        ((Number(p.rotation)||0)%TAU+TAU)%TAU/TAU,0,1);
+      const delay=phase*.4;
+      return 1-ease((progress-delay)/Math.max(.001,1-delay));
     }
     prepareSaturnEntryVolume(field){
       const rows=field.cameraFrames,current=rows?.[rows.length-1];if(!current)return;
@@ -1510,42 +1644,26 @@
       // world-space volume instead: existing points stay fixed, only fully
       // faded outer-boundary points recycle. No left/right camera offset.
       const axes=current.axes,scale=4,half=3;
-      const eye=current.position.map(v=>v*scale);
       const focal=this.h/(2*(this.sky?.starTanFov||Math.tan(REPLAY_TRANSITION.skyFov*DEG/2)));
       let volume=field.saturnVolume;
+      const eye=volume?.nextEye||[0,0,0];for(let i=0;i<3;i++)eye[i]=current.position[i]*scale;
       if(!volume){
-        const rand=random((field.replay.saturnTour.seed||0)^0x454e5452),points=new Map();
-        for(const p of field.points){
-          const world=eye.map(v=>v+(rand()*2-1)*half),carry=field.saturnCarry?.grains.get(p);
-          const inherited=carry?.visible&&Number.isFinite(carry.depth)&&carry.depth>.04;
-          if(inherited){
-            // Invert the new lens using the last displayed pixel. The opening
-            // and ring lenses differ; using the old focal here moves every star.
-            const oldFocal=focal;
-            const x=(carry.x-this.w*.5)/oldFocal*carry.depth,y=(carry.y-this.h*.5)/oldFocal*carry.depth;
-            for(let i=0;i<3;i++)world[i]=eye[i]+axes.right[i]*x+axes.down[i]*y-axes.forward[i]*carry.depth;
-          }
-          points.set(p,{world,born:-Infinity,inherited});
-        }
-        volume=field.saturnVolume={points,eye,axes,time:field.elapsed,started:field.elapsed,focal};
+        const rand=random(((field.replay.saturnTour?.seed??field.particleSeed??0)^0x454e5452)>>>0),points=new Map();
+        for(const p of field.points)points.set(p,{world:eye.map(v=>v+(rand()*2-1)*half)});
+        volume=field.saturnVolume={points,eye,nextEye:[0,0,0],axes,time:field.elapsed,started:field.elapsed,focal};
       }
       if(volume.time!==field.elapsed){
         volume.previousEye=volume.eye;volume.previousAxes=volume.axes;
         volume.previousFocal=volume.focal;volume.previousTime=volume.time;
-        volume.eye=eye;volume.axes=axes;volume.time=field.elapsed;volume.focal=focal;
+        volume.eye=eye;volume.nextEye=volume.previousEye;volume.axes=axes;volume.time=field.elapsed;volume.focal=focal;
       }
-      const handoff=ease((field.elapsed-volume.started)/700),width=half*2;
-      const active=field.saturnCarry&&handoff<1?field.points:field.saturnDrawPoints;
-      for(const p of active||field.points){
+      const width=half*2;
+      for(const p of field.saturnDrawPoints||field.points){
         const point=volume.points.get(p);
-        if(point.inherited&&handoff<1)continue;
-        point.inherited=false;
-        let wrapped=false;
         for(let i=0;i<3;i++){
           const d=point.world[i]-volume.eye[i];
-          if(d< -half||d>half){point.world[i]=volume.eye[i]+((d+half)%width+width)%width-half;wrapped=true;}
+          if(d< -half||d>half)point.world[i]=volume.eye[i]+((d+half)%width+width)%width-half;
         }
-        if(wrapped)point.born=field.elapsed;
       }
     }
     projectSaturnEntryVolume(p,field,shutter,out){
@@ -1556,8 +1674,10 @@
       const z=-(dx*axes.forward[0]+dy*axes.forward[1]+dz*axes.forward[2]),near=Math.max(.04,z);
       out.x=this.w*.5+v.focal*x/near;out.y=this.h*.5+v.focal*y/near;out.cameraDepth=z;
       const boundary=1-ease((Math.max(Math.abs(dx),Math.abs(dy),Math.abs(dz))-2.1)/.9);
-      const carry=point.inherited?1-ease((field.elapsed-v.started)/700):0;
-      out.saturnVolumeAlpha=mix(boundary,1,carry)*ease((field.elapsed-point.born)/400);
+      // Initial appearance already belongs to saturnEntryAppearance(). Restarting
+      // the full one-second reveal on every volume wrap made fast late-entry
+      // grains recycle again before becoming visible.
+      out.saturnVolumeAlpha=boundary;
       out.tail=0;out.angle=0;
       const dt=(v.time-v.previousTime)/1000;
       if(dt>0&&v.previousAxes){
@@ -1570,40 +1690,6 @@
           out.tail=Math.hypot(mx,my)*Math.min(2,shutter/dt);out.angle=Math.atan2(my,mx);
         }
       }
-    }
-    updateSaturnParticleRange(tour,shape,elapsed){
-      const config=SATURN_NEAR_DUST;
-      // Reuse frustum-filtered solid-instance counts from the existing draw.
-      // This is a crowding estimate, not a GPU readback or a second debris scan.
-      const submitted=Number.isFinite(tour.submittedInstances)?tour.submittedInstances:0;
-      const fog=Number.isFinite(tour.fogCount)?tour.fogCount:0;
-      const crowd=ease((Math.max(0,submitted-fog)-config.crowdStart)/(config.crowdEnd-config.crowdStart));
-      const target=mix(config.sparseRange,config.denseRange,crowd);
-      const dt=Math.max(0,elapsed-(shape.rangeAt??elapsed));
-      if(!Number.isFinite(shape.range))shape.range=target;
-      else if(dt>0&&!this.animationPaused)shape.range=mix(shape.range,target,1-Math.exp(-dt/config.responseMs));
-      shape.rangeAt=elapsed;
-      return shape.range;
-    }
-    saturnParticleDistanceAlpha(distance,range=SATURN_NEAR_DUST.sparseRange){
-      if(!Number.isFinite(distance)||!Number.isFinite(range)||range<=0)return 0;
-      // A broad C2 fade hides slow, distant pinpoints without an abrupt shell.
-      return 1-ease((distance/range-SATURN_NEAR_DUST.fadeStart)/(1-SATURN_NEAR_DUST.fadeStart));
-    }
-    saturnRingParticlePoint(p,age,direction,out){
-      // Sample the annular equatorial volume in SATURN coordinates, never in
-      // camera coordinates. The same ring is seen from either entry side.
-      const inner=SATURN_RING_SELECTION.inner,outer=SATURN_RING_SELECTION.outer;
-      const u=clamp((p.depth-.04)/REPLAY_TRANSITION.particleDepth,0,1);
-      const radius=Math.sqrt(mix(inner*inner,outer*outer,u));
-      const angle=Math.atan2(p.y,p.x)+(direction||1)*age*.012*p.speed;
-      const section=(2*radius-inner-outer)/(outer-inner);
-      // Remove 20% of the full height at each edge: 60% remains. The blend
-      // into this volume follows cruise entry, never screen-space Y or user look.
-      const height=(outer-inner)*.15*.60*Math.sqrt(Math.max(0,1-section*section));
-      out[0]=Math.cos(angle)*radius;
-      out[1]=(2*clamp((p.brightness-.45)/.55,0,1)-1)*height;
-      out[2]=Math.sin(angle)*radius;return out;
     }
     saturnParticleOccluded(x,y,depth,pose){
       if(!(depth>.012))return true;
@@ -1624,39 +1710,10 @@
     }
     fitSaturnParticle(p,field,out){
       const shape=field.saturnLoopShape;if(!shape?.pose)return;
-      const pose=shape.pose,amount=shape.amount;
-      let tx=out.x-Math.cos(out.angle)*out.tail,ty=out.y-Math.sin(out.angle)*out.tail;
-      let tailDepth=out.cameraDepth;
-      if(amount>0){
-        const tour=field.replay.saturnTour;
-        this.saturnRingParticlePoint(p,shape.age,tour.direction,shape.world);
-        this.saturnRingParticlePoint(p,Math.max(0,shape.age-.032),tour.direction,shape.before);
-        for(let end=0;end<2;end++){
-          const camera=end?shape.previousPose:pose,point=end?shape.before:shape.world;
-          const dx=point[0]-camera.eye[0],dy=point[1]-camera.eye[1],dz=point[2]-camera.eye[2];
-          // Use the actual panned camera-to-grain distance, not screen height,
-          // forward depth or a minimum sprite size. Far ring dust stays hidden.
-          if(!end)out.saturnDistanceAlpha=mix(1,this.saturnParticleDistanceAlpha(Math.hypot(dx,dy,dz),shape.range),amount);
-          const z=dx*camera.forward[0]+dy*camera.forward[1]+dz*camera.forward[2];
-          const f=this.h/(2*Math.tan(camera.fov*Math.PI/360));
-          const w=Math.max(.012,mix(camera.orthoScale,z,camera.perspective));
-          const x=this.w*.5+f*((dx*camera.right[0]+dy*camera.right[1]+dz*camera.right[2])/w+camera.offset[0]);
-          const y=this.h*.5-f*((dx*camera.up[0]+dy*camera.up[1]+dz*camera.up[2])/w+camera.offset[1]);
-          if(end){tx=mix(tx,x,amount);ty=mix(ty,y,amount);tailDepth=mix(tailDepth,z,amount);}
-          else{
-            out.x=mix(out.x,x,amount);out.y=mix(out.y,y,amount);out.cameraDepth=mix(out.cameraDepth,z,amount);
-            out.size=mix(out.size,clamp(p.size/(Math.max(.04,z)+.5),.65,4.5),amount);out.glowSize=out.size*p.glow;
-          }
-        }
-        const dx=out.x-tx,dy=out.y-ty;
-        out.tail=Math.min(32,Math.hypot(dx,dy));out.angle=Math.atan2(dy,dx);
-      }
-      // Match both endpoints to the ring before shortening the trail, so it
-      // cannot stretch towards the old camera-space particle position.
-      out.tail*=mix(1,.5,amount);
+      const pose=shape.pose,tx=out.x-Math.cos(out.angle)*out.tail,ty=out.y-Math.sin(out.angle)*out.tail;
       out.saturnOccluded=this.saturnParticleOccluded(out.x,out.y,out.cameraDepth,pose);
       // A long streak must not shine through the planet even with a visible tip.
-      if(!out.saturnOccluded&&this.saturnParticleOccluded(tx,ty,tailDepth,pose))out.tail=0;
+      if(!out.saturnOccluded&&this.saturnParticleOccluded(tx,ty,out.cameraDepth,pose))out.tail=0;
     }
     projectFlightParticleCamera(p,field,spawnDepth,born,behind,shutter,out){
       const rows=field.cameraFrames,current=rows[rows.length-1],previous=rows[rows.length-2]||current;
@@ -1683,17 +1740,20 @@
       out.tail=Math.hypot(dx,dy);out.angle=Math.atan2(dy,dx);
     }
     saturnOpeningParticleProjection(field){
-      const frame=this.openingParticleFrameConstants||(this.openingParticleFrameConstants={}),path=field.replay;
+      const frame=this.openingParticleFrameConstants||(this.openingParticleFrameConstants={}),path=this.particleFieldPath(field),elapsed=this.particleFieldElapsed(field);
       frame.budget=clamp((this.travelParticleBudget?.value??1)/(field.capacity||1),0,1);
-      frame.short=Math.min(this.w,this.h);frame.arrival=field.elapsed-this.replayOpeningAt(path);
+      frame.short=Math.min(this.w,this.h);frame.arrival=elapsed-this.replayOpeningAt(path);
       frame.exposureVelocity=field.velocity/WARP_PARTICLES.speed;
       frame.shutter=.018+.048*clamp(frame.exposureVelocity/(REPLAY_TRANSITION.particleRate*1.5),0,1);
       frame.exitWindow=Math.max(1,path.inbound-WARP_PARTICLES.exitLead);
-      frame.birthAt=path.particleAt+(path.openingMove?0:path.saturnTour?WARP_PARTICLES.entryDelay:WARP_PARTICLES.entryDelay-500);
-      frame.early=ease((field.elapsed-frame.birthAt-1000)/WARP_PARTICLES.appear);return frame;
+      frame.birthAt=path.particleAt+(path.openingMove||path.saturnTour||path.saturnProfile?0:WARP_PARTICLES.entryDelay-500);
+      frame.early=ease((elapsed-frame.birthAt-1000)/WARP_PARTICLES.appear);return frame;
     }
+    isSaturnEntryParticleField(field){return field?.particleProfile==='saturn-entry'||!!field?.replay?.saturnTour;}
+    particleFieldPath(field){return this.isSaturnEntryParticleField(field)?field.particlePath||field.replay:field.replay;}
+    particleFieldElapsed(field){return this.isSaturnEntryParticleField(field)?Math.max(0,field.elapsed-(field.particleProfileOrigin||0)):field.elapsed;}
     openingParticleProjection(field){
-      return field?.replay?.saturnTour?this.saturnOpeningParticleProjection(field):this.ordinaryOpeningParticleProjection(field);
+      return this.isSaturnEntryParticleField(field)?this.saturnOpeningParticleProjection(field):this.ordinaryOpeningParticleProjection(field);
     }
     ordinaryOpeningParticleProjection(field){
       const frame=this.openingParticleFrameConstants||(this.openingParticleFrameConstants={}),path=field.replay;
@@ -1705,15 +1765,15 @@
       frame.birthAt=path.particleAt+(path.openingMove?0:WARP_PARTICLES.entryDelay);
       frame.early=ease((field.elapsed-frame.birthAt-1000)/WARP_PARTICLES.appear);return frame;
     }
-    saturnWarpParticleBirth(p,field,frame){
-      const timing=p.rotation/TAU,slide=field.replay.sceneSlide;
-      const cache=field.saturnBirths,cached=cache?.get(p);if(cached)return cached;
-      if(field.replay.openingMove||(!slide&&!field.replay.saturnTour)||!field.cameraFrames?.length)return {at:frame.birthAt+timing*WARP_PARTICLES.entrySpread,distance:0};
+    warpParticleBirth(p,field,frame){
+      const path=this.particleFieldPath(field),timing=p.rotation/TAU,slide=path.sceneSlide;
+      const cache=this.isSaturnEntryParticleField(field)?field.saturnBirths:null,cached=cache?.get(p);if(cached)return cached;
+      if(path.openingMove||!slide||!field.cameraFrames?.length)return {at:frame.birthAt+timing*WARP_PARTICLES.entrySpread,distance:0};
       const direction=slide?.direction||[0,0],span=Math.hypot(...direction)||1;
       const facing=clamp(-(p.x*direction[0]+p.y*direction[1])/(Math.max(.04,p.depth)*span),-1,1);
       const initialAt=frame.birthAt+(.75*(1-facing)*.5+.25*timing)*WARP_PARTICLES.entrySpread;
       const loopGrain=p.edgeKeep===false;
-      const at=loopGrain?Math.max(initialAt,field.replay.brakeAt+timing*WARP_PARTICLES.loopSpread)
+      const at=loopGrain?Math.max(initialAt,path.brakeAt+timing*WARP_PARTICLES.loopSpread)
         :p.earlyKeep===false?Math.max(initialAt,frame.birthAt+1000):initialAt;
       // Anchor each grain to the displayed camera at its own birth, not the
       // camera before the turn. Keep that world-space trajectory thereafter.
@@ -1723,76 +1783,70 @@
       const birth={at,distance:mix(a.distance,b.distance,u),depth:loopGrain?REPLAY_TRANSITION.particleDepth*(.85+.15*timing):p.depth};
       if(cache&&field.elapsed>=at)cache.set(p,birth);return birth;
     }
-    warpParticleBirth(p,field,frame){
-      return field?.replay?.saturnTour?this.saturnWarpParticleBirth(p,field,frame):this.ordinaryWarpParticleBirth(p,field,frame);
-    }
-    ordinaryWarpParticleBirth(p,field,frame){
-      const timing=p.rotation/TAU,slide=field.replay.sceneSlide;
-      if(field.replay.openingMove||!slide||!field.cameraFrames?.length)return {at:frame.birthAt+timing*WARP_PARTICLES.entrySpread,distance:0};
-      const direction=slide.direction,span=Math.hypot(...direction)||1;
-      const facing=clamp(-(p.x*direction[0]+p.y*direction[1])/(Math.max(.04,p.depth)*span),-1,1);
-      const initialAt=frame.birthAt+(.75*(1-facing)*.5+.25*timing)*WARP_PARTICLES.entrySpread;
-      const loopGrain=p.edgeKeep===false;
-      const at=loopGrain?Math.max(initialAt,field.replay.brakeAt+timing*WARP_PARTICLES.loopSpread)
-        :p.earlyKeep===false?Math.max(initialAt,frame.birthAt+1000):initialAt;
-      // Anchor each grain to the displayed camera at its own birth, not the
-      // camera before the turn. Keep that world-space trajectory thereafter.
-      const rows=field.cameraFrames;let low=0,high=rows.length-1;
-      while(low<high){const mid=Math.ceil((low+high)/2);if(rows[mid].time<=at)low=mid;else high=mid-1;}
-      const a=rows[low],b=rows[low+1]||a,u=clamp((at-a.time)/Math.max(1e-12,b.time-a.time),0,1);
-      return {at,distance:mix(a.distance,b.distance,u),depth:loopGrain?REPLAY_TRANSITION.particleDepth*(.85+.15*timing):p.depth};
-    }
     saturnEntryParticleAlpha(p,field){
-      if(!field.replay.saturnTour)return 1;
-      // A broad 6.5-second C2 envelope ends exactly at landing. Staggering
-      // changes when each grain begins to retire, not the final landing frame.
-      const timing=clamp(p.rotation/TAU,0,1),end=field.replay.brakeAt,span=6500;
+      if(!this.isSaturnEntryParticleField(field))return 1;
+      // Keep the entry cohort substantial through the ten-second S curve, then
+      // retire it over the half-second landing afterglow. The old 6.5-second
+      // fade began around five seconds and made the extension feel unchanged.
+      const elapsed=this.particleFieldElapsed(field),path=this.particleFieldPath(field);
+      const timing=clamp(p.rotation/TAU,0,1),end=path.brakeAt+SATURN_APPEAR.linger,span=2500;
       const stagger=1200*timing,start=end-span+stagger,duration=span-stagger;
       const sparse=field.saturnFadeRetire?.has(p)
-        ?1-ease((field.elapsed-(end-span+500))/2200):1;
-      return clamp(1-ease((field.elapsed-start)/duration),0,1)*sparse;
+        ?1-ease((elapsed-(end-span+500))/2200):1;
+      // The square-root tail keeps a substantial docking cohort while still
+      // reaching zero with a flat slope at the staggered 10.5-second deadline.
+      return Math.sqrt(clamp(1-ease((elapsed-start)/duration),0,1))*sparse;
+    }
+    saturnEntryAppearance(p,field,birth){
+      // Each destination grain uses its own local birth time. Source particles
+      // are a separate fading layer and never alter this appearance schedule.
+      const at=Math.max(birth.at,p.saturnAddedAt??-Infinity)+SATURN_APPEAR.delay;
+      const elapsed=this.particleFieldElapsed(field);
+      return ease((elapsed-at)/SATURN_APPEAR.duration);
     }
     projectSaturnOpeningParticle(p,field,out,visibleOnly=false,frame=this.openingParticleProjection(field)) {
       out.saturnOccluded=false;out.saturnDistanceAlpha=1;out.saturnVolumeAlpha=1;
-      if(visibleOnly&&!field.replay.openingMove&&field.elapsed<=frame.birthAt){out.visible=false;out.alpha=0;return out;}
+      const path=this.particleFieldPath(field),elapsed=this.particleFieldElapsed(field);
+      if(visibleOnly&&!path.openingMove&&elapsed<=frame.birthAt){out.visible=false;out.alpha=0;return out;}
       // Birth-time randomness stays fixed: no frame-to-frame flicker.
       const lifetime=clamp((p.life-1000)/4000,0,1),timing=p.rotation/TAU;
       const arrival=frame.arrival;
       const contraction=ease((arrival-timing*200)/(1000+lifetime*800));
-      const fadeStart=field.replay.inbound*(WARP_PARTICLES.arrivalHold+lifetime*.3);
-      const fadeEnd=field.replay.inbound+WARP_PARTICLES.afterglow*(.025+.975*lifetime);
+      const fadeStart=path.inbound*(WARP_PARTICLES.arrivalHold+lifetime*.3);
+      const fadeEnd=path.inbound+WARP_PARTICLES.afterglow*(.025+.975*lifetime);
       // Cap the first second at 200; restore the existing departure density
       // smoothly after it. Additional loop grains have fixed random delays
       // and fade durations, so their visible count grows rather than popping.
-      const entrance=ease((field.elapsed-field.replay.brakeAt-timing*WARP_PARTICLES.loopSpread)
+      const entrance=ease((elapsed-path.brakeAt-timing*WARP_PARTICLES.loopSpread)
         /(WARP_PARTICLES.loopFade*(.75+lifetime*.5)));
       const birthAt=frame.birthAt,birth=this.warpParticleBirth(p,field,frame);
       const early=frame.early;
       const birthDensity=p.edgeKeep===false?entrance:p.earlyKeep===false?early:1;
       // The other half now also retires throughout arrival, doubling the
       // population reduction without reviving any previously fading grain.
-      const retirement=500+lifetime*(field.replay.inbound+WARP_PARTICLES.afterglow-500);
+      const retirement=500+lifetime*(path.inbound+WARP_PARTICLES.afterglow-500);
       const retireFade=Math.min(1000,retirement);
       const endDensity=p.edgeKeep===false?1-contraction:1-ease((arrival-retirement+retireFade)/retireFade);
       const exitWindow=frame.exitWindow;
-      const warpExit=field.replay.openingMove?1:1-ease((arrival-timing*exitWindow*.267)
+      const warpExit=path.openingMove?1:1-ease((arrival-timing*exitWindow*.267)
         /(exitWindow*(.333+lifetime*.4)));
-      const remaining=field.awaitingSaturn?birthDensity
+      const remaining=(field.awaitingSaturn||field.holdExitEnvelope)?birthDensity
         :(1-ease((arrival-fadeStart)/(fadeEnd-fadeStart)))*birthDensity*endDensity*warpExit;
-      // Boot shares arrival motion, but begins its own staggered fade-in.
-      // Replayed warp grains are already visible and must not appear again.
-      const appearance=field.replay.openingMove?ease((arrival-timing*WARP_PARTICLES.openingAppear/3)
+      // The shared entry profile owns its local staggered fade-in. Replayed
+      // warp grains keep their existing appearance instead.
+      const profile=this.isSaturnEntryParticleField(field);
+      const appearance=profile?this.saturnEntryAppearance(p,field,birth):path.openingMove?ease((arrival-timing*WARP_PARTICLES.openingAppear/3)
         /(WARP_PARTICLES.openingAppear*(1+lifetime)/3))
         :ease((field.elapsed-birth.at)/(WARP_PARTICLES.entryFade+lifetime*450));
-      const loopDensity=field.saturnLoopKeep&&!field.saturnLoopKeep.has(p)?0
-        :field.saturnCruiseKeep&&!field.saturnCruiseKeep.has(p)?1-(field.saturnCruiseFade||0):1;
-      const addedAlpha=Number.isFinite(p.saturnAddedAt)?ease((field.elapsed-p.saturnAddedAt)/700):1;
-      const targetOpacity=field.alpha*p.brightness*ease((field.formation-p.formationAt+.12)/.35)*appearance*remaining*loopDensity*this.saturnEntryParticleAlpha(p,field)*addedAlpha;
-      const carry=field.saturnCarry,seed=carry?.grains.get(p),handoff=carry?ease((field.elapsed-carry.at)/WARP_PARTICLES.blend):1;
-      // Apply Saturn's -10% alpha once, after the opening handoff, to both
-      // its core and glow. Other opening/warp and background stars are unchanged.
-      const opacity=(seed?mix(seed.opacity,targetOpacity,handoff):targetOpacity)*(field.replay.saturnTour?.9:1);
+      const retirementAlpha=this.particleRetirementAlpha(p,field);
+      const targetOpacity=field.alpha*p.brightness*ease((field.formation-p.formationAt+.12)/.35)*appearance*remaining*retirementAlpha*this.saturnEntryParticleAlpha(p,field);
+      // Apply the shared entry profile's -10% alpha once to core and glow.
+      // Warp and background stars remain unchanged.
+      const opacity=targetOpacity*(profile?SATURN_APPEAR.alpha:1);
       out.opacity=opacity;
+      // Keep the bright core unchanged. Only Saturn's two halo layers shrink
+      // from the former ~1-10 px visual range to roughly 1-7 px.
+      out.glowScale=SATURN_APPEAR.glowScale;
       if(visibleOnly&&opacity<1e-4){out.visible=false;out.alpha=0;return out;}
       const length=REPLAY_TRANSITION.particleDepth,rate=length*p.speed,spawnDepth=birth.depth??p.depth;
       const distance=Math.max(0,(field.distance??field.travel)-birth.distance);
@@ -1833,28 +1887,17 @@
       out.tail=Math.min(short*.24,Math.hypot(dx,dy))*field.tailScale*mix(1,WARP_PARTICLES.arrivalTail,contraction);
       out.angle=Math.atan2(dy,dx);
       }
-      if(field.replay.openingMove)out.tail*=WARP_PARTICLES.openingTail;
-      if(seed)out.tail*=mix(seed.tail,1,handoff);
+      if(path.openingMove&&!profile)out.tail*=WARP_PARTICLES.openingTail;
       if(field.replay.saturnTour)this.fitSaturnParticle(p,field,out);
-      const depthFade=field.saturnVolume?out.saturnVolumeAlpha:mix(1-ease((depth-length*.7)/(length*.3)),1,field.saturnLoopShape?.amount||0);
+      const depthFade=field.saturnVolume?out.saturnVolumeAlpha:1-ease((depth-length*.7)/(length*.3));
       out.alpha=out.saturnOccluded?0:opacity*density*depthFade*out.saturnDistanceAlpha;
       if(field.cameraFrames?.length)out.alpha*=ease((out.cameraDepth-.04)/.12);
-      if(field.saturnVolume&&seed){
-        // Carry final, displayed alpha, not pre-culling opacity. An offscreen
-        // opening grain is not allowed to light up instantly at a new position.
-        out.alpha=out.saturnOccluded?0:mix(seed.visible?seed.alpha:0,out.alpha,handoff);
-        if(seed.visible){
-          out.size=mix(seed.size,out.size,handoff);out.glowSize=mix(seed.glowSize,out.glowSize,handoff);
-          out.tail=mix(seed.tailPixels,out.tail,handoff);
-          out.angle=seed.angle+Math.atan2(Math.sin(out.angle-seed.angle),Math.cos(out.angle-seed.angle))*handoff;
-        }
-      }
-      const margin=out.glowSize*(p.sizeScale??1)+out.tail;
+      const margin=out.glowSize*(p.sizeScale??1)*out.glowScale+out.tail;
       out.visible=!out.saturnOccluded&&out.x>=-margin&&out.x<=this.w+margin&&out.y>=-margin&&out.y<=this.h+margin;
       return out;
     }
     projectOpeningParticle(p,field,out,visibleOnly=false,frame=this.openingParticleProjection(field)) {
-      return field?.replay?.saturnTour
+      return this.isSaturnEntryParticleField(field)
         ?this.projectSaturnOpeningParticle(p,field,out,visibleOnly,frame)
         :this.projectOrdinaryOpeningParticle(p,field,out,visibleOnly,frame);
     }
@@ -1882,13 +1925,14 @@
       const exitWindow=frame.exitWindow;
       const warpExit=field.replay.openingMove?1:1-ease((arrival-timing*exitWindow*.267)
         /(exitWindow*(.333+lifetime*.4)));
-      const remaining=field.awaitingSaturn?birthDensity:(1-ease((arrival-fadeStart)/(fadeEnd-fadeStart)))*birthDensity*endDensity*warpExit;
-      // Boot shares arrival motion, but begins its own staggered fade-in.
+      const remaining=(field.awaitingSaturn||field.holdExitEnvelope)?birthDensity
+        :(1-ease((arrival-fadeStart)/(fadeEnd-fadeStart)))*birthDensity*endDensity*warpExit;
       // Replayed warp grains are already visible and must not appear again.
       const appearance=field.replay.openingMove?ease((arrival-timing*WARP_PARTICLES.openingAppear/3)
         /(WARP_PARTICLES.openingAppear*(1+lifetime)/3))
         :ease((field.elapsed-birth.at)/(WARP_PARTICLES.entryFade+lifetime*450));
-      const opacity=field.alpha*p.brightness*ease((field.formation-p.formationAt+.12)/.35)*appearance*remaining;
+      const retirementAlpha=this.particleRetirementAlpha(p,field);
+      const opacity=field.alpha*p.brightness*ease((field.formation-p.formationAt+.12)/.35)*appearance*remaining*retirementAlpha;
       if(visibleOnly&&opacity<1e-4){out.visible=false;out.alpha=0;return out;}
       const length=REPLAY_TRANSITION.particleDepth,rate=length*p.speed,spawnDepth=birth.depth??p.depth;
       const distance=Math.max(0,(field.distance??field.travel)-birth.distance);
@@ -1961,10 +2005,10 @@
       }
       return spans;
     }
-    clipParticleBodies(c,mono){
+    clipParticleBodies(c,mono,presentation=this.replayPresentation(mono)){
       // Clip only the particle pass. The full glow and tail disappear behind
       // solid bodies while rings retain their transparent material.
-      if(typeof c.clip!=='function'||typeof c.rect!=='function'||this.replayPresentation(mono).solar<=0)return;
+      if(typeof c.clip!=='function'||typeof c.rect!=='function'||presentation.solar<=0)return;
       const pose=this.ringTour?.pose||null;
       if(pose){
         const mask=this.particleSphereMask(pose);
@@ -1984,18 +2028,22 @@
         c.beginPath();c.rect(0,0,this.w,this.h);c.moveTo(screen.x+r+.5,screen.y);c.arc(screen.x,screen.y,r+.5,0,TAU);c.clip('evenodd');
       }
     }
-    drawParticlePass(c,mono,draw){
+    drawParticlePass(c,mono,draw,presentation=this.replayPresentation(mono)){
       c.save();
-      try{this.clipParticleBodies(c,mono);return draw();}
+      try{this.clipParticleBodies(c,mono,presentation);return draw();}
       finally{c.restore();}
     }
-    drawOpeningParticles(c,mono=performance.now()) {
-      const replay=this.cameraTween?.replay,field=this.openingParticleFrame(mono);
-      if(!field&&!(replay&&!this.sky?.gl))return;
+    drawOpeningParticles(c,mono=performance.now(),presentation=this.replayPresentation(mono)) {
+      const replay=this.cameraTween?.replay,fields=this.particleLifecycle().fields()
+        .map(field=>this.openingParticleFrame(mono,field)).filter(Boolean);
+      if(!fields.length&&!(replay&&!this.sky?.gl))return;
       this.drawParticlePass(c,mono,()=>{
-        if(replay&&!this.sky?.gl)this.sky?.drawStars?.(c,this.sky.lastEffect||0,this.options,this.boundStarGlow,this.replayPresentation(mono).solar>0?this.frameBodies:[]);
-        if(field?.alpha>1e-4){const frame=this.openingParticleProjection(field);this.drawFlightParticles(c,field,(p,f,out)=>this.projectOpeningParticle(p,f,out,true,frame));}
-      });
+        if(replay&&!this.sky?.gl)this.sky?.drawStars?.(c,this.sky.lastEffect||0,this.options,this.boundStarGlow,presentation.solar>0?this.frameBodies:[]);
+        for(const field of fields)if(field.alpha>1e-4){
+          const frame=this.openingParticleProjection(field);
+          this.drawFlightParticles(c,field,(p,f,out)=>this.projectOpeningParticle(p,f,out,true,frame));
+        }
+      },presentation);
     }
     replayParticleAlpha(elapsed,path,velocity){
       const openingAt=this.replayOpeningAt(path);
@@ -2010,33 +2058,34 @@
     drawSaturnFlightParticles(c,field,project) {
       if(field.alpha<=0)return;
       if(field.replay||field.ambient){
-        // Three compact additive strokes give a blue/violet halo and a crisp
-        // ice-white core, without textures, per-grain gradients or shadow blur.
-        c.save();c.globalCompositeOperation=(field.ambient||field.replay.saturnTour)?'source-over':'lighter';c.lineCap='round';
-        const carry=field.saturnCarry&&field.elapsed-field.saturnCarry.at<WARP_PARTICLES.blend;
-        const points=field.saturnDrawPoints&&!carry?field.saturnDrawPoints:field.points;
-        const count=Math.min(points.length,field.drawCount??points.length);
+        c.save();c.lineCap='round';
+        const path=this.particleFieldPath(field),elapsed=this.particleFieldElapsed(field);
+        const points=field.saturnDrawPoints||field.points,count=points.length;
+        const projected=field.saturnProjected||(field.saturnProjected=[]);
         for(let i=0;i<count;i++){
           const p=points[i];
-          if(field.replay?.saturnTour&&!carry&&this.saturnEntryParticleAlpha(p,field)<=1e-4)continue;
-          const q=project(p,field,field.projected);
-          if(!q.visible||q.alpha<1e-4)continue;
-          const radius=clamp(q.size*.23,.38,1.05)*(p.sizeScale??1),tail=Math.max(0,q.tail||0);
+          let q=projected[i]||(projected[i]={});q.paint=false;
+          if(this.isSaturnEntryParticleField(field)&&this.saturnEntryParticleAlpha(p,field)<=1e-4)continue;
+          q=project(p,field,q)||q;projected[i]=q;if(!q.visible||q.alpha<1e-4)continue;
+          q.paint=true;
+        }
+        c.globalCompositeOperation='source-over';
+        for(let i=0;i<count;i++){
+          const p=points[i],q=projected[i];if(!q?.paint)continue;
+          const radius=clamp(q.size*.23,.38,1.05)*(p.sizeScale??1),tail=Math.max(0,q.tail||0),glowScale=q.glowScale??1;
           const halo=p.haloAlpha??(.045+.035*clamp(((p.glow??.8)-.8)/1.8,0,1));
-          if((field.ambient||field.replay.openingMove||(field.replay.saturnTour&&this.replayOpeningAt(field.replay)<=field.elapsed))&&tail<=.65){
-            // Preserve the soft glow when its restored short trail is subpixel.
+          if((field.ambient||(path.saturnTour&&this.replayOpeningAt(path)<=elapsed))&&tail<=.65){
             c.fillStyle=FLIGHT_GLOW_COLORS[p.color??0];
-            c.globalAlpha=q.alpha*halo;c.beginPath();c.arc(q.x,q.y,radius*4.5,0,TAU);c.fill();
-            c.globalAlpha=q.alpha*.3;c.beginPath();c.arc(q.x,q.y,radius*1.6,0,TAU);c.fill();
+            c.globalAlpha=q.alpha*halo;c.beginPath();c.arc(q.x,q.y,radius*4.5*glowScale,0,TAU);c.fill();
+            c.globalAlpha=q.alpha*.3;c.beginPath();c.arc(q.x,q.y,radius*1.6*glowScale,0,TAU);c.fill();
             c.globalAlpha=q.alpha;c.fillStyle='#edf7ff';c.beginPath();c.arc(q.x,q.y,radius*.5,0,TAU);c.fill();
             continue;
           }
           c.strokeStyle=FLIGHT_GLOW_COLORS[p.color??0];c.beginPath();
-          if(tail>.65){
-            c.moveTo(q.x-Math.cos(q.angle)*tail,q.y-Math.sin(q.angle)*tail);c.lineTo(q.x,q.y);
-          }else{c.moveTo(q.x-radius*.2,q.y);c.lineTo(q.x+radius*.2,q.y);}
-          c.globalAlpha=q.alpha*halo;c.lineWidth=radius*9;c.stroke();
-          c.globalAlpha=q.alpha*.3;c.lineWidth=radius*3.2;c.stroke();
+          if(tail>.65){c.moveTo(q.x-Math.cos(q.angle)*tail,q.y-Math.sin(q.angle)*tail);c.lineTo(q.x,q.y);}
+          else{c.moveTo(q.x-radius*.2,q.y);c.lineTo(q.x+radius*.2,q.y);}
+          c.globalAlpha=q.alpha*halo;c.lineWidth=radius*9*glowScale;c.stroke();
+          c.globalAlpha=q.alpha*.3;c.lineWidth=radius*3.2*glowScale;c.stroke();
           c.globalAlpha=q.alpha;c.strokeStyle='#edf7ff';c.lineWidth=radius;c.stroke();
         }
         c.restore();return;
@@ -2090,7 +2139,7 @@
       c.restore();
     }
     drawFlightParticles(c,field,project) {
-      return field?.replay?.saturnTour?this.drawSaturnFlightParticles(c,field,project):this.drawOrdinaryFlightParticles(c,field,project);
+      return this.isSaturnEntryParticleField(field)?this.drawSaturnFlightParticles(c,field,project):this.drawOrdinaryFlightParticles(c,field,project);
     }
     drawOrdinaryFlightParticles(c,field,project) {
       if(field.alpha<=0)return;
@@ -2327,8 +2376,12 @@
     cancelCameraTween(mono=performance.now(),preserveParticles=false) {
       mono=this.animationMono(mono);
       if(this.cameraTween?.replay||this.cameraTween?.timing==='opening')this.setReplaySolarOpacity(1);
-      // A user taking over the camera gets a brief soft exit, not a pop.
-      if(!preserveParticles&&this.openingParticles&&this.openingParticles.exitAt===null){this.openingParticles.exitAt=mono;this.invalidatePresentation(220,mono);}
+      // Every visible takeover uses the shared flight-particle fade. The old
+      // 220 ms branch looked like an alpha cut beside the normal 1.2 s exit.
+      if(!preserveParticles){
+        const field=this.openingParticles;if(field)this.openingParticleFrame(mono,field);
+        this.fadeOpeningParticleField(mono,PARTICLE_TRANSITION.finalFade,field);
+      }
       if(this.cameraTween){
         this.advanceCamera(mono);this.cameraTween=null;
         if(this.flightLook){this.lookRelease={from:this.flightLook,start:mono};this.invalidatePresentation(1000,mono);}
@@ -2625,12 +2678,12 @@
       if(this.ringTour)this.ringTour.lastMono=null;
       const mono=performance.now();if(!this.animationPaused)this.cancelCameraTween(mono);this.advanceAutoRotate(mono);
       this.cancelCoronaBuild();this.physicsSamples?.clear();this.physicsMs=NaN;
-      if(!this.animationPaused)this.openingParticles=null;
+      if(!this.animationPaused)this.clearOpeningParticleFields();
       if(this.autoRotation)this.autoRotation.mono=null; // Resume at the same view, never catch up a hidden tab.
       this.surface?.pause();this.sky?.pause?.();
     }
     resume() {if(!this.surface)this.surface=this.gpu||new window.SolarSurface.Service();this.surface.resume();this.sky?.resume?.();}
-    dispose() {this.clearPreparedTour();this.endRingTour();this.suspend();this.openingParticles=null;this.cameraTween=null;this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets.length=0;this.coronaTexture=null;this.releaseFlightParticleAtlas();this.starSprites.clear();this.frameCache.clear();this.precisionOrbitPathCache.clear();this.physicsBodies.clear();this.physicsSatellites.clear();this.labelWidths.clear();this.labelBodyMap.clear();this.labelOrdered.length=0;this.labelReserved.length=0;this.labelActive.clear();this.labelObstacleMap.clear();this.labelCandidateMap.clear();this.frameItems.clear();this.frameBodies.length=this.surfaceBodies.length=this.directBodies.length=this.labelBodies.length=this.satelliteLayouts.length=this.compatSurfaceJobs.length=0;this.orbitCache=new WeakMap();this.sky?.dispose();}
+    dispose() {this.clearPreparedTour();this.endRingTour();this.suspend();this.clearOpeningParticleFields();this.cameraTween=null;this.surface?.dispose();this.surface=null;this.autoRotation=null;this.clearLabels();this.hitTargets.length=0;this.coronaTexture=null;this.releaseFlightParticleAtlas();this.starSprites.clear();this.frameCache.clear();this.precisionOrbitPathCache.clear();this.physicsBodies.clear();this.physicsSatellites.clear();this.labelWidths.clear();this.labelBodyMap.clear();this.labelOrdered.length=0;this.labelReserved.length=0;this.labelActive.clear();this.labelObstacleMap.clear();this.labelCandidateMap.clear();this.frameItems.clear();this.frameBodies.length=this.surfaceBodies.length=this.directBodies.length=this.labelBodies.length=this.satelliteLayouts.length=this.compatSurfaceJobs.length=0;this.orbitCache=new WeakMap();this.sky?.dispose();}
     makeCoronaTexture(size=384) {
       const work=this.coronaRows(size);let result;do{result=work.next();}while(!result.done);return result.value;
     }
@@ -2982,12 +3035,8 @@
       // The former handoff copied position and rotation but silently reset this
       // value to orthographic, so a separate screen correction had to catch up
       // after the transition had already begun.
-      const axes=A.bodyAxes(item.body),units=this.bodyRadiusAtZoom(item.body)/this.scale,f=pose.forward;
-      const delta={
-        x:(axes.u.x*f[0]+axes.pole.x*f[1]+axes.v.x*f[2])*units,
-        y:(axes.u.y*f[0]+axes.pole.y*f[1]+axes.v.y*f[2])*units,
-        z:(axes.u.z*f[0]+axes.pole.z*f[1]+axes.v.z*f[2])*units
-      };
+      const axes=A.bodyAxes(item.body),units=this.bodyRadiusAtZoom(item.body)/this.scale,worldForward=frameVectorToWorld(axes,pose.forward);
+      const delta={x:worldForward[0]*units,y:worldForward[1]*units,z:worldForward[2]*units};
       const base=this.projectView(item.world,true).denominator??1,probe={
         x:item.world.x+delta.x,y:item.world.y+delta.y,z:item.world.z+delta.z,
         depthX:(item.world.depthX??item.world.x)+delta.x,
@@ -3005,13 +3054,21 @@
       // Keep the last opening curvature as well as velocity. A slow frame may
       // finish the tween before the app performs the Saturn handoff.
       const turn=move?this.openingTurn(move,clamp((mono-move.start)/move.duration,0,1)):(previous?.turn||0);
-      const dt=previous?(mono-previous.mono)/1000:0,velocity={};
+      const dt=previous?(mono-previous.mono)/1000:0,velocity={},acceleration={};
       if(dt>0&&dt<.25){
         for(const key of ['eye','offset','right','up','forward'])velocity[key]=pose[key].map((v,i)=>(v-previous.pose[key][i])/dt);
         velocity.orthoScale=(pose.orthoScale-previous.pose.orthoScale)/dt;
         velocity.perspective=(pose.perspective-previous.pose.perspective)/dt;
+        const previousDt=previous.sampleDt;
+        if(previous.velocity&&previousDt>0&&previousDt<.25){
+          const accelerationDt=(dt+previousDt)*.5;
+          for(const key of ['eye','offset','right','up','forward'])if(previous.velocity[key])
+            acceleration[key]=velocity[key].map((v,i)=>(v-previous.velocity[key][i])/accelerationDt);
+          for(const key of ['orthoScale','perspective'])if(Number.isFinite(previous.velocity[key]))
+            acceleration[key]=(velocity[key]-previous.velocity[key])/accelerationDt;
+        }
       }
-      this.openingFlight={mono,pose,velocity,turn};
+      this.transitionManager().set('handoff',{mono,pose,velocity,acceleration,sampleDt:dt,turn});
     }
     startRingTour(target,fromOpening=false,mono=performance.now(),returnAfterLap=false,returnTargetOverride=null) {
       mono=this.animationMono(mono);
@@ -3025,24 +3082,25 @@
       // The return belongs to the pre-travel view, not the handoff's transient pose.
       const returnSource=Renderer.validCamera(returnTargetOverride)?returnTargetOverride:fromOpening&&this.cameraTween?this.cameraTween.to:this.cameraSnapshot();
       const returnCamera={...returnSource};
+      const handoff=this.transitionManager().handoff;
       if(fromOpening){
         const axis=window.SolarRingTour.screenAxis(this.bodyFrame(p.body));
-        const move=this.cameraTween,capturedTurn=this.openingFlight?.turn;
+        const move=this.cameraTween,capturedTurn=handoff?.turn;
         const turn=Number.isFinite(capturedTurn)?capturedTurn:(move?this.openingTurn(move,clamp((mono-move.start)/move.duration,0,1)):0);
         target={side:(p.screen.x-this.w/2)*axis[0]+(p.screen.y-this.h/2)*axis[1]<0?-1:1,turnSign:-Math.sign(turn)};
         // Freeze the camera while its existing particle afterglow continues.
         if(this.cameraTween)this.cancelCameraTween(mono,true);
       }
       this.prepareCloseup('saturn');this.ringTourHover=false;
-      const startPose=fromOpening&&this.openingFlight?.pose?this.openingFlight.pose:this.ringTourDeparturePose(p);
-      this.ringTour=new window.SolarRingTour({frame:this.bodyFrame(p.body),radius:p.r,width:this.w,height:this.h,screen:p.screen,startPose,target,light:p.directJob.light,phase:p.directJob.phase||0,grainStyle:rand=>this.flightParticleStyle(rand),openingVelocity:fromOpening?(this.openingFlight?.velocity||{}):null,prepared:fromOpening?this.preparedRingTour:null,particleCapacity:window.SolarPerformance?.particleCapacity?.(this.options.quality)??1,lensZoom:this.camera.zoom,deferPreparation:true,pointified:p.r<BODY_POINT.fadeBegin});
+      const startPose=fromOpening&&handoff?.pose?handoff.pose:this.ringTourDeparturePose(p);
+      this.ringTour=new window.SolarRingTour({frame:this.bodyFrame(p.body),radius:p.r,width:this.w,height:this.h,screen:p.screen,startPose,target,light:p.directJob.light,phase:p.directJob.phase||0,grainStyle:rand=>this.flightParticleStyle(rand),openingVelocity:fromOpening?(handoff?.velocity||{}):null,openingAcceleration:fromOpening?(handoff?.acceleration||{}):null,prepared:fromOpening?this.preparedRingTour:null,particleCapacity:window.SolarPerformance?.particleCapacity?.(this.options.quality)??1,lensZoom:this.camera.zoom,deferPreparation:true,pointified:p.r<BODY_POINT.fadeBegin});
       if(fromOpening)this.preparedRingTour=null;
       if(openingProjection)this.ringTour.entryNormalProjection=openingProjection;
       this.flightLook=null;this.lookRelease=null;
       if(this.flightBank)this.ringTour.returnNormalFrom=this.ringTourNormalProjection();
       this.bankRelease=null;
       if(fromOpening)this.ringTour.lastMono=mono;
-      this.openingFlight=null;
+      this.transitionManager().set('handoff',null);
       this.ringTour.worldUnits=this.bodyRadiusAtZoom(p.body)/this.scale;
       this.ringTour.openingResume=fromOpening;
       this.ringTour.returnTarget=returnCamera;
@@ -3072,7 +3130,7 @@
     endRingTour(prepareReplay=false) {
       if(!this.ringTour)return false;
       const field=this.openingParticles;
-      if(field?.replay?.saturnTour===this.ringTour){field.points.length=0;field.saturnBirths?.clear();field.handoff=null;this.openingParticles=null;}
+      if(field?.replay?.saturnTour===this.ringTour)this.fadeOpeningParticleField(performance.now(),PARTICLE_TRANSITION.finalFade,field);
       if(prepareReplay){this.clearPreparedTour();this.preparedRingTour=this.ringTour;}
       else this.ringTour.dispose();this.ringTour=null;
       if(this.autoRotation)this.autoRotation.mono=null;
@@ -3111,7 +3169,7 @@
       tour.light=[axes.u,axes.pole,axes.v].map(v=>-(v.x*physical.x+v.y*physical.y+v.z*physical.z)/length);
       const camera=tour.skyCamera(axes,this.camera);
       this.sky.draw(seconds,this.replaySkyCamera(camera,mono),this.options,this.manualBackgroundStars?.offset);
-      const solar=this.replayPresentation(mono).solar,pointSolar=this.openingPointOpacity(mono,solar);this.setReplaySolarOpacity(solar);
+      const presentation=this.replayPresentation(mono),solar=presentation.solar,pointSolar=this.openingPointOpacity(mono,solar);this.setReplaySolarOpacity(solar);
       const slide=this.replaySceneSlide(mono),flightPose=tour.pose;
       if(slide&&tour.replayBridge?.takeoff)tour.pose=this.replayRingScenePose(tour,slide);
       try{
@@ -3122,12 +3180,12 @@
       }
       if(solar>0&&!tour.usesWarpParticles&&tour.flightField.alpha>0){
         const frame=tour.grainProjection(this.w,this.h);
-        this.drawParticlePass(this.ctx,mono,()=>this.drawFlightParticles(this.ctx,tour.flightField,(p,f,out)=>tour.projectGrain(p,f,out,this.w,this.h,frame)));
+        this.drawParticlePass(this.ctx,mono,()=>this.drawFlightParticles(this.ctx,tour.flightField,(p,f,out)=>tour.projectGrain(p,f,out,this.w,this.h,frame)),presentation);
       }
       this.drawRingTourAnnotations(tour,ms,mono);
       if(pointSolar>0){this.ctx.save();for(const item of this.frameBodies)this.drawBodyPoint(this.ctx,item,this.frameBodies,pointSolar);this.ctx.restore();}
       }finally{tour.pose=flightPose;}
-      this.drawOpeningParticles(this.ctx,mono);
+      this.drawOpeningParticles(this.ctx,mono,presentation);
       if(this.autoRotation)this.autoRotation.mono=null;
       this.presentationDirty=false;this.presentedResources=this.resourceSignature();return true;
     }
@@ -3274,8 +3332,8 @@
     projectRingTourPoint(projection,world,out,radius=0,normal=null) {
       const {tour,axes,saturn,saturnRadius,units,focal,correction}=projection,pose=tour.pose;
       if(normal)this.project(world,normal);
-      const x=(world.x-saturn.x)/units,y=(world.y-saturn.y)/units,z=(world.z-saturn.z)/units;
-      out.localX=axes.u.x*x+axes.u.y*y+axes.u.z*z;out.localY=axes.pole.x*x+axes.pole.y*y+axes.pole.z*z;out.localZ=axes.v.x*x+axes.v.y*y+axes.v.z*z;
+      const local=framePointToLocal(axes,saturn,units,world,projection.localPoint||(projection.localPoint=[0,0,0]));
+      out.localX=local[0];out.localY=local[1];out.localZ=local[2];
       const dx=out.localX-pose.eye[0],dy=out.localY-pose.eye[1],dz=out.localZ-pose.eye[2];
       const depth=pose.forward[0]*dx+pose.forward[1]*dy+pose.forward[2]*dz,unit=tour.startPose.orthoScale;
       // One moving camera owns Saturn, every other body and every orbit point.
@@ -3333,25 +3391,8 @@
       this.occludeDirectBodies(c,bodies);this.hitTargets.length=0;
       if(this.options.labels){c.save();this.labels(c,bodies,mono);c.restore();}
     }
-    draw(ms,seconds,mono=performance.now()) {
-      mono=this.animationMono(mono);
-      this.updateTravelParticleBudget(mono);
-      const prepared=this.preparedRingTour;
-      if(prepared?.needsWarmup()){
-        try{prepared.warm(this.gpu,this.w,this.h,3);}
-        catch(error){this.preparedRingTourError=error.message;this.clearPreparedTour();}
-        finally{this.gpu.resetBindings();}
-      }
-      this.prepareReplayFrame(mono);
-      if(this.drawRingTour(ms,seconds,mono))return;
-      this.advanceActualScale(mono);this.advanceCamera(mono);this.advanceAutoRotate(mono);
-      const c=this.ctx;this.frameCount++;c.clearRect(0,0,this.w,this.h);
-      if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
-      this.sky.draw(seconds,this.replaySkyCamera(this.bankedSkyCamera(),mono),this.options,this.manualBackgroundStars?.offset);
-      this.sky.decorate(c,seconds,this.options,this.boundStarGlow);
-      const sceneSaved=this.beginReplayScene(this.replaySceneSlide(mono),ms);
-      try{
-      const solar=this.replayPresentation(mono).solar,pointSolar=this.openingPointOpacity(mono,solar);this.setReplaySolarOpacity(solar);c.save();c.globalAlpha=solar;
+    drawSolarScene(ms,seconds,mono){
+      const c=this.ctx,presentation=this.replayPresentation(mono),solar=presentation.solar,pointSolar=this.openingPointOpacity(mono,solar);this.setReplaySolarOpacity(solar);c.save();c.globalAlpha=solar;
       const {bodies,satelliteLayouts}=this.updateFrameBodies(ms);
       const earth=this.currentFrameItem('earth');
       this.updateProjectionAnchor();
@@ -3392,21 +3433,12 @@
       c.globalAlpha=1;
       bodies.sort((a,b)=>a.screen.z-b.screen.z);
       this.hitTargets.length=0;
-      // Surface/sky resume is handled once on visibility/pageshow. Avoid doing
-      // resume()+pump() in the 60 fps draw hot path.
-      // A corona that crosses the viewport does NOT make the hidden solar disk visible.
       const surfaceBodies=this.surfaceBodies;surfaceBodies.length=0;
       for(const p of bodies)if(solar>0&&this.visible(p.screen,this.bodyVisibleRadius(p.body,p.r,{surface:true})))surfaceBodies.push(p);
       surfaceBodies.sort((a,b)=>{
         const focus=Number(b.body.id===this.camera.focus)-Number(a.body.id===this.camera.focus);
         return focus||b.r-a.r;
       });
-      // Surface bitmaps are produced asynchronously. Submitting a new full batch
-      // every display frame made fast simulation accumulate work unevenly: the
-      // visible phase advanced continuously, then caught up in bursts when a
-      // worker batch completed. Use a stable producer cadence instead. Large/focus
-      // bodies still refresh at ~30 fps in accelerated time while real-time motion
-      // uses a lighter cadence. Camera motion gets an immediate-enough 40 ms path.
       const directBodies=this.directBodies;directBodies.length=0;
       if(direct){
         const jobs=this.compatSurfaceJobs;jobs.length=0;
@@ -3441,13 +3473,31 @@
       }
       if(solar>0){this.drawRingTourHover(c);this.drawAlignmentGuide(c,ms);this.drawSiteMarker(c,earth,ms,mono);}
       c.restore();
-      this.drawOpeningParticles(c,mono);
+      this.drawOpeningParticles(c,mono,presentation);
       const labelOpacity=this.openingLabelOpacity(mono);
       if(this.options.labels&&labelOpacity>1e-4){const labelBodies=this.labelBodies;labelBodies.length=0;for(const p of bodies)if(this.visible(p.screen,p.r+20))labelBodies.push(p);c.save();this.labels(c,labelBodies,mono);c.restore();}
       else this.clearLabels();
       this.projected=bodies;
       this.presentationDirty=false;this.presentedResources=this.resourceSignature();
-      }finally{this.endReplayScene(sceneSaved);}
+    }
+    draw(ms,seconds,mono=performance.now()) {
+      mono=this.animationMono(mono);
+      this.updateTravelParticleBudget(mono);
+      const prepared=this.preparedRingTour;
+      if(prepared?.needsWarmup()){
+        try{prepared.warm(this.gpu,this.w,this.h,3);}
+        catch(error){this.preparedRingTourError=error.message;this.clearPreparedTour();}
+        finally{this.gpu.resetBindings();}
+      }
+      this.prepareReplayFrame(mono);
+      if(this.drawRingTour(ms,seconds,mono))return;
+      this.advanceActualScale(mono);this.advanceCamera(mono);this.advanceAutoRotate(mono);
+      const c=this.ctx;this.frameCount++;c.clearRect(0,0,this.w,this.h);
+      if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
+      this.sky.draw(seconds,this.replaySkyCamera(this.bankedSkyCamera(),mono),this.options,this.manualBackgroundStars?.offset);
+      this.sky.decorate(c,seconds,this.options,this.boundStarGlow);
+      const scene=this.replaySceneContext(this.replaySceneSlide(mono),ms);
+      scene.drawSolarScene(ms,seconds,mono);this.adoptReplayScene(scene);
     }
     hit(x,y) {
       if(this.ringTour)return null;
@@ -3458,5 +3508,9 @@
     }
   }
   Renderer.replayFlightTime=replayFlightTime;
+  Renderer.frameVectorToLocal=frameVectorToLocal;
+  Renderer.frameVectorToWorld=frameVectorToWorld;
+  Renderer.framePointToLocal=framePointToLocal;
+  Renderer.framePointToWorld=framePointToWorld;
   window.SolarRenderer=Renderer;
 })();

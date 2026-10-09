@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
-function metadata(){const app=read('src/app.js'),a=app.indexOf('  const LANG_ORDER='),b=app.indexOf('  const FACTORY_OPTIONS=',a);return vm.runInNewContext(app.slice(a,b)+';({order:LANG_ORDER,meta:LANG_META,regions:REGIONS})');}
+const {metadata}=require('./helpers/region-metadata.cjs');
 function detect(zone,languages){const window={};require('./helpers/i18n-runtime.cjs').localization({window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
 const localeHash=code=>require('../tools/code-revisions.cjs').hash(read('src/locales/'+code+'.json'));
 const plain=value=>JSON.parse(JSON.stringify(value));
@@ -31,10 +31,11 @@ test('Dutch language data is supported, versioned and cached without duplicate c
  const [a,b]=await Promise.all([loader.load('nl'),loader.load('nl')]);assert.equal(a,b);assert.equal(await loader.load('nl'),a);
  assert.deepEqual(requests,['https://solar.test/src/locales/nl.json?v='+localeHash('nl')]);assert.ok(loader.loaded('nl'));
 });
-test('new countries use the existing menu and retain every existing country in order',()=>{
- const {order}=metadata(),html=read('index.html'),a=html.indexOf('id="language-scroll"'),b=html.indexOf('scroll-cue-down',a),block=html.slice(a,b);
- const buttons=[...block.matchAll(/data-language="([^"]+)"/g)].map(m=>m[1]);assert.deepEqual(buttons,Array.from(order));
- assert.match(block,/data-language="nl"><strong>NL<\/strong><span>Nederland<\/span>/);assert.match(block,/data-language="be"><strong>BE<\/strong><span>België<\/span>/);
+test('new countries use the generated menu and retain every existing country in order',()=>{
+ const {order,catalog}=metadata(),html=read('index.html'),app=read('src/app.js');
+ assert.deepEqual(Array.from(order),Array.from(catalog,row=>row.id));
+ assert.deepEqual(JSON.parse(JSON.stringify(catalog.find(row=>row.id==='nl'))).name,'Nederland');assert.deepEqual(JSON.parse(JSON.stringify(catalog.find(row=>row.id==='be'))).name,'België');
+ assert.doesNotMatch(html,/data-language="[^"]+"/);assert.match(app,/button\.dataset\.language=region\.id/);
  assert.deepEqual(Array.from(order).filter(c=>!['nl','be',...require('./fixtures/regions-v061.json').map(r=>r.code)].includes(c)),['ao','ar','au','at','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve']);
 });
 test('country detection distinguishes Dutch territories and equivalent timezone IDs without changing other regions',()=>{

@@ -37,17 +37,19 @@
     // so this is still one blend, not two starts.
     return ease(clamp(u-8*late*late*(1-u)*(1-u),0,1));
   };
-  function projectionEye(p){
+  function projectionEye(p,out=[0,0,0]){
     const shift=(1-p.perspective)*p.orthoScale/Math.max(p.perspective,.001);
-    return p.eye.map((v,i)=>v-p.forward[i]*shift);
+    for(let i=0;i<3;i++)out[i]=p.eye[i]-p.forward[i]*shift;return out;
   }
   // A parent rotating +phase around the local north (Y) axis is rendered by
   // observing its immutable local geometry through the inverse transform.
   // Keeping the points immutable preserves the spatial index and GPU buffers.
-  function inverseParentVector(v,phase){
-    const a=(Number.isFinite(phase)?phase:0)*TAU,c=Math.cos(a),s=Math.sin(a);
-    return [c*v[0]+s*v[2],v[1],c*v[2]-s*v[0]];
+  function inverseParentVector(v,rotation,out=[0,0,0]){
+    const {c,s}=rotation,x=v[0],z=v[2];
+    out[0]=c*x+s*z;out[1]=v[1];out[2]=c*z-s*x;return out;
   }
+  const PARENT_VECTORS=['eye','right','up','forward'];
+  function parentFrame(){return {pose:{},eye:[0,0,0],right:[0,0,0],up:[0,0,0],forward:[0,0,0],basis:new Float32Array(9),viewEye:[0,0,0],detailEye:[0,0,0],light:[0,0,0]};}
   function axes(forward,up){const right=unit(cross(up,forward));return {right,up:unit(cross(forward,right)),forward};}
   // Shared cinematic bank: lateral turn rate, independent of scene scale.
   // Ring flight bank is capped at +/-20 degrees. Opening samples curvature
@@ -551,7 +553,7 @@
     }catch(error){if(p)gl.deleteProgram(p);throw error;}finally{shaders.forEach(s=>gl.deleteShader(s));}
   }
   class RingTour{
-    constructor({frame,radius,width,height,screen,startPose,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,prepared,deferPreparation=false,particleCapacity=1,lensZoom=1,pointified=false}){
+    constructor({frame,radius,width,height,screen,startPose,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,openingAcceleration,prepared,deferPreparation=false,particleCapacity=1,lensZoom=1,pointified=false}){
       this.particleCapacity=clamp(particleCapacity,.25,1);this.particleBudget=1;
       this.openingResume=!!openingVelocity;this.pointified=!!pointified;
       const rand=random(seed);this.seed=seed;this.phase=phase;this.state='entering';this.age=0;this.lastMono=null;this.speed=1;
@@ -605,13 +607,17 @@
         configure(chosen);
       }
       if(openingVelocity){
-        // Match the incoming view velocity, then smoothly release into the
-        // existing spiral without adding another camera-path owner.
-        const a=this.rawEntryPose(0),b=this.rawEntryPose(.001),delta={};
-        for(const key of ['eye','offset','right','up','forward'])delta[key]=a[key].map((v,i)=>(openingVelocity[key]?.[i]||0)-(b[key][i]-v)/.001);
-        delta.orthoScale=(openingVelocity.orthoScale||0)-(b.orthoScale-a.orthoScale)/.001;
-        delta.perspective=(openingVelocity.perspective||0)-(b.perspective-a.perspective)/.001;
-        this.openingMomentum=delta;
+        // Match the incoming view velocity AND acceleration, then smoothly
+        // release both into the existing spiral. Matching position and speed
+        // alone left a small acceleration impulse on the handoff frame.
+        const h=.001,a=this.rawEntryPose(0),b=this.rawEntryPose(h),c=this.rawEntryPose(h*2),delta={},acceleration={};
+        for(const key of ['eye','offset','right','up','forward'])delta[key]=a[key].map((v,i)=>(openingVelocity[key]?.[i]||0)-(b[key][i]-v)/h);
+        delta.orthoScale=(openingVelocity.orthoScale||0)-(b.orthoScale-a.orthoScale)/h;
+        delta.perspective=(openingVelocity.perspective||0)-(b.perspective-a.perspective)/h;
+        for(const key of ['eye','offset','right','up','forward'])acceleration[key]=a[key].map((v,i)=>(openingAcceleration?.[key]?.[i]||0)-(c[key][i]-2*b[key][i]+v)/(h*h));
+        acceleration.orthoScale=(openingAcceleration?.orthoScale||0)-(c.orthoScale-2*b.orthoScale+a.orthoScale)/(h*h);
+        acceleration.perspective=(openingAcceleration?.perspective||0)-(c.perspective-2*b.perspective+a.perspective)/(h*h);
+        this.openingMomentum=delta;this.openingAcceleration=acceleration;
       }
       // Double-click tracking fills one quarter of the short screen edge.
       // Match that departure's 2.5-second proximity; a distant overview must
@@ -998,15 +1004,22 @@
       const handoff=2.5;
       return this.openingMomentum&&age>0&&age<handoff?handoff*initialTangent(age/handoff):0;
     }
+    openingAccelerationBridge(age){
+      const handoff=2.5,u=age/handoff;
+      // Unit second derivative at zero, then zero value/velocity/acceleration
+      // at the end of the same bridge used by opening momentum.
+      return this.openingAcceleration&&age>0&&age<handoff ? .5*age*age*(1-u)**3 : 0;
+    }
     openingPose(age,fov=this.fov){
-      const pose=this.rawEntryPose(age,fov),carry=this.openingMomentum,bridge=this.openingBridge(age);
-      if(!bridge)return pose;
+      const pose=this.rawEntryPose(age,fov),carry=this.openingMomentum,acceleration=this.openingAcceleration;
+      const bridge=this.openingBridge(age),accelerationBridge=this.openingAccelerationBridge(age);
+      if(!bridge&&!accelerationBridge)return pose;
       // One C2 bridge carries the complete opening camera, including its lens,
       // directly into the existing S curve. There is no second distance clock.
-      for(const key of ['eye','offset','forward','up'])pose[key]=pose[key].map((v,i)=>v+(carry?.[key]?.[i]||0)*bridge);
+      for(const key of ['eye','offset','forward','up'])pose[key]=pose[key].map((v,i)=>v+(carry?.[key]?.[i]||0)*bridge+(acceleration?.[key]?.[i]||0)*accelerationBridge);
       Object.assign(pose,axes(unit(pose.forward),unit(pose.up)));
-      pose.orthoScale=Math.max(.001,pose.orthoScale+(carry?.orthoScale||0)*bridge);
-      pose.perspective=clamp(pose.perspective+(carry?.perspective||0)*bridge,0,1);
+      pose.orthoScale=Math.max(.001,pose.orthoScale+(carry?.orthoScale||0)*bridge+(acceleration?.orthoScale||0)*accelerationBridge);
+      pose.perspective=clamp(pose.perspective+(carry?.perspective||0)*bridge+(acceleration?.perspective||0)*accelerationBridge,0,1);
       return pose;
     }
     entryPose(age,fov=this.fov){
@@ -1278,9 +1291,16 @@
       if(pack)this.packInstances(points,order,out);
       return order.length;
     }
-    parentPose(pose=this.pose,phase=this.phase){
-      const eye=inverseParentVector(pose.eye,phase),right=inverseParentVector(pose.right,phase),up=inverseParentVector(pose.up,phase),forward=inverseParentVector(pose.forward,phase);
-      return {...pose,eye,right,up,forward,basis:new Float32Array([...right,...up,...forward])};
+    parentRotation(phase=this.phase){
+      phase=Number.isFinite(phase)?phase:0;
+      let rotation=this.parentRotationCache;
+      if(!rotation||rotation.phase!==phase){const a=phase*TAU;rotation=this.parentRotationCache={phase,c:Math.cos(a),s:Math.sin(a)};}
+      return rotation;
+    }
+    parentPose(pose=this.pose,phase=this.phase,frame=parentFrame()){
+      const rotation=this.parentRotation(phase),out=Object.assign(frame.pose,pose);
+      for(const key of PARENT_VECTORS)out[key]=inverseParentVector(pose[key],rotation,frame[key]);
+      frame.basis.set(out.right,0);frame.basis.set(out.up,3);frame.basis.set(out.forward,6);out.basis=frame.basis;return out;
     }
     packInstances(points,order,out){
       for(let j=0;j<order.length;j++)for(let k=0;k<5;k++)out[j*5+k]=points[order[j]+k];
@@ -1352,7 +1372,8 @@
       // The planet phase is simulation time. Observe immutable debris through
       // its inverse parent transform so high time scales rotate the complete
       // ring system without rebuilding buffers or desynchronising CPU culling.
-      const parentPose=this.parentPose(p),parentViewEye=projectionEye(parentPose),parentDetailEye=inverseParentVector(detail.eye,this.phase),parentLight=inverseParentVector(this.light,this.phase);
+      const frame=this.parentDrawFrame||(this.parentDrawFrame=parentFrame()),rotation=this.parentRotation();
+      const parentPose=this.parentPose(p,this.phase,frame),parentViewEye=projectionEye(parentPose,frame.viewEye),parentDetailEye=inverseParentVector(detail.eye,rotation,frame.detailEye),parentLight=inverseParentVector(this.light,rotation,frame.light);
       // The orbit-only field is world-fixed; disk/debris/dust retain their
       // shared local ring handoff. Free look never moves the particles.
       this.prepareGrainRoute();

@@ -157,9 +157,10 @@ function outputs(root,data=compile(root)){
   '  const loadingText=Object.freeze('+JSON.stringify(Object.fromEntries(d.codes.map(code=>[code,d.bundles[code].copy.loading])))+');',
   '  const emptyCopyKeys=Object.freeze('+JSON.stringify(d.config.allowEmptyKeys.filter(k=>k.startsWith('ui.')||k.startsWith('timer.')).map(k=>k.slice(k.indexOf('.')+1)))+');',
   '  const fallback=deepFreeze('+JSON.stringify(d.bundles.en)+');',
-  '  const legacyFileCopy=deepFreeze('+JSON.stringify(d.legacyFileCopy)+');',
+  '  const fileCopyRevision='+JSON.stringify(fingerprint(d.legacyFileCopy).slice(0,12))+';',
   '  const missingFallback=Object.freeze('+JSON.stringify(d.config.missingBundleFallback||{})+');'
  ].join('\n');
+ const fileCopy='src/language-file-copy.js';out.set(fileCopy,'/* Generated direct-file compatibility copy. Edit i18n/ and run npm run build:i18n. */\n(function(root){\n  \'use strict\';\n  const modules=root.SolarModules||(root.SolarModules={});\n  function deepFreeze(value){if(value&&typeof value===\'object\'&&!Object.isFrozen(value)){Object.values(value).forEach(deepFreeze);Object.freeze(value);}return value;}\n  modules.LanguageFileCopy=deepFreeze('+JSON.stringify(d.legacyFileCopy)+');\n})(window);\n');
  const loader='src/language-data.js';out.set(loader,replaceBlock(fs.readFileSync(path.join(root,loader),'utf8'),'// BEGIN GENERATED I18N DATA','// END GENERATED I18N DATA',block,loader));
  const notes='src/release-notes.js';out.set(notes,replaceBlock(fs.readFileSync(path.join(root,notes),'utf8'),'// BEGIN GENERATED RELEASE DATA','// END GENERATED RELEASE DATA',' const RECENT_DATA='+JSON.stringify(d.releases.slice(0,10))+';',notes));
  out.set('CHANGELOG.md',koreanChangelog(d.releases,d.archive));

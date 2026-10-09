@@ -1,5 +1,116 @@
 [
   {
+    "version": "0.75",
+    "date": "2026.10.09",
+    "localized": {
+      "kor": [
+        "오프닝·워프·토성 여행의 카메라 연결을 개선했습니다.",
+        "먼 거리에서 토성 여행 시 행성과 궤도가 어긋나는 문제를 수정했습니다.",
+        "토성 진입 파티클의 등장과 소멸을 자연스럽게 개선했습니다.",
+        "전환 중 파티클이 끊기거나 갑자기 나타나는 문제를 수정했습니다.",
+        "초기 로딩과 전반적인 성능을 개선했습니다."
+      ],
+      "en": [
+        "Improved camera transitions between the opening, warp and Saturn travel.",
+        "Fixed planets and orbits becoming misaligned during distant Saturn travel.",
+        "Made Saturn-entry particles appear and disappear more naturally.",
+        "Fixed particles cutting out or appearing abruptly during transitions.",
+        "Improved initial loading and overall performance."
+      ],
+      "chn": [
+        "改进了开场、曲速和土星旅行之间的镜头衔接。",
+        "修复了从远距离进入土星旅行时行星和轨道错位的问题。",
+        "让土星进入阶段的粒子出现与消失更加自然。",
+        "修复了转场期间粒子突然中断或出现的问题。",
+        "改进了初始加载速度和整体性能。"
+      ],
+      "zht": [
+        "改善了開場、曲速與土星旅行之間的鏡頭銜接。",
+        "修正了從遠距離進入土星旅行時行星與軌道錯位的問題。",
+        "讓進入土星時的粒子出現與消失更加自然。",
+        "修正了轉場期間粒子突然中斷或出現的問題。",
+        "改善了初始載入速度與整體效能。"
+      ],
+      "jpn": [
+        "オープニング、ワープ、土星旅行をつなぐカメラ遷移を改善しました。",
+        "遠距離から土星旅行を始めた際に、惑星と軌道がずれる問題を修正しました。",
+        "土星進入時のパーティクルがより自然に現れ、消えるよう改善しました。",
+        "遷移中にパーティクルが途切れたり突然現れたりする問題を修正しました。",
+        "初期読み込みと全体的なパフォーマンスを改善しました。"
+      ],
+      "hi": [
+        "ओपनिंग, वॉर्प और शनि यात्रा के बीच कैमरा ट्रांज़िशन बेहतर किए गए।",
+        "दूर से शनि यात्रा के दौरान ग्रहों और कक्षाओं के गलत संरेखण की समस्या ठीक की गई।",
+        "शनि में प्रवेश करने वाले कणों का प्रकट होना और गायब होना अधिक स्वाभाविक बनाया गया।",
+        "ट्रांज़िशन के दौरान कणों के अचानक कटने या दिखाई देने की समस्या ठीक की गई।",
+        "शुरुआती लोडिंग और समग्र प्रदर्शन बेहतर किया गया।"
+      ],
+      "es": [
+        "Mejoramos las transiciones de cámara entre la apertura, el salto y el viaje a Saturno.",
+        "Corregimos la desalineación de planetas y órbitas durante el viaje a Saturno desde grandes distancias.",
+        "Hicimos más naturales la aparición y la desaparición de las partículas de entrada a Saturno.",
+        "Corregimos partículas que se cortaban o aparecían de repente durante las transiciones.",
+        "Mejoramos la carga inicial y el rendimiento general."
+      ],
+      "de": [
+        "Die Kameraübergänge zwischen Eröffnung, Warp und Saturnreise wurden verbessert.",
+        "Fehlausrichtungen von Planeten und Umlaufbahnen bei Saturnreisen aus großer Entfernung wurden behoben.",
+        "Das Erscheinen und Verschwinden der Partikel beim Saturnanflug wurde natürlicher gestaltet.",
+        "Abrupt abbrechende oder plötzlich erscheinende Partikel während Übergängen wurden korrigiert.",
+        "Der erste Ladevorgang und die Gesamtleistung wurden verbessert."
+      ],
+      "fr": [
+        "Les transitions de caméra entre l’ouverture, le voyage en distorsion et le voyage vers Saturne ont été améliorées.",
+        "Le décalage des planètes et des orbites lors d’un voyage vers Saturne depuis une grande distance a été corrigé.",
+        "L’apparition et la disparition des particules d’approche de Saturne sont désormais plus naturelles.",
+        "Les particules qui se coupaient ou apparaissaient brusquement pendant les transitions ont été corrigées.",
+        "Le chargement initial et les performances générales ont été améliorés."
+      ],
+      "pt": [
+        "Melhorámos as transições de câmara entre a abertura, o salto e a viagem a Saturno.",
+        "Corrigimos o desalinhamento dos planetas e das órbitas durante viagens a Saturno a partir de grandes distâncias.",
+        "Tornámos mais naturais o aparecimento e o desaparecimento das partículas de aproximação a Saturno.",
+        "Corrigimos partículas que desapareciam ou surgiam subitamente durante as transições.",
+        "Melhorámos o carregamento inicial e o desempenho geral."
+      ],
+      "it": [
+        "Migliorate le transizioni della telecamera tra apertura, salto e viaggio verso Saturno.",
+        "Corretto il disallineamento di pianeti e orbite durante il viaggio verso Saturno da grandi distanze.",
+        "Resi più naturali la comparsa e la scomparsa delle particelle di avvicinamento a Saturno.",
+        "Corrette le particelle che si interrompevano o apparivano all’improvviso durante le transizioni.",
+        "Migliorati il caricamento iniziale e le prestazioni generali."
+      ],
+      "id": [
+        "Meningkatkan transisi kamera antara pembukaan, warp, dan perjalanan Saturnus.",
+        "Memperbaiki planet dan orbit yang tidak sejajar saat memulai perjalanan Saturnus dari jarak jauh.",
+        "Membuat kemunculan dan menghilangnya partikel masuk Saturnus terasa lebih alami.",
+        "Memperbaiki partikel yang terputus atau muncul tiba-tiba selama transisi.",
+        "Meningkatkan pemuatan awal dan kinerja secara keseluruhan."
+      ],
+      "nl": [
+        "De cameraovergangen tussen de opening, warp en Saturnusreis zijn verbeterd.",
+        "Verkeerd uitgelijnde planeten en banen tijdens een Saturnusreis vanaf grote afstand zijn verholpen.",
+        "De deeltjes bij het naderen van Saturnus verschijnen en verdwijnen nu natuurlijker.",
+        "Deeltjes die tijdens overgangen wegvielen of plotseling verschenen zijn gecorrigeerd.",
+        "De eerste laadtijd en de algemene prestaties zijn verbeterd."
+      ],
+      "ru": [
+        "Улучшены переходы камеры между вступлением, варп-переходом и путешествием к Сатурну.",
+        "Исправлено смещение планет и орбит при путешествии к Сатурну с большого расстояния.",
+        "Появление и исчезновение частиц при приближении к Сатурну стало естественнее.",
+        "Исправлены резкие обрывы и внезапное появление частиц во время переходов.",
+        "Улучшены начальная загрузка и общая производительность."
+      ],
+      "uk": [
+        "Поліпшено переходи камери між вступом, варп-переходом і подорожжю до Сатурна.",
+        "Виправлено зміщення планет і орбіт під час подорожі до Сатурна з великої відстані.",
+        "Поява та зникнення частинок під час наближення до Сатурна стали природнішими.",
+        "Виправлено різкі обриви та раптову появу частинок під час переходів.",
+        "Поліпшено початкове завантаження та загальну продуктивність."
+      ]
+    }
+  },
+  {
     "version": "0.74",
     "date": "2026.10.08",
     "localized": {
@@ -875,87 +986,6 @@
         "Згода й відмова від cookie зберігаються шість місяців, після чого вибір запитується знову.",
         "Додано кнопку X для закриття без збереження вибору та налаштування cookie в довідці.",
         "Повторне відкриття налаштувань або закриття через X зберігає поточний вибір і строк його дії; музика, будильники та якість зображення не змінюються."
-      ]
-    }
-  },
-  {
-    "version": "0.65",
-    "date": "2026.09.28",
-    "localized": {
-      "kor": [
-        "기존 방문 통계는 유지하고 동의 후 실제 기능 사용을 별도 이벤트로 기록합니다.",
-        "음악 재생·천체 추적·알람 설정·확인된 예약 종료 등을 구분하며 개인정보와 거짓 전환 집계를 추가하지 않습니다.",
-        "방문과 기능 사용을 구분하며 기존 화면, 화질, 알람·음악 동작은 유지합니다."
-      ],
-      "en": [
-        "Keep existing visit measurement and record actual feature use as separate events after consent.",
-        "Distinguish music playback, body tracking, alarms and confirmed shutdown actions without adding personal input or false lead conversions.",
-        "Keep visits separate from feature use, with existing visuals, image quality, alarms and music unchanged."
-      ],
-      "chn": [
-        "保留现有访问统计，并在获得同意后以独立事件记录实际功能使用。",
-        "区分音乐播放、天体追踪、闹钟和已确认的关机操作，不添加个人输入或虚假的潜在客户转化。",
-        "区分访问与功能使用，并保留现有界面、画质、闹钟和音乐行为。"
-      ],
-      "zht": [
-        "保留既有造訪統計，並在取得同意後以獨立事件記錄實際功能使用。",
-        "區分音樂播放、天體追蹤、鬧鐘和已確認的關機操作，不加入個人輸入或不實的潛在客戶轉換。",
-        "區分造訪與功能使用，並保留既有介面、畫質、鬧鐘及音樂行為。"
-      ],
-      "jpn": [
-        "既存の訪問計測を維持し、同意後の実際の機能利用を個別イベントとして記録します。",
-        "音楽再生、天体追跡、アラーム、確認済みのシャットダウン操作を区別し、個人の入力内容や架空の見込み客コンバージョンは追加しません。",
-        "訪問と機能利用を区別し、既存の画面、画質、アラーム、音楽の動作は維持します。"
-      ],
-      "hi": [
-        "मौजूदा विज़िट मापन बनाए रखते हुए सहमति के बाद वास्तविक सुविधा उपयोग को अलग इवेंट के रूप में दर्ज किया जाता है।",
-        "व्यक्तिगत इनपुट या गलत लीड कन्वर्ज़न जोड़े बिना संगीत, खगोलीय पिंडों की ट्रैकिंग, अलार्म और पुष्टि किए गए शटडाउन कार्यों को अलग मापा जाता है।",
-        "विज़िट और सुविधा उपयोग अलग रहते हैं; मौजूदा दृश्य, छवि गुणवत्ता, अलार्म और संगीत का व्यवहार अपरिवर्तित है।"
-      ],
-      "es": [
-        "Se mantiene la medición de visitas y se registra el uso real de funciones como eventos separados tras el consentimiento.",
-        "Se distinguen la música, el seguimiento de astros, las alarmas y las acciones de apagado confirmadas, sin datos personales introducidos ni conversiones de clientes potenciales falsas.",
-        "Se separan las visitas del uso de funciones y se mantienen la interfaz, la calidad de imagen, las alarmas y la música."
-      ],
-      "de": [
-        "Die bisherige Besuchsmessung bleibt erhalten; tatsächliche Funktionsnutzung wird nach Einwilligung als separates Ereignis erfasst.",
-        "Musik, Himmelskörperverfolgung, Alarme und bestätigte Abschaltaktionen werden ohne persönliche Eingaben oder falsche Lead-Conversions unterschieden.",
-        "Besuche und Funktionsnutzung bleiben getrennt; Darstellung, Bildqualität, Alarme und Musik bleiben unverändert."
-      ],
-      "fr": [
-        "La mesure des visites est conservée et les utilisations réelles des fonctions sont enregistrées séparément après consentement.",
-        "La musique, le suivi des astres, les alarmes et les arrêts confirmés sont distingués, sans données personnelles saisies ni fausses conversions de prospects.",
-        "Les visites restent distinctes de l’utilisation des fonctions ; l’interface, la qualité d’image, les alarmes et la musique sont conservées."
-      ],
-      "pt": [
-        "Mantém-se a medição de visitas e regista-se a utilização real das funções em eventos separados após o consentimento.",
-        "Distinguem-se música, seguimento de astros, alarmes e ações de encerramento confirmadas, sem dados pessoais introduzidos nem conversões falsas de potenciais clientes.",
-        "As visitas são separadas da utilização das funções; a interface, a qualidade de imagem, os alarmes e a música permanecem inalterados."
-      ],
-      "it": [
-        "La misurazione delle visite resta invariata; l’uso effettivo delle funzioni viene registrato con eventi separati dopo il consenso.",
-        "Musica, inseguimento dei corpi celesti, sveglie e spegnimenti confermati sono distinti, senza dati personali inseriti o false conversioni di potenziali clienti.",
-        "Visite e uso delle funzioni restano distinti; interfaccia, qualità delle immagini, sveglie e musica rimangono invariati."
-      ],
-      "id": [
-        "Pengukuran kunjungan tetap dipertahankan, dan penggunaan fitur yang sebenarnya dicatat sebagai peristiwa terpisah setelah persetujuan.",
-        "Musik, pelacakan benda langit, alarm, dan tindakan pematian yang dikonfirmasi dibedakan tanpa input pribadi atau konversi prospek palsu.",
-        "Kunjungan dipisahkan dari penggunaan fitur; tampilan, kualitas gambar, alarm, dan musik tetap tidak berubah."
-      ],
-      "nl": [
-        "Bestaande bezoekmetingen blijven behouden; daadwerkelijk functiegebruik wordt na toestemming als afzonderlijke gebeurtenis vastgelegd.",
-        "Muziek, hemellichamen volgen, alarmen en bevestigde afsluitacties worden onderscheiden zonder persoonlijke invoer of onjuiste leadconversies.",
-        "Bezoeken en functiegebruik blijven gescheiden; weergave, beeldkwaliteit, alarmen en muziek blijven ongewijzigd."
-      ],
-      "ru": [
-        "Существующее измерение посещений сохраняется, а фактическое использование функций после согласия записывается отдельными событиями.",
-        "Воспроизведение музыки, слежение за телами, будильники и подтверждённые действия выключения различаются без записи личного ввода и ложных конверсий.",
-        "Посещения отделены от использования функций; существующий вид, качество изображения, будильники и музыка остаются без изменений."
-      ],
-      "uk": [
-        "Наявне вимірювання відвідувань зберігається, а фактичне використання функцій після згоди записується окремими подіями.",
-        "Відтворення музики, стеження за тілами, будильники й підтверджені дії вимкнення розрізняються без запису особистого введення та хибних конверсій.",
-        "Відвідування відокремлені від використання функцій; наявний вигляд, якість зображення, будильники та музика залишаються без змін."
       ]
     }
   }

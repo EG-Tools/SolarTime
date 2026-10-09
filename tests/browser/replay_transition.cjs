@@ -17,6 +17,8 @@ module.exports=async({evaluate,delay})=>{
   const bootEnergy=time=>{r.draw(ms,0,bootStart+time);const f=r.openingParticleFrame(bootStart+time);return f.points.reduce((sum,p)=>sum+r.projectOpeningParticle(p,f,{}).alpha,0);};
   if(bootEnergy(0)!==0)throw Error('Boot grains are already visible on the first frame');
   if(!(bootEnergy(500)>0))throw Error('Boot grains did not fade in while moving');
+  const bootTail=[7300,7900,8490].map(bootEnergy);
+  if(!(bootTail[0]>bootTail[1]&&bootTail[1]>=bootTail[2]))throw Error('Boot particle tail does not fade continuously: '+bootTail);
   if(r.openingParticles!==bootPool)throw Error('Boot replaced the particle pool');
   r.restoreCamera(home);
   const closeups=[];
@@ -74,7 +76,23 @@ module.exports=async({evaluate,delay})=>{
    }
    results.push({actual,touring,turn,orbit:p.ring.orbit,particleAt:p.particleAt,clearAt:p.brakeAt,resetAt:p.resetAt,error:r.gpu.gl.getError()});
   }
-  return {cases:results,closeups,image:sheet.toDataURL('image/png')};
+  r.endRingTour();r.clearPreparedTour();r.restoreCamera(home);const dockingNow=performance.now();r.draw(ms,0,dockingNow);
+  if(!r.startRingTour())throw Error('Saturn entry is unavailable for the docking particle check');
+  const dockingTour=r.ringTour,dockingTimeline=[];
+  let dockingElapsed=0;
+  for(const age of [0,1,2,3,4,5,6,7,8,9,10,10.2,10.4,10.49]){
+   const target=age*1000;
+   while(dockingElapsed<target){dockingElapsed=Math.min(target,dockingElapsed+50);r.draw(ms,0,dockingNow+dockingElapsed);}
+   const field=r.openingParticles,frame=r.openingParticleProjection(field);let visible=0,energy=0;
+   for(const p of field.saturnDrawPoints){const q=r.projectOpeningParticle(p,field,{},true,frame);if(q.visible&&q.alpha>.01)visible++;energy+=q.alpha||0;}
+   dockingTimeline.push({age,visible,energy});
+  }
+  const dockingVisible=dockingTimeline.find(sample=>sample.age===10).visible;
+  if(dockingVisible<50)throw Error('extended docking particles are not visibly retained: '+JSON.stringify(dockingTimeline));
+  if([6,8,10].some(age=>dockingTimeline.find(sample=>sample.age===age).visible<50))throw Error('Saturn particles collapse during the late entry: '+JSON.stringify(dockingTimeline));
+  dockingTour.age=10.499;if(!r.openingParticleFrame(dockingNow+10499))throw Error('Saturn particles ended before the half-second afterglow');
+  dockingTour.age=10.5;if(r.openingParticleFrame(dockingNow+10500)||r.openingParticles)throw Error('Saturn particles survived the shortened deadline');
+  return {cases:results,closeups,bootTail,dockingVisible,dockingTimeline,image:sheet.toDataURL('image/png')};
  })()`);
  assert.equal(result.cases.length,16);assert.ok(result.cases.every(p=>p.error===0&&Math.abs(p.resetAt-p.clearAt-2700)<1e-6));
  const file=path.join(os.tmpdir(),'solartime-replay-transition.png');fs.writeFileSync(file,Buffer.from(result.image.split(',')[1],'base64'));

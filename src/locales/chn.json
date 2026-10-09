@@ -221,7 +221,7 @@
     "starDensityAria": "粒子星星密度。设为 0 时隐藏粒子星星。",
     "cookieSettings": "Cookie 设置",
     "cookieDismiss": "关闭，不更改选择",
-    "cookieChoiceNote": "同意和拒绝均保留6个月。X不会更改您的选择；尚未选择时，下次访问会再次询问。",
+    "cookieChoiceNote": "允许会保留6个月。拒绝和 X 不会保存，下次访问时会再次询问。",
     "music": "音乐",
     "timer": "计时器",
     "timerClose": "关闭计时器",

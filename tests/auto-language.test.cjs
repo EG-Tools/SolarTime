@@ -3,9 +3,10 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 
 test('automatic language is the fixed first translated language-menu choice',()=>{
- const html=read('index.html'),scroll=html.indexOf('id="language-scroll"'),automatic=html.indexOf('data-language-auto',html.indexOf('id="language-menu"')),firstCountry=html.indexOf('data-language="',scroll);
- assert.ok(scroll>=0&&automatic<scroll&&scroll<firstCountry);
- assert.match(html.slice(automatic,firstCountry),/id="auto-language-mode">자동<\/strong><span id="auto-language-name">언어/);
+ const html=read('index.html'),app=read('src/app.js'),scroll=html.indexOf('id="language-scroll"'),automatic=html.indexOf('data-language-auto',html.indexOf('id="language-menu"'));
+ assert.ok(scroll>=0&&automatic<scroll);assert.doesNotMatch(html,/data-language="[^"]+"/);
+ assert.match(html.slice(automatic,scroll),/id="auto-language-mode">자동<\/strong><span id="auto-language-name">언어/);
+ assert.match(app,/populateLanguageMenu\(\)/);assert.match(app,/button\.dataset\.language=region\.id/);
 });
 
 test('automatic label follows browser language and stays independent from app choices',()=>{

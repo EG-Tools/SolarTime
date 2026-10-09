@@ -26,13 +26,10 @@ test('one shared Google loader configures Analytics and Ads once, after denied d
   assert.equal(h.window.SolarGoogleAnalytics.adsId,ADS);assert.ok(Object.isFrozen(h.window.SolarGoogleAnalytics));
  }
 });
-test('saved choices are restored before both configurations and never reset by Ads',()=>{
- for(const saved of ['granted','denied']){
-  const h=harness({saved});h.run();const c=h.commands();
-  assert.deepEqual(c[1].slice(0,2),['consent','update']);assertState(c[1][2],saved);
-  assert.equal(c[2][0],'js');assert.equal(c[3][1],GA);assert.equal(c[4][1],ADS);
-  assert.equal(JSON.parse(h.values.get('solarTimeCookieConsentV1')).value,saved);
- }
+test('saved acceptance is restored before both configurations while old rejection is removed',()=>{
+ const accepted=harness({saved:'granted'});accepted.run();const c=accepted.commands();
+ assert.deepEqual(c[1].slice(0,2),['consent','update']);assertState(c[1][2],'granted');assert.equal(c[2][0],'js');assert.equal(c[3][1],GA);assert.equal(c[4][1],ADS);assert.equal(JSON.parse(accepted.values.get('solarTimeCookieConsentV1')).value,'granted');
+ const rejected=harness({saved:'denied'});rejected.run();const denied=rejected.commands();assert.equal(rejected.values.has('solarTimeCookieConsentV1'),false);assert.equal(denied[1][0],'js');assert.equal(denied[2][1],GA);assert.equal(denied[3][1],ADS);
 });
 test('grant, reject and reset propagate to all four consent types without reconfiguring tags',()=>{
  const h=harness();h.run();

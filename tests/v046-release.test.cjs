@@ -2,6 +2,7 @@
 const cacheUrl=file=>require('../tools/code-revisions.cjs').urlFor(require('node:path').resolve(__dirname,'..'),file);
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
+const {metadata}=require('./helpers/region-metadata.cjs');
 function notesApi(){return require('../src/release-notes.js');}
 const priorRegionOrder=order=>Array.from(order).filter(c=>!require('./fixtures/regions-v061.json').some(r=>r.code===c));
 const notesFor=version=>{const api=notesApi(),recent=api.RELEASES.find(r=>r.version===version);return (recent?api.itemsFor(recent,'kor'):require('../i18n/releases-archive-ko.json').find(r=>r.version===version)?.items||[]).join(' ');};
@@ -19,7 +20,7 @@ test('v0.46 page build stays consistent while unchanged coordinator keeps its bu
   assert.ok(html.includes(cacheUrl('src/localization.js')));
 });
 test('language menu keeps the established order and star density defaults to 100 percent',()=>{
-  const html=read('index.html'),app=read('src/app.js'),order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
+  const html=read('index.html'),app=read('src/app.js'),order=metadata().order;
   assert.deepEqual(priorRegionOrder(order),['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve']);
   assert.match(html,/id="star-density-output" for="star-density">100%<\/output>/);assert.match(html,/id="star-density" class="solar-range" type="range" min="0" max="300" step="10" value="100"/);assert.match(app,/orbitBrightness:\.5,starDensity:1/);
 });
@@ -120,15 +121,13 @@ test('r8 maps 100 200 and 300 percent to 10000 20000 and 30000 stars',()=>{
 
 test('r10 adds Indonesia and keeps every country on the existing regional-time path',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js'),loader=read('src/language-data.js');
-  assert.deepEqual(Array.from(vm.runInNewContext(/const LANG_ORDER=(\[[^;]+\]);/.exec(app)[1])),[...html.matchAll(/data-language="([^"]+)"/g)].map(m=>m[1]));
-  assert.ok(app.includes("id:{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'}"));
-  assert.ok(app.includes("id:{label:'INDONESIA',timeZone:'Asia/Jakarta'"));
-  assert.ok(app.includes("eu:{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'}"));
-  assert.ok(app.includes("eu:{label:'UNITED KINGDOM',timeZone:'Europe/London'"));
+  const data=metadata();assert.deepEqual(Array.from(data.order),Array.from(data.catalog,row=>row.id));
+  assert.deepEqual(JSON.parse(JSON.stringify(data.meta.id)),{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'});assert.equal(data.regions.id.timeZone,'Asia/Jakarta');
+  assert.deepEqual(JSON.parse(JSON.stringify(data.meta.eu)),{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'});assert.equal(data.regions.eu.timeZone,'Europe/London');
   assert.match(app,/language=target;languageMode=mode;activeCopyCode=targetCopy;if\(automatic\)autoTimeZone=targetTimeZone;renderer\.setSite\(activeRegion\(\)\);translateStatic\(\);renderReleaseNotes\(\);refreshTimeFormats\(\)/);
   assert.match(localization,/jakarta\|pontianak\|makassar\|ujung_pandang\|jayapura/);
   for(const code of ['pt','it','id'])assert.ok(JSON.parse(read('i18n/config.json')).languages[code]);
-  for(const code of ['pt','br','it','mx','id'])assert.ok(html.includes('data-language="'+code+'"'));
+  for(const code of ['pt','br','it','mx','id'])assert.ok(data.order.includes(code));
   const en=JSON.parse(read('src/locales/en.json')),ind=JSON.parse(read('src/locales/id.json'));
   assert.deepEqual(Object.keys(ind.copy).sort(),Object.keys(en.copy).sort());
   assert.deepEqual(Object.keys(ind.bodies).sort(),Object.keys(en.bodies).sort());
@@ -161,7 +160,7 @@ test('r10 removes the extra WebGL star canvas while keeping the safe r9 optimiza
 test('r11 reuses existing language bundles for additional countries',()=>{
   const html=read('index.html'),app=read('src/app.js'),localization=read('src/localization.js');
   const expected=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve'];
-  const order=[...html.matchAll(/data-language="([^"]+)"/g)].map(match=>match[1]);
+  const data=metadata(),order=data.order;
   assert.deepEqual(priorRegionOrder(order),expected);
 
   const bundleMap={
@@ -169,12 +168,7 @@ test('r11 reuses existing language bundles for additional countries',()=>{
     ie:'en',mz:'pt',nz:'en',pa:'es',pe:'es',uy:'es',ve:'es'
   };
   for(const [code,bundle] of Object.entries(bundleMap)){
-    assert.ok(html.includes('data-language="'+code+'"'),code+' menu');
-    assert.ok(app.includes(code+':{code:"'),code+' meta');
-    const start=app.indexOf(code+':{code:"');
-    const end=app.indexOf('}',start);
-    const block=app.slice(start,end+1);
-    assert.ok(block.includes('copy:"'+bundle+'"'),code+' bundle');
+    assert.ok(order.includes(code),code+' menu');assert.equal(data.meta[code].copy,bundle,code+' bundle');
   }
 
   const zones={
@@ -187,11 +181,7 @@ test('r11 reuses existing language bundles for additional countries',()=>{
     at:'Europe/Vienna'
   };
   for(const [code,zone] of Object.entries(zones)){
-    const start=app.indexOf(code+':{label:"');
-    const end=app.indexOf('}',start);
-    const block=app.slice(start,end+1);
-    assert.ok(start>=0,code+' region');
-    assert.ok(block.includes('timeZone:"'+zone+'"'),code+' timezone');
+    assert.equal(data.regions[code].timeZone,zone,code+' timezone');
   }
 
   assert.match(app,/t\('starDensityLabel'\)/);

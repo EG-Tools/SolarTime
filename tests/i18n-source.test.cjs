@@ -4,11 +4,12 @@ const root=path.resolve(__dirname,'..'),api=require('../tools/i18n.cjs'),gold=re
 const read=(file,dir=root)=>fs.readFileSync(path.join(dir,file),'utf8');
 const data=(file,dir=root)=>JSON.parse(read(file,dir));
 const write=(file,value,dir)=>fs.writeFileSync(path.join(dir,file),JSON.stringify(value,null,2)+'\n');
-function sandbox(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'solar-i18n-'));fs.cpSync(path.join(root,'i18n'),path.join(dir,'i18n'),{recursive:true});fs.mkdirSync(path.join(dir,'src'));fs.cpSync(path.join(root,'src/locales'),path.join(dir,'src/locales'),{recursive:true});for(const f of ['language-data.js','release-notes.js','consent.js','google-analytics.js','microsoft-clarity.js'])fs.copyFileSync(path.join(root,'src',f),path.join(dir,'src',f));for(const f of ['CHANGELOG.md','changelog.html','site-info.css'])fs.copyFileSync(path.join(root,f),path.join(dir,f));return dir;}
+function sandbox(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'solar-i18n-'));fs.cpSync(path.join(root,'i18n'),path.join(dir,'i18n'),{recursive:true});fs.mkdirSync(path.join(dir,'src'));fs.cpSync(path.join(root,'src/locales'),path.join(dir,'src/locales'),{recursive:true});for(const f of ['language-data.js','language-file-copy.js','release-notes.js','consent.js','google-analytics.js','microsoft-clarity.js'])fs.copyFileSync(path.join(root,'src',f),path.join(dir,'src',f));for(const f of ['CHANGELOG.md','changelog.html','site-info.css'])fs.copyFileSync(path.join(root,f),path.join(dir,f));return dir;}
 function runtime({protocol='https:',fetch:fetchFn}={}){
- const requests=[],location={protocol,href:protocol==='file:'?'file:///D:/SolarTime/index.html':'https://solar.test/'},window={};
- const context={window,location,document:{currentScript:{src:new URL('src/language-data.js',location.href).href}},URL,AbortSignal,fetch:async url=>{requests.push(String(url));if(fetchFn)return fetchFn(url);const code=/\/([a-z]+)\.json/.exec(String(url))[1];return {ok:true,json:async()=>data('src/locales/'+code+'.json')};}};
- vm.runInNewContext(read('src/language-data.js'),context);return {loader:window.SolarModules.LanguageData,requests};
+ const requests=[],scripts=[],location={protocol,href:protocol==='file:'?'file:///D:/SolarTime/index.html':'https://solar.test/'},window={};let context;
+ const document={currentScript:{src:new URL('src/language-data.js',location.href).href},createElement:()=>({}),head:{appendChild:script=>{scripts.push(script.src);vm.runInContext(read('src/language-file-copy.js'),context);script.onload?.();}}};
+ context=vm.createContext({window,location,document,URL,AbortSignal,fetch:async url=>{requests.push(String(url));if(fetchFn)return fetchFn(url);const code=/\/([a-z]+)\.json/.exec(String(url))[1];return {ok:true,json:async()=>data('src/locales/'+code+'.json')};}});
+ vm.runInContext(read('src/language-data.js'),context);const installFileCopy=()=>{vm.runInContext(read('src/language-file-copy.js'),context);return window.SolarModules.LanguageFileCopy;};return {loader:window.SolarModules.LanguageData,requests,scripts,installFileCopy};
 }
 test('all generated translations are deterministic and current',()=>{
  const a=api.sync(root);assert.deepEqual(a.changed,[]);assert.equal(a.report.languages,15);assert.deepEqual(api.sync(root).changed,[]);
@@ -22,18 +23,24 @@ test('all 15 web and file-language bundles preserve approved interface, timer, b
  // Historical release and automatic-language baselines remain unchanged.
  const compiled=api.compile(root);
  for(const protocol of ['https:','file:']){
-  const {loader}=runtime({protocol});
+  const environment=runtime({protocol}),{loader}=environment;
   for(const code of compiled.codes){const bundle=await loader.load(code);const previous={...bundle,copy:{...bundle.copy}};for(const key of ['music','openingTravel','openingDefault','openingNone','openingReload','cookieSettings','cookieDismiss','cookieChoiceNote','defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan','releaseNotesAll','atmosphericClouds','ringTravel','ringTravelStarted','ringTravelUnavailable'])delete previous.copy[key];assert.equal(api.fingerprint(previous),gold[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
+  assert.equal(environment.scripts.length,protocol==='file:'?1:0,protocol+' compatibility payload');
  }
+});
+
+test('web startup excludes the direct-file compatibility payload',()=>{
+ const html=read('index.html'),loader=read('src/language-data.js'),fileCopy=read('src/language-file-copy.js');
+ assert.doesNotMatch(html,/language-file-copy\.js/);assert.doesNotMatch(loader,/const legacyFileCopy=/);assert.match(loader,/location\.protocol==='file:'[\s\S]*loadFileCopy\(\)/);assert.ok(Buffer.byteLength(loader)<Buffer.byteLength(fileCopy));
 });
 test('all retained historical release translations are unchanged',()=>{
  const notes=require('../src/release-notes.js');for(const [version,languages] of Object.entries(gold.releases))for(const [code,digest] of Object.entries(languages)){const release=notes.RELEASES.find(r=>r.version===version);assert.ok(release,version);assert.equal(api.fingerprint(notes.itemsFor(release,code)),digest,version+' '+code);}
 });
 
 test('ring travel labels are localized for all languages including older file-launch bundles',()=>{
- const {loader}=runtime({protocol:'file:'}),compiled=api.compile(root);
+ const {loader,installFileCopy}=runtime({protocol:'file:'}),fileCopy=installFileCopy(),compiled=api.compile(root);
  for(const code of compiled.codes){
-  const bundle=loader.resolveBundle({copy:{},bodies:{},phases:{}},code,{local:true});
+  const bundle=loader.resolveBundle({copy:{},bodies:{},phases:{}},code,{local:true,fileCopy});
   for(const key of ['ringTravel','ringTravelStarted','ringTravelUnavailable']){
    assert.equal(bundle.copy[key],compiled.bundles[code].copy[key],code+' '+key);
    assert.ok(data('i18n/locales/'+code+'.json').ui[key].trim(),code+' '+key);
@@ -60,8 +67,8 @@ test('English fallback is independent of previously visited languages, and does 
  assert.match(read('src/app.js'),/LanguageData\.fallback\.copy\[key\]/);assert.doesNotMatch(read('src/app.js'),/COPY\.kor\?\.|Object\.assign\(bundle\.copy|STAR_DENSITY_COPY/);
 });
 test('direct file launches overlay the current localized help introduction on an older public bundle',()=>{
- const {loader}=runtime({protocol:'file:'}),old={copy:{helpIntroPurpose:'Old public fallback'},bodies:{},phases:{}};
- const bundle=loader.resolveBundle(old,'kor',{local:true}),current=data('src/locales/kor.json').copy;
+ const {loader,installFileCopy}=runtime({protocol:'file:'}),old={copy:{helpIntroPurpose:'Old public fallback'},bodies:{},phases:{}};
+ const bundle=loader.resolveBundle(old,'kor',{local:true,fileCopy:installFileCopy()}),current=data('src/locales/kor.json').copy;
  for(const key of ['helpIntroTitle','helpIntroPurpose','helpIntroExperience','helpIntroDesktop','helpFeatures','helpFeatureSolar','helpFeatureTime','helpFeatureMusic','helpFeatureTimer'])assert.equal(bundle.copy[key],current[key],key);
  for(const key of ['defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan'])assert.equal(bundle.copy[key],current[key],key);
  assert.deepEqual(['defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan'].map(key=>bundle.copy[key]),['기본 시점','저장된 시점','행성 전환','천체 추적','줌인·아웃','회전','전진·후진','이동']);
@@ -73,9 +80,9 @@ test('direct file launches overlay the current localized help introduction on an
  assert.match(read('styles.css'),/\[data-i18n="helpIntroPurpose"\],[^}]+\.help-feature-list li\{white-space:pre-line\}/);
 });
 test('all language accessibility instructions override the obsolete remote wheel-mode toggle',()=>{
- const {loader}=runtime({protocol:'file:'});
+ const {loader,installFileCopy}=runtime({protocol:'file:'}),fileCopy=installFileCopy();
  for(const code of api.compile(root).codes){
-  const bundle=loader.resolveBundle({copy:{universeAria:'Obsolete Zoom/Move control'},bodies:{},phases:{}},code,{local:true});
+  const bundle=loader.resolveBundle({copy:{universeAria:'Obsolete Zoom/Move control'},bodies:{},phases:{}},code,{local:true,fileCopy});
   assert.equal(bundle.copy.universeAria,data('src/locales/'+code+'.json').copy.universeAria,code);
  }
  assert.match(data('src/locales/kor.json').copy.universeAria,/휠로 전진·후진.*우클릭 드래그로 광각·망원/);
@@ -128,8 +135,8 @@ test('music shortcut keeps current Korean and English labels with old file-launc
   const {loader}=runtime({protocol,fetch:async()=>({ok:true,json:async()=>protocol==='file:'?{copy:{music:'Background Music'},bodies:{},phases:{}}:data('src/locales/kor.json')})});
   assert.equal((await loader.load('kor')).copy.music,'배경 음악');
  }
- const {loader}=runtime({protocol:'file:'});
- assert.equal(loader.resolveBundle({copy:{},bodies:{},phases:{}},'en',{local:true}).copy.music,'Background Music');
+ const {loader,installFileCopy}=runtime({protocol:'file:'});
+ assert.equal(loader.resolveBundle({copy:{},bodies:{},phases:{}},'en',{local:true,fileCopy:installFileCopy()}).copy.music,'Background Music');
 });
 
 test('file launches retain current shutdown translations with older server bundles',async()=>{
@@ -155,7 +162,7 @@ test('latest release uses reviewed translations; explicit Korean-only fixtures r
 
 test('early locale request is shared with hydration and uses the loading-label language',async()=>{
  const {loader,requests}=runtime(),app=read('src/app.js');
- const regions=vm.runInNewContext(app.slice(app.indexOf('  const LANG_ORDER='),app.indexOf('  const REGIONS='))+';({LANG_ORDER,LANG_META})');
+ const values=require('./helpers/region-metadata.cjs').metadata(),regions={LANG_ORDER:values.order,LANG_META:values.meta};
  const source=app.slice(app.indexOf('  function showLoadingLanguage(){'),app.indexOf('  const COPY=Object.create(null)'));
  const label={style:{visibility:'hidden'}},context={...regions,Preferences:{read:()=>({language:'fr',languageMode:'manual'})},STORAGE_KEY:'test',detectedCopyLanguage:()=> 'kor',LanguageData:loader,COPY_META:loader.metadata,document:{documentElement:{},querySelector:()=>label}};
  vm.runInNewContext(source,context);
@@ -166,7 +173,7 @@ test('early locale request is shared with hydration and uses the loading-label l
 
 test('loading bootstrap uses canonical saved-region or AUTO copy before fetching a bundle',()=>{
  const {loader,requests}=runtime(),app=read('src/app.js');
- const regions=vm.runInNewContext(app.slice(app.indexOf("  const LANG_ORDER="),app.indexOf("  const REGIONS="))+';({LANG_ORDER,LANG_META})');
+ const values=require('./helpers/region-metadata.cjs').metadata(),regions={LANG_ORDER:values.order,LANG_META:values.meta};
  const bootstrap=app.match(/function showLoadingLanguage\(\)\{[\s\S]*?\n  \}/)[0];
  for(const [region,meta]of Object.entries(regions.LANG_META)){
   const label={style:{visibility:'hidden'}},document={documentElement:{},querySelector:()=>label};

@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8'),rows=require('./fixtures/regions-v061.json');
-function metadata(){const app=read('src/app.js'),a=app.indexOf('  const LANG_ORDER='),b=app.indexOf('  const FACTORY_OPTIONS=',a);return vm.runInNewContext(app.slice(a,b)+';({order:LANG_ORDER,meta:LANG_META,regions:REGIONS})');}
+const {metadata}=require('./helpers/region-metadata.cjs');
 function detect(zone,languages){const window={};require('./helpers/i18n-runtime.cjs').localization({window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
 test('13 requested countries reuse existing English/Spanish without new locale payloads',()=>{
  const {order,meta,regions}=metadata(),prior=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve'];
@@ -12,8 +12,7 @@ test('13 requested countries reuse existing English/Spanish without new locale p
   assert.ok(!fs.existsSync(path.join(__dirname,'../src/locales/'+r.code+'.json')));
  }
  assert.equal(fs.readdirSync(path.join(__dirname,'../src/locales')).filter(f=>f.endsWith('.json')).length,15);
- const html=read('index.html'),block=html.slice(html.indexOf('id="language-scroll"'),html.indexOf('scroll-cue-down',html.indexOf('id="language-scroll"')));
- assert.deepEqual([...block.matchAll(/data-language="([^"]+)"/g)].map(m=>m[1]),Array.from(order));
+ const html=read('index.html'),app=read('src/app.js');assert.doesNotMatch(html,/data-language="[^"]+"/);assert.match(app,/for\(const region of REGION_CATALOG\)/);
 });
 for(const r of rows){
  test(r.code+' uses local time in winter/summer and on date rollover',()=>{

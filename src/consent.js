@@ -27,10 +27,11 @@
   function read(){
     try{
       const raw=root.localStorage?.getItem(storageKey);if(!raw)return null;
-      // Old choices have no date. Preserve the decision, starting its one-time
-      // migration window now; never renew that window on subsequent visits.
-      if(valid.has(raw)){const migrated=fresh(raw);return write(migrated)?migrated:null;}
-      const value=JSON.parse(raw);if(current(value))return value;
+      // Only acceptance persists. Remove older saved rejections so a later
+      // visit asks again instead of treating rejection as a durable choice.
+      if(raw==='granted'){const migrated=fresh(raw);return write(migrated)?migrated:null;}
+      if(raw==='denied'){remove();return null;}
+      const value=JSON.parse(raw);if(current(value)&&value.value==='granted')return value;
       remove();return null;
     }catch(_){return null;}
   }
@@ -51,7 +52,9 @@
     return record?.value||'';
   }
   function choose(value){
-    record=fresh(value==='granted'?'granted':'denied');write(record);armExpiry();return publish('choice');
+    record=fresh(value==='granted'?'granted':'denied');
+    if(record.value==='granted')write(record);else remove();
+    armExpiry();return publish('choice');
   }
   function reset(){record=null;remove();armExpiry();return publish('reset');}
   // Compatibility-only non-persisting update. UI choices always use choose().

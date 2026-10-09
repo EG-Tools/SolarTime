@@ -20,6 +20,63 @@ function renderer(seed=.127694){
  return {r,R,sandbox,now:value=>{now=value;}};
 }
 const ms=Date.parse('2026-09-19T12:00:00Z');
+test('rejected restores leave travel, particles, camera and layer visibility untouched',()=>{
+ for(const focus of [undefined,'moon','pluto']){
+  const {r}=renderer();r.options.moon=false;r.options.pluto=false;
+  let disposed=0;r.ringTour={dispose(){disposed++;}};
+  r.cameraTween={start:0};r.openingParticles={points:[{}]};
+  r.gpu={canvas:{style:{opacity:'1',visibility:'hidden',transition:'none'}}};
+  r.replayLayerStyle={opacity:'',visibility:'',transition:''};
+  const before={camera:r.camera,tour:r.ringTour,tween:r.cameraTween,particles:r.openingParticles,layer:r.replayLayerStyle};
+  const state=focus?{...r.cameraSnapshot(),focus}:null;
+  assert.equal(r.restoreCamera(state),false);assert.equal(disposed,0);
+  assert.equal(r.camera,before.camera);assert.equal(r.ringTour,before.tour);assert.equal(r.cameraTween,before.tween);
+  assert.equal(r.openingParticles,before.particles);assert.equal(r.replayLayerStyle,before.layer);
+  assert.equal(r.gpu.canvas.style.visibility,'hidden');
+ }
+});
+test('one transition manager owns camera, warp, ring and pose handoff state',()=>{
+ const {r}=renderer(),manager=r.transitionManager(),camera={timing:'opening'};
+ r.cameraTween=camera;assert.equal(manager.camera,camera);assert.equal(r.transitionMode,'opening');
+ const tour={state:'entering'};r.ringTour=tour;assert.equal(manager.tour,tour);assert.equal(r.transitionMode,'ring');
+ camera.replay={};assert.equal(r.transitionMode,'warp');
+ const handoff={mono:12,pose:{}};r.openingFlight=handoff;assert.equal(manager.handoff,handoff);assert.equal(r.openingFlight,handoff);
+ r.cameraTween=null;r.ringTour=null;r.openingFlight=null;assert.equal(r.transitionMode,'idle');assert.ok(manager.revision>=6);
+});
+test('blocked warp clearance has a bounded departure and completes through normal arrival',()=>{
+ for(const viaPrepare of [false,true]){
+  const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),100,6500);
+  const move=r.cameraTween,p=move.replay,body={body:{id:'sun'},r:100000,screen:{x:640,y:400}};
+  r.checkReplayClearance(15099,[body]);assert.equal(p.resetAt,Infinity);
+  if(viaPrepare)r.prepareReplayFrame(15100);else r.checkReplayClearance(15100,[body]);
+  assert.equal(p.clearanceTimedOut,true);assert.equal(p.brakeAt,15000);assert.equal(p.resetAt,17700);
+  assert.equal(r.openingParticles.duration,move.duration);
+  const duration=move.duration;r.prepareReplayFrame(16000);r.checkReplayClearance(17000,[body]);assert.equal(move.duration,duration);
+  r.advanceCamera(move.start+duration);assert.equal(r.cameraTween,null);
+  for(const key of ['azimuth','elevation','zoom','dolly','panX','panY'])close(r.camera[key],target[key]);
+ }
+});
+test('paused warp cannot exhaust its clearance deadline and ring takeoff shares recovery timing',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const p=r.cameraTween.replay,body={body:{id:'saturn'},r:1000,screen:{x:640,y:400}};
+ r.setAnimationPaused(true,1000);r.prepareReplayFrame(60000);r.checkReplayClearance(60000,[body]);
+ assert.equal(p.resetAt,Infinity);r.setAnimationPaused(false,61000);
+ r.checkReplayClearance(74999,[body]);assert.equal(p.resetAt,Infinity);
+ r.ringTour={replayBridge:{takeoff:{}}};r.checkReplayClearance(75000,[body]);
+ assert.equal(p.brakeAt,15000);assert.equal(r.ringTour.replayBridge.takeoff.brakeAt,15);assert.equal(r.ringTour.returnDuration,17.7);
+});
+test('shared grain birth preserves directional timing, far loop depth and Saturn-only caching',()=>{
+ for(const saturn of [false,true])for(const kind of ['entry','late','loop']){
+  const {r}=renderer(),p={rotation:Math.PI,x:-1,y:0,depth:2,edgeKeep:kind!=='loop',earlyKeep:kind!=='late'};
+  const field={replay:{sceneSlide:{direction:[1,0]},saturnTour:saturn?{}:null,brakeAt:4300},elapsed:0,saturnBirths:new Map(),cameraFrames:[{time:0,distance:0},{time:10000,distance:20}]};
+  const frame={birthAt:1000},at=kind==='loop'?4900:kind==='late'?2000:1375;
+  const initial=r.warpParticleBirth(p,field,frame);close(initial.at,at);close(initial.distance,at/500);close(initial.depth,kind==='loop'?4.625:2);
+  assert.equal(field.saturnBirths.size,0);field.elapsed=at;
+  const born=r.warpParticleBirth(p,field,frame);assert.equal(field.saturnBirths.size,saturn?1:0);
+  field.cameraFrames[1].distance=40;const later=r.warpParticleBirth(p,field,frame);
+  close(later.distance,saturn?born.distance:born.distance*2);
+ }
+});
 test('manual background parallax is reversible, bounded and never follows Saturn travel',()=>{
  const {r}=renderer();r.sky.starAxes={forward:[0,0,1]};
  r.shiftBackgroundForManualDolly(1,2);const first=[...r.manualBackgroundStars.offset];
@@ -58,8 +115,72 @@ test('opening and warp arrival reveal the whole solar system on their camera clo
  r.cancelCameraTween(arrival+1000);assert.equal(r.gpu.canvas.style.opacity,'');
  close(r.replayPresentation(arrival+1000).solar,1);
 });
+test('one replay presentation result is reused within a frame and refreshed when its clock changes',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,100,6500);
+ const first=r.replayPresentation(1100),alpha=first.solar;
+ assert.strictEqual(r.replayPresentation(1100),first);
+ r.cameraTween.start+=500;const refreshed=r.replayPresentation(1100);
+ assert.strictEqual(refreshed,first);assert.notEqual(refreshed.solar,alpha);
+});
+
+test('Saturn frame conversions round-trip vectors and points through one shared basis',()=>{
+ const {R}=renderer(),axes=A.bodyAxes(A.BODIES.find(body=>body.id==='saturn')),origin={x:80,y:-20,z:13},units=7;
+ const vector=[.3,-.8,.45],worldVector=R.frameVectorToWorld(axes,vector),localVector=R.frameVectorToLocal(axes,worldVector);
+ vector.forEach((value,i)=>close(localVector[i],value));
+ const point=R.framePointToWorld(axes,origin,units,vector),localPoint=R.framePointToLocal(axes,origin,units,point);
+ vector.forEach((value,i)=>close(localPoint[i],value));
+});
 
 function entryTour(){return {seed:123,age:0,visualAge:0,state:'entering',pose:{fov:72,perspective:0,orthoScale:1,offset:[0,0],eye:[0,0,10],right:[1,0,0],up:[0,1,0],forward:[0,0,-1]}};}
+test('Saturn grains retain staggered births, delay 300 ms and fade in for one second',()=>{
+ const {r}=renderer(),tour=entryTour();r.ringTour=tour;r.startSaturnParticles(tour,0);
+ const f=r.openingParticles,p={...f.points[0],rotation:0,formationAt:0,brightness:1,earlyKeep:true,edgeKeep:true};
+ f.saturnLoopKeep=null;f.saturnFadeRetire=null;
+  for(const addedAt of [undefined,1800]){
+   p.saturnAddedAt=addedAt;const birth={at:0},start=Math.max(0,addedAt??0)+300;
+  for(const [elapsed,expected] of [[start-1,0],[start,0],[start+500,.5],[start+1000,1],[start+1500,1]]){
+   f.elapsed=elapsed;close(r.saturnEntryAppearance(p,f,birth),expected);
+  }
+ }
+ delete p.saturnAddedAt;
+  for(const [elapsed,expected] of [[299,0],[300,0],[800,.5],[1300,1]]){
+  tour.age=elapsed/1000;r.openingParticleFrame(elapsed);
+  const frame=r.openingParticleProjection(f),q=r.projectOpeningParticle(p,f,{},false,frame);
+  const normalized=q.opacity/(f.alpha*p.brightness*.9);
+  close(normalized,expected);
+ }
+  f.motionCarry={at:0,distance:20,velocity:1,tailScale:.5};f.elapsed=800;
+  close(r.saturnEntryAppearance(p,f,{at:0}),.5);
+});
+test('Saturn volume wrapping does not restart the one-time delayed alpha ramp',()=>{
+ const {r}=renderer(),p={},axes={right:[1,0,0],down:[0,1,0],forward:[0,0,-1]};
+ const field={saturnVolume:{points:new Map([[p,{world:[0,0,1]}]]),eye:[0,0,0],axes,focal:400,started:0,time:0}};
+ for(const elapsed of [0,300,800,1300,5000]){field.elapsed=elapsed;const out={};r.projectSaturnEntryVolume(p,field,0,out);close(out.saturnVolumeAlpha,1);}
+});
+test('pause registry preserves point reveal and clearance hold, and shifts aliased clocks only once',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const move=r.cameraTween,p=move.replay;p.clearSince=4400;
+ r.startOpeningPointReveal(4100);const alpha=r.openingPointOpacity(4500);
+ const sample={time:4400};r.sky.skySample=sample;r.sky.skyPrevious=sample;p.skyFrom=sample;
+ r.openingParticles.replay.openingMove=move;
+ r.setAnimationPaused(true,4500);close(r.openingPointOpacity(15000),alpha);
+ r.setAnimationPaused(false,14500);assert.equal(move.start,10000);assert.equal(sample.time,14400);assert.equal(p.clearSince,14400);
+ close(r.openingPointOpacity(14500),alpha);
+ r.checkReplayClearance(14500,[]);assert.equal(p.resetAt,Infinity);
+ r.checkReplayClearance(14650,[]);assert.equal(p.brakeAt,4650);
+ const start=move.start;r.setAnimationPaused(false,20000);assert.equal(move.start,start);
+ assert.equal(r.setAnimationPaused(true,NaN),0);assert.equal(r.animationPaused,false);
+});
+test('camera basis and flight-look target use the same banked axes through poles',()=>{
+ const {r}=renderer();
+ for(const yaw of [-2,0,1.7])for(const pitch of [-Math.PI/2,-.3,Math.PI/2,2.8])for(const bank of [-Math.PI/4,0,Math.PI/4]){
+  r.camera.azimuth=yaw;r.camera.elevation=pitch;r.flightBank=bank;r.flightLook=null;
+  const target=r.flightLookForView(yaw+.4,pitch+.2),state={...r.camera};r.flightLook=target;
+  const points=[{x:1,y:0,z:0},{x:0,y:1,z:0},{x:0,y:0,z:1},{x:4,y:2,z:-3}],actual=points.map(p=>r.viewDirection(p));
+  r.flightLook=null;r.camera={...state,azimuth:yaw+.4,elevation:pitch+.2};
+  points.forEach((p,i)=>{const expected=r.viewDirection(p);for(const key of ['x','y','z'])close(actual[i][key],expected[key]);});
+ }
+});
 test('Saturn entry alone uses the reviewed t1 warp lifecycle and particle pool',()=>{
  const {r}=renderer(),tour=entryTour();r.ringTour=tour;r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};
  r.startSaturnParticles(tour,0);const field=r.openingParticles;
@@ -76,18 +197,74 @@ test('Saturn t1 entry accelerates from rest and keeps the ordinary warp clock un
  const ordinary=warp.openingParticleFrame(999);
  assert.ok(ordinary.points.every(p=>warp.projectOpeningParticle({...p,speed:0,depth:2,brightness:1,formationAt:0},ordinary,{}).alpha===0),'ordinary T still waits one second');
 });
-test('Saturn t1 painter uses the warp glow style with non-additive Saturn compositing',()=>{
+test('Saturn entry profile owns one non-additive painter',()=>{
  const source=read('src/renderer.js'),method=source.slice(source.indexOf('    drawSaturnFlightParticles('),source.indexOf('    drawFlightParticles('));
- for(const value of ["field.replay.saturnTour)?'source-over':'lighter'","FLIGHT_GLOW_COLORS[p.color??0]","this.saturnEntryParticleAlpha(p,field)"])assert.ok(method.includes(value),value);
- assert.doesNotMatch(method,/saturn-entry-v071|saturnEntrySprite/);
+  for(const value of ["c.globalCompositeOperation='source-over'","FLIGHT_GLOW_COLORS[p.color??0]","this.saturnEntryParticleAlpha(p,field)"])assert.ok(method.includes(value),value);
+  assert.doesNotMatch(method,/styleMix|transitionSeed|saturn-entry-v071|saturnEntrySprite/);
 });
-test('Saturn t1 grains fade independently over 6.5 seconds and are released at landing',()=>{
+test('Saturn t1 grains retain their staggered fade for half a second after landing',()=>{
  const {r}=renderer(),tour=entryTour();r.ringTour=tour;r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};r.startSaturnParticles(tour,0);
  const field=r.openingParticles,early={rotation:0},late={rotation:Math.PI*2};
- field.elapsed=3500;close(r.saturnEntryParticleAlpha(early,field),1);close(r.saturnEntryParticleAlpha(late,field),1);
- field.elapsed=7000;assert.ok(r.saturnEntryParticleAlpha(early,field)<r.saturnEntryParticleAlpha(late,field));
- field.elapsed=10000;close(r.saturnEntryParticleAlpha(early,field),0);close(r.saturnEntryParticleAlpha(late,field),0);
- tour.state='cruising';tour.age=10;assert.equal(r.openingParticleFrame(10000),null);assert.equal(r.openingParticles,null);assert.equal(field.points.length,0);
+ field.elapsed=7999;close(r.saturnEntryParticleAlpha(early,field),1);close(r.saturnEntryParticleAlpha(late,field),1);
+ field.elapsed=8500;assert.ok(r.saturnEntryParticleAlpha(early,field)<r.saturnEntryParticleAlpha(late,field));
+ field.elapsed=10000;assert.ok(r.saturnEntryParticleAlpha(early,field)>.2);assert.ok(r.saturnEntryParticleAlpha(late,field)>.5);
+ field.elapsed=10500;close(r.saturnEntryParticleAlpha(early,field),0);close(r.saturnEntryParticleAlpha(late,field),0);
+ tour.state='cruising';tour.age=10;assert.equal(r.openingParticleFrame(10000),field);
+ tour.age=10.499;assert.equal(r.openingParticleFrame(10499),field);
+ tour.age=10.5;assert.equal(r.openingParticleFrame(10500),null);assert.equal(r.openingParticles,null);assert.equal(field.points.length,0);
+});
+test('Saturn entry limits only the random halo to the requested seven-pixel range',()=>{
+ const {r}=renderer(),arcs=[],p={rotation:0,sizeScale:2};
+ const c={save(){},restore(){},beginPath(){},arc(x,y,radius){arcs.push(radius);},fill(){},stroke(){}};
+ const field={alpha:1,elapsed:3000,replay:{saturnTour:{},resetAt:0,brakeAt:10000},points:[p],projected:{}};
+ r.drawSaturnFlightParticles(c,field,()=>({visible:true,alpha:1,size:4.5,glowSize:12,glowScale:.7,tail:0,angle:0,x:20,y:20}));
+ const coreRadius=Math.min(1.05,Math.max(.38,4.5*.23))*2*.5;
+ assert.equal(arcs.length,3);assert.ok(arcs[0]>=1&&arcs[0]<=7);assert.ok(arcs[1]<arcs[0]);close(arcs[2],coreRadius);
+});
+test('an early Saturn return uses the shared particle fade instead of clearing its pool',()=>{
+ const {r}=renderer(),tour=entryTour();r.ringTour=tour;r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};r.startSaturnParticles(tour,0);
+ tour.age=4;r.openingParticleFrame(4000);const field=r.openingParticles,count=field.points.length;tour.state='returning';
+ assert.strictEqual(r.openingParticleFrame(4000),field);assert.equal(field.exitAt,4000);assert.equal(field.fadeDuration,1200);assert.equal(field.points.length,count);
+ const base=field.alpha,middle=r.openingParticleFrame(4600);assert.strictEqual(middle,field);close(middle.alpha,base);assert.equal(field.points.length,count);
+ assert.ok(r.particleRetirementAlpha({retirePhase:0},field)<r.particleRetirementAlpha({retirePhase:1},field));
+ assert.equal(r.openingParticleFrame(5200),null);assert.equal(r.openingParticles,null);assert.equal(field.points.length,0);
+});
+test('Saturn entry volume alternates two eye buffers instead of allocating one every frame',()=>{
+ const {r}=renderer(),tour=entryTour();r.ringTour=tour;r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};r.startSaturnParticles(tour,0);
+ tour.age=1;r.openingParticleFrame(1000);const volume=r.openingParticles.saturnVolume,first=volume.eye,second=volume.nextEye;
+ tour.age=2;r.openingParticleFrame(2000);assert.strictEqual(volume.eye,second);assert.strictEqual(volume.nextEye,first);
+ tour.age=3;r.openingParticleFrame(3000);assert.strictEqual(volume.eye,first);assert.strictEqual(volume.nextEye,second);
+});
+
+test('opening to Saturn retires the source layer and starts destination births on a fresh clock',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};
+ r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,0,6500);r.cameraTween.flyThrough=true;r.keepOpeningParticlesUntilBoarding();
+  const opening=r.openingParticleFrame(6000),openingAlpha=opening.alpha,count=opening.points.length;
+  const probe=opening.points[0];Object.assign(probe,{retirePhase:1,edgeKeep:true,earlyKeep:true,life:5000,rotation:0,brightness:1,formationAt:0,speed:.1,depth:2});
+  const beforeProjection=r.projectOpeningParticle(probe,opening,{}),tour=entryTour();r.ringTour=tour;r.startSaturnParticles(tour,6000,true);
+  const field=r.openingParticles,layers=r.particleLifecycle().fields();assert.notStrictEqual(field,opening);
+  assert.equal(opening.points.length,count);assert.equal(layers.length,2);assert.strictEqual(layers[0],opening);assert.strictEqual(layers[1],field);assert.equal(opening.exitAt,6000);
+  tour.age=0;r.openingParticleFrame(6000,field);close(field.elapsed,0);close(field.alpha,0);assert.equal(field.replay.brakeAt,10000);
+  const startAlpha=r.openingParticleFrame(6000,opening).alpha;assert.ok(startAlpha>0&&startAlpha<=openingAlpha);
+  const afterProjection=r.projectOpeningParticle(probe,opening,{});close(afterProjection.alpha,beforeProjection.alpha);
+  assert.equal(opening.holdExitEnvelope,true,'the old arrival fade must stay bypassed throughout retirement');
+  const middleAlpha=r.openingParticleFrame(6600,opening).alpha;close(middleAlpha,startAlpha);
+  assert.ok(r.particleRetirementAlpha({retirePhase:0},opening)<r.particleRetirementAlpha({retirePhase:1},opening));
+  tour.age=.8;r.openingParticleFrame(6800,field);
+  const visible=field.saturnDrawPoints.filter(p=>r.projectOpeningParticle(p,field,{},true).alpha>1e-4).length;
+  assert.ok(visible>0&&visible<field.saturnDrawPoints.length,'Saturn births must remain staggered');
+  assert.equal(r.openingParticleFrame(7200,opening),null);assert.equal(r.particleLifecycle().fields().length,1);assert.strictEqual(r.particleLifecycle().fields()[0],field);
+});
+
+test('Saturn entry fades in its own layer when a warp takes ownership',()=>{
+ const {r}=renderer(),tour=entryTour();r.ringTour=tour;r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};r.startSaturnParticles(tour,0);
+  tour.age=4;r.openingParticleFrame(4000);const saturn=r.openingParticles,before=saturn.alpha,count=saturn.points.length;
+ r.cameraTween={replay:{ring:{accelerationDuration:4.3,viewTurnAngle:Math.PI/3},particleAt:0,brakeAt:4300,resetAt:7000,inbound:6500}};
+  r.startOpeningParticles(4000,15500);const warp=r.openingParticles;
+  assert.notStrictEqual(warp,saturn);assert.equal(saturn.points.length,count);assert.equal(r.particleLifecycle().fields().length,2);assert.strictEqual(r.particleLifecycle().fields()[0],saturn);assert.strictEqual(r.particleLifecycle().fields()[1],warp);
+  const fading=r.openingParticleFrame(4500,saturn);close(fading.alpha,before);
+  assert.ok(r.particleRetirementAlpha({retirePhase:0},saturn)<r.particleRetirementAlpha({retirePhase:1},saturn));
+  assert.equal(r.openingParticleFrame(5200,saturn),null);assert.equal(r.particleLifecycle().fields().length,1);assert.strictEqual(r.particleLifecycle().fields()[0],warp);
 });
 
 test('warp picks the three directions away from the projected orbital disc',()=>{
@@ -101,12 +278,13 @@ test('warp picks the three directions away from the projected orbital disc',()=>
  assert.ok(!choices.includes(0)&&!choices.includes(4));
 });
 
-test('warp solar scene translates rigidly in eight directions and restores the live camera',()=>{
+test('warp solar scene translates rigidly in eight directions without mutating the live renderer',()=>{
  const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
- r.rebuild=()=>{r.scale=2;r.centerX=640+r.camera.panX*1280;r.centerY=400+r.camera.panY*800;};
+ r.rebuild=function(){this.scale=2;this.centerX=640+this.camera.panX*1280;this.centerY=400+this.camera.panY*800;};
  const path=r.cameraTween.replay;path.resetAt=7000;
  const points=[{x:0,y:0,z:0},{x:70,y:-30,z:12},{x:-90,y:20,z:-10}];
- const sample=t=>{const saved=r.beginReplayScene(r.replaySceneSlide(t),ms);r.cx=r.centerX;r.cy=r.centerY;r.projectionAnchor=null;try{return points.map(p=>r.project(p));}finally{r.endReplayScene(saved);}};
+ const sample=t=>{const scene=r.replaySceneContext(r.replaySceneSlide(t),ms);scene.cx=scene.centerX;scene.cy=scene.centerY;scene.projectionAnchor=null;return points.map(p=>scene.project(p));};
+ const liveScale=r.scale,liveFrameCache=r.frameCache;
  for(let direction=0;direction<8;direction++){
   const angle=direction*Math.PI/4;path.sceneSlide.direction=[Math.sin(angle),Math.cos(angle)];
   const initial=sample(0);r.camera={...r.camera,azimuth:r.camera.azimuth+.3,elevation:.8,zoom:3};
@@ -115,6 +293,7 @@ test('warp solar scene translates rigidly in eight directions and restores the l
    const slide=r.replaySceneSlide(time),projected=sample(time);
    projected.forEach((p,i)=>{close(p.x-initial[i].x,slide.x);close(p.y-initial[i].y,slide.y);close(p.perspective,initial[i].perspective);close(p.z,initial[i].z);});
    assert.equal(r.camera,actual);
+   assert.equal(r.scale,liveScale);assert.equal(r.frameCache,liveFrameCache);assert.notEqual(r.replayRenderContext.frameCache,liveFrameCache);
   }
  }
  assert.equal(r.replaySceneSlide(7000),null);assert.equal(r.replaySceneSlide(9000),null);
@@ -399,13 +578,14 @@ test('fresh opening starts its particle distance at zero without inherited warp 
 
 test('opening glows retain radial fallback when no displayed sky camera is available',()=>{
  const {r}=renderer(),target=r.cameraSnapshot();r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,100,6500);
- const pool=r.openingParticles,p={...pool.points[0],x:.2,y:.1,depth:4,speed:.1};let previous=0;
+ const pool=r.openingParticles,p={...pool.points[0],x:.2,y:.1,depth:4,speed:.1},radii=[];
  for(const time of [0,300,1000,2000,4000,6000]){
   const f=r.openingParticleFrame(100+time),q=r.projectOpeningParticle(p,f,{}),x=q.x-r.w/2,y=q.y-r.h/2;
   close(f.headingX,0);close(f.headingY,0);close(x/y,2);
-  const radius=Math.hypot(x,y);assert.ok(radius>previous);previous=radius;
+  radii.push(Math.hypot(x,y));
   assert.ok(q.tail>=0);
  }
+ assert.ok(Math.max(...radii)-Math.min(...radii)>1,'accelerated fallback grains still move before recycling through depth');
 });
 
 test('60-degree warp forward motion does not inherit the separate scene parallax',()=>{
@@ -499,26 +679,6 @@ test('warp appearance alpha uses stable random delays and fade durations',()=>{
  for(const p of probes)close(alpha(p,2200),alpha(probes[0],2200));
 });
 
-test('warp arrival tails retain staggered contraction and boot grains fade at different times',()=>{
- const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningCamera(target,9000,6500);
- const pool=r.openingParticles,probes=[0,.5,1].map(n=>({...pool.points[0],life:1000+4000*n,rotation:n*Math.PI*2,x:.2,y:.1,depth:2,speed:1,brightness:1,formationAt:0}));
- // Hold perspective/speed fixed to measure only the requested tail envelope.
- const tail=(p,time)=>{const f=r.openingParticleFrame(time);return r.projectOpeningParticle(p,{...f,replay:{...f.replay,openingMove:null},motion:null,distance:0,lateralX:0,lateralY:0,travel:0,velocity:.36,headingX:0,headingY:0,flowX:0,flowY:0,bendX:0,bendY:0},{}).tail;};
- for(const p of probes){
-  const initial=tail(p,9000);let previous=initial;
-  for(let time=9000;time<=11000;time+=20){const value=tail(p,time);assert.ok(value<=previous+1e-10);assert.ok(previous-value<initial*.03);previous=value;}
-  assert.ok(tail(p,9450)>initial*.65,'no abrupt shared 450ms contraction');
-  close(tail(p,11000),initial*.25);
- }
- close(tail(probes[0],10000)/tail(probes[0],9000),.25);
- assert.ok(tail(probes[2],10000)/tail(probes[2],9000)>.7,'other grains retain longer tails');
- const alpha=(p,time)=>r.projectOpeningParticle({...p,speed:0},r.openingParticleFrame(time),{}).alpha;
- for(const p of probes){let previous=Infinity;for(let time=12000;time<17500;time+=25){const value=alpha(p,time);assert.ok(value<=previous+1e-10);previous=value;}}
- close(alpha(probes[0],10000),0);assert.ok(alpha(probes[1],12000)>0);assert.ok(alpha(probes[2],12000)>0);
- close(alpha(probes[1],14000),0);assert.ok(alpha(probes[2],17000)>0);
- assert.equal(r.openingParticleFrame(17500),null);
-});
-
 test('first second caps at 200 and arrival progressively retires both halves',()=>{
  for(const [width,quality,count] of [[1280,'auto',960],[390,'auto',520],[1280,'low',320]]){
   const {r}=renderer();r.w=width;r.options.quality=quality;const target=r.cameraSnapshot();
@@ -567,12 +727,14 @@ test('boot opening begins at warp arrival and preserves its camera and fade life
   r.animateOpeningCamera(target,100,duration);
   const move=r.cameraTween,pool=r.openingParticles;assert.equal(move.replay,undefined);
   assert.equal(pool.replay.openingMove,move);assert.equal(move.duration,duration);
+  assert.equal(pool.particleProfile,undefined);assert.equal(pool.particlePath,undefined);
   const {r:warp}=renderer();warp.animateOpeningReplay(target,warp.openingCameraSnapshot(target),100,duration);
   warp.cameraTween.replay.brakeAt=4300;warp.cameraTween.replay.resetAt=7000;warp.cameraTween.replay.ring.accelerationDuration=4.3;
   for(const elapsed of [0,500,2000,duration-1,duration,duration+1500]){
    const boot=r.openingParticleFrame(100+elapsed),exit={};warp.replayDustMotion(warp.cameraTween.replay,9000+elapsed,exit);exit.alpha=warp.replayParticleAlpha(9000+elapsed,warp.cameraTween.replay,exit.velocity);
-   for(const key of ['velocity','travel'])close(boot[key],exit[key]);
-   for(const key of ['formation','tailScale','alpha'])close(boot[key],exit[key]);
+   for(const key of ['velocity','travel','formation','tailScale'])close(boot[key],exit[key]);
+   const fadeT=A.clamp((elapsed-(duration+800))/1200,0,1),finish=1-fadeT**3*(fadeT*(fadeT*6-15)+10);
+   close(boot.alpha,exit.alpha*finish);
    const alphas=boot.points.map(p=>{const q=r.projectOpeningParticle(p,boot,{});assert.ok([q.x,q.y,q.tail,q.alpha].every(Number.isFinite));return q.alpha;});
    if(elapsed===0)assert.ok(alphas.every(alpha=>alpha===0));else assert.ok(alphas.some(alpha=>alpha>0));assert.equal(r.openingParticles,pool);
   }
@@ -585,10 +747,8 @@ test('boot opening begins at warp arrival and preserves its camera and fade life
 test('boot fades grains in at staggered times without delaying arrival motion',()=>{
  const {r}=renderer(),target=r.cameraSnapshot();r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,100,6500);
  const pool=r.openingParticles,probes=[0,.5,1].map(n=>({...pool.points[0],rotation:n*Math.PI*2,life:4000,speed:0,depth:2,brightness:1,formationAt:0}));
- const appearance=(p,elapsed)=>{
-  const f=r.openingParticleFrame(100+elapsed),q=r.projectOpeningParticle(p,f,{});
-  return q.alpha/f.alpha;
- };
+ assert.equal(pool.particleProfile,undefined);assert.equal(pool.replay.openingMove,r.cameraTween);assert.equal(pool.replay.saturnTour,undefined);
+ const appearance=(p,elapsed)=>{const f=r.openingParticleFrame(100+elapsed),q=r.projectOpeningParticle(p,f,{});return q.alpha/f.alpha;};
  for(const p of probes){
   close(appearance(p,0),0);let previous=0;
   for(let t=20;t<=1200;t+=20){const alpha=appearance(p,t);assert.ok(alpha>=previous-1e-10&&alpha-previous<.06,'gradual frame-independent appearance');previous=alpha;}
@@ -651,14 +811,42 @@ test('warp particle cancellation fades out and reduced motion skips allocation',
  const {r,sandbox}=renderer(),target=r.cameraSnapshot();
  r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
  const pool=r.openingParticles;r.cancelCameraTween(3000);
- const before=r.openingParticleFrame(3000).alpha,after=r.openingParticleFrame(3110).alpha;
- assert.ok(after<before);assert.equal(r.openingParticleFrame(3220),null);assert.equal(pool.points.length,0);
+ const before=r.openingParticleFrame(3000).alpha,after=r.openingParticleFrame(3600).alpha;
+ close(after,before);assert.ok(r.particleRetirementAlpha({retirePhase:0},pool)<r.particleRetirementAlpha({retirePhase:1},pool));
+ assert.equal(r.openingParticleFrame(4200),null);assert.equal(pool.points.length,0);
  r.animateOpeningCamera(target,0,6500);
  r.advanceCamera(6500);assert.equal(r.cameraTween,null);assert.ok(r.openingParticleFrame(7000));
- r.cancelCameraTween(7000);assert.equal(r.openingParticleFrame(7220),null);
+ r.cancelCameraTween(7000);assert.ok(r.openingParticleFrame(7600));assert.equal(r.openingParticleFrame(8200),null);
  sandbox.matchMedia=()=>({matches:true});
  r.animateOpeningReplay(target,r.openingCameraSnapshot(target),4000,6500);
  assert.equal(r.openingParticles,null);assert.ok(r.cameraTween.replay);
+});
+test('warp to opening keeps one pool and fades particle alpha continuously across the handoff',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;const pool=r.openingParticles,at=r.replayOpeningAt(path);
+ const short={...pool.points[0],edgeKeep:true,earlyKeep:true,life:1000,rotation:0,brightness:1,formationAt:0,speed:0,x:.2,y:.1,depth:2};
+ const long={...short,life:5000,rotation:Math.PI*2};
+ const sample=(p,time)=>{const field=r.openingParticleFrame(time);assert.strictEqual(field,pool);return r.projectOpeningParticle(p,field,{}).alpha;};
+ const before=sample(short,at-1),edge=sample(short,at),after=sample(short,at+1);
+ assert.ok(Math.abs(edge-before)<.01&&Math.abs(after-edge)<.01,'alpha must not step at the camera handoff');
+ const shortLater=sample(short,at+400),longLater=sample(long,at+400);
+ assert.ok(shortLater<edge&&longLater>shortLater,'the shared pool must retire grains gradually at different times');
+});
+
+test('warp opening coasts its particles through the early camera handoff to Saturn',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};
+ r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ const path=r.cameraTween.replay;path.brakeAt=4300;path.resetAt=7000;r.cameraTween.flyThrough=true;r.keepOpeningParticlesUntilBoarding();
+ for(let time=0;time<=15250;time+=50)r.openingParticleFrame(time);
+ const opening=r.openingParticles,tour=entryTour();assert.ok(opening&&opening.awaitingSaturn);
+ r.ringTour=tour;r.startSaturnParticles(tour,15250,true);const field=r.openingParticles;
+  assert.notStrictEqual(field,opening);assert.equal(r.particleLifecycle().fields().length,2);assert.strictEqual(r.particleLifecycle().fields()[0],opening);assert.strictEqual(r.particleLifecycle().fields()[1],field);
+  assert.ok(field.motionCarry&&field.motionCarry.velocity===opening.velocity);close(field.elapsed,0);close(field.alpha,0);
+  const startAlpha=r.openingParticleFrame(15250,opening).alpha;tour.age=.6;r.openingParticleFrame(15850,field);
+  const fading=r.openingParticleFrame(15850,opening);assert.ok(fading);close(fading.alpha,startAlpha);
+  assert.ok(r.particleRetirementAlpha({retirePhase:0},opening)<r.particleRetirementAlpha({retirePhase:1},opening));
+  const frame=r.openingParticleProjection(field),born=field.saturnDrawPoints.filter(p=>r.saturnEntryAppearance(p,field,r.warpParticleBirth(p,field,frame))>1e-4).length;
+  assert.ok(born>0&&born<field.saturnDrawPoints.length,'destination field must grow instead of appearing as one group '+JSON.stringify({born,total:field.saturnDrawPoints.length,elapsed:field.elapsed,birthAt:frame.birthAt}));
 });
 
 test('warp clock uses 4.3-second departure then 4.7-second warp without a docking gate',()=>{
@@ -1308,8 +1496,7 @@ test('Move country inspection preserves wheel mode and matches the 250x Earth ra
  const d=r.camera.dolly;r.smoothDolly(d*1.5,'earth',1100);r.advanceCamera(1300);close(r.camera.dolly,d*1.5);
 });
 test('all supported country coordinates preserve the lens and reference disk size',()=>{
- const app=read('src/app.js'),start=app.indexOf('  const REGIONS='),end=app.indexOf('  const FACTORY_OPTIONS=',start);
- const regions=vm.runInNewContext(app.slice(start,end)+';REGIONS');
+ const regions=require('./helpers/region-metadata.cjs').metadata().regions;
  for(const region of Object.values(regions)) {
   const {r}=renderer(),zoom=r.camera.zoom,earth=A.BODIES.find(b=>b.id==='earth');
   const radius=r.bodyRadiusForState(earth,{...r.camera,zoom:250,dolly:1});
@@ -1633,12 +1820,14 @@ test('paused auto rotation preserves manual framing and its configured direction
   r.advanceAutoRotate(8100);assert.notDeepEqual(plain(r.camera),manually);assert.equal(r.rotationIntent,intent);
  }
 });
-test('boot restores short tails and enlarges glow ten percent while warp keeps its original size range',()=>{
+test('boot restores short tails and enlarged opening glow while warp keeps its original size range',()=>{
  const {r}=renderer(),home=r.cameraSnapshot();r.animateOpeningCamera(home,0,6500);
- for(const p of r.openingParticles.points)assert.ok(p.sizeScale>=1.65-1e-12&&p.sizeScale<=3.08);
+ const opening=r.openingParticles;assert.equal(opening.particleProfile,undefined);assert.equal(opening.points.length,864);assert.equal(opening.saturnDrawPoints,undefined);
+ for(const p of opening.points)assert.ok(p.sizeScale>=1.65-1e-12&&p.sizeScale<=3.08);
  for(const time of [0,1000,3000,6000,7000]){const f=r.openingParticleFrame(time);for(const p of f.points){const q=r.projectOpeningParticle(p,f,{}),warp=r.projectOpeningParticle(p,{...f,replay:{...f.replay,openingMove:null}},{});close(q.tail,warp.tail*.175);}}
  r.animateOpeningReplay(home,r.openingCameraSnapshot(home),10000,6500);
- for(const p of r.openingParticles.points)assert.ok(p.sizeScale>=1&&p.sizeScale<=2);
+ const warp=r.openingParticles;assert.equal(warp.particleProfile,undefined);assert.equal(warp.points.length,960);assert.equal(warp.saturnDrawPoints,undefined);
+ for(const p of warp.points)assert.ok(p.sizeScale>=1&&p.sizeScale<=2);
 });
 
 test('ring-only viewport intersections prepare the same extent as drawing without preparing a corona-only sun',()=>{

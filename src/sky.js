@@ -2,13 +2,6 @@
 (function(root){'use strict';
 const TAU=Math.PI*2,DRIFT=.22*Math.PI/180,COS30=Math.sqrt(.75),REPLAY_MOMENTUM_SECONDS=6;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-// Fixed UV anchors on universe-optimized.webp, independent of page drift.
-// A: dark upper/lower sky. B: visibly textured sections of the nebula band.
-const JUMP_LOCATORS=Object.freeze([
- ...[.04,.20,.36,.52,.68,.84].flatMap((u,i)=>[
-  {id:'A'+(i*2+1),kind:'dark',u,v:.20},{id:'A'+(i*2+2),kind:'dark',u,v:.84}]),
- ...[[.31,.57],[.47,.47],[.61,.48],[.82,.49],[.93,.43]].map(([u,v],i)=>({id:'B'+(i+1),kind:'bright',u,v}))
-].map(p=>Object.freeze({...p,point:Object.freeze({x:Math.cos((p.u-.5)*TAU)*Math.cos((.5-p.v)*Math.PI),y:Math.sin((p.u-.5)*TAU)*Math.cos((.5-p.v)*Math.PI),z:Math.sin((.5-p.v)*Math.PI)})})));
 const edgeShadeStrength=()=>root.document?.documentElement?.classList?.contains('solar-phone-layout')?0:.24;
 function samplePanorama(tex,u,v,out,index=0){
  const w=tex.width,h=tex.height,tx=((u%1+1)%1)*w-.5,ty=clamp(v*h-.5,0,h-1);
@@ -115,22 +108,6 @@ class Sky{
   this.initialize();
  }
  invalidate(){this.lastPose=null;this.lastKey='';this.lastGPU=-Infinity;this.starPose=null;}
- jumpLocators(kind){
-  return JUMP_LOCATORS.filter(p=>p.kind===kind).map(p=>{
-   const world=this.fromPanorama(p.point);return {...p,direction:[world.x,world.y,world.z]};
-  });
- }
- drawJumpLocators(ctx,active){
-  const host=root.location?.hostname;
-  if(!this.panAxes||!(host==='localhost'||host==='127.0.0.1'||host==='[::1]'||root.location?.protocol==='file:'))return;
-  ctx.save();ctx.font='12px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
-  for(const locator of JUMP_LOCATORS){
-   const p=this.project(locator.point);if(!p||p.x<0||p.x>this.w||p.y<0||p.y>this.h)continue;
-   ctx.globalAlpha=locator.id===active?1:.65;ctx.strokeStyle=ctx.fillStyle=locator.kind==='dark'?'#8fbcd9':'#e6c47e';
-   ctx.beginPath();ctx.arc(p.x,p.y,locator.id===active?7:3,0,TAU);ctx.stroke();ctx.fillText(locator.id,p.x+10,p.y);
-  }
-  ctx.restore();
- }
  memoryUsage(){
   const active=!!this.gl&&!this.disposed&&this.ready;
   const textures=active&&this.texture?(this.stats.textureSize?.[0]||0)*(this.stats.textureSize?.[1]||0)*4:0;

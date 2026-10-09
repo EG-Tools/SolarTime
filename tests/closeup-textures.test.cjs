@@ -127,7 +127,8 @@ test('compatibility surface publishes 1024 first and still schedules final detai
 });
 test('texture payload bytes, compression, shader and helper stay unchanged',()=>{
  // Runtime pins include the shared ring sampler/shadow and explicit sky
- // camera, covered by ring-tour and Saturn-ring tests. Media pins stay intact.
+ // camera, covered by ring-tour and Saturn-ring tests. The sky pin also reflects
+ // removal of unused debug locators; shader and media bytes stay intact.
  const crypto=require('node:crypto');
  const baseline=JSON.parse(read('tests/fixtures/texture-v062-hashes.json'));
  for(const [name,hash] of Object.entries(baseline)){

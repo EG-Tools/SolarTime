@@ -72,18 +72,6 @@ test('camera handoff carries the whole rendered frame rather than dropping the t
  }
 });
 
-test('named dark and bright UV locators follow panorama rotation exactly',()=>{
- const {sky}=fixture();
- for(const offset of [0,.7,3,6]){
-  sky.offset=offset;sky.updateAxes(camera);
-  const dark=sky.jumpLocators('dark'),bright=sky.jumpLocators('bright');assert.equal(dark.length,12);assert.equal(bright.length,5);
-  for(const p of [...dark,...bright]){
-   assert.ok(p.id.startsWith(p.kind==='dark'?'A':'B'));
-   const [x,y,z]=p.direction,cs=Math.cos(offset),sn=Math.sin(offset),rx=x*cs-y*sn,ry=x*sn+y*cs;
-   close(rx,p.point.x);close(ry*Math.sqrt(.75)-z*.5,p.point.y);close(ry*.5+z*Math.sqrt(.75),p.point.z);
-  }
- }
-});
 test('ordinary lens/zoom leaves the sky at 60.8 degrees; transition updates both GPU ray uniforms',()=>{
  const {sky,calls}=fixture(true);
  sky.draw(0,{...camera,zoom:12,fov:30},options);close(sky.tanFov,Math.tan(30.4*Math.PI/180));

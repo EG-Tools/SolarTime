@@ -73,7 +73,17 @@ def main():
                             rows.append(result)
                         folder=root/'.cloudflare/browser-artifacts/travel-particles';folder.mkdir(parents=True,exist_ok=True)
                         page.screenshot(path=str(folder/f'{mode}.png'))
-                        page.evaluate("""() => {const r=SolarTime.renderer,t=r.ringTour;t.age=10;t.state='cruising';t.pose=t.cameraPose();r.openingParticleFrame(performance.now());if(r.openingParticles)throw Error('approach field survived docking');}""")
+                        page.evaluate("""() => {
+                          const r=SolarTime.renderer,t=r.ringTour;t.age=10;t.state='cruising';t.pose=t.cameraPose();
+                          const f=r.openingParticleFrame(performance.now());
+                          if(!f)throw Error('extended approach field disappeared at docking');
+                          const frame=r.openingParticleProjection(f),visible=f.points.reduce((count,p)=>{
+                            const q=r.projectOpeningParticle(p,f,{},true,frame);return count+(q.visible&&q.alpha>.01?1:0);
+                          },0);
+                          if(visible<50)throw Error('extended docking particles are not visibly retained: '+visible);
+                          t.age=10.499;if(!r.openingParticleFrame(performance.now()))throw Error('approach field ended before its half-second afterglow');
+                          t.age=10.5;if(r.openingParticleFrame(performance.now())||r.openingParticles)throw Error('approach field survived its shortened deadline');
+                        }""")
                         page.wait_for_function("SolarTime.renderer.ringTour?.state==='cruising'")
                         before=page.locator('#zoom-value').inner_text()
                         page.mouse.move(640,400)

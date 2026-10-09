@@ -221,7 +221,7 @@
     "starDensityAria": "Densité des étoiles particules. Zéro masque les étoiles particules.",
     "cookieSettings": "Paramètres des cookies",
     "cookieDismiss": "Fermer sans modifier votre choix",
-    "cookieChoiceNote": "L’acceptation et le refus sont conservés 6 mois. X ne modifie pas votre choix ; sans choix enregistré, la question revient à la prochaine visite.",
+    "cookieChoiceNote": "L’autorisation est mémorisée pendant 6 mois. Le refus et X ne sont pas enregistrés ; la question sera reposée à la prochaine visite.",
     "music": "Musique",
     "timer": "Minuteur",
     "timerClose": "Fermer le minuteur",

@@ -37,7 +37,7 @@ test('Saturn travel uses its exact camera-space sphere mask and leaves the ring 
 test('opening, Saturn entry and ring-flight particles all share the body clipping owner',()=>{
  const source=fs.readFileSync(require.resolve('../src/renderer.js'),'utf8');
  assert.match(source,/drawOpeningParticles[\s\S]*?this\.drawParticlePass\(c,mono/);
- assert.match(source,/drawFlightParticles\(c,field,project\)[\s\S]*?field\?\.replay\?\.saturnTour\?this\.drawSaturnFlightParticles/);
+ assert.match(source,/drawFlightParticles\(c,field,project\)[\s\S]*?this\.isSaturnEntryParticleField\(field\)\?this\.drawSaturnFlightParticles/);
  assert.match(source,/tour\.flightField\.alpha>0[\s\S]*?this\.drawParticlePass\(this\.ctx,mono/);
  const r=Object.assign(Object.create(R),{w:1,h:1,replayPresentation:()=>({solar:1}),frameBodies:[],visible:()=>true});
  const c=clipContext();let drawn=false;r.drawParticlePass(c,0,()=>{drawn=true;});
