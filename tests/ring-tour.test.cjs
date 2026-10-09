@@ -887,6 +887,38 @@ test('saved-view commands share Home exit policy without disposing the tour or s
  }
 });
 
+test('tracking requested during planet travel returns Home at double speed, then starts only the latest focus',()=>{
+ const rendererWith=(t,age=12)=>{
+  t.age=age;t.pose=t.cameraPose();
+  const r=Object.create(R);Object.assign(r,{ringTour:t,camera:r.defaultCameraSnapshot(),options:{moon:true,pluto:true,dollyZoom:true},cameraTween:null,pendingTravelFocus:null,prepareCloseup(){},sceneBodies:()=>[{id:'earth'},{id:'mars'}]});
+  return r;
+ };
+ for(const age of [3,12]){
+  const normal=rendererWith(create(),age);assert.ok(normal.animateHome(1000,1100));
+  const accelerated=rendererWith(create(),age);assert.ok(accelerated.requestFocus('earth',1000,1100));
+  near(accelerated.ringTour.returnDuration,normal.ringTour.returnDuration/2,.0001);
+ }
+ const fast=rendererWith(create());assert.ok(fast.requestFocus('earth',1000,1100));
+ assert.equal(fast.ringTour.returnTarget.focus,null,'travel exits to Home, never directly to the tracked body');
+ assert.equal(fast.ringTour.returnSpeedMultiplier,2);
+ assert.equal(fast.pendingTravelFocus.id,'earth');assert.equal(fast.pendingTravelFocus.duration,1100);
+ assert.ok(fast.requestFocus('mars',1100,900));assert.equal(fast.pendingTravelFocus.id,'mars','the latest request wins during exit');assert.equal(fast.pendingTravelFocus.duration,900);
+ const calls=[];fast.ringTour=null;fast.animateFocus=(...args)=>{calls.push(args);return true;};
+ assert.equal(fast.resumeTravelFocus(4000),true);assert.equal(JSON.stringify(calls),JSON.stringify([['mars',4000,900]]));assert.equal(fast.pendingTravelFocus,null);
+ assert.equal(fast.resumeTravelFocus(4100),false,'the queued request runs once');
+});
+
+test('country view requested during planet travel shares the Home return queue',()=>{
+ const t=create();t.age=12;t.pose=t.cameraPose();
+ const r=Object.create(R);Object.assign(r,{ringTour:t,camera:r.defaultCameraSnapshot(),options:{moon:true,pluto:true,dollyZoom:true},cameraTween:null,pendingTravelFocus:null,prepareCloseup(){},sceneBodies:()=>[{id:'earth'}]});
+ assert.ok(r.requestFeature('earth',37.5665,126.978,1234,1000,1100));
+ assert.equal(r.ringTour.returnTarget.focus,null);assert.equal(r.ringTour.returnSpeedMultiplier,2);
+ assert.deepEqual(JSON.parse(JSON.stringify(r.pendingTravelFocus.feature)),{latitude:37.5665,longitude:126.978,ms:1234});
+ const calls=[];r.ringTour=null;r.animateFeature=(...args)=>{calls.push(args);return true;};
+ assert.equal(r.resumeTravelFocus(4000,5678),true);
+ assert.deepEqual(calls,[['earth',37.5665,126.978,5678,4000,1100]]);assert.equal(r.pendingTravelFocus,null);
+});
+
 test('cancelling before departure does not force a many-minute full orbit',()=>{
  for(const home of [false,true]){
   const t=create();t.age=.4;t.pose=t.cameraPose();if(home)t.returnTarget={};t.stop();

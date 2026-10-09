@@ -1,0 +1,19 @@
+[
+  {"code":"by","name":"Беларусь","locale":"ru-BY","copy":"ru","label":"BELARUS","timeZone":"Europe/Minsk","latitude":53.7098,"longitude":27.9534,"city":"географический центр","winterOffset":3,"summerOffset":3},
+  {"code":"bo","name":"Bolivia","locale":"es-BO","copy":"es","label":"BOLIVIA","timeZone":"America/La_Paz","latitude":-16.2902,"longitude":-63.5887,"city":"centro geográfico","winterOffset":-4,"summerOffset":-4},
+  {"code":"cm","name":"Cameroun","locale":"fr-CM","copy":"fr","label":"CAMEROON","timeZone":"Africa/Douala","latitude":7.3697,"longitude":12.3547,"city":"centre géographique","winterOffset":1,"summerOffset":1},
+  {"code":"ci","name":"Côte d’Ivoire","locale":"fr-CI","copy":"fr","label":"CÔTE D’IVOIRE","timeZone":"Africa/Abidjan","latitude":7.54,"longitude":-5.5471,"city":"centre géographique","winterOffset":0,"summerOffset":0},
+  {"code":"cu","name":"Cuba","locale":"es-CU","copy":"es","label":"CUBA","timeZone":"America/Havana","latitude":21.5218,"longitude":-77.7812,"city":"centro geográfico","winterOffset":-5,"summerOffset":-4},
+  {"code":"sv","name":"El Salvador","locale":"es-SV","copy":"es","label":"EL SALVADOR","timeZone":"America/El_Salvador","latitude":13.7942,"longitude":-88.8965,"city":"centro geográfico","winterOffset":-6,"summerOffset":-6},
+  {"code":"hn","name":"Honduras","locale":"es-HN","copy":"es","label":"HONDURAS","timeZone":"America/Tegucigalpa","latitude":15.2,"longitude":-86.2419,"city":"centro geográfico","winterOffset":-6,"summerOffset":-6},
+  {"code":"kz","name":"Казахстан","locale":"ru-KZ","copy":"ru","label":"KAZAKHSTAN","timeZone":"Asia/Almaty","latitude":48.0196,"longitude":66.9237,"city":"географический центр","winterOffset":5,"summerOffset":5},
+  {"code":"ke","name":"Kenya","locale":"en-KE","copy":"en","label":"KENYA","timeZone":"Africa/Nairobi","latitude":-0.0236,"longitude":37.9062,"city":"geographic center","winterOffset":3,"summerOffset":3},
+  {"code":"kg","name":"Кыргызстан","locale":"ru-KG","copy":"ru","label":"KYRGYZSTAN","timeZone":"Asia/Bishkek","latitude":41.2044,"longitude":74.7661,"city":"географический центр","winterOffset":6,"summerOffset":6},
+  {"code":"li","name":"Liechtenstein","locale":"de-LI","copy":"de","label":"LIECHTENSTEIN","timeZone":"Europe/Vaduz","latitude":47.166,"longitude":9.5554,"city":"geografische Mitte","winterOffset":1,"summerOffset":2},
+  {"code":"lu","name":"Luxembourg","locale":"fr-LU","copy":"fr","label":"LUXEMBOURG","timeZone":"Europe/Luxembourg","latitude":49.8153,"longitude":6.1296,"city":"centre géographique","winterOffset":1,"summerOffset":2},
+  {"code":"ni","name":"Nicaragua","locale":"es-NI","copy":"es","label":"NICARAGUA","timeZone":"America/Managua","latitude":12.8654,"longitude":-85.2072,"city":"centro geográfico","winterOffset":-6,"summerOffset":-6},
+  {"code":"pk","name":"Pakistan","locale":"en-PK","copy":"en","label":"PAKISTAN","timeZone":"Asia/Karachi","latitude":30.3753,"longitude":69.3451,"city":"geographic center","winterOffset":5,"summerOffset":5},
+  {"code":"py","name":"Paraguay","locale":"es-PY","copy":"es","label":"PARAGUAY","timeZone":"America/Asuncion","latitude":-23.4425,"longitude":-58.4438,"city":"centro geográfico","winterOffset":-3,"summerOffset":-3},
+  {"code":"sn","name":"Sénégal","locale":"fr-SN","copy":"fr","label":"SENEGAL","timeZone":"Africa/Dakar","latitude":14.4974,"longitude":-14.4524,"city":"centre géographique","winterOffset":0,"summerOffset":0},
+  {"code":"ch","name":"Schweiz","locale":"de-CH","copy":"de","label":"SWITZERLAND","timeZone":"Europe/Zurich","latitude":46.8182,"longitude":8.2275,"city":"geografische Mitte","winterOffset":1,"summerOffset":2}
+]

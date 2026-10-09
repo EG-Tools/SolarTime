@@ -556,6 +556,7 @@
     constructor({frame,radius,width,height,screen,startPose,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,openingAcceleration,prepared,deferPreparation=false,particleCapacity=1,lensZoom=1,pointified=false}){
       this.particleCapacity=clamp(particleCapacity,.25,1);this.particleBudget=1;
       this.openingResume=!!openingVelocity;this.pointified=!!pointified;
+      this.returnSpeedMultiplier=1;
       const rand=random(seed);this.seed=seed;this.phase=phase;this.state='entering';this.age=0;this.lastMono=null;this.speed=1;
       this.radius=SETTINGS.pathRadius-(SETTINGS.pathRadius-1.28)*random(seed^0x6a09e667)()*.2;this.height=.025+rand()*.023;this.direction=rand()<.5?-1:1;this.period=(115+rand()*55)/6;
       this.fov=72;this.lensZoom=Math.max(MIN_LENS_SCALE,Number.isFinite(lensZoom)?lensZoom:1);this.yaw=0;this.pitch=0;this.pan=[0,0];this.resources=null;this.disposed=false;
@@ -695,6 +696,8 @@
       this.prepareGrainRoute();
       return this.pose;
     }
+    setReturnSpeed(multiplier=1){this.returnSpeedMultiplier=clamp(Number.isFinite(multiplier)?multiplier:1,.25,4);return this.returnSpeedMultiplier;}
+    returnTime(seconds){return seconds/this.returnSpeedMultiplier;}
     stop(){if(!['entering','cruising'].includes(this.state))return false;this.setReturnView(this.startPose);return true;}
     takeoffStart(){
       const dt=.001,current=withoutDrift(this.cameraPose()),before=withoutDrift(this.cameraPose(Math.max(0,this.age-dt),Math.max(0,(this.returnAge||0)-dt)));
@@ -759,14 +762,14 @@
         this.returnDetail=this.ringDetailState();this.returnDetailStart=this.returnAge;
         this.returnNormalStart=this.returnAge;
         this.returnRedirect={at:this.returnAge,view};this.returnTo=view;
-        this.returnDuration=Math.min(SETTINGS.returnMax,Math.max(this.returnDuration,this.returnAge+SETTINGS.returnFar));
+        this.returnDuration=Math.max(this.returnAge+.001,Math.min(this.returnTime(SETTINGS.returnMax),Math.max(this.returnDuration,this.returnAge+this.returnTime(SETTINGS.returnFar))));
         return;
       }
       const exiting=this.state==='returning',retargetStart=exiting&&this.returnAge===0,from=withoutDrift(this.pose);
       const dt=retargetStart?this.returnMotion.dt:Math.min(.001,exiting?this.returnAge:this.age);
       const previous=retargetStart?this.returnMotion.previous:dt>0?withoutDrift(this.cameraPose(this.age-dt,(this.returnAge||0)-dt)):from,a=polar(from.eye),b=polar(view.eye),old=polar(previous.eye);
       const angularVelocity=dt>0?Math.atan2(Math.sin(a.angle-old.angle),Math.cos(a.angle-old.angle))/dt:0;
-      const detail=this.ringDetailState(),baseline=this.returnTarget?SETTINGS.returnFar:mix(SETTINGS.return,SETTINGS.returnFar,smooth((this.startDistance-4)/24));
+      const detail=this.ringDetailState(),baseline=this.returnTime(this.returnTarget?SETTINGS.returnFar:mix(SETTINGS.return,SETTINGS.returnFar,smooth((this.startDistance-4)/24)));
       this.returnDetail=detail;
       this.returnAnnotation=this.annotationOpacity();
       // Continue the same noise phase; only its envelope changes on retreat.
@@ -775,7 +778,7 @@
       const noiseAge=exiting&&this.returnNoise?this.returnNoise.age+(this.returnAge||0):this.age;
       this.returnNoise={strength,age:noiseAge};
       if(!exiting&&!this.replayBridge&&this.entryMotion(this.age).weight<SETTINGS.spiralThreshold){
-        this.returnDuration=Math.max(baseline,Math.min(5,this.age*.6));
+        this.returnDuration=Math.max(baseline,Math.min(this.returnTime(5),this.returnTime(this.age*.6)));
         this.returnMotion={rewind:true,age:this.age,duration:this.returnDuration,angularVelocity,rotationTime:this.returnDuration,dt,previous};
         this.returnFrom=from;this.returnTo=view;this.returnAge=0;this.state='returning';
         this.returnControls={yaw:this.yaw,pitch:this.pitch,pan:[...this.pan],fov:this.fov};
@@ -789,9 +792,9 @@
       // takeoff velocity, then bends onto the direct return arc and stops.
       const turn=Math.atan2(Math.sin(b.angle-a.angle),Math.cos(b.angle-a.angle));
       const angularSpeed=Math.abs(angularVelocity);
-      const naturalTime=angularSpeed>1e-6&&Math.abs(turn)>1e-6?2*Math.abs(turn)/(angularSpeed*SETTINGS.returnSpeed):baseline/SETTINGS.returnSpeed;
-      const desiredTime=Math.min(SETTINGS.returnMax,naturalTime);
-      this.returnDuration=Math.min(SETTINGS.returnMax,Math.max(baseline/SETTINGS.returnSpeed,desiredTime));
+      const naturalTime=angularSpeed>1e-6&&Math.abs(turn)>1e-6?2*Math.abs(turn)/(angularSpeed*SETTINGS.returnSpeed*this.returnSpeedMultiplier):baseline/SETTINGS.returnSpeed;
+      const desiredTime=Math.min(this.returnTime(SETTINGS.returnMax),naturalTime);
+      this.returnDuration=Math.min(this.returnTime(SETTINGS.returnMax),Math.max(baseline/SETTINGS.returnSpeed,desiredTime));
       const rotationTime=this.returnDuration;
       this.returnMotion={a,b,turn,rotationTime,angularVelocity,dt,previous,
         radiusVelocity:dt>0?Math.log(a.radius/old.radius)/dt:0,elevationVelocity:dt>0?(a.elevation-old.elevation)/dt:0};

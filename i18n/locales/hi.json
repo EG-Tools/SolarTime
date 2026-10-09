@@ -197,7 +197,7 @@
     "day": "दिन",
     "night": "रात",
     "auNote": "",
-    "koreaView": "{region} देखें · दिन/रात",
+    "koreaView": "{region} देखें",
     "stormView": "महान लाल धब्बा देखें",
     "speedUnitActive": "गति इकाई {unit}। अगली इकाई के लिए दबाएँ।",
     "speedUnitReady": "गति इकाई {unit} तैयार। शुरू करने के लिए दबाएँ।",

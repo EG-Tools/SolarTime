@@ -42,13 +42,14 @@ test('credits page identifies authorship, scientific sources, media and licenses
  assert.match(page,/Life User designed and maintains/);
  assert.match(page,/NASA\/JPL approximate positions/);
  assert.match(page,/Solar System Scope \/ INOVE/);
+ assert.match(page,/Natural Earth · Admin 0 Countries/);
  assert.match(page,/Creative Commons Attribution 4\.0 International/);
  assert.match(page,/Lyrikey with Suno AI/);
  assert.match(page,/Soft Morning/);
  assert.match(page,/Source preparation and limitations/);
  assert.doesNotMatch(page,/github\.com\/EG-Tools\/SolarTime|assets\/CREDITS\.md/);
  const items=[...page.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(match=>match[1].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim());
- assert.equal(items.length,11);
+ assert.equal(items.length,12);
  assert.ok(items.every(item=>item.length>=100),'every credit identifies how its source is used');
 });
 

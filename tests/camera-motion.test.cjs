@@ -906,16 +906,25 @@ test('temporary forward look has identity projection and releases smoothly on Es
  r.advanceCamera(3500);close(r.flightLook.yaw,look.yaw+(A.wrap(r.camera.azimuth-look.yaw+Math.PI)-Math.PI)*.5);
  r.advanceCamera(4000);assert.equal(r.flightLook,null);
 });
-test('country inspection preserves the lens and reaches the reference size by travel',()=>{
- const {r}=renderer();Object.assign(r.camera,{zoom:1800,dolly:12,panX:.5,panY:-.4});
- const earth=A.BODIES.find(b=>b.id==='earth'),radius=r.bodyRadiusForState(earth,{...r.camera,zoom:250,dolly:1});
+test('country inspection never backs out from an already closer tracked Earth view',()=>{
+ const {r}=renderer();Object.assign(r.camera,{focus:'earth',zoom:1800,dolly:12,panX:.5,panY:-.4});
+ const earth=A.BODIES.find(b=>b.id==='earth'),radius=r.bodyRadiusForState(earth,r.camera);
  assert.equal(r.animateFeature('earth',37.5665,126.978,ms,0,1000),true);r.advanceCamera(1000);
- assert.equal(r.camera.zoom,1800);close(r.bodyRadiusForState(earth,r.camera),radius);assert.equal(r.camera.focus,'earth');assert.equal(r.camera.panX,0);assert.equal(r.camera.panY,0);
+ assert.equal(r.camera.zoom,1800);assert.equal(r.camera.dolly,12);close(r.bodyRadiusForState(earth,r.camera),radius);assert.equal(r.camera.focus,'earth');assert.equal(r.camera.panX,.5);assert.equal(r.camera.panY,-.4);
  const n=A.surfaceDirection(A.BODIES.find(b=>b.id==='earth'),37.5665,126.978,ms),view=r.viewDirection(n);
  close(view.x,0);close(view.y,0);assert.ok(view.z>0);
  r.smoothZoom(500,null,1100);r.advanceCamera(1300);assert.equal(r.camera.zoom,500);
  r.smoothZoom(125,null,1400);r.advanceCamera(1600);assert.equal(r.camera.zoom,125);
  assert.equal(r.zoomLimits.maxZoom,2048);
+});
+test('initial and tracked country inspection share seven forward-wheel steps',()=>{
+ const {r}=renderer(),start=r.cameraSnapshot(),base=r.trackingMoveState('earth',start,start.zoom),factor=r.wheelTravelFactor(-120)**7;
+ assert.ok(r.animateFeature('earth',37.5665,126.978,ms,0,1000));close(r.cameraTween.to.dolly,base.dolly*factor);r.cancelCameraTween(0);
+ r.camera={...base};assert.ok(r.animateFeature('earth',37.5665,126.978,ms,0,1000));r.advanceCamera(1000);
+ close(r.camera.dolly,base.dolly*factor);assert.equal(r.camera.zoom,base.zoom);
+ const closer=r.camera.dolly*1.5;r.camera.dolly=closer;
+ assert.ok(r.animateFeature('earth',1.2833333,103.85,ms,1100,1000));r.advanceCamera(2100);close(r.camera.dolly,closer);
+ assert.match(read('src/app.js'),/zoom\(renderer\.wheelTravelFactor\(event\.deltaY\)\)/);
 });
 test('lens zoom stops at 0.8x while home and wheel share the 0.001x travel floor',()=>{
  const {r,R}=renderer();
@@ -1487,19 +1496,19 @@ test('true-scale close-ups do not inflate distant bodies with a minimum perspect
  assert.equal(distant.behind,false);
  const shader=read('src/surface.js');assert.match(shader,/1\.-v\.z\*travel\/5000\./);assert.match(shader,/gl_Position=vec4\(origin\*w\+projected,\.004-w,w\)/);assert.doesNotMatch(shader,/gl_Position=vec4\(2\.,2\.,2\.,-1\.\)/);
 });
-test('Move country inspection preserves wheel mode and matches the 250x Earth radius',()=>{
+test('Move country inspection keeps a closer wheel-travel view in place',()=>{
  const {r,R}=renderer(),earth=A.BODIES.find(b=>b.id==='earth');
- r.options.dollyZoom=true;Object.assign(r.camera,{zoom:1700,dolly:12});
- const targetRadius=r.bodyRadiusForState(earth,{...r.camera,focus:'earth',zoom:250,dolly:1});
+ r.options.dollyZoom=true;Object.assign(r.camera,{focus:'earth',zoom:1700,dolly:12});
+ const targetRadius=r.bodyRadiusForState(earth,r.camera);
  assert.ok(r.animateFeature('earth',1.2833333,103.85,ms,0,1000));assert.ok(R.validCamera(r.cameraTween.to));r.advanceCamera(1000);
- assert.equal(r.options.dollyZoom,true);assert.equal(r.camera.zoom,1700);close(r.bodyRadiusForState(earth,r.camera),targetRadius);
+ assert.equal(r.options.dollyZoom,true);assert.equal(r.camera.zoom,1700);assert.equal(r.camera.dolly,12);close(r.bodyRadiusForState(earth,r.camera),targetRadius);
  const d=r.camera.dolly;r.smoothDolly(d*1.5,'earth',1100);r.advanceCamera(1300);close(r.camera.dolly,d*1.5);
 });
 test('all supported country coordinates preserve the lens and reference disk size',()=>{
  const regions=require('./helpers/region-metadata.cjs').metadata().regions;
  for(const region of Object.values(regions)) {
   const {r}=renderer(),zoom=r.camera.zoom,earth=A.BODIES.find(b=>b.id==='earth');
-  const radius=r.bodyRadiusForState(earth,{...r.camera,zoom:250,dolly:1});
+  const radius=r.bodyRadiusForState(earth,r.countryInspectionState(r.camera));
   assert.ok(r.animateFeature('earth',region.latitude,region.longitude,ms,0,1000),region.label);
   assert.equal(r.cameraTween.to.zoom,zoom);close(r.bodyRadiusForState(earth,r.cameraTween.to),radius);
  }
@@ -1539,7 +1548,7 @@ test('all tracking paths keep the lens fixed throughout dolly-in and dolly-out',
 test('ordinary planet focus and Jupiter feature view derive framing from the current baseline sizes',()=>{
  const {r}=renderer(),jupiter=A.BODIES.find(b=>b.id==='jupiter'),mars=A.BODIES.find(b=>b.id==='mars'),radius=Math.min(r.w,r.h)*.25;
  r.animateFeature('jupiter',-22,70,ms,0,1000);const feature=r.cameraTween.to;
- close(r.bodyRadiusForState(jupiter,feature),radius,1e-4);assert.notEqual(feature.zoom,250,'country inspection zoom is Earth-only');
+ close(r.bodyRadiusForState(jupiter,feature),radius,1e-4);assert.equal(feature.zoom,r.camera.zoom,'feature travel preserves the current lens');
  r.advanceCamera(1000);r.animateFocus('mars',1100,1000);const follow=r.cameraTween.to;
  close(follow.zoom,feature.zoom);assert.equal(follow.mode,'move');close(r.bodyRadiusForState(mars,follow),radius);
 });

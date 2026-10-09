@@ -4,7 +4,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const {metadata}=require('./helpers/region-metadata.cjs');
 function notesApi(){return require('../src/release-notes.js');}
-const priorRegionOrder=order=>Array.from(order).filter(c=>!require('./fixtures/regions-v061.json').some(r=>r.code===c));
+const priorRegionOrder=order=>{const additions=[...require('./fixtures/regions-v061.json'),...require('./fixtures/regions-v075.json')];return Array.from(order).filter(c=>!additions.some(r=>r.code===c));};
 const notesFor=version=>{const api=notesApi(),recent=api.RELEASES.find(r=>r.version===version);return (recent?api.itemsFor(recent,'en'):require('../i18n/releases-archive-en.json').find(r=>r.version===version)?.items||[]).join(' ');};
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
@@ -124,7 +124,7 @@ test('r10 adds Indonesia and keeps every country on the existing regional-time p
   const data=metadata();assert.deepEqual(Array.from(data.order),Array.from(data.catalog,row=>row.id));
   assert.deepEqual(JSON.parse(JSON.stringify(data.meta.id)),{code:'ID',name:'Indonesia',locale:'id-ID',html:'id',copy:'id'});assert.equal(data.regions.id.timeZone,'Asia/Jakarta');
   assert.deepEqual(JSON.parse(JSON.stringify(data.meta.eu)),{code:'UK',name:'United Kingdom',locale:'en-GB',html:'en-GB',copy:'en'});assert.equal(data.regions.eu.timeZone,'Europe/London');
-  assert.match(app,/language=target;languageMode=mode;activeCopyCode=targetCopy;if\(automatic\)autoTimeZone=targetTimeZone;renderer\.setSite\(activeRegion\(\)\);translateStatic\(\);renderReleaseNotes\(\);refreshTimeFormats\(\)/);
+  assert.match(app,/language=target;languageMode=mode;activeCopyCode=targetCopy;if\(automatic\)autoTimeZone=targetTimeZone;renderer\.setSite\(localizedSite\(\)\);translateStatic\(\);renderReleaseNotes\(\);refreshTimeFormats\(\)/);
   assert.match(localization,/jakarta\|pontianak\|makassar\|ujung_pandang\|jayapura/);
   for(const code of ['pt','it','id'])assert.ok(JSON.parse(read('i18n/config.json')).languages[code]);
   for(const code of ['pt','br','it','mx','id'])assert.ok(data.order.includes(code));

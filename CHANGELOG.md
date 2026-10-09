@@ -2,6 +2,13 @@
 
 Current and past Solar Time updates, listed from newest to oldest.
 
+## v0.76 · 2026.10.09
+
+- Select a country outline on Earth to view its region and local time.
+- Improved country selection accuracy and camera movement and zoom.
+- Added 17 countries: Belarus, Bolivia, Cameroon, Côte d’Ivoire, Cuba, El Salvador, Honduras, Kazakhstan, Kenya, Kyrgyzstan, Liechtenstein, Luxembourg, Nicaragua, Pakistan, Paraguay, Senegal and Switzerland.
+- Solar Time now supports 15 languages and 67 countries.
+
 ## v0.75 · 2026.10.09
 
 - Improved camera transitions between the opening, warp and Saturn travel.

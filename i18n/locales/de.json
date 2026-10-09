@@ -197,7 +197,7 @@
     "day": "Tag",
     "night": "Nacht",
     "auNote": "",
-    "koreaView": "{region} ansehen · Tag/Nacht",
+    "koreaView": "{region} ansehen",
     "stormView": "Großen Roten Fleck ansehen",
     "speedUnitActive": "Geschwindigkeitseinheit {unit}. Zum Wechseln drücken.",
     "speedUnitReady": "Einheit {unit} bereit. Zum Starten drücken.",

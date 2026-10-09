@@ -11,12 +11,45 @@ concurrency:
   cancel-in-progress: true
 jobs:
   unit:
+    name: unit (ubuntu-latest, 24)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Complete unit suite and platform build
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p .cloudflare
+          npm test 2>&1 | tee .cloudflare/unit-tests.log
+          npm run build:cloudflare 2>&1 | tee .cloudflare/build.log
+          node tools/build-pages.cjs 2>&1 | tee .cloudflare/pages-build.log
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: unit-ubuntu-latest-node-24
+          path: .cloudflare/*.log
+          include-hidden-files: true
+          retention-days: 14
+  compatibility:
     name: unit (${{ matrix.os }}, ${{ matrix.node }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        node: ['22', '24']
+        include:
+          - os: ubuntu-latest
+            node: '22'
+          - os: windows-latest
+            node: '22'
+          - os: windows-latest
+            node: '24'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -137,15 +170,16 @@ jobs:
   verified:
     name: verified
     if: always()
-    needs: [unit, browser, recovery]
+    needs: [unit, compatibility, browser, recovery]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Require every candidate check
         env:
           UNIT: ${{ needs.unit.result }}
+          COMPATIBILITY: ${{ needs.compatibility.result }}
           BROWSER: ${{ needs.browser.result }}
           RECOVERY: ${{ needs.recovery.result }}
         run: |
-          test "$UNIT" = success && test "$BROWSER" = success && test "$RECOVERY" = success
+          test "$UNIT" = success && test "$COMPATIBILITY" = success && test "$BROWSER" = success && test "$RECOVERY" = success
           echo "All required checks passed for $GITHUB_SHA. No production deployment is part of this verification workflow." >> "$GITHUB_STEP_SUMMARY"

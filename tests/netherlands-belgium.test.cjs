@@ -36,7 +36,7 @@ test('new countries use the generated menu and retain every existing country in 
  assert.deepEqual(Array.from(order),Array.from(catalog,row=>row.id));
  assert.deepEqual(JSON.parse(JSON.stringify(catalog.find(row=>row.id==='nl'))).name,'Nederland');assert.deepEqual(JSON.parse(JSON.stringify(catalog.find(row=>row.id==='be'))).name,'België');
  assert.doesNotMatch(html,/data-language="[^"]+"/);assert.match(app,/button\.dataset\.language=region\.id/);
- assert.deepEqual(Array.from(order).filter(c=>!['nl','be',...require('./fixtures/regions-v061.json').map(r=>r.code)].includes(c)),['ao','ar','au','at','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve']);
+ assert.deepEqual(Array.from(order).filter(c=>!['nl','be',...require('./fixtures/regions-v061.json').map(r=>r.code),...require('./fixtures/regions-v075.json').map(r=>r.code)].includes(c)),['ao','ar','au','at','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve']);
 });
 test('country detection distinguishes Dutch territories and equivalent timezone IDs without changing other regions',()=>{
  for(const [zone,langs,wanted] of [

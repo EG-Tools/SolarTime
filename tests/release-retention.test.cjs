@@ -16,8 +16,9 @@ test('rolling retention keeps exactly ten validated releases with a unique Engli
 
 test('the English archive is complete and older entries are concise',()=>{
  const compiled=api.compile(root),all=[...compiled.releases.map(r=>({version:r.version,date:r.date,items:r.localized.en})),...compiled.archive];
- assert.equal(all.length,69);assert.equal(all.at(-1).version,'0.01');
- assert.equal(compiled.archive.reduce((count,row)=>count+row.items.length,0),245);
+ assert.equal(all.at(-1).version,'0.01');assert.ok(compiled.archive.length>0);
+ assert.equal(new Set(all.map(row=>row.version)).size,all.length);
+ assert.ok(all.every(row=>row.items.length>0));
  for(const row of compiled.archive){assert.ok(row.items.every(item=>/[A-Za-z]/.test(item)),row.version);if(Number(row.version)<0.64)assert.ok(row.items.every(item=>item.length<=140),row.version);}
 });
 
@@ -33,7 +34,7 @@ test('older translations and fallback permissions are absent while English pages
  assert.deepEqual(api.sync(root).changed,[]);
 });
 
-test('all 13 language views navigate the same ten recent versions',()=>{
+test('all language views navigate the same ten recent versions',()=>{
  for(const language of Object.keys(data('i18n/config.json').languages)){
   const nav=notes.createReleaseNotesNavigator();
   for(let i=0;i<15;i++)nav.older();

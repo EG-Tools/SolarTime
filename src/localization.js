@@ -8,10 +8,10 @@
     'europe/oslo':'no','europe/stockholm':'se','europe/copenhagen':'dk',
     'europe/helsinki':'fi','atlantic/reykjavik':'is','iceland':'is','europe/malta':'mt',
     'asia/manila':'ph','asia/kuala_lumpur':'my','asia/kuching':'my',
-    'africa/johannesburg':'za','africa/lagos':'ng','africa/accra':'gh',
+    'africa/johannesburg':'za','africa/accra':'gh',
     'america/santo_domingo':'do','america/guatemala':'gt'
   });
-  const SHARED_REGIONS=Object.freeze(['no','se','dk','fi','is','mt','ph','my','za','ng','gh','do','gt']);
+  const SHARED_REGIONS=Object.freeze(['no','se','dk','fi','is','mt','ph','my','za','ng','gh','do','gt','by','bo','cm','ci','cu','sv','hn','kz','ke','kg','li','lu','ni','pk','py','sn','ch']);
   function sharedRegionHint(languages,allowed=SHARED_REGIONS){
     for(const language of languages){
       const region=/^[a-z]{2,3}(?:-[a-z]{4})?-([a-z]{2})(?:-|$)/.exec(language)?.[1];
@@ -29,6 +29,7 @@
     if(/(?:shanghai|chongqing|urumqi|macau)/i.test(zone))return 'chn';
     if(/seoul/i.test(zone))return 'kor';
     if(/kyiv|kiev|uzhgorod|zaporozhye/i.test(zone))return 'ua';
+    if(/minsk/i.test(zone))return 'by';
     if(/moscow|kaliningrad|kirov|volgograd|astrakhan|saratov|ulyanovsk|samara|yekaterinburg|omsk|novosibirsk|barnaul|tomsk|novokuznetsk|krasnoyarsk|irkutsk|chita|yakutsk|khandyga|vladivostok|ust-nera|ust_nera|magadan|sakhalin|srednekolymsk|kamchatka|anadyr/i.test(zone))return 'ru';
     if(/^Europe\/(?:Amsterdam|Brussels)$/i.test(zone)){
       // These zone IDs can be aliases in tzdb/ICU. An explicit NL/BE locale
@@ -36,25 +37,43 @@
       for(const value of languages){
         if(/^nl-nl(?:-|$)/.test(value))return 'nl';
         if(/^(?:nl|fr|de)-be(?:-|$)/.test(value))return 'be';
+        if(/^(?:fr|de|lb)-lu(?:-|$)/.test(value))return 'lu';
       }
       return /Amsterdam$/i.test(zone)?'nl':'be';
     }
     const zoneKey=zone.toLowerCase();
     // Recent tzdb can canonicalize NO/SE/DK to Berlin, MY to Singapore,
     // and IS/GH to Abidjan. Only a compatible regional hint overrides the zone.
-    const aliases={'europe/berlin':['de','no','se','dk'],'asia/singapore':['sg','my'],'singapore':['sg','my'],'africa/abidjan':['is','gh']};
+    const aliases={'europe/berlin':['de','no','se','dk'],'europe/zurich':['ch','li'],'asia/singapore':['sg','my'],'singapore':['sg','my'],'africa/lagos':['ng','cm'],'africa/abidjan':['is','gh','ci','sn']};
     const aliasHint=aliases[zoneKey]&&sharedRegionHint(languages,aliases[zoneKey]);
     if(aliasHint)return aliasHint;
+    if(zoneKey==='europe/zurich')return 'ch';
+    if(zoneKey==='africa/lagos')return 'ng';
     if(SHARED_REGION_ZONES[zoneKey])return SHARED_REGION_ZONES[zoneKey];
     if(/^(?:Asia\/)?Singapore$/i.test(zone))return 'sg';
     if(/jakarta|pontianak|makassar|ujung_pandang|jayapura/i.test(zone))return 'id';
     if(/^Australia\//i.test(zone))return 'au';
     if(/auckland|chatham/i.test(zone))return 'nz';
+    if(/almaty|aqtau|aqtobe|atyrau|oral|qyzylorda/i.test(zone))return 'kz';
+    if(/karachi/i.test(zone))return 'pk';
+    if(/bishkek/i.test(zone))return 'kg';
+    if(/nairobi/i.test(zone))return 'ke';
+    if(/douala/i.test(zone))return 'cm';
+    if(/dakar/i.test(zone))return 'sn';
+    if(/luxembourg/i.test(zone))return 'lu';
+    if(/vaduz/i.test(zone))return 'li';
+    if(/zurich/i.test(zone))return 'ch';
     if(/toronto|vancouver|edmonton|winnipeg|halifax|st_johns|regina|whitehorse|iqaluit|moncton|yellowknife/i.test(zone))return 'ca';
     if(/buenos_aires|argentina\//i.test(zone))return 'ar';
     if(/santiago|easter/i.test(zone))return 'cl';
     if(/bogota/i.test(zone))return 'co';
     if(/costa_rica/i.test(zone))return 'cr';
+    if(/la_paz/i.test(zone))return 'bo';
+    if(/asuncion/i.test(zone))return 'py';
+    if(/havana/i.test(zone))return 'cu';
+    if(/tegucigalpa/i.test(zone))return 'hn';
+    if(/el_salvador/i.test(zone))return 'sv';
+    if(/managua/i.test(zone))return 'ni';
     if(/guayaquil/i.test(zone))return 'ec';
     if(/dublin/i.test(zone))return 'ie';
     if(/luanda/i.test(zone))return 'ao';
@@ -82,8 +101,11 @@
       // Belgium is multilingual; this entry currently uses the Dutch interface.
       ['nl-be','be'],['fr-be','be'],['de-be','be'],['nl','nl'],
       ['pt-ao','ao'],['pt-mz','mz'],['pt-br','br'],['pt','pt'],
-      ['es-ar','ar'],['es-cl','cl'],['es-co','co'],['es-cr','cr'],['es-ec','ec'],['es-mx','mx'],['es-pa','pa'],['es-pe','pe'],['es-uy','uy'],['es-ve','ve'],['es','es'],
-      ['de-at','at'],['de','de'],['fr','fr'],['ru','ru'],['uk','ua'],['hi','hi'],['it','it'],['id','id']
+      ['es-ar','ar'],['es-bo','bo'],['es-cl','cl'],['es-co','co'],['es-cr','cr'],['es-cu','cu'],['es-ec','ec'],['es-sv','sv'],['es-hn','hn'],['es-mx','mx'],['es-ni','ni'],['es-pa','pa'],['es-py','py'],['es-pe','pe'],['es-uy','uy'],['es-ve','ve'],['es','es'],
+      ['de-ch','ch'],['fr-ch','ch'],['it-ch','ch'],['de-li','li'],['de-at','at'],['de','de'],
+      ['fr-cm','cm'],['en-cm','cm'],['fr-ci','ci'],['fr-lu','lu'],['de-lu','lu'],['lb-lu','lu'],['fr-sn','sn'],['fr','fr'],
+      ['ru-by','by'],['be-by','by'],['ru-kz','kz'],['kk-kz','kz'],['ru-kg','kg'],['ky-kg','kg'],['ru','ru'],
+      ['en-ke','ke'],['sw-ke','ke'],['en-pk','pk'],['ur-pk','pk'],['uk','ua'],['hi','hi'],['it','it'],['id','id']
     ];
     for(const [prefix,language] of localeMap)if(languages.some(value=>value===prefix||value.startsWith(prefix+'-')))return language;
     return 'en';

@@ -52,6 +52,12 @@ The atmospheric cloud layer is derived from NASA Visible Earth’s Blue Marble g
 
 The previous Solar Time cloud map remains an optional secondary pattern (A, `clouds-alt`), referenced from its existing immutable media URLs at up to 2048×1024. Its edges are feathered once on upload and it repeats twice horizontally and vertically; the newer NASA composite (B, `clouds`) retains its whole-map 4096×2048 scale. Both patterns are blended regionally on one atmospheric shell, with independent illustrative birth/death cycles. This is not a weather forecast or simulation of measured winds.
 
+### Country outlines
+
+Country hover outlines use the public-domain Natural Earth 1:50m Admin-0 boundary data. Solar Time keeps only supported regions and simplifies the vectors for display; region selection itself uses separate representative safe zones so disputed areas are not used as click targets.
+
+- Natural Earth — Admin 0 Countries: https://www.naturalearthdata.com/downloads/50m-cultural-vectors/50m-admin-0-countries-2/
+
 ## Solar System Scope textures
 
 Mercury, Venus’s atmosphere, the Moon, Mars, Jupiter, Saturn and Neptune use maps from Solar System Scope / INOVE. The source pack combines NASA imagery and elevation data with artist-adjusted colours and reconstructed terrain in unmapped areas, so it is not a current or perfectly calibrated scientific data set.

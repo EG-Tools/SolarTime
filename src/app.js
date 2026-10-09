@@ -4,51 +4,69 @@
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
   const Localization=Modules.Localization,LanguageData=Modules.LanguageData,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
+  const COUNTRY_BORDERS_SOURCE=new URL('../assets/data/country-borders.js?v=efbe30978254',document.currentScript?.src||document.baseURI).href;
   const REGION_CATALOG=Object.freeze([
     Object.freeze({"id":"ao","code":"AO","name":"Angola","locale":"pt-AO","html":"pt-AO","copy":"pt","label":"ANGOLA","timeZone":"Africa/Luanda","latitude":-11.2027,"longitude":17.8739,"region":"Angola","city":"centro geográfico"}),
     Object.freeze({"id":"ar","code":"AR","name":"Argentina","locale":"es-AR","html":"es-AR","copy":"es","label":"ARGENTINA","timeZone":"America/Argentina/Buenos_Aires","latitude":-38.4161,"longitude":-63.6167,"region":"Argentina","city":"centro geográfico"}),
     Object.freeze({"id":"au","code":"AU","name":"Australia","locale":"en-AU","html":"en-AU","copy":"en","label":"AUSTRALIA","timeZone":"Australia/Sydney","latitude":-25.2744,"longitude":133.7751,"region":"Australia","city":"geographic center"}),
     Object.freeze({"id":"at","code":"AT","name":"Österreich","locale":"de-AT","html":"de-AT","copy":"de","label":"AUSTRIA","timeZone":"Europe/Vienna","latitude":47.5162,"longitude":14.5501,"region":"Österreich","city":"geografische Mitte"}),
+    Object.freeze({"id":"by","code":"BY","name":"Беларусь","locale":"ru-BY","html":"ru-BY","copy":"ru","label":"BELARUS","timeZone":"Europe/Minsk","latitude":53.7098,"longitude":27.9534,"region":"Беларусь","city":"географический центр"}),
     Object.freeze({"id":"be","code":"BE","name":"België","locale":"nl-BE","html":"nl-BE","copy":"nl","label":"BELGIUM","timeZone":"Europe/Brussels","latitude":50.833333333333336,"longitude":4.333333333333333,"region":"België","city":"Brussel"}),
+    Object.freeze({"id":"bo","code":"BO","name":"Bolivia","locale":"es-BO","html":"es-BO","copy":"es","label":"BOLIVIA","timeZone":"America/La_Paz","latitude":-16.2902,"longitude":-63.5887,"region":"Bolivia","city":"centro geográfico"}),
     Object.freeze({"id":"br","code":"BR","name":"Brasil","locale":"pt-BR","html":"pt-BR","copy":"pt","label":"BRAZIL","timeZone":"America/Sao_Paulo","latitude":-14.235,"longitude":-51.9253,"region":"Brasil","city":"centro do Brasil"}),
+    Object.freeze({"id":"cm","code":"CM","name":"Cameroun","locale":"fr-CM","html":"fr-CM","copy":"fr","label":"CAMEROON","timeZone":"Africa/Douala","latitude":7.3697,"longitude":12.3547,"region":"Cameroun","city":"centre géographique"}),
     Object.freeze({"id":"ca","code":"CA","name":"Canada","locale":"en-CA","html":"en-CA","copy":"en","label":"CANADA","timeZone":"America/Toronto","latitude":56.1304,"longitude":-106.3468,"region":"Canada","city":"geographic center"}),
     Object.freeze({"id":"cl","code":"CL","name":"Chile","locale":"es-CL","html":"es-CL","copy":"es","label":"CHILE","timeZone":"America/Santiago","latitude":-35.6751,"longitude":-71.543,"region":"Chile","city":"centro geográfico"}),
     Object.freeze({"id":"chn","code":"CN","name":"中国","locale":"zh-CN","html":"zh-Hans","copy":"chn","label":"CHINA","timeZone":"Asia/Shanghai","latitude":35.8617,"longitude":104.1954,"region":"中国","city":"国土中心"}),
     Object.freeze({"id":"co","code":"CO","name":"Colombia","locale":"es-CO","html":"es-CO","copy":"es","label":"COLOMBIA","timeZone":"America/Bogota","latitude":4.5709,"longitude":-74.2973,"region":"Colombia","city":"centro geográfico"}),
     Object.freeze({"id":"cr","code":"CR","name":"Costa Rica","locale":"es-CR","html":"es-CR","copy":"es","label":"COSTA RICA","timeZone":"America/Costa_Rica","latitude":9.7489,"longitude":-83.7534,"region":"Costa Rica","city":"centro geográfico"}),
+    Object.freeze({"id":"ci","code":"CI","name":"Côte d’Ivoire","locale":"fr-CI","html":"fr-CI","copy":"fr","label":"CÔTE D’IVOIRE","timeZone":"Africa/Abidjan","latitude":7.54,"longitude":-5.5471,"region":"Côte d’Ivoire","city":"centre géographique"}),
+    Object.freeze({"id":"cu","code":"CU","name":"Cuba","locale":"es-CU","html":"es-CU","copy":"es","label":"CUBA","timeZone":"America/Havana","latitude":21.5218,"longitude":-77.7812,"region":"Cuba","city":"centro geográfico"}),
     Object.freeze({"id":"dk","code":"DK","name":"Denmark","locale":"en-DK","html":"en-DK","copy":"en","label":"DENMARK","timeZone":"Europe/Copenhagen","latitude":55.666666666666664,"longitude":12.583333333333334,"region":"Denmark","city":"Copenhagen"}),
     Object.freeze({"id":"do","code":"DO","name":"República Dominicana","locale":"es-DO","html":"es-DO","copy":"es","label":"DOMINICAN REPUBLIC","timeZone":"America/Santo_Domingo","latitude":18.466666666666665,"longitude":-69.9,"region":"República Dominicana","city":"Santo Domingo"}),
     Object.freeze({"id":"ec","code":"EC","name":"Ecuador","locale":"es-EC","html":"es-EC","copy":"es","label":"ECUADOR","timeZone":"America/Guayaquil","latitude":-1.8312,"longitude":-78.1834,"region":"Ecuador","city":"centro geográfico"}),
+    Object.freeze({"id":"sv","code":"SV","name":"El Salvador","locale":"es-SV","html":"es-SV","copy":"es","label":"EL SALVADOR","timeZone":"America/El_Salvador","latitude":13.7942,"longitude":-88.8965,"region":"El Salvador","city":"centro geográfico"}),
     Object.freeze({"id":"fi","code":"FI","name":"Finland","locale":"en-FI","html":"en-FI","copy":"en","label":"FINLAND","timeZone":"Europe/Helsinki","latitude":60.166666666666664,"longitude":24.966666666666665,"region":"Finland","city":"Helsinki"}),
     Object.freeze({"id":"fr","code":"FR","name":"France","locale":"fr-FR","html":"fr","copy":"fr","label":"FRANCE","timeZone":"Europe/Paris","latitude":46.2276,"longitude":2.2137,"region":"France","city":"centre géographique"}),
     Object.freeze({"id":"de","code":"DE","name":"Deutschland","locale":"de-DE","html":"de","copy":"de","label":"GERMANY","timeZone":"Europe/Berlin","latitude":51.1657,"longitude":10.4515,"region":"Deutschland","city":"geografische Mitte"}),
     Object.freeze({"id":"gh","code":"GH","name":"Ghana","locale":"en-GH","html":"en-GH","copy":"en","label":"GHANA","timeZone":"Africa/Accra","latitude":5.55,"longitude":-0.21666666666666667,"region":"Ghana","city":"Accra"}),
     Object.freeze({"id":"gt","code":"GT","name":"Guatemala","locale":"es-GT","html":"es-GT","copy":"es","label":"GUATEMALA","timeZone":"America/Guatemala","latitude":14.633333333333333,"longitude":-90.51666666666667,"region":"Guatemala","city":"Ciudad de Guatemala"}),
     Object.freeze({"id":"hk","code":"HK","name":"香港","locale":"zh-HK","html":"zh-Hant-HK","copy":"zht","label":"HONG KONG","timeZone":"Asia/Hong_Kong","latitude":22.3193,"longitude":114.1694,"region":"香港","city":"地理中心"}),
+    Object.freeze({"id":"hn","code":"HN","name":"Honduras","locale":"es-HN","html":"es-HN","copy":"es","label":"HONDURAS","timeZone":"America/Tegucigalpa","latitude":15.2,"longitude":-86.2419,"region":"Honduras","city":"centro geográfico"}),
     Object.freeze({"id":"is","code":"IS","name":"Iceland","locale":"en-IS","html":"en-IS","copy":"en","label":"ICELAND","timeZone":"Atlantic/Reykjavik","latitude":64.15,"longitude":-21.85,"region":"Iceland","city":"Reykjavik"}),
     Object.freeze({"id":"hi","code":"HI","name":"भारत","locale":"hi-IN","html":"hi","copy":"hi","label":"INDIA","timeZone":"Asia/Kolkata","latitude":22.5937,"longitude":78.9629,"region":"भारत","city":"देश का केंद्र"}),
     Object.freeze({"id":"id","code":"ID","name":"Indonesia","locale":"id-ID","html":"id","copy":"id","label":"INDONESIA","timeZone":"Asia/Jakarta","latitude":-2.5489,"longitude":118.0149,"region":"Indonesia","city":"pusat Indonesia"}),
     Object.freeze({"id":"ie","code":"IE","name":"Ireland","locale":"en-IE","html":"en-IE","copy":"en","label":"IRELAND","timeZone":"Europe/Dublin","latitude":53.1424,"longitude":-7.6921,"region":"Ireland","city":"geographic center"}),
     Object.freeze({"id":"it","code":"IT","name":"Italia","locale":"it-IT","html":"it","copy":"it","label":"ITALY","timeZone":"Europe/Rome","latitude":41.8719,"longitude":12.5674,"region":"Italia","city":"centro d'Italia"}),
     Object.freeze({"id":"jpn","code":"JP","name":"日本","locale":"ja-JP","html":"ja","copy":"jpn","label":"JAPAN","timeZone":"Asia/Tokyo","latitude":35.6762,"longitude":139.6503,"region":"日本","city":"東京"}),
+    Object.freeze({"id":"kz","code":"KZ","name":"Казахстан","locale":"ru-KZ","html":"ru-KZ","copy":"ru","label":"KAZAKHSTAN","timeZone":"Asia/Almaty","latitude":48.0196,"longitude":66.9237,"region":"Казахстан","city":"географический центр"}),
+    Object.freeze({"id":"ke","code":"KE","name":"Kenya","locale":"en-KE","html":"en-KE","copy":"en","label":"KENYA","timeZone":"Africa/Nairobi","latitude":-0.0236,"longitude":37.9062,"region":"Kenya","city":"geographic center"}),
     Object.freeze({"id":"kor","code":"KR","name":"한국","locale":"ko-KR","html":"ko","copy":"kor","label":"KOREA","timeZone":"Asia/Seoul","latitude":37.5665,"longitude":126.978,"region":"한국","city":"서울"}),
+    Object.freeze({"id":"kg","code":"KG","name":"Кыргызстан","locale":"ru-KG","html":"ru-KG","copy":"ru","label":"KYRGYZSTAN","timeZone":"Asia/Bishkek","latitude":41.2044,"longitude":74.7661,"region":"Кыргызстан","city":"географический центр"}),
+    Object.freeze({"id":"li","code":"LI","name":"Liechtenstein","locale":"de-LI","html":"de-LI","copy":"de","label":"LIECHTENSTEIN","timeZone":"Europe/Vaduz","latitude":47.166,"longitude":9.5554,"region":"Liechtenstein","city":"geografische Mitte"}),
+    Object.freeze({"id":"lu","code":"LU","name":"Luxembourg","locale":"fr-LU","html":"fr-LU","copy":"fr","label":"LUXEMBOURG","timeZone":"Europe/Luxembourg","latitude":49.8153,"longitude":6.1296,"region":"Luxembourg","city":"centre géographique"}),
     Object.freeze({"id":"my","code":"MY","name":"Malaysia","locale":"en-MY","html":"en-MY","copy":"en","label":"MALAYSIA","timeZone":"Asia/Kuala_Lumpur","latitude":3.1666666666666665,"longitude":101.7,"region":"Malaysia","city":"Kuala Lumpur"}),
     Object.freeze({"id":"mt","code":"MT","name":"Malta","locale":"en-MT","html":"en-MT","copy":"en","label":"MALTA","timeZone":"Europe/Malta","latitude":35.9,"longitude":14.516666666666667,"region":"Malta","city":"Valletta"}),
     Object.freeze({"id":"mx","code":"MX","name":"México","locale":"es-MX","html":"es-MX","copy":"es","label":"MEXICO","timeZone":"America/Mexico_City","latitude":23.6345,"longitude":-102.5528,"region":"México","city":"centro de México"}),
     Object.freeze({"id":"mz","code":"MZ","name":"Moçambique","locale":"pt-MZ","html":"pt-MZ","copy":"pt","label":"MOZAMBIQUE","timeZone":"Africa/Maputo","latitude":-18.6657,"longitude":35.5296,"region":"Moçambique","city":"centro geográfico"}),
     Object.freeze({"id":"nl","code":"NL","name":"Nederland","locale":"nl-NL","html":"nl-NL","copy":"nl","label":"NETHERLANDS","timeZone":"Europe/Amsterdam","latitude":52.36666666666667,"longitude":4.9,"region":"Nederland","city":"Amsterdam"}),
     Object.freeze({"id":"nz","code":"NZ","name":"New Zealand","locale":"en-NZ","html":"en-NZ","copy":"en","label":"NEW ZEALAND","timeZone":"Pacific/Auckland","latitude":-40.9006,"longitude":174.886,"region":"New Zealand","city":"geographic center"}),
+    Object.freeze({"id":"ni","code":"NI","name":"Nicaragua","locale":"es-NI","html":"es-NI","copy":"es","label":"NICARAGUA","timeZone":"America/Managua","latitude":12.8654,"longitude":-85.2072,"region":"Nicaragua","city":"centro geográfico"}),
     Object.freeze({"id":"ng","code":"NG","name":"Nigeria","locale":"en-NG","html":"en-NG","copy":"en","label":"NIGERIA","timeZone":"Africa/Lagos","latitude":6.45,"longitude":3.4,"region":"Nigeria","city":"Lagos"}),
     Object.freeze({"id":"no","code":"NO","name":"Norway","locale":"en-NO","html":"en-NO","copy":"en","label":"NORWAY","timeZone":"Europe/Oslo","latitude":59.916666666666664,"longitude":10.75,"region":"Norway","city":"Oslo"}),
     Object.freeze({"id":"pa","code":"PA","name":"Panamá","locale":"es-PA","html":"es-PA","copy":"es","label":"PANAMA","timeZone":"America/Panama","latitude":8.538,"longitude":-80.7821,"region":"Panamá","city":"centro geográfico"}),
+    Object.freeze({"id":"pk","code":"PK","name":"Pakistan","locale":"en-PK","html":"en-PK","copy":"en","label":"PAKISTAN","timeZone":"Asia/Karachi","latitude":30.3753,"longitude":69.3451,"region":"Pakistan","city":"geographic center"}),
+    Object.freeze({"id":"py","code":"PY","name":"Paraguay","locale":"es-PY","html":"es-PY","copy":"es","label":"PARAGUAY","timeZone":"America/Asuncion","latitude":-23.4425,"longitude":-58.4438,"region":"Paraguay","city":"centro geográfico"}),
     Object.freeze({"id":"pe","code":"PE","name":"Perú","locale":"es-PE","html":"es-PE","copy":"es","label":"PERU","timeZone":"America/Lima","latitude":-9.19,"longitude":-75.0152,"region":"Perú","city":"centro geográfico"}),
     Object.freeze({"id":"ph","code":"PH","name":"Philippines","locale":"en-PH","html":"en-PH","copy":"en","label":"PHILIPPINES","timeZone":"Asia/Manila","latitude":14.586666666666668,"longitude":120.96777777777778,"region":"Philippines","city":"Manila"}),
     Object.freeze({"id":"pt","code":"PT","name":"Portugal","locale":"pt-PT","html":"pt-PT","copy":"pt","label":"PORTUGAL","timeZone":"Europe/Lisbon","latitude":39.3999,"longitude":-8.2245,"region":"Portugal","city":"centro de Portugal"}),
     Object.freeze({"id":"ru","code":"RU","name":"Россия","locale":"ru-RU","html":"ru","copy":"ru","label":"RUSSIA","timeZone":"Europe/Moscow","latitude":55.7558,"longitude":37.6173,"region":"Россия","city":"Москва"}),
+    Object.freeze({"id":"sn","code":"SN","name":"Sénégal","locale":"fr-SN","html":"fr-SN","copy":"fr","label":"SENEGAL","timeZone":"Africa/Dakar","latitude":14.4974,"longitude":-14.4524,"region":"Sénégal","city":"centre géographique"}),
     Object.freeze({"id":"sg","code":"SG","name":"Singapore","locale":"en-SG","html":"en-SG","copy":"en","label":"SINGAPORE","timeZone":"Asia/Singapore","latitude":1.2833333333333334,"longitude":103.85,"region":"Singapore","city":"Singapore"}),
     Object.freeze({"id":"za","code":"ZA","name":"South Africa","locale":"en-ZA","html":"en-ZA","copy":"en","label":"SOUTH AFRICA","timeZone":"Africa/Johannesburg","latitude":-26.25,"longitude":28,"region":"South Africa","city":"Johannesburg"}),
     Object.freeze({"id":"es","code":"ES","name":"España","locale":"es-ES","html":"es","copy":"es","label":"SPAIN","timeZone":"Europe/Madrid","latitude":40.4637,"longitude":-3.7492,"region":"España","city":"centro geográfico"}),
     Object.freeze({"id":"se","code":"SE","name":"Sweden","locale":"en-SE","html":"en-SE","copy":"en","label":"SWEDEN","timeZone":"Europe/Stockholm","latitude":59.333333333333336,"longitude":18.05,"region":"Sweden","city":"Stockholm"}),
+    Object.freeze({"id":"ch","code":"CH","name":"Schweiz","locale":"de-CH","html":"de-CH","copy":"de","label":"SWITZERLAND","timeZone":"Europe/Zurich","latitude":46.8182,"longitude":8.2275,"region":"Schweiz","city":"geografische Mitte"}),
     Object.freeze({"id":"tw","code":"TW","name":"台灣","locale":"zh-TW","html":"zh-Hant-TW","copy":"zht","label":"TAIWAN","timeZone":"Asia/Taipei","latitude":23.6978,"longitude":120.9605,"region":"台灣","city":"地理中心"}),
     Object.freeze({"id":"ua","code":"UA","name":"Україна","locale":"uk-UA","html":"uk","copy":"uk","label":"UKRAINE","timeZone":"Europe/Kyiv","latitude":50.4501,"longitude":30.5234,"region":"Україна","city":"Київ"}),
     Object.freeze({"id":"eu","code":"UK","name":"United Kingdom","locale":"en-GB","html":"en-GB","copy":"en","label":"UNITED KINGDOM","timeZone":"Europe/London","latitude":55.3781,"longitude":-3.436,"region":"United Kingdom","city":"geographic center"}),
@@ -58,7 +76,7 @@
   ]);
   const LANG_ORDER=Object.freeze(REGION_CATALOG.map(region=>region.id));
   const LANG_META=Object.freeze(Object.fromEntries(REGION_CATALOG.map(({id,code,name,locale,html,copy})=>[id,Object.freeze({code,name,locale,html,copy})])));
-  const REGIONS=Object.freeze(Object.fromEntries(REGION_CATALOG.map(({id,label,timeZone,latitude,longitude,region,city})=>[id,Object.freeze({label,timeZone,latitude,longitude,region,city})])));
+  const REGIONS=Object.freeze(Object.fromEntries(REGION_CATALOG.map(({id,code,label,timeZone,latitude,longitude,region,city})=>[id,Object.freeze({code,label,timeZone,latitude,longitude,region,city})])));
   function populateLanguageMenu(){
     const list=document.getElementById('language-scroll');if(!list)return;
     const fragment=document.createDocumentFragment();
@@ -146,16 +164,54 @@
       const calibrationMs=performance.now()-calibrationStarted;
       const renderer=new window.SolarRenderer($('starfield'),$('universe'));cleanups.push(()=>renderer.dispose());
       Object.assign(renderer.options,FACTORY_OPTIONS);renderer.options.earthCloudSeed=randomCloudSeed();renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
+      let countryBordersPromise=null;
+      const loadCountryBorders=()=>countryBordersPromise||(countryBordersPromise=UI.loadScript(COUNTRY_BORDERS_SOURCE,'SolarCountryBorders').then(data=>{if(!disposed)renderer.setCountryBorders(data);return data;}).catch(error=>{countryBordersPromise=null;throw error;}));
       const clock=new A.SimulationClock(Date.now(),performance.now());
-      let timezone='local',showSeconds=false,hourCycle='12',clockSize=1,language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),zen=false,raf=0,clockFitFrame=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
+      let timezone='local',showSeconds=false,hourCycle='12',clockSize=1,language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),temporaryRegionId=null,zen=false,raf=0,clockFitFrame=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
       cleanups.push(()=>{disposed=true;cancelAnimationFrame(raf);cancelAnimationFrame(clockFitFrame);});
       let speedMode='hour',speedValues={hour:1,day:1,year:1},timerController=null;
       const activeRegion=()=>REGIONS[language]||REGIONS.kor;
+      const displayRegion=()=>REGIONS[temporaryRegionId]||activeRegion();
       autoTimeZone=autoTimeZone||activeRegion().timeZone;
-      const activeTimeZone=()=>timezone==='utc'?'UTC':languageMode==='auto'?autoTimeZone:activeRegion().timeZone;
+      const activeTimeZone=()=>temporaryRegionId?displayRegion().timeZone:timezone==='utc'?'UTC':languageMode==='auto'?autoTimeZone:activeRegion().timeZone;
       const copyLanguage=()=>activeCopyCode;
       const copyMeta=()=>COPY_META[copyLanguage()]||COPY_META.en;
       const t=(key,values)=>interpolate(COPY[copyLanguage()]?.[key]??LanguageData.fallback.copy[key]??key,values);
+      let regionDisplayLocale='',regionDisplayNames=null;
+      const localizedRegionName=(region=displayRegion())=>{
+        const locale=copyMeta().locale||'en-US',code=region.code==='UK'?'GB':region.code==='HI'?'IN':region.code;
+        if(copyLanguage()==='kor'&&code==='KR')return '한국';
+        if(locale!==regionDisplayLocale){regionDisplayLocale=locale;try{regionDisplayNames=new Intl.DisplayNames([locale],{type:'region'});}catch{regionDisplayNames=null;}}
+        try{return regionDisplayNames?.of(code)||region.region||region.label;}catch{return region.region||region.label;}
+      };
+      const centeredRegion=(region=displayRegion())=>({...region,...(renderer.countryRegionCenter(region)||{})});
+      const localizedSite=(region=displayRegion())=>({...centeredRegion(region),label:localizedRegionName(region),dayLabel:t('day'),nightLabel:t('night')});
+      const regionViewText=(region=displayRegion())=>localizedRegionName(region);
+      const regionViewAria=(region=displayRegion())=>t('koreaView',{region:localizedRegionName(region)});
+      const regionDistance=(a,b)=>{
+        const latitudeA=a.latitude*Math.PI/180,latitudeB=b.latitude*Math.PI/180,longitude=(a.longitude-b.longitude)*Math.PI/180;
+        return Math.acos(A.clamp(Math.sin(latitudeA)*Math.sin(latitudeB)+Math.cos(latitudeA)*Math.cos(latitudeB)*Math.cos(longitude),-1,1));
+      };
+      let regionRoute=null;
+      function countryRoute(){
+        if(regionRoute)return regionRoute;
+        const first=REGION_CATALOG.find(region=>region.id==='ca')||REGION_CATALOG[0],remaining=new Set(REGION_CATALOG.filter(region=>region!==first)),route=[first];let current=first;
+        while(remaining.size){let nearest=null,distance=Infinity;for(const candidate of remaining){const value=regionDistance(current,candidate);if(value<distance){nearest=candidate;distance=value;}}route.push(nearest);remaining.delete(nearest);current=nearest;}
+        return regionRoute=Object.freeze(route);
+      }
+      function regionNeighbor(direction){
+        const route=countryRoute(),currentId=temporaryRegionId||language,index=route.findIndex(region=>region.id===currentId),start=index<0?0:index;
+        return route[(start+(direction<0?-1:1)+route.length)%route.length];
+      }
+      function syncRegionNavigation(){
+        const selected=renderer.selected,available=['earth','jupiter'].includes(selected),earth=selected==='earth',navigation=$('region-navigation'),feature=$('feature-view'),previous=$('region-previous'),next=$('region-next');
+        navigation.hidden=feature.hidden=!available;navigation.classList.toggle('country-navigation',earth);previous.hidden=next.hidden=!earth;
+        if(!available)return;
+        if(earth){
+          const prior=regionNeighbor(-1),following=regionNeighbor(1);feature.textContent=regionViewText();feature.setAttribute('aria-label',regionViewAria());feature.disabled=previous.disabled=next.disabled=false;
+          previous.setAttribute('aria-label',regionViewAria(prior));previous.title=localizedRegionName(prior);next.setAttribute('aria-label',regionViewAria(following));next.title=localizedRegionName(following);
+        }else{feature.textContent=t('stormView');feature.setAttribute('aria-label',t('stormView'));feature.disabled=false;}
+      }
       const bodyCopy=body=>{const row=BODY_COPY[copyLanguage()]?.[body.id]||LanguageData.fallback.bodies[body.id];return {name:row?.[0]||body.en,description:row?.[1]||''};};
       const phaseCopy=name=>PHASE_COPY[copyLanguage()]?.[name]??LanguageData.fallback.phases[name]??name;
       const quantity=(value,unit)=>['en','hi','es','de','fr','pt','it','id','nl'].includes(copyLanguage())?`${value} ${t(unit)}`:`${value}${t(unit)}`;
@@ -275,10 +331,17 @@
       const helpReminder=Preferences.createHelpReminder();
       let firstHelpPending=helpReminder.visit(),lastTravelControlLock=null;
       function travelSettingsLocked(){return openingActive||!!renderer.ringTour;}
+      function syncRegionReset(){ $('timezone-reset').disabled=openingActive||!temporaryRegionId; }
       function syncTravelControlLock(){
-        const locked=travelSettingsLocked();if(lastTravelControlLock===locked)return;lastTravelControlLock=locked;
-        for(const id of ['eclipse-previous','eclipse-next','alignment-previous','alignment-next','show-alignment','actual-scale','camera-mode-toggle','reset-defaults','reset-defaults-yes','focus-body'])$(id).disabled=locked;
-        const region=$('timezone-button');region.setAttribute('aria-disabled',String(locked));region.tabIndex=locked?-1:0;
+        const locked=travelSettingsLocked(),focusLocked=openingActive,lockState=`${locked}:${focusLocked}`;
+        if(lastTravelControlLock===lockState)return;lastTravelControlLock=lockState;
+        for(const id of ['eclipse-previous','eclipse-next','alignment-previous','alignment-next','show-alignment','actual-scale','camera-mode-toggle','reset-defaults','reset-defaults-yes'])$(id).disabled=locked;
+        // A body selected during a planet tour may request the shared
+        // return-home-then-focus transition. Opening and warp still own the
+        // camera completely, so tracking stays unavailable there.
+        $('focus-body').disabled=focusLocked;
+        const regionLocked=openingActive,region=$('timezone-button');region.setAttribute('aria-disabled',String(regionLocked));region.tabIndex=regionLocked?-1:0;
+        syncRegionReset();
         syncOrbitSpacingControl();if(renderer.selected)syncBodySizeControl();
       }
       function lockOpeningControls(){openingControlsLocked=true;loading.hidden=false;loading.classList.add('opening');document.body.setAttribute('aria-busy','true');}
@@ -329,7 +392,7 @@
       }
       function claimOpeningControl(){if(openingControlsLocked)return false;if(openingActive)finishOpening();return true;}
       renderer.setOption('dollyZoom',renderer.options.dollyZoom,false);
-      renderer.setSite(activeRegion());
+      renderer.setSite(localizedSite(activeRegion()));
        if(savedRotationMode==='random')renderer.setRandomRotate(true,performance.now());
        else if(savedRotationMode)renderer.setAutoRotate(savedRotationMode,performance.now());
       cleanups.push(()=>timerController?.dispose());
@@ -400,7 +463,7 @@
       }
       syncClockSizeControl();
       document.fonts?.ready?.then(scheduleClockFit);
-      const zoneLabel=()=>timezone==='utc'?'UTC':activeRegion().label;
+      const zoneLabel=()=>timezone==='utc'&&!temporaryRegionId?'UTC':localizedRegionName(displayRegion());
       function syncHourCycleUi(period){
         const control=$('ampm'),twentyFour=hourCycle==='24';
         if(period==='AM'||period==='PM')control.dataset.period=period;
@@ -526,14 +589,14 @@
       function compactDay(ms) {const d=dateParts(ms);return `${d.y}.${two(d.mo)}.${two(d.d)}`;}
       function compactDate(ms) {const d=dateParts(ms);return `${d.y}.${two(d.mo)}.${two(d.d)}  ${two(d.h)}:${two(d.mi)}`;}
       function updateWall(wall) {
-        const p=dateParts(wall),key=[p.y,p.mo,p.d,p.h,p.mi,showSeconds?p.s:0,timezone,showSeconds,hourCycle].join('-');if(key===lastWallKey)return;lastWallKey=key;
+        const p=dateParts(wall),key=[p.y,p.mo,p.d,p.h,p.mi,showSeconds?p.s:0,activeTimeZone(),displayRegion().label,showSeconds,hourCycle].join('-');if(key===lastWallKey)return;lastWallKey=key;
         const twelve=hourCycle==='12',displayHour=twelve?((p.h+11)%12)+1:p.h,period=p.h<12?'AM':'PM';
         $('hours').textContent=two(displayHour);$('minutes').textContent=two(p.mi);$('seconds').textContent=two(p.s);
         $('ampm').hidden=false;syncHourCycleUi(period);
         const spoken=twelve?`${period} ${two(displayHour)}:${two(p.mi)}${showSeconds?':'+two(p.s):''}`:`${two(p.h)}:${two(p.mi)}${showSeconds?':'+two(p.s):''}`;
         $('wall-clock').dateTime=new Date(wall).toISOString();$('wall-clock').setAttribute('aria-label',t('wallClockAria',{time:spoken}));
         $('wall-date').textContent=dateFormatter.format(new Date(wall));$('timezone-button').textContent=zoneLabel();
-        const regionAction=t('koreaView',{region:activeRegion().region});$('timezone-button').setAttribute('aria-label',regionAction);$('timezone-button').title=regionAction;
+        const regionAction=regionViewText();$('timezone-button').setAttribute('aria-label',regionAction);$('timezone-button').title=regionAction;
       }
       // Display each satellite immediately after its parent while the renderer
       // uses the same parent relationship for the actual scene hierarchy.
@@ -560,6 +623,24 @@
       function navVisibility() {navButtons.get('pluto').hidden=!renderer.options.pluto;for(const satellite of A.SATELLITES)navButtons.get(satellite.id).hidden=!renderer.options.moon;}
       navVisibility();
       function trackedBodyId(){return renderer.cameraTween?.to?.focus||renderer.camera.focus||null;}
+      function refreshDisplayedRegion(){
+        renderer.setSite(localizedSite());refreshTimeFormats();lastWallKey='';updateWall(Date.now());
+        syncRegionReset();
+        if(renderer.selected==='earth'){syncRegionNavigation();updateBody(clock.value(performance.now()));}
+        renderer.invalidatePresentation();
+      }
+      function setTemporaryRegion(id){
+        if(!REGIONS[id]||trackedBodyId()!=='earth')return false;
+        temporaryRegionId=id===activeRegion().id?null:id;refreshDisplayedRegion();return true;
+      }
+      function clearTemporaryRegion(){
+        if(!temporaryRegionId)return false;
+        temporaryRegionId=null;refreshDisplayedRegion();return true;
+      }
+      function syncTemporaryRegion(){
+        if(temporaryRegionId&&trackedBodyId()!=='earth')clearTemporaryRegion();
+        if(trackedBodyId()==='earth'&&renderer.earthRegionInteractionReady()&&!renderer.countryBorders)loadCountryBorders().catch(()=>{});
+      }
       function navigateBody(direction){
         const available=bodies.filter(body=>!navButtons.get(body.id)?.hidden);if(!available.length)return;
         const currentId=renderer.selected||trackedBodyId(),currentIndex=available.findIndex(body=>body.id===currentId);
@@ -716,6 +797,7 @@
       function updateBody(ms) {
         const b=bodies.find(v=>v.id===renderer.selected);if(!b)return;
         if(b.id==='saturn')$('ring-tour-button').disabled=!renderer.canStartRingTour();
+        syncRegionNavigation();
         const material=window.SolarAssets.materialInfo?.[b.id],signature=b.id+'|'+copyLanguage()+'|'+(material?.credit||'');
         const staticChanged=signature!==bodyInfoSignature;bodyInfoSignature=signature;
         if(staticChanged)$('body-material').textContent=material?material.credit+' · '+t('photoMap'):b.id==='earth'?'NASA Blue Marble · '+t('builtInImage'):t('builtInMaterial')+' · '+t('publicPhotoUnavailable');
@@ -750,7 +832,7 @@
         $('body-category').textContent=id==='sun'?'THE HEART OF OUR SYSTEM':id==='earth'?'OUR PALE BLUE HOME':id==='moon'?'EARTH’S COMPANION':id==='europa'?'JUPITER’S ICY MOON':id==='pluto'?'A DISTANT DWARF PLANET':'A WORLD IN MOTION';
         const copy=bodyCopy(b);$('body-name').textContent=copy.name;$('body-english').textContent=b.en;$('body-description').textContent=copy.description;
         for(const [key,button] of navButtons){button.classList.toggle('active',key===id);button.setAttribute('aria-pressed',String(key===id));}
-        $('feature-view').hidden=!['earth','jupiter'].includes(id);$('feature-view').textContent=id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');
+        syncRegionNavigation();
         $('ring-tour-button').hidden=id!=='saturn';
         syncBodySizeControl(b);
         syncEclipseControl(id);
@@ -802,7 +884,7 @@
         $('speed-value').textContent=clock.paused?'PAUSED':clock.live||Math.abs(clock.rate-1)<1e-9?'1 ×':speedText();
         syncSpeedUi();
       }
-      function uiNow() {const mono=performance.now(),wall=Date.now(),ms=clock.value(mono,wall);updateWall(wall);updateControls(ms);updateBody(ms);}
+      function uiNow() {const mono=performance.now(),wall=Date.now(),ms=clock.value(mono,wall);syncTemporaryRegion();updateWall(wall);updateControls(ms);updateBody(ms);}
       function now() {
         const mono=performance.now();A.calibrateAt(Date.now());renderer.invalidateSurfaces();clock.now(mono);eclipseTargets.clear();alignmentTarget=null;renderer.setAlignmentGuide(null);syncEclipseControl();syncAlignmentControl();
         uiNow();toast(t('returnedNow'));
@@ -876,8 +958,8 @@
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
         renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();keyboardTrackingReturn=null;
         A.calibrateAt(Date.now());clock.now(mono);eclipseTargets.clear();alignmentTarget=null;renderer.setAlignmentGuide(null);renderer.invalidateSurfaces();
-        timezone='local';showSeconds=false;hourCycle='12';clockSize=1;clockFont='georgia';speedMode='hour';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;
-        renderer.setSite(activeRegion());for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
+        timezone='local';showSeconds=false;hourCycle='12';clockSize=1;clockFont='georgia';speedMode='hour';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;temporaryRegionId=null;
+        renderer.setSite(localizedSite(activeRegion()));for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
         $('show-seconds').checked=showSeconds;$('seconds-group').hidden=true;$('ampm').hidden=false;syncHourCycleUi();
         $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
         translateStatic();refreshTimeFormats();refreshNavLabels();syncOrbitSpacingControl();syncOrbitBrightnessControl();syncStarDensityControl();syncClockSizeControl();syncSpeedUi();cameraUi();navVisibility();closeBody();lastWallKey='';uiNow();persist();toast(t('resetComplete'));
@@ -905,8 +987,8 @@
         cameraUi();
       }
       function focusBody(id) {
-        if(!id||travelSettingsLocked())return;
-        cancelGesture();renderer.animateFocus(id);cameraUi();
+        if(!id||openingActive)return;
+        cancelGesture();if(!renderer.requestFocus(id))return;if(id==='earth')loadCountryBorders().catch(()=>{});cameraUi();
         window.SolarUsageAnalytics?.track('solar_body_track',{body_id:id});
       }
       $('focus-body').addEventListener('click',()=>focusBody(renderer.selected));
@@ -918,11 +1000,33 @@
         if(renderer.selected!=='saturn')return;
         cancelGesture();startRingTravel();
       });
-      $('feature-view').addEventListener('click',()=>{const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;cancelGesture();const region=activeRegion();renderer.animateFeature(id,id==='earth'?region.latitude:-22,id==='earth'?region.longitude:(window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70),clock.value(performance.now()));cameraUi();window.SolarUsageAnalytics?.track('solar_body_track',{body_id:id});});
-      function trackActiveRegion(){if(travelSettingsLocked())return;const region=activeRegion();cancelGesture();settings(false);renderer.animateFeature('earth',region.latitude,region.longitude,clock.value(performance.now()));cameraUi();window.SolarUsageAnalytics?.track('solar_region_view');}
+      function viewEarthRegion(region=displayRegion()){
+        const target=centeredRegion(region);cancelGesture();
+        const mono=performance.now();
+        if(!renderer.requestFeature('earth',target.latitude,target.longitude,clock.value(mono),mono))return false;
+        cameraUi();window.SolarUsageAnalytics?.track('solar_region_view');return true;
+      }
+      $('feature-view').addEventListener('click',()=>{
+        const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;
+        if(id==='earth'){viewEarthRegion();return;}
+        cancelGesture();renderer.animateFeature(id,-22,window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70,clock.value(performance.now()));cameraUi();window.SolarUsageAnalytics?.track('solar_body_track',{body_id:id});
+      });
+      function navigateRegion(direction){
+        if(renderer.selected!=='earth')return;
+        const target=regionNeighbor(direction);
+        if(!viewEarthRegion(target))return;
+        setTemporaryRegion(target.id);syncRegionNavigation();
+      }
+      $('region-previous').addEventListener('click',()=>navigateRegion(-1));
+      $('region-next').addEventListener('click',()=>navigateRegion(1));
+      function trackActiveRegion(){if(openingActive)return;settings(false);viewEarthRegion();}
       const regionReadout=$('timezone-button');regionReadout.setAttribute('role','button');regionReadout.tabIndex=0;
       regionReadout.addEventListener('click',trackActiveRegion);
       regionReadout.addEventListener('keydown',event=>{if(event.key!=='Enter'&&event.key!==' ')return;event.preventDefault();trackActiveRegion();});
+      $('timezone-reset').addEventListener('click',()=>{
+        if(openingActive||!temporaryRegionId)return;
+        const region=activeRegion();clearTemporaryRegion();viewEarthRegion(region);
+      });
       for(const [id,direction] of [['rotate-left',-1],['rotate-right',1]])$(id).addEventListener('click',()=>{
         renderer.setAutoRotate(renderer.autoRotateDirection===direction?0:direction,performance.now());cameraUi();persist();
       });
@@ -1055,7 +1159,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=a02013176a00','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=e706c743a30f','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1124,16 +1228,17 @@
         const targetCopy=automatic?detectedCopyLanguage():(LANG_META[target]?.copy||'kor');
         const targetTimeZone=automatic?(detectedTimeZone()||REGIONS[target]?.timeZone||'UTC'):autoTimeZone;
         if(!LANG_ORDER.includes(target))return;
+        if(userInitiated)clearTemporaryRegion();
         const request=++languageRequest;
         if(target===language&&mode===languageMode&&targetCopy===activeCopyCode&&(!automatic||targetTimeZone===autoTimeZone)){persist();return;}
         const report=userInitiated?window.SolarUsageAnalytics?.begin('solar_language_change',{selection_mode:mode}):null;
         try{await hydrateLanguage(target,targetCopy);}catch(error){if(request===languageRequest&&!disposed)toast(error.message);return;}
         if(request!==languageRequest||disposed)return;
-        language=target;languageMode=mode;activeCopyCode=targetCopy;if(automatic)autoTimeZone=targetTimeZone;renderer.setSite(activeRegion());translateStatic();renderReleaseNotes();refreshTimeFormats();lastWallKey='';
+        language=target;languageMode=mode;activeCopyCode=targetCopy;if(automatic)autoTimeZone=targetTimeZone;renderer.setSite(localizedSite());translateStatic();renderReleaseNotes();refreshTimeFormats();lastWallKey='';
         refreshNavLabels();presetUi();cameraUi();syncSpeedUi();
         if(presetAction){const value=cameraPresets[presetAction.index];$('preset-title').textContent=t('presetTitle',{n:presetAction.index+1});$('preset-note').textContent=t(value?'presetSavedNote':'presetEmptyNote');}
         const selected=bodies.find(body=>body.id===renderer.selected);
-        if(selected){const copy=bodyCopy(selected);$('body-name').textContent=copy.name;$('body-description').textContent=copy.description;$('feature-view').textContent=selected.id==='earth'?t('koreaView',{region:activeRegion().region}):t('stormView');syncBodySizeControl(selected);syncEclipseControl(selected.id);syncAlignmentControl(selected.id);updateBody(clock.value(performance.now()));}
+        if(selected){const copy=bodyCopy(selected);$('body-name').textContent=copy.name;$('body-description').textContent=copy.description;syncRegionNavigation();syncBodySizeControl(selected);syncEclipseControl(selected.id);syncAlignmentControl(selected.id);updateBody(clock.value(performance.now()));}
         uiNow();persist();if(helpDialog.open)requestAnimationFrame(updateHelpScrollCues);report?.();
       }
       const languageControl=$('language-control'),languageMenu=$('language-menu'),languageScroll=$('language-scroll'),languageToggle=$('language-toggle');
@@ -1190,9 +1295,14 @@
         canvas.classList.remove('dragging');canvas.style.cursor='grab';
       }
       function pointerPosition(event) {const r=canvas.getBoundingClientRect();return {x:event.clientX-r.left,y:event.clientY-r.top};}
+      function earthRegionAt(point){
+        if(trackedBodyId()!=='earth'||!renderer.earthRegionInteractionReady())return null;
+        if(!renderer.countryBorders){loadCountryBorders().catch(()=>{});return null;}
+        return renderer.earthRegionHit(point.x,point.y,REGION_CATALOG,clock.value(performance.now()));
+      }
       // Camera buttons use the same T lock as canvas gestures and shortcuts.
       document.addEventListener('click',event=>{
-        if(openingReplayLocked&&!event.target.closest?.('#zen-toggle')&&event.target.closest?.('#view-controls,#timezone-button,#focus-body,#feature-view,#ring-tour-button,#reset-defaults,#preset-apply')){
+        if(openingReplayLocked&&!event.target.closest?.('#zen-toggle')&&event.target.closest?.('#view-controls,#timezone-button,#timezone-reset,#focus-body,#region-navigation,#ring-tour-button,#reset-defaults,#preset-apply')){
           event.preventDefault();event.stopImmediatePropagation();
         }
       },{capture:true});
@@ -1211,9 +1321,11 @@
       canvas.addEventListener('pointermove',event=>{
         const p=pointerPosition(event);
         if(!pointers.has(event.pointerId)) {
-          const ring=renderer.ringTourHit(p.x,p.y),hover=zen||ring?null:renderer.hit(p.x,p.y);
+          const ring=renderer.ringTourHit(p.x,p.y),region=zen||ring?null:earthRegionAt(p),hover=zen||ring?null:renderer.hit(p.x,p.y);
+          if(region&&!renderer.countryBorders)loadCountryBorders().catch(()=>{});
+          renderer.setEarthRegionHover(region);
           if(renderer.hover!==hover||renderer.ringTourHover!==!!ring){renderer.hover=hover;renderer.ringTourHover=!!ring;renderer.invalidatePresentation();}
-          canvas.style.cursor=ring?window.SolarRingTour.cursor:renderer.hover?'pointer':'grab';return;
+          canvas.style.cursor=ring?window.SolarRingTour.cursor:region||renderer.hover?'pointer':'grab';return;
         }
         pointers.set(event.pointerId,p);
         if(pointers.size>=2) {
@@ -1246,7 +1358,11 @@
         if(clicked){
           const ringTarget=renderer.ringTourHit(p.x,p.y);
           if(ringTarget)startRingTravel(ringTarget);
-          else if(!renderer.ringTour){if(!zen)selectBody(renderer.hit(p.x,p.y));settings(false);}
+          else if(!renderer.ringTour){
+            const region=zen?null:earthRegionAt(p);
+            if(region)setTemporaryRegion(region.id);else if(!zen)selectBody(renderer.hit(p.x,p.y));
+            settings(false);
+          }
         }
         if(pointers.size===0){drag=null;pinched=false;canvas.classList.remove('dragging');canvas.style.cursor='grab';persist();}
         else if(drag){const last=[...pointers.values()][0];drag.x=last.x;drag.y=last.y;drag.moved=true;}
@@ -1257,8 +1373,8 @@
       canvas.addEventListener('contextmenu',event=>event.preventDefault());
       canvas.addEventListener('pointerup',event=>endPointer(event));canvas.addEventListener('pointercancel',event=>endPointer(event,true));
       canvas.addEventListener('lostpointercapture',event=>{pointers.delete(event.pointerId);if(!pointers.size){drag=null;canvas.classList.remove('dragging');wakePointer();}});
-      canvas.addEventListener('pointerleave',()=>{if(!pointers.size&&(renderer.hover!==null||renderer.ringTourHover)){renderer.hover=null;renderer.ringTourHover=false;renderer.invalidatePresentation();}});
-      canvas.addEventListener('wheel',event=>{event.preventDefault();zoom(Math.exp(-A.clamp(event.deltaY,-120,120)*.0017));},{passive:false});
+      canvas.addEventListener('pointerleave',()=>{if(!pointers.size){renderer.setEarthRegionHover(null);if(renderer.hover!==null||renderer.ringTourHover){renderer.hover=null;renderer.ringTourHover=false;renderer.invalidatePresentation();}}});
+      canvas.addEventListener('wheel',event=>{event.preventDefault();zoom(renderer.wheelTravelFactor(event.deltaY));},{passive:false});
       canvas.addEventListener('dblclick',event=>{if(openingControlsLocked||event.button!==0||clickGestures<2)return;if(openingActive)finishOpening();clickGestures=0;const p=pointerPosition(event),id=renderer.hit(p.x,p.y);if(id)focusBody(id);});
       window.addEventListener('keydown',event=>{
         if(disposed)return;
@@ -1403,7 +1519,7 @@
         // completed asynchronous textures without running the frame coordinator.
         const tick=()=>{
           pausedWake=0;if(disposed||document.hidden)return;
-          const mono=performance.now(),wall=Date.now();updateWall(wall);updateControls(clock.value(mono,wall));helpReminder.touch();
+          const mono=performance.now(),wall=Date.now();syncTemporaryRegion();updateWall(wall);updateControls(clock.value(mono,wall));helpReminder.touch();
           if(!clock.paused||renderer.needsDraw(mono)){wakeFrames();return;}
           pausedWake=setTimeout(tick,1000-Date.now()%1000);
         };
@@ -1431,6 +1547,7 @@
         const wall=Date.now(),ms=clock.value(mono,wall);syncAnimationPause(mono);
         if(!clock.paused&&!clock.live&&ms>=A.MAX_TIME){clock.anchorMs=A.MAX_TIME;clock.anchorMono=mono;clock.paused=true;toast(t('yearLimit'));}
         try {
+          syncTemporaryRegion();
           // Viewport settling owns its hidden redraws. The normal loop waits so
           // F11/rotation never submit the same scene twice in one frame.
           const renderScene=!resizeFrame&&(!clock.paused||activeMotion||renderer.needsDraw(mono)),wasTransitioning=!!renderer.cameraTween||!!renderer.ringTour?.returnTarget;
@@ -1481,7 +1598,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){firstHelpPending=helpReminder.visit();renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive&&!openingDeparture&&!clock.paused)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.75',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:activeRegion().label,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.76',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);if(openingRunMode!=='none')renderer.startOpeningPointReveal(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

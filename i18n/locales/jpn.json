@@ -197,7 +197,7 @@
     "day": "昼",
     "night": "夜",
     "auNote": "1 AU は地球と太陽の平均距離です。大きさと距離は画面表示用に調整しています。",
-    "koreaView": "{region}を見る · 昼/夜",
+    "koreaView": "{region}を見る",
     "stormView": "大赤斑を見る",
     "speedUnitActive": "速度単位：{unit}。押すと次の単位へ切り替えます。",
     "speedUnitReady": "速度単位 {unit} を待機中。押すとこの単位で倍速を開始します。",

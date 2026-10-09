@@ -197,7 +197,7 @@
     "day": "día",
     "night": "noche",
     "auNote": "",
-    "koreaView": "Ver {region} · día/noche",
+    "koreaView": "Ver {region}",
     "stormView": "Ver la Gran Mancha Roja",
     "speedUnitActive": "Unidad de velocidad: {unit}. Pulsa para cambiar.",
     "speedUnitReady": "Unidad {unit} preparada. Pulsa para iniciar.",

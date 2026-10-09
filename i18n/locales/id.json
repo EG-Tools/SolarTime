@@ -197,7 +197,7 @@
     "day": "siang",
     "night": "malam",
     "auNote": "",
-    "koreaView": "Lihat {region} · siang/malam",
+    "koreaView": "Lihat {region}",
     "stormView": "Lihat Bintik Merah Besar",
     "speedUnitActive": "Satuan kecepatan: {unit}. Tekan untuk mengganti.",
     "speedUnitReady": "Satuan kecepatan {unit} siap. Tekan untuk mulai dengan satuan ini.",

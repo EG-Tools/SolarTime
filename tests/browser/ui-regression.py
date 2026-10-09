@@ -260,14 +260,14 @@ def suite(browser,root,size,installed):
   navigate_to_release(page,json.loads((root/'version.json').read_text())['version'],check,tag+' '+country)
   page.locator('#help-dialog .close-button').first.click()
  check(len([u for u in page.evaluate('__fixtureRequests') if '/locales/nl.json' in u])==1,tag+' one shared Dutch request')
- # Country inspection keeps the 250x equivalent disk size via camera travel,
- # while the lens readout and wheel input remain independent.
+ # Country inspection uses the same seven forward-wheel steps from every entry,
+ # while the lens readout and later wheel input remain independent.
  page.evaluate("SolarTime.renderer.setAutoRotate(0,performance.now())")
  country_lens=page.evaluate('SolarTime.renderer.camera.zoom')
  page.locator('#timezone-button').click()
  page.wait_for_function('!SolarTime.renderer.cameraTween',timeout=7000)
- country=page.evaluate("""()=>{const r=SolarTime.renderer,c=r.camera,b=r.sceneBodies().find(b=>b.id==='earth');return {zoom:c.zoom,dolly:c.dolly,radius:r.bodyRadiusForState(b,c),reference:r.bodyRadiusForState(b,{...c,zoom:250,dolly:1})}}""")
- check(country['zoom']==country_lens and country['dolly']>1 and abs(country['radius']-country['reference'])<1e-6,tag+' country retains 250x equivalent size through travel')
+ country=page.evaluate("""()=>{const r=SolarTime.renderer,c=r.camera,reference=r.countryInspectionState(c);return {zoom:c.zoom,dolly:c.dolly,reference:reference.dolly}}""")
+ check(country['zoom']==country_lens and country['dolly']>1 and abs(country['dolly']-country['reference'])<1e-6,tag+' country uses the shared seven-step travel distance')
  check(page.locator('#zoom-value').inner_text()==f'{country_lens:.1f}×',tag+' lens readout excludes travel magnification')
  page.mouse.move(size[0]*.6,size[1]*.55);page.mouse.wheel(0,-120)
  page.wait_for_timeout(350)

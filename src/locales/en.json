@@ -197,7 +197,7 @@
     "day": "daylight",
     "night": "night",
     "auNote": "",
-    "koreaView": "View {region} · day/night",
+    "koreaView": "View {region}",
     "stormView": "View the Great Red Spot",
     "speedUnitActive": "Speed unit: {unit}. Press to cycle units.",
     "speedUnitReady": "Speed unit {unit} ready. Press to start at this unit.",

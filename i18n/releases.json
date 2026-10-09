@@ -1,5 +1,101 @@
 [
   {
+    "version": "0.76",
+    "date": "2026.10.09",
+    "localized": {
+      "kor": [
+        "지구에서 국가 외곽선을 선택해 해당 지역과 현지 시간을 확인할 수 있습니다.",
+        "국가 선택 정확도와 카메라 이동·확대 동작을 개선했습니다.",
+        "벨라루스, 볼리비아, 카메룬, 코트디부아르, 쿠바, 엘살바도르, 온두라스, 카자흐스탄, 케냐, 키르기스스탄, 리히텐슈타인, 룩셈부르크, 니카라과, 파키스탄, 파라과이, 세네갈, 스위스 등 17개 국가를 추가했습니다.",
+        "총 15개 언어와 67개 국가를 지원합니다."
+      ],
+      "en": [
+        "Select a country outline on Earth to view its region and local time.",
+        "Improved country selection accuracy and camera movement and zoom.",
+        "Added 17 countries: Belarus, Bolivia, Cameroon, Côte d’Ivoire, Cuba, El Salvador, Honduras, Kazakhstan, Kenya, Kyrgyzstan, Liechtenstein, Luxembourg, Nicaragua, Pakistan, Paraguay, Senegal and Switzerland.",
+        "Solar Time now supports 15 languages and 67 countries."
+      ],
+      "chn": [
+        "可在地球上选择国家轮廓，查看该地区及当地时间。",
+        "提升了国家选择精度以及镜头移动和缩放体验。",
+        "新增白俄罗斯、玻利维亚、喀麦隆、科特迪瓦、古巴、萨尔瓦多、洪都拉斯、哈萨克斯坦、肯尼亚、吉尔吉斯斯坦、列支敦士登、卢森堡、尼加拉瓜、巴基斯坦、巴拉圭、塞内加尔和瑞士等17个国家。",
+        "目前共支持15种语言和67个国家。"
+      ],
+      "zht": [
+        "可在地球上選擇國家輪廓，查看該地區與當地時間。",
+        "提升了國家選擇精準度以及鏡頭移動與縮放體驗。",
+        "新增白俄羅斯、玻利維亞、喀麥隆、象牙海岸、古巴、薩爾瓦多、宏都拉斯、哈薩克、肯亞、吉爾吉斯、列支敦斯登、盧森堡、尼加拉瓜、巴基斯坦、巴拉圭、塞內加爾與瑞士等17個國家。",
+        "目前共支援15種語言與67個國家。"
+      ],
+      "jpn": [
+        "地球上で国の輪郭を選択し、その地域と現地時刻を確認できるようになりました。",
+        "国の選択精度とカメラの移動・ズーム動作を改善しました。",
+        "ベラルーシ、ボリビア、カメルーン、コートジボワール、キューバ、エルサルバドル、ホンジュラス、カザフスタン、ケニア、キルギス、リヒテンシュタイン、ルクセンブルク、ニカラグア、パキスタン、パラグアイ、セネガル、スイスの17か国を追加しました。",
+        "合計15言語、67か国に対応しています。"
+      ],
+      "hi": [
+        "पृथ्वी पर किसी देश की सीमा चुनकर उसका क्षेत्र और स्थानीय समय देखा जा सकता है।",
+        "देश चयन की सटीकता तथा कैमरा गति और ज़ूम को बेहतर किया गया।",
+        "बेलारूस, बोलिविया, कैमरून, कोट डी आइवर, क्यूबा, एल साल्वाडोर, होंडुरास, कज़ाखस्तान, केन्या, किर्गिज़स्तान, लिकटेंस्टीन, लक्ज़मबर्ग, निकारागुआ, पाकिस्तान, पैराग्वे, सेनेगल और स्विट्ज़रलैंड सहित 17 देश जोड़े गए।",
+        "अब कुल 15 भाषाएँ और 67 देश समर्थित हैं।"
+      ],
+      "es": [
+        "Ahora puede seleccionar el contorno de un país en la Tierra para ver su región y hora local.",
+        "Mejoramos la precisión de la selección de países y el movimiento y zoom de la cámara.",
+        "Añadimos 17 países: Bielorrusia, Bolivia, Camerún, Costa de Marfil, Cuba, El Salvador, Honduras, Kazajistán, Kenia, Kirguistán, Liechtenstein, Luxemburgo, Nicaragua, Pakistán, Paraguay, Senegal y Suiza.",
+        "Solar Time admite ahora 15 idiomas y 67 países."
+      ],
+      "de": [
+        "Auf der Erde kann jetzt der Umriss eines Landes ausgewählt werden, um Region und Ortszeit anzuzeigen.",
+        "Die Genauigkeit der Länderauswahl sowie Kamerabewegung und Zoom wurden verbessert.",
+        "17 Länder wurden hinzugefügt: Belarus, Bolivien, Kamerun, Côte d’Ivoire, Kuba, El Salvador, Honduras, Kasachstan, Kenia, Kirgisistan, Liechtenstein, Luxemburg, Nicaragua, Pakistan, Paraguay, Senegal und die Schweiz.",
+        "Solar Time unterstützt jetzt 15 Sprachen und 67 Länder."
+      ],
+      "fr": [
+        "Vous pouvez désormais sélectionner le contour d’un pays sur la Terre pour afficher sa région et son heure locale.",
+        "La précision de sélection des pays ainsi que les déplacements et le zoom de la caméra ont été améliorés.",
+        "Ajout de 17 pays : Biélorussie, Bolivie, Cameroun, Côte d’Ivoire, Cuba, Salvador, Honduras, Kazakhstan, Kenya, Kirghizistan, Liechtenstein, Luxembourg, Nicaragua, Pakistan, Paraguay, Sénégal et Suisse.",
+        "Solar Time prend désormais en charge 15 langues et 67 pays."
+      ],
+      "pt": [
+        "Agora é possível selecionar o contorno de um país na Terra para ver a região e a hora local.",
+        "Melhorámos a precisão da seleção de países e o movimento e zoom da câmara.",
+        "Adicionámos 17 países: Bielorrússia, Bolívia, Camarões, Costa do Marfim, Cuba, El Salvador, Honduras, Cazaquistão, Quénia, Quirguistão, Liechtenstein, Luxemburgo, Nicarágua, Paquistão, Paraguai, Senegal e Suíça.",
+        "O Solar Time suporta agora 15 idiomas e 67 países."
+      ],
+      "it": [
+        "Ora è possibile selezionare il contorno di un paese sulla Terra per visualizzarne la regione e l’ora locale.",
+        "Migliorate la precisione della selezione dei paesi e le operazioni di movimento e zoom della telecamera.",
+        "Aggiunti 17 paesi: Bielorussia, Bolivia, Camerun, Costa d’Avorio, Cuba, El Salvador, Honduras, Kazakistan, Kenya, Kirghizistan, Liechtenstein, Lussemburgo, Nicaragua, Pakistan, Paraguay, Senegal e Svizzera.",
+        "Solar Time supporta ora 15 lingue e 67 paesi."
+      ],
+      "id": [
+        "Kini Anda dapat memilih garis batas negara di Bumi untuk melihat wilayah dan waktu setempatnya.",
+        "Meningkatkan akurasi pemilihan negara serta gerakan dan zoom kamera.",
+        "Menambahkan 17 negara: Belarus, Bolivia, Kamerun, Pantai Gading, Kuba, El Salvador, Honduras, Kazakhstan, Kenya, Kirgizstan, Liechtenstein, Luksemburg, Nikaragua, Pakistan, Paraguay, Senegal, dan Swiss.",
+        "Solar Time kini mendukung 15 bahasa dan 67 negara."
+      ],
+      "nl": [
+        "U kunt nu de omtrek van een land op de aarde selecteren om de regio en lokale tijd te bekijken.",
+        "De nauwkeurigheid van landselectie en de camerabeweging en zoom zijn verbeterd.",
+        "17 landen toegevoegd: Belarus, Bolivia, Kameroen, Ivoorkust, Cuba, El Salvador, Honduras, Kazachstan, Kenia, Kirgizië, Liechtenstein, Luxemburg, Nicaragua, Pakistan, Paraguay, Senegal en Zwitserland.",
+        "Solar Time ondersteunt nu 15 talen en 67 landen."
+      ],
+      "ru": [
+        "Теперь на Земле можно выбрать контур страны и посмотреть её регион и местное время.",
+        "Повышена точность выбора стран, а также улучшены движение и масштабирование камеры.",
+        "Добавлены 17 стран: Беларусь, Боливия, Камерун, Кот-д’Ивуар, Куба, Сальвадор, Гондурас, Казахстан, Кения, Кыргызстан, Лихтенштейн, Люксембург, Никарагуа, Пакистан, Парагвай, Сенегал и Швейцария.",
+        "Solar Time теперь поддерживает 15 языков и 67 стран."
+      ],
+      "uk": [
+        "Тепер на Землі можна вибрати контур країни та переглянути її регіон і місцевий час.",
+        "Підвищено точність вибору країн, а також поліпшено рух і масштабування камери.",
+        "Додано 17 країн: Білорусь, Болівія, Камерун, Кот-д’Івуар, Куба, Сальвадор, Гондурас, Казахстан, Кенія, Киргизстан, Ліхтенштейн, Люксембург, Нікарагуа, Пакистан, Парагвай, Сенегал і Швейцарія.",
+        "Solar Time тепер підтримує 15 мов і 67 країн."
+      ]
+    }
+  },
+  {
     "version": "0.75",
     "date": "2026.10.09",
     "localized": {
@@ -905,87 +1001,6 @@
         "Діапазон збільшення колесом і руху камери правою кнопкою розширено до огляду 0,1×, щоб бачити всю Сонячну систему з набагато більшої відстані.",
         "Видалено водяний знак у нижньому лівому куті основного вигляду, інформаційний текст вирівняно ліворуч, а водяний знак залишено лише в довідці.",
         "Стрілки вліво й вправо перемикають тіла в нижньому списку; за активного стеження камера плавно переходить до наступного тіла."
-      ]
-    }
-  },
-  {
-    "version": "0.66",
-    "date": "2026.09.28",
-    "localized": {
-      "kor": [
-        "쿠키 허용·거부를 6개월간 기억하고, 만료 후 다시 선택하도록 합니다.",
-        "선택을 저장하지 않고 닫는 X 버튼과 도움말의 쿠키 설정을 추가했습니다.",
-        "설정을 다시 열거나 X로 닫아도 기존 선택과 만료일은 바뀌지 않으며, 음악·알람·화질은 유지합니다."
-      ],
-      "en": [
-        "Remember cookie acceptance and rejection for six months, then ask for a new choice.",
-        "Add an X button that closes without saving a choice and Cookie settings in Help.",
-        "Reopening settings or closing with X preserves the existing choice and expiry; music, alarms and image quality remain unchanged."
-      ],
-      "chn": [
-        "Cookie 的同意和拒绝均保留6个月，到期后再次询问。",
-        "新增不保存选择的 X 关闭按钮，以及帮助中的 Cookie 设置入口。",
-        "重新打开设置或点击 X 不会更改原有选择及到期时间，音乐、闹钟和画质保持不变。"
-      ],
-      "zht": [
-        "Cookie 的同意和拒絕均保留6個月，到期後再次詢問。",
-        "新增不儲存選擇的 X 關閉按鈕，以及說明中的 Cookie 設定入口。",
-        "重新開啟設定或點擊 X 不會變更原有選擇及到期時間，音樂、鬧鐘和畫質保持不變。"
-      ],
-      "jpn": [
-        "Cookie の許可・拒否を6か月間保存し、期限が切れたら再度確認します。",
-        "選択を保存せずに閉じる X ボタンと、ヘルプの Cookie 設定を追加しました。",
-        "設定を開き直したり X で閉じたりしても、選択と期限は変わりません。音楽・アラーム・画質は維持されます。"
-      ],
-      "hi": [
-        "कुकी की स्वीकृति और अस्वीकृति छह महीने तक याद रखी जाती हैं, फिर नया विकल्प पूछा जाता है।",
-        "विकल्प सहेजे बिना बंद करने के लिए X बटन और सहायता में कुकी सेटिंग जोड़ी गई है।",
-        "सेटिंग दोबारा खोलने या X से बंद करने पर मौजूदा विकल्प और उसकी समय-सीमा नहीं बदलते; संगीत, अलार्म और छवि गुणवत्ता यथावत हैं।"
-      ],
-      "es": [
-        "Se recuerdan la aceptación y el rechazo de cookies durante seis meses y se vuelve a preguntar al caducar.",
-        "Se añade un botón X para cerrar sin guardar una elección y los ajustes de cookies en Ayuda.",
-        "Abrir los ajustes o cerrar con X conserva la elección y su caducidad; la música, las alarmas y la calidad de imagen no cambian."
-      ],
-      "de": [
-        "Zustimmung und Ablehnung von Cookies werden sechs Monate gespeichert; danach wird erneut gefragt.",
-        "Eine X-Schaltfläche zum Schließen ohne Speichern einer Auswahl und Cookie-Einstellungen in der Hilfe wurden ergänzt.",
-        "Das erneute Öffnen oder Schließen mit X ändert weder Auswahl noch Ablaufdatum; Musik, Alarme und Bildqualität bleiben unverändert."
-      ],
-      "fr": [
-        "L’acceptation et le refus des cookies sont conservés six mois, puis un nouveau choix est demandé.",
-        "Ajout d’un bouton X pour fermer sans enregistrer de choix et des paramètres des cookies dans l’aide.",
-        "Rouvrir les paramètres ou fermer avec X conserve le choix et son expiration ; musique, alarmes et qualité d’image restent inchangées."
-      ],
-      "pt": [
-        "A aceitação e a recusa de cookies são guardadas durante seis meses; depois é pedida uma nova escolha.",
-        "Adicionado um botão X para fechar sem guardar uma escolha e definições de cookies na Ajuda.",
-        "Reabrir as definições ou fechar com X mantém a escolha e a validade; música, alarmes e qualidade de imagem não mudam."
-      ],
-      "it": [
-        "L’accettazione e il rifiuto dei cookie vengono ricordati per sei mesi, poi viene richiesta una nuova scelta.",
-        "Aggiunti un pulsante X per chiudere senza salvare una scelta e le impostazioni cookie nella Guida.",
-        "Riaprire le impostazioni o chiudere con X conserva la scelta e la scadenza; musica, sveglie e qualità delle immagini non cambiano."
-      ],
-      "id": [
-        "Persetujuan dan penolakan cookie disimpan selama enam bulan, lalu pilihan diminta kembali.",
-        "Menambahkan tombol X untuk menutup tanpa menyimpan pilihan dan pengaturan cookie di Bantuan.",
-        "Membuka kembali pengaturan atau menutup dengan X tidak mengubah pilihan dan masa berlakunya; musik, alarm, dan kualitas gambar tetap sama."
-      ],
-      "nl": [
-        "Toestemming en weigering van cookies worden zes maanden bewaard; daarna wordt opnieuw om een keuze gevraagd.",
-        "Een X-knop om te sluiten zonder een keuze op te slaan en cookie-instellingen in Help zijn toegevoegd.",
-        "Instellingen heropenen of met X sluiten behoudt de keuze en vervaldatum; muziek, alarmen en beeldkwaliteit blijven ongewijzigd."
-      ],
-      "ru": [
-        "Согласие и отказ от cookie сохраняются шесть месяцев, после чего выбор запрашивается снова.",
-        "Добавлена кнопка X для закрытия без сохранения выбора и настройки cookie в справке.",
-        "Повторное открытие настроек или закрытие через X сохраняет текущий выбор и срок его действия; музыка, будильники и качество изображения не меняются."
-      ],
-      "uk": [
-        "Згода й відмова від cookie зберігаються шість місяців, після чого вибір запитується знову.",
-        "Додано кнопку X для закриття без збереження вибору та налаштування cookie в довідці.",
-        "Повторне відкриття налаштувань або закриття через X зберігає поточний вибір і строк його дії; музика, будильники та якість зображення не змінюються."
       ]
     }
   }

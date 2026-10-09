@@ -197,7 +197,7 @@
     "day": "낮",
     "night": "밤",
     "auNote": "1 AU는 지구와 태양 사이의 평균 거리입니다. 크기와 거리는 화면에서 축척을 조정했습니다.",
-    "koreaView": "{region} 보기 · 낮/밤 확인",
+    "koreaView": "{region} 보기",
     "stormView": "붉은 소용돌이 보기",
     "speedUnitActive": "속도 단위 {unit}. 누르면 다음 단위로 전환",
     "speedUnitReady": "속도 단위 {unit} 대기. 누르면 이 단위로 배속 시작",

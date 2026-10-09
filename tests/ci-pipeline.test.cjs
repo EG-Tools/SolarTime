@@ -16,7 +16,8 @@ test('all platform, browser and aggregate jobs must pass; a skipped browser neve
 });
 test('one candidate workflow owns the full matrix, independent browser suites and Windows native checks',()=>{
  const text=fs.readFileSync(path.join(root,'.github/workflows/verify.yml'),'utf8');
- assert.match(text,/os: \[ubuntu-latest, windows-latest\]/);assert.match(text,/node: \['22', '24'\]/);assert.match(text,/suite: \[opening, features, desktop, mobile, installed, tiny-star\]/);assert.match(text,/windows-shutdown.integration.ps1/);assert.match(text,/if: always\(\)/);assert.doesNotMatch(text,/secrets\.|verify-public-release/);
+ assert.match(text,/name: unit \(ubuntu-latest, 24\)/);assert.match(text,/compatibility:/);assert.match(text,/- os: ubuntu-latest\s+node: '22'/);assert.equal((text.match(/- os: windows-latest/g)||[]).length,2);assert.match(text,/needs: \[unit, compatibility, browser, recovery\]/);
+ assert.match(text,/suite: \[opening, features, desktop, mobile, installed, tiny-star\]/);assert.match(text,/windows-shutdown.integration.ps1/);assert.match(text,/if: always\(\)/);assert.doesNotMatch(text,/secrets\.|verify-public-release/);
  for(const file of ['alarm-music-verification.yml','shutdown-verification.yml'])assert.equal(fs.existsSync(path.join(root,'.github/workflows',file)),false);
 });
 test('manual and automatic production paths share the guard and never grant PRs cloud credentials',()=>{

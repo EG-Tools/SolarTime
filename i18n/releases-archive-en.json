@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.66",
+    "date": "2026.09.28",
+    "items": [
+      "Remember cookie acceptance and rejection for six months, then ask for a new choice.",
+      "Add an X button that closes without saving a choice and Cookie settings in Help.",
+      "Reopening settings or closing with X preserves the existing choice and expiry; music, alarms and image quality remain unchanged."
+    ]
+  },
+  {
     "version": "0.65",
     "date": "2026.09.28",
     "items": [

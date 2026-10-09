@@ -197,7 +197,7 @@
     "day": "daglicht",
     "night": "nacht",
     "auNote": "",
-    "koreaView": "{region} bekijken · dag/nacht",
+    "koreaView": "{region} bekijken",
     "stormView": "De Grote Rode Vlek bekijken",
     "speedUnitActive": "Snelheidseenheid: {unit}. Druk om de eenheid te wijzigen.",
     "speedUnitReady": "Snelheidseenheid {unit} staat klaar. Druk om met deze eenheid te starten.",

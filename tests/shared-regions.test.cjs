@@ -1,18 +1,36 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8'),rows=require('./fixtures/regions-v061.json');
+const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8'),rows=require('./fixtures/regions-v061.json'),added=require('./fixtures/regions-v075.json');
 const {metadata}=require('./helpers/region-metadata.cjs');
 function detect(zone,languages){const window={};require('./helpers/i18n-runtime.cjs').localization({window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
 test('13 requested countries reuse existing English/Spanish without new locale payloads',()=>{
  const {order,meta,regions}=metadata(),prior=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve'];
- assert.equal(order.length,50);assert.equal(new Set(order).size,50);assert.equal(rows.filter(r=>r.copy==='en').length,11);assert.equal(rows.filter(r=>r.copy==='es').length,2);
- assert.deepEqual(Array.from(order).filter(c=>!rows.some(r=>r.code===c)),prior);
+ assert.equal(order.length,67);assert.equal(new Set(order).size,67);assert.equal(rows.filter(r=>r.copy==='en').length,11);assert.equal(rows.filter(r=>r.copy==='es').length,2);
+ assert.deepEqual(Array.from(order).filter(c=>!rows.some(r=>r.code===c)&&!added.some(r=>r.code===c)),prior);
  for(const r of rows){assert.deepEqual(JSON.parse(JSON.stringify(meta[r.code])),{code:r.code.toUpperCase(),name:r.name,locale:r.locale,html:r.locale,copy:r.copy});
-  assert.deepEqual(JSON.parse(JSON.stringify(regions[r.code])),{label:r.label,timeZone:r.timeZone,latitude:r.latitude,longitude:r.longitude,region:r.name,city:r.city});
+  assert.deepEqual(JSON.parse(JSON.stringify(regions[r.code])),{code:r.code.toUpperCase(),label:r.label,timeZone:r.timeZone,latitude:r.latitude,longitude:r.longitude,region:r.name,city:r.city});
   assert.ok(!fs.existsSync(path.join(__dirname,'../src/locales/'+r.code+'.json')));
  }
  assert.equal(fs.readdirSync(path.join(__dirname,'../src/locales')).filter(f=>f.endsWith('.json')).length,15);
  const html=read('index.html'),app=read('src/app.js');assert.doesNotMatch(html,/data-language="[^"]+"/);assert.match(app,/for\(const region of REGION_CATALOG\)/);
+});
+test('17 additional regions keep local clocks while reusing existing translation bundles',()=>{
+ const {order,meta,regions}=metadata(),counts={ru:3,de:2,en:2,fr:4,es:6};
+ assert.equal(added.length,17);assert.deepEqual(Object.fromEntries(Object.keys(counts).map(copy=>[copy,added.filter(row=>row.copy===copy).length])),counts);
+ for(const r of added){
+  assert.ok(order.includes(r.code));
+  assert.deepEqual(JSON.parse(JSON.stringify(meta[r.code])),{code:r.code.toUpperCase(),name:r.name,locale:r.locale,html:r.locale,copy:r.copy});
+  assert.deepEqual(JSON.parse(JSON.stringify(regions[r.code])),{code:r.code.toUpperCase(),label:r.label,timeZone:r.timeZone,latitude:r.latitude,longitude:r.longitude,region:r.name,city:r.city});
+  assert.ok(!fs.existsSync(path.join(__dirname,'../src/locales/'+r.code+'.json')));
+  const f=new Intl.DateTimeFormat('en-CA',{timeZone:r.timeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+  for(const [date,offset] of [['2026-01-15T23:30:00Z',r.winterOffset],['2026-07-15T01:30:00Z',r.summerOffset]]){
+   const expected=new Date(Date.parse(date)+offset*3600000).toISOString(),parts=Object.fromEntries(f.formatToParts(new Date(date)).map(p=>[p.type,p.value]));
+   assert.equal(parts.year+'-'+parts.month+'-'+parts.day+'T'+parts.hour+':'+parts.minute,expected.slice(0,16),r.code+' '+date);
+  }
+  assert.equal(detect(r.timeZone,[r.locale]),r.code);assert.equal(detect('Etc/UTC',[r.locale]),r.code);
+  assert.equal(detect('Asia/Seoul',[r.locale]),'kor');assert.equal(detect('Asia/Tokyo',[r.locale]),'jpn');
+ }
+ assert.equal(fs.readdirSync(path.join(__dirname,'../src/locales')).filter(f=>f.endsWith('.json')).length,15);
 });
 for(const r of rows){
  test(r.code+' uses local time in winter/summer and on date rollover',()=>{

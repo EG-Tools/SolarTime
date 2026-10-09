@@ -10,17 +10,19 @@ module.exports=async({evaluate,send,session,until,esc,delay,mouse})=>{
   assert.equal(point.hit,true,id+' must receive pointer input');
   await mouse('mouseMoved',point.x,point.y);await mouse('mousePressed',point.x,point.y,'left',1);await mouse('mouseReleased',point.x,point.y,'left',0);
  };
- const lockedIds=['eclipse-previous','eclipse-next','alignment-previous','alignment-next','show-alignment','actual-scale','camera-mode-toggle','reset-defaults','reset-defaults-yes','focus-body','overview-orbit-gap'];
- const checkLocks=async locked=>{
+ const lockedIds=['eclipse-previous','eclipse-next','alignment-previous','alignment-next','show-alignment','actual-scale','camera-mode-toggle','reset-defaults','reset-defaults-yes','overview-orbit-gap'];
+ const checkLocks=async(locked,focusAllowed=false)=>{
   await until(`document.getElementById("actual-scale").disabled===${locked}`);
   const controls=await evaluate(`(${JSON.stringify(lockedIds)}).map(id=>[id,document.getElementById(id).disabled])`);
   for(const [id,disabled] of controls)assert.equal(disabled,locked,id);
-  assert.deepEqual(await evaluate('(()=>{const n=document.getElementById("timezone-button");return [n.getAttribute("aria-disabled"),n.tabIndex]})()'),[String(locked),locked?-1:0]);
+  assert.equal(await evaluate('document.getElementById("focus-body").disabled'),locked&&!focusAllowed,'focus follows the active camera owner');
+  const regionLocked=locked&&!focusAllowed;
+  assert.deepEqual(await evaluate('(()=>{const n=document.getElementById("timezone-button");return [n.getAttribute("aria-disabled"),n.tabIndex]})()'),[String(regionLocked),regionLocked?-1:0]);
   if(!locked)return;
   // Dispatch directly as well: blocked commands must not depend only on button styling.
   assert.equal(await evaluate(`(()=>{
    const r=SolarTime.renderer, before=JSON.stringify(r.options), tween=r.cameraTween,tour=r.ringTour,rate=SolarTime.clock.rate;
-   for(const id of ['eclipse-next','alignment-next','reset-defaults','reset-defaults-yes','focus-body','timezone-button'])document.getElementById(id).dispatchEvent(new MouseEvent('click',{bubbles:true}));
+   for(const id of ['eclipse-next','alignment-next','reset-defaults','reset-defaults-yes'${focusAllowed?'':",'timezone-button'"}])document.getElementById(id).dispatchEvent(new MouseEvent('click',{bubbles:true}));
    for(const id of ['actual-scale','show-alignment']){const n=document.getElementById(id);n.checked=!n.checked;n.dispatchEvent(new Event('change'));}
    const gap=document.getElementById('overview-orbit-gap');gap.value='99';gap.dispatchEvent(new Event('input'));
    return JSON.stringify(r.options)===before&&r.cameraTween===tween&&r.ringTour===tour&&SolarTime.clock.rate===rate&&!document.getElementById('reset-defaults-dialog').open;
@@ -48,7 +50,7 @@ module.exports=async({evaluate,send,session,until,esc,delay,mouse})=>{
  await key();await until('!SolarTime.renderer.animationPaused');await delay(400);assert.notDeepEqual((await state()).camera,a.camera);
  await evaluate("SolarTime.renderer.stopAutoRotate();SolarTime.renderer.animateFocus('saturn')");
  await until('SolarTime.renderer.canStartRingTour()');await evaluate('SolarTime.renderer.startRingTour()');await until('SolarTime.renderer.ringTour?.state==="cruising"');
- await key();await until('SolarTime.renderer.animationPaused');await delay(100);const ring=await state();await checkLocks(true);await drag();await delay(400);const looked=await state();
+ await key();await until('SolarTime.renderer.animationPaused');await delay(100);const ring=await state();await checkLocks(true,true);await drag();await delay(400);const looked=await state();
  assert.equal(looked.age,ring.age);assert.equal(looked.visualAge,ring.visualAge);assert.deepEqual(looked.pose.eye,ring.pose.eye);assert.notDeepEqual(looked.pose.forward,ring.pose.forward);
  await key();await delay(400);assert.ok((await state()).age>ring.age);await esc();await until('!SolarTime.renderer.ringTour&&!SolarTime.renderer.cameraTween');
  await checkLocks(false);await choose('default');await key('KeyT','t');await until('SolarTime.getState().openingLocked&&!!SolarTime.renderer.cameraTween');await delay(2000);

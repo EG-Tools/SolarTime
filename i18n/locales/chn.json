@@ -197,7 +197,7 @@
     "day": "白昼",
     "night": "夜晚",
     "auNote": "1 AU 是地球与太阳之间的平均距离。大小和距离已为画面显示调整比例。",
-    "koreaView": "查看{region} · 昼夜",
+    "koreaView": "查看{region}",
     "stormView": "查看大红斑",
     "speedUnitActive": "速度单位：{unit}。点击切换下一单位。",
     "speedUnitReady": "速度单位 {unit} 待用。点击以该单位开始倍速。",

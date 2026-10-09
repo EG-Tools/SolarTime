@@ -133,7 +133,9 @@
   // distance and pan from the live orbit layout instead of a captured viewport.
   const DEFAULT_CAMERA=Object.freeze({azimuth:6.24870825667827,elevation:.25293208858658467,zoom:1.1853048513203654,dolly:1,focus:null,panY:0,panX:0});
   const DEFAULT_FRAME=Object.freeze({body:'neptune',widthRatio:.75,sunYRatio:.57,iterations:32});
-  const REGION_INSPECTION_ZOOM=250; // Reference disk size only; inspection preserves the user's lens.
+  const REGION_TRACKED_WHEEL_STEPS=7;
+  // Region picking deliberately uses small representative-city safe zones.
+  // It does not infer national borders, islands or disputed territory.
   // Screen-space appearance only: never change physical size, lens or camera pose.
   const BODY_POINT=Object.freeze({fadeBegin:2.2,fadeEnd:5.2,growthFullAt:1.2,sizeCurve:.25});
   const OPENING_POINT_REVEAL=1500;
@@ -184,9 +186,9 @@
       this.frameItems=new Map();this.frameSerial=0;
       this.physicsMs=NaN;this.physicsBodies=new Map();this.physicsSatellites=new Map();
       this.stats={orbitProjections:0,orbitBufferBuilds:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
-      this.selected=null;this.hover=null;this.alignmentGuide=null;this.lastPathMs=NaN;this.dirty=true;this.presentationDirty=true;this.presentationUntil=0;this.presentedResources='';this.frameCount=0;
+      this.selected=null;this.hover=null;this.earthRegionHover=null;this.countryBorders=null;this.alignmentGuide=null;this.lastPathMs=NaN;this.dirty=true;this.presentationDirty=true;this.presentationUntil=0;this.presentedResources='';this.frameCount=0;
       this.orbitRevealStart=performance.now();this.openingAnnotationStart=NaN;this.openingOrbitStart=NaN;this.openingPointReveal=null;
-      this._flightParticles=new FlightParticleLifecycle();this.openingParticleSprite=null;this.ringTour=null;
+      this._flightParticles=new FlightParticleLifecycle();this.openingParticleSprite=null;this.ringTour=null;this.pendingTravelFocus=null;
       this.lastSurfaceSubmit=-Infinity;this.lastSurfaceSimMs=NaN;this.lastSurfaceMono=NaN;
       this.sky=new window.SolarSky(background);
       this.resize();
@@ -481,7 +483,106 @@
     getSatelliteOrbitScales() {return Object.fromEntries([...ORBIT_HIERARCHY_PARENTS].map(id=>[id,this.satelliteOrbitScale(id)]));}
     setSite(site){
       if(!site||typeof site.label!=='string'||!Number.isFinite(site.latitude)||!Number.isFinite(site.longitude))return false;
-      this.site={label:site.label,latitude:site.latitude,longitude:site.longitude};this.dirty=true;return true;
+      this.site={label:site.label,dayLabel:site.dayLabel||'DAY',nightLabel:site.nightLabel||'NIGHT',latitude:site.latitude,longitude:site.longitude};this.dirty=true;return true;
+    }
+    earthRegionInteractionReady(){
+      if(this.cameraTween||this.ringTour||this.flightLook||this.camera.focus!=='earth')return false;
+      const earth=this.currentFrameItem('earth');
+      return !!earth&&!earth.screen.behind&&earth.r>=Math.min(this.w,this.h)*.245;
+    }
+    earthSurfaceCoordinate(x,y,earth,ms){
+      if(!earth||![x,y,ms,earth.screen.x,earth.screen.y,earth.r].every(Number.isFinite)||earth.r<=0)return null;
+      const nx=(x-earth.screen.x)/earth.r,ny=(y-earth.screen.y)/earth.r,disk=nx*nx+ny*ny;
+      if(disk>1)return null;
+      const nz=Math.sqrt(Math.max(0,1-disk));
+      const {right,up,forward}=this.cameraBasis(),normal={
+        x:right[0]*nx-up[0]*ny-forward[0]*nz,
+        y:right[1]*nx-up[1]*ny-forward[1]*nz,
+        z:right[2]*nx-up[2]*ny-forward[2]*nz
+      },axes=A.bodyAxes(earth.body),local={
+        x:normal.x*axes.u.x+normal.y*axes.u.y+normal.z*axes.u.z,
+        y:normal.x*axes.v.x+normal.y*axes.v.y+normal.z*axes.v.z,
+        z:normal.x*axes.pole.x+normal.y*axes.pole.y+normal.z*axes.pole.z
+      },latitude=Math.asin(clamp(local.z,-1,1))/DEG;
+      let longitude=(Math.atan2(local.y,local.x)-A.rotationAt(earth.body,ms))/DEG;
+      longitude=((longitude+540)%360)-180;return {latitude,longitude};
+    }
+    countryRingGeometry(ring){
+      if(!Array.isArray(ring)||ring.length<4)return null;
+      const cached=this.countryRingGeometryCache?.get(ring);if(cached)return cached;
+      const points=[];let previous=null,minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+      for(const coordinate of ring){
+        if(!Array.isArray(coordinate)||!Number.isFinite(coordinate[0])||!Number.isFinite(coordinate[1]))continue;
+        let longitude=coordinate[0];if(previous!==null){while(longitude-previous>180)longitude-=360;while(longitude-previous<-180)longitude+=360;}
+        const point=[longitude,coordinate[1]];points.push(point);previous=longitude;minX=Math.min(minX,longitude);maxX=Math.max(maxX,longitude);minY=Math.min(minY,coordinate[1]);maxY=Math.max(maxY,coordinate[1]);
+      }
+      const geometry=points.length>=4?{points,minX,maxX,minY,maxY,centerX:(minX+maxX)/2}:null;if(geometry)this.countryRingGeometryCache?.set(ring,geometry);return geometry;
+    }
+    countryRingContains(ring,longitude,latitude){
+      const geometry=this.countryRingGeometry(ring);if(!geometry||latitude<geometry.minY||latitude>geometry.maxY)return false;
+      let x=longitude;while(x-geometry.centerX>180)x-=360;while(x-geometry.centerX<-180)x+=360;
+      if(x<geometry.minX||x>geometry.maxX)return false;
+      const points=geometry.points;let inside=false;
+      for(let i=0,j=points.length-1;i<points.length;j=i++){
+        const a=points[i],b=points[j];
+        if((a[1]>latitude)!==(b[1]>latitude)&&a[0]+(latitude-a[1])*(b[0]-a[0])/(b[1]-a[1])>x)inside=!inside;
+      }
+      return inside;
+    }
+    countryContains(code,longitude,latitude){
+      const rings=this.countryBorders?.[code];if(!Array.isArray(rings))return false;
+      // GeoJSON polygon holes have the opposite nesting level. Toggling every
+      // containing ring preserves disjoint islands while excluding inland sea.
+      let inside=false;for(const ring of rings)if(this.countryRingContains(ring,longitude,latitude))inside=!inside;return inside;
+    }
+    earthRegionHit(x,y,regions,ms){
+      if(!this.earthRegionInteractionReady()||!this.countryBorders||!Array.isArray(regions)||![x,y,ms].every(Number.isFinite))return null;
+      const earth=this.currentFrameItem('earth'),coordinate=this.earthSurfaceCoordinate(x,y,earth,ms);if(!coordinate)return null;
+      for(const site of regions){
+        if(!site||typeof site.id!=='string')continue;
+        if(this.countryContains(site.code,coordinate.longitude,coordinate.latitude))return site;
+      }
+      return null;
+    }
+    setEarthRegionHover(site){
+      const next=site&&typeof site.id==='string'?site:null;
+      if(this.earthRegionHover?.id===(next?.id||null))return false;
+      this.earthRegionHover=next;this.invalidatePresentation();return true;
+    }
+    setCountryBorders(data){
+      if(!data||typeof data!=='object'||Array.isArray(data))return false;
+      this.countryBorders=data;this.countryBorderCenters=new Map();this.countryRingGeometryCache=new WeakMap();this.invalidatePresentation();return true;
+    }
+    countryRingCenter(ring){
+      if(!Array.isArray(ring)||ring.length<4)return null;
+      const points=this.countryRingGeometry(ring)?.points||[];
+      if(points.length<4)return null;let twiceArea=0,x=0,y=0;
+      for(let i=0,j=points.length-1;i<points.length;j=i++){
+        const a=points[j],b=points[i],cross=a[0]*b[1]-b[0]*a[1];twiceArea+=cross;x+=(a[0]+b[0])*cross;y+=(a[1]+b[1])*cross;
+      }
+      if(Math.abs(twiceArea)<1e-9)return null;
+      return {longitude:((x/(3*twiceArea)+540)%360)-180,latitude:y/(3*twiceArea),area:Math.abs(twiceArea)};
+    }
+    countryRegionCenter(site){
+      const code=site?.code;if(!code||!this.countryBorders)return null;
+      if(this.countryBorderCenters?.has(code))return this.countryBorderCenters.get(code);
+      let center=null;for(const ring of this.countryBorders[code]||[]){const candidate=this.countryRingCenter(ring);if(candidate&&(!center||candidate.area>center.area))center=candidate;}
+      const result=center?{latitude:center.latitude,longitude:center.longitude}:null;this.countryBorderCenters?.set(code,result);return result;
+    }
+    earthRegionOutline(site,earth,ms){
+      const rings=this.countryBorders?.[site?.code];if(!Array.isArray(rings)||!earth||earth.screen.behind||earth.r<=65||![ms,earth.screen.x,earth.screen.y,earth.r].every(Number.isFinite))return [];
+      const lines=[],epsilon=.001,screen=normal=>({x:earth.screen.x+normal.x*earth.r,y:earth.screen.y+normal.y*earth.r}),limb=(a,b)=>{const t=clamp((epsilon-a.z)/(b.z-a.z),0,1),n={x:mix(a.x,b.x,t),y:mix(a.y,b.y,t),z:mix(a.z,b.z,t)},length=Math.hypot(n.x,n.y,n.z)||1;return screen({x:n.x/length,y:n.y/length,z:n.z/length});};
+      for(const ring of rings){
+        if(!Array.isArray(ring)||ring.length<2)continue;let previous=null,line=[];
+        for(const coordinate of ring){
+          if(!Array.isArray(coordinate)||coordinate.length<2)continue;
+          const current=this.viewDirection(A.surfaceDirection(earth.body,coordinate[1],coordinate[0],ms)),visible=current.z>epsilon;
+          if(previous){const priorVisible=previous.z>epsilon;if(priorVisible!==visible){line.push(limb(previous,current));if(line.length>1)lines.push(line);line=visible?[limb(previous,current)]:[];}if(visible)line.push(screen(current));}
+          else if(visible)line.push(screen(current));previous=current;
+        }
+        if(line.length>1)lines.push(line);
+      }
+      return lines;
     }
     faceFeature(id,latitude,longitude,ms) {
       const body=this.sceneBodies().find(b=>b.id===id);if(!body)return;
@@ -854,6 +955,7 @@
       if(validTarget){this.camera.focus=focusId;if(anchored)Object.assign(this.camera,anchored);}
       this.cameraChangeAt=performance.now();this.dirty=true;
     }
+    wheelTravelFactor(deltaY){return Math.exp(-clamp(deltaY,-120,120)*.0017);}
     shiftBackgroundForManualDolly(before,after) {
       // Reuse the preview's parallax only for manual travel, never cinematic motion.
       if(this.ringTour||!(before>0)||!(after>0)||!Number.isFinite(before+after)||before===after)return;
@@ -2279,18 +2381,58 @@
     animateFocus(id,mono=performance.now(),duration=1100) {
       const to=this.focusState(id,mono);return !!to&&this.animateCamera(to,mono,duration);
     }
+    hasActivePlanetTravel(){return !!this.ringTour;}
+    returnPlanetTravelHome(mono=performance.now(),speed=1){
+      const travel=this.ringTour;if(!travel)return false;
+      travel.setReturnSpeed?.(speed);return this.animateHome(mono,1100);
+    }
+    requestFocus(id,mono=performance.now(),duration=1100){
+      const body=this.sceneBodies().find(value=>value.id===id);
+      if(!body||(SATELLITES.some(value=>value.id===id)&&!this.options.moon)||(id==='pluto'&&!this.options.pluto))return false;
+      if(!this.hasActivePlanetTravel())return this.animateFocus(id,mono,duration);
+      // Travel always returns to the shared overview first. Keeping the final
+      // focus request out of the exit target prevents another planet's anchor
+      // from deforming the active travel projection. The latest request wins.
+      this.pendingTravelFocus={id,duration};return this.returnPlanetTravelHome(mono,2);
+    }
+    requestFeature(id,latitude,longitude,ms,mono=performance.now(),duration=1100){
+      const body=this.sceneBodies().find(value=>value.id===id);
+      if(!body||![latitude,longitude,ms].every(Number.isFinite))return false;
+      if(!this.hasActivePlanetTravel())return this.animateFeature(id,latitude,longitude,ms,mono,duration);
+      // Reuse the one travel-return queue. A country request replaces an older
+      // body request and continues directly from Home into the region view.
+      this.pendingTravelFocus={id,duration,feature:{latitude,longitude,ms}};
+      return this.returnPlanetTravelHome(mono,2);
+    }
+    resumeTravelFocus(mono=performance.now(),ms){
+      if(!this.pendingTravelFocus||this.hasActivePlanetTravel()||this.cameraTween)return false;
+      const request=this.pendingTravelFocus;this.pendingTravelFocus=null;
+      if(request.feature){const feature=request.feature;return this.animateFeature(request.id,feature.latitude,feature.longitude,Number.isFinite(ms)?ms:feature.ms,mono,request.duration);}
+      return this.animateFocus(request.id,mono,request.duration);
+    }
     animateFeature(id,latitude,longitude,ms,mono=performance.now(),duration=1100) {
-      let to=this.focusState(id,mono);const body=this.sceneBodies().find(b=>b.id===id);
+      this.advanceCamera(mono);this.advanceAutoRotate(mono);
+      const keepEarthView=id==='earth'&&this.camera.focus==='earth';
+      let to=keepEarthView?this.cameraSnapshot():this.focusState(id,mono);const body=this.sceneBodies().find(b=>b.id===id);
       if(!to||!body||![latitude,longitude,ms].every(Number.isFinite))return false;
+      to.focus=id;
       const n=A.surfaceDirection(body,latitude,longitude,ms);
       to.azimuth=A.wrap(Math.atan2(-n.x,-n.y));to.elevation=Math.asin(clamp(n.z,-1,1));
-      // Keep the established country close-up size, reaching it by travel with
-      // the current lens. All tracking uses the same distance calculation.
+      // Every Earth-country entry uses the same seven-wheel-step framing.
+      // A user who is already closer keeps that distance and current pan.
       if(id==='earth'){
-        const radius=this.bodyRadiusForState(body,{...to,zoom:REGION_INSPECTION_ZOOM,dolly:1});
-        to=this.trackingMoveState(id,to,to.zoom,radius);
+        const inspection=this.countryInspectionState(to);
+        if(!inspection)return false;
+        if(!keepEarthView)to=inspection;
+        else to.dolly=clamp(Math.max(to.dolly??1,inspection.dolly),VIEW.minDolly,VIEW.maxDolly);
       }
-      return this.animateCamera(to,mono,duration);
+      return this.animateCamera(to,mono,duration,keepEarthView);
+    }
+    countryInspectionState(snapshot=this.cameraSnapshot()){
+      const state=this.trackingMoveState('earth',snapshot,snapshot?.zoom);
+      if(!state)return null;
+      state.dolly=clamp(state.dolly*this.wheelTravelFactor(-120)**REGION_TRACKED_WHEEL_STEPS,VIEW.minDolly,VIEW.maxDolly);
+      return state;
     }
     animateHome(mono=performance.now(),duration=1100) {
       return this.animateCamera(this.defaultCameraSnapshot(),mono,duration);
@@ -2817,7 +2959,14 @@
       c.fillStyle=day?'#ffdb92':'#98c9ff';c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=1;
       c.beginPath();c.arc(x,y,3,0,TAU);c.fill();c.beginPath();c.arc(x,y,6,0,TAU);c.stroke();
       c.font='11px "Segoe UI",sans-serif';c.textAlign='left';c.shadowColor='#000';c.shadowBlur=5;
-      c.fillText(site.label+' · '+(day?'DAY':'NIGHT'),x+11,y-9);c.restore();
+      c.fillText(site.label+' · '+(day?(site.dayLabel||'DAY'):(site.nightLabel||'NIGHT')),x+11,y-9);c.restore();
+    }
+    drawEarthRegionHover(c,earth,ms){
+      if(!this.earthRegionInteractionReady()||!this.earthRegionHover)return;
+      const lines=this.earthRegionOutline(this.earthRegionHover,earth,ms);if(!lines.length)return;
+      c.save();c.beginPath();c.arc(earth.screen.x,earth.screen.y,earth.r,0,TAU);c.clip();
+      c.beginPath();for(const line of lines){c.moveTo(line[0].x,line[0].y);for(let i=1;i<line.length;i++)c.lineTo(line[i].x,line[i].y);}
+      c.strokeStyle='rgba(236,205,137,.92)';c.lineWidth=Math.max(1.25,this.dpr||1);c.lineJoin='round';c.lineCap='round';c.shadowColor='rgba(222,177,82,.55)';c.shadowBlur=4;c.stroke();c.restore();
     }
     drawBodyOverlay(c,b,screen,r) {
       if(this.selected===b.id||this.hover===b.id) {
@@ -3471,7 +3620,7 @@
         this.drawBodyPoint(c,p,direct?directBodies:bodies,pointSolar);
         this.hitTargets.push({id:p.body.id,x:p.screen.x,y:p.screen.y,r:Math.max(p.r+6,11),z:p.screen.z});
       }
-      if(solar>0){this.drawRingTourHover(c);this.drawAlignmentGuide(c,ms);this.drawSiteMarker(c,earth,ms,mono);}
+      if(solar>0){this.drawRingTourHover(c);this.drawAlignmentGuide(c,ms);this.drawEarthRegionHover(c,earth,ms);this.drawSiteMarker(c,earth,ms,mono);}
       c.restore();
       this.drawOpeningParticles(c,mono,presentation);
       const labelOpacity=this.openingLabelOpacity(mono);
@@ -3491,6 +3640,7 @@
       }
       this.prepareReplayFrame(mono);
       if(this.drawRingTour(ms,seconds,mono))return;
+      this.resumeTravelFocus(mono,ms);
       this.advanceActualScale(mono);this.advanceCamera(mono);this.advanceAutoRotate(mono);
       const c=this.ctx;this.frameCount++;c.clearRect(0,0,this.w,this.h);
       if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
