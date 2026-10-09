@@ -106,7 +106,7 @@ test('cookie consent copy is complete in every supported locale',()=>{
  }
 });
 
-test('browser UI regression starts with an explicit cookie choice so the consent card cannot intercept controls',()=>{
+test('browser UI regression starts with stored acceptance so the consent card cannot intercept controls',()=>{
  const code=read('tests/browser/ui-regression.py');
- assert.ok(code.includes("name==='localStorage'?[['solarTimeCookieConsentV1','denied']]:[]"));
+ assert.ok(code.includes("name==='localStorage'?[['solarTimeCookieConsentV1','granted']]:[]"));
 });
