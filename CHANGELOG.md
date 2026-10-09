@@ -1,497 +1,497 @@
-# Solar Time 전체 업데이트 내역
+# Solar Time — Complete Update History
 
-Solar Time의 현재 및 과거 업데이트 내역입니다. 최신 버전부터 표시합니다.
+Current and past Solar Time updates, listed from newest to oldest.
 
 ## v0.75 · 2026.10.09
 
-- 오프닝·워프·토성 여행의 카메라 연결을 개선했습니다.
-- 먼 거리에서 토성 여행 시 행성과 궤도가 어긋나는 문제를 수정했습니다.
-- 토성 진입 파티클의 등장과 소멸을 자연스럽게 개선했습니다.
-- 전환 중 파티클이 끊기거나 갑자기 나타나는 문제를 수정했습니다.
-- 초기 로딩과 전반적인 성능을 개선했습니다.
+- Improved camera transitions between the opening, warp and Saturn travel.
+- Fixed planets and orbits becoming misaligned during distant Saturn travel.
+- Made Saturn-entry particles appear and disappear more naturally.
+- Fixed particles cutting out or appearing abruptly during transitions.
+- Improved initial loading and overall performance.
 
 ## v0.74 · 2026.10.08
 
-- 기본 시점과 먼 거리의 행성 표시를 개선했습니다.
-- 오프닝·워프·토성 고리 여행의 카메라 이동을 더욱 자연스럽게 개선했습니다.
-- 먼 거리에서 토성 여행을 시작하거나 돌아올 때 행성의 크기와 궤도가 어긋나는 문제를 수정했습니다.
-- 토성 여행 파티클과 배경 별의 거리감을 개선했습니다.
-- 러시아·우크라이나 언어 및 지역과 설정 슬라이더의 개별 초기화 기능을 추가했습니다.
+- Improved the default view and the display of distant planets.
+- Made camera movement smoother in the opening, warp and Saturn ring travel sequences.
+- Fixed planet sizes and orbits shifting when starting or returning from Saturn travel at long distances.
+- Improved Saturn travel particles and the sense of depth in background stars.
+- Added Russian and Ukrainian language and region support and individual reset controls for setting sliders.
 
 ## v0.73 · 2026.10.04
 
-- 알람·예약 종료와 자동 업데이트의 안정성을 개선했습니다.
-- 오프닝·여행 연출과 화면 가장자리의 고리 표시를 개선했습니다.
-- 성능을 최적화하고 여러 브라우저의 자동 검증을 강화했습니다.
+- Improved alarm, scheduled shutdown and automatic update reliability.
+- Improved opening and travel sequences and ring visibility at screen edges.
+- Optimized performance and expanded automated checks across browsers.
 
 ## v0.72 · 2026.10.04
 
-- 오프닝 연출을 개선했습니다.
-- 언제든지 토성 고리를 여행 할 수 있습니다.
-- T 버튼을 누르면 여행을 시작합니다.
-- UFO 버튼을 누르면 오프닝 연출을 선택할 수 있습니다
-- Space 키로 연출 카메라를 정지·재개할 수 있습니다.
-- 다양한 최적화로 성능을 개선하였습니다.
+- Improved the opening sequence.
+- You can now travel through Saturn’s rings at any time.
+- Press T to start a journey.
+- Use the UFO button to choose an opening sequence.
+- Press Space to pause or resume the cinematic camera.
+- Improved performance through various optimizations.
 
 ## v0.71 · 2026.10.02
 
-- 일반·실제 보기의 크기·궤도 간격과 초기화 기준을 정리했습니다.
-- 기본 시점과 카메라 전환·저장 동작을 개선했습니다.
-- 토성 고리에 새 텍스처와 거리별 LOD를 적용했습니다.
+- Refined sizes, orbit spacing, and reset defaults in normal and true-scale views.
+- Improved the default view, camera transitions, and saved camera settings.
+- Added a new Saturn ring texture with distance-based LOD.
 
 ## v0.70 · 2026.10.01
 
-- 오프닝 카메라·파티클과 궤도·이름 표시 연출을 개선했습니다.
-- 카메라 조작·추적 전환과 실제 크기·궤도 간격을 개선했습니다.
-- 행성 정렬 표시 제어와 도움말·단축키를 정리했습니다.
-- 구름·궤도 렌더링과 초기 로딩을 최적화했습니다.
+- Refined the opening camera, particles, and orbit and label reveals.
+- Improved camera controls, tracking transitions, true scale, and orbit spacing.
+- Updated planetary alignment controls, help, and shortcuts.
+- Optimized cloud and orbit rendering and initial loading.
 
 ## v0.69 · 2026.09.30
 
-- 지구 구름 표현·성능을 개선하고, 범위는 0~100%, 기본값은 100%로 정리했습니다.
-- 금성 지표·구름 조절을 추가하고 근접 로딩을 개선했습니다. 구름 기본값은 80%입니다.
-- 구름 조절 위치·시계 간격을 정리하고 WeChat 후원을 추가했습니다.
-- 최근 10개 업데이트는 13개 언어로, 전체 기록은 한국어로 자동 관리합니다.
+- Improved Earth cloud visuals and performance; range 0–100%, default 100%.
+- Added Venus terrain and cloud controls with smoother close-up loading; default 80%.
+- Refined cloud-control placement and clock spacing, and added WeChat donations.
+- Automated the latest 10 updates in 13 languages and the full Korean archive.
 
 ## v0.68 · 2026.09.29
 
-- 앱 안의 업데이트 내역을 선택한 언어로 번역된 최신 10개만 표시하도록 정리했습니다.
-- 10번째 기록 다음에는 Solar Time의 한국어 전체 업데이트 내역 페이지로 이동하는 링크가 표시됩니다.
-- 전체 한국어 기록은 번역 원본에서 자동 생성되며, 앱의 업데이트 데이터 용량을 크게 줄였습니다.
-- README와 미디어 크레딧을 현재 프로그램의 목적, 기능, 사용법과 실제 사용 중인 출처 중심으로 정리했습니다.
+- The in-app update history now keeps only the latest ten releases translated into the selected language.
+- After the tenth entry, a link opens Solar Time's standalone complete Korean update-history page.
+- The complete Korean archive is generated automatically from the translation source, substantially reducing the app's update-data payload.
+- The README and media credits now focus on the app's enduring purpose, features, controls and sources that are actually in use.
 
 ## v0.67 · 2026.09.29
 
-- 도움말에 화면보호기 목적과 주요 기능을 간결하게 정리하고, 중복된 데스크톱 조작 설명을 정돈했습니다.
-- 새로운 소개를 13개 인터페이스 언어로 번역했으며, 첫 실행과 초기화에서는 자동 언어가 브라우저 언어를 우선합니다.
-- 휠 확대·축소와 마우스 오른쪽 이동의 최대 줌아웃 범위를 0.1배까지 넓혀 태양계 전체를 더 멀리서 볼 수 있습니다.
-- 메인 화면 좌측 하단의 워터마크를 제거해 정보 텍스트를 왼쪽으로 정리하고, 워터마크는 도움말에만 유지했습니다.
-- 좌우 방향키로 하단 목록의 천체를 순환하며, 추적 중에는 다음 천체로 부드럽게 추적을 이어갑니다.
+- Reorganized Help with a concise screen-saver purpose, key features and non-duplicated desktop controls.
+- Localized the new introduction in all 13 interface languages; Auto Language prioritizes the browser language on first launch and reset.
+- Extended wheel zoom and right-drag camera travel to a 0.1× overview, so the whole solar system can be viewed from much farther away.
+- Removed the lower-left watermark from the main view, aligned the information text to the left, and kept the watermark only in Help.
+- Use the left and right arrow keys to cycle through the footer bodies; active tracking continues smoothly onto the next body.
 
 ## v0.66 · 2026.09.28
 
-- 쿠키 허용·거부를 6개월간 기억하고, 만료 후 다시 선택하도록 합니다.
-- 선택을 저장하지 않고 닫는 X 버튼과 도움말의 쿠키 설정을 추가했습니다.
-- 설정을 다시 열거나 X로 닫아도 기존 선택과 만료일은 바뀌지 않으며, 음악·알람·화질은 유지합니다.
+- Remember cookie acceptance and rejection for six months, then ask for a new choice.
+- Add an X button that closes without saving a choice and Cookie settings in Help.
+- Reopening settings or closing with X preserves the existing choice and expiry; music, alarms and image quality remain unchanged.
 
 ## v0.65 · 2026.09.28
 
-- 기존 방문 통계는 유지하고 동의 후 실제 기능 사용을 별도 이벤트로 기록합니다.
-- 음악 재생·천체 추적·알람 설정·확인된 예약 종료 등을 구분하며 개인정보와 거짓 전환 집계를 추가하지 않습니다.
-- 방문과 기능 사용을 구분하며 기존 화면, 화질, 알람·음악 동작은 유지합니다.
+- Keep existing visit measurement and record actual feature use as separate events after consent.
+- Distinguish music playback, body tracking, alarms and confirmed shutdown actions without adding personal input or false lead conversions.
+- Keep visits separate from feature use, with existing visuals, image quality, alarms and music unchanged.
 
 ## v0.64 · 2026.09.28
 
-- 기존 Google 태그에 Google Ads를 연결하고 쿠키 동의 설정을 유지합니다.
-- 가장 오래된 업데이트 내역 절반과 해당 내역의 모든 언어 번역을 함께 삭제했습니다.
-- 최근 업데이트 탐색, 지역 시계, 알람·음악 및 4K 표시 동작은 유지합니다.
+- Connect Google Ads to the existing Google tag while preserving cookie consent choices.
+- Remove the oldest half of the release history together with its translations in every supported language.
+- Preserve recent release navigation, regional clocks, alarms, music and 4K display behavior.
 
 ## v0.63 · 2026.09.27
 
-- 클로즈업 시 중간 화질을 먼저 표시한 뒤 원본 4K 텍스처로 교체합니다.
-- 선택한 천체의 로딩을 우선하고 최근 텍스처를 기존 메모리 예산 안에서 재사용하며, 화질과 알람·음악 동작은 유지합니다.
-- 공개 텍스처의 원본 해시와 실제 캐시 적중을 배포 후 검사하며 기존 미디어 주소와 접근 제한을 유지합니다.
+- Close-ups display a medium-resolution preview before replacing it with the original 4K texture.
+- Prioritize selected bodies and reuse recent textures within the existing memory budget, preserving image quality and alarm/music behavior.
+- Deployment checks original texture hashes and real cache hits while retaining the existing media origin and access restrictions.
 
 ## v0.62 · 2026.09.27
 
-- 화면·타이머·도움말의 번역 원본을 한 관리 체계로 정리하고, 실행용 언어 파일을 자동 생성합니다.
-- 번역 누락과 변수·중복 키·생성 파일 불일치를 검사하며, 기존 영어 대체 문구는 별도로 표시합니다.
-- 48개 국가·지역과 기존 문구, 시간대 연동, 알람·음악·화면 동작을 유지합니다.
+- Translation sources for the interface, timers and release history now share one workflow with generated runtime language files.
+- Checks now catch missing text, placeholder errors, duplicate keys and stale generated files.
+- All 48 countries and regions keep their existing text, time zones, alarm, music and display behavior.
 
 ## v0.61 · 2026.09.27
 
-- 언어 선택의 자동 항목을 고정해 국가 목록만 스크롤되도록 변경했습니다.
-- 영어를 공유하는 11개국과 스페인어를 공유하는 도미니카공화국·과테말라를 추가하고 지역 시간과 지구 위치를 연결했습니다.
-- 국가별 시간대와 일광절약시간, 자동 지역 인식과 기존 선택 저장을 검증했습니다.
+- Pinned the automatic language option so only the country list scrolls.
+- Added 11 regions sharing English plus the Dominican Republic and Guatemala sharing Spanish, with regional clocks and Earth locations.
+- Verified time zones, daylight-saving transitions, automatic region detection, and saved selections.
 
 ## v0.60 · 2026.09.25
 
-- 배경음악 재생 중 오류와 멈춤을 감지해 제한적으로 재시도하고, 복구되지 않으면 다음 곡 또는 OFF 상태로 전환합니다.
-- 기본 알람음에 준비 시간과 메모리 기준을 적용하고, 긴 음원은 전체 디코딩 대신 스트리밍으로 재생합니다.
-- 기존 알람·미리듣기 음량과 알람 시작 시 음악 OFF 동작을 유지하며, 중지한 소리가 늦은 복구로 다시 켜지지 않도록 했습니다.
+- Music now detects errors and stalls, retries briefly, then skips the track or switches off.
+- Default alarm preparation now has time and memory limits; long audio streams instead of being fully decoded into memory.
+- Existing alarm and preview volumes and music OFF on alarm are preserved; delayed recovery cannot restart audio after it is stopped.
 
 ## v0.59 · 2026.09.25
 
-- 알람 재생 음량을 기존의 1.2배로 높이고, 알람 시작 시 배경음악을 끄는 동작을 유지했습니다.
-- 사용하지 않는 타이머의 반복 확인과 숨겨진 표시 갱신을 줄이고, 사용자 알람음의 스트리밍 및 마지막 파일 선택 처리를 개선했습니다.
-- 파일별 캐시, 번역과 카드 공통 구현, 중복 업로드와 배포 경로를 정리하고 Cloudflare 결과 API의 호출 제한·저장 검증·만료 정리를 보강했습니다.
+- Increased alarm playback volume to 1.2 times its previous level while retaining background music OFF when ringing begins.
+- Reduced idle timer checks and hidden display updates, streamed custom alarm files, and made the latest sound selection take precedence.
+- Unified caches, translations, cards and deployment while tightening upload, receipt, storage and expiry checks.
 
 ## v0.58 · 2026.09.25
 
-- 알람이 울리기 직전에 배경음악을 끄고 음악 버튼도 OFF 상태로 전환합니다.
-- 알람을 끄거나 미뤄도 배경음악은 자동으로 다시 켜지지 않습니다. 기본 알람과 사용자 알람에 동일하게 적용합니다.
-- 5분 미루기가 이전 입력 시간을 다시 사용하는 오류를 수정했습니다. 알람음 미리 듣기는 음악 상태를 바꾸지 않습니다.
+- An alarm switches background music and its button OFF before the first tone.
+- Stopping or snoozing an alarm never restarts the music automatically; default and custom sounds behave alike.
+- Fixed snooze reusing the previous delay instead of five minutes. Sound previews leave background music unchanged.
 
 ## v0.57 · 2026.09.25
 
-- Windows 명령의 실제 성공 응답을 받은 뒤에만 예약·취소·제거 완료를 표시합니다. 응답이 없으면 미확인 상태와 취소 기능을 유지합니다.
-- 중간 VBScript를 제거하고 설치된 PowerShell 모듈과 파일 버전을 확인합니다. 구버전 도우미는 재설치해야 합니다.
-- Cloudflare 결과 확인 API, 일회용 기록 자동 정리, 배포 후 파일 해시 및 API 검증을 추가했습니다.
+- Scheduling, cancellation and removal complete only after a native Windows result; unknown results remain cancellable.
+- Replaced the VBScript intermediary with a verified PowerShell helper. Older installations require reinstalling.
+- Added Cloudflare result receipts, automatic expiry cleanup and post-deployment hash/API verification.
 
 ## v0.56 · 2026.09.24
 
-- 알람과 Windows 예약 종료 타이머를 추가하고 기본·사용자 알람음, 5분 미루기와 종료 전 10초 카운트다운을 지원합니다.
-- Windows 종료 보조 모듈에 검증된 다운로드, 설치 확인, 상태 복원과 안전한 제거 흐름을 추가했습니다.
-- 예약 설정·취소·제거를 창 없는 Windows Script Host 중계 방식으로 전환해 CMD·PowerShell 창이 표시되거나 남지 않도록 했습니다.
-- 타이머 설정을 유지한 채 도움말을 함께 열 수 있도록 닫힘 규칙을 정리했습니다. 설정 패널을 열 때는 기존처럼 타이머가 닫힙니다.
+- Added alarm and Windows shutdown timers with custom audio, five-minute snooze and a ten-second countdown.
+- Added verified download, installation confirmation, state restoration, and safe removal for the Windows shutdown helper.
+- Moved shutdown actions to a windowless bridge so CMD and PowerShell windows no longer appear.
+- Help can now open above Timer without closing its settings; opening Settings still closes Timer as expected.
 
 ## v0.55 · 2026.09.23
 
-- Microsoft Clarity를 쿠키 동의와 연결해 허용 후에만 불러오고, 거부 시 분석 저장 동의를 철회합니다.
-- 시계 크기와 초 표시 조합이 화면을 넘지 않도록 자동 맞춤을 보강했습니다.
-- 정지 화면의 불필요한 그리기를 멈추고 같은 시각의 천체 계산을 재사용해 CPU·GPU 부하를 줄였습니다.
-- 텍스처·우주 배경의 단계별 로딩과 실패 복구, 캐시 및 배포 파일 검증을 강화했습니다.
+- Connected Microsoft Clarity to cookie consent so it loads only after approval and revokes analytics storage when declined.
+- Improved automatic clock fitting so large sizes with seconds stay inside the viewport.
+- Stopped unnecessary drawing on stable paused scenes and reused same-time body calculations to reduce CPU and GPU work.
+- Strengthened staged texture and sky loading, failure recovery, cache handling, and release-file verification.
 
 ## v0.54 · 2026.09.23
 
-- 소개·개인정보·이용약관을 한 개의 반투명 팝업과 상단 탭으로 통합했습니다.
-- 쿠키 안내의 개인정보 링크도 같은 앱 내 팝업으로 연결하고 정보 카드의 투명 디자인을 통일했습니다.
-- 도움말의 내부 빌드 정보는 숨기고 메인·도움말의 Life User 워터마크 크기를 복원했습니다.
-- 실제 광고 슬롯이 없을 때 광고 서랍을 숨기고 천체 설명과 정보 구분선의 간격을 정리했습니다.
-- 시계 크기를 50~200%로 조절하는 슬라이더를 추가하고 중복된 24시간 옵션을 제거해 설정 순서를 정리했습니다.
+- Combined About, Privacy and Terms in one translucent in-app dialog with top tabs.
+- Linked the cookie notice privacy link to the same dialog and unified the translucent information-card design.
+- Hid internal build details from Help and restored the approved Life User watermark sizes on the main screen and Help.
+- Hid the ad drawer when no real ad slot exists and refined spacing between body descriptions and information dividers.
+- Added a 50–200% clock-size slider and reorganized settings after removing the duplicate 24-hour option.
 
 ## v0.53 · 2026.09.22
 
-- PC 우측 하단에 200×200 광고 서랍을 추가하고, 실제 광고 슬롯이 설정되기 전에는 안전한 미리보기만 표시하도록 했습니다.
-- Google Analytics와 AdSense 동의 기본값을 거부 상태로 두고, 허용·거부 선택이 분석 및 광고 측정 동의와 연동되도록 했습니다.
-- 쿠키 안내 카드를 13개 지원 언어로 번역하고 앱의 자동·수동 언어 전환에 즉시 맞춰지도록 통합했습니다.
-- ads.txt와 소개·개인정보·이용약관 페이지를 추가하고 Cloudflare 배포 산출물에 함께 포함했습니다.
+- Added a 200×200 desktop ad drawer at the lower right; it shows only a safe preview until a real ad slot is configured.
+- Google Analytics and AdSense consent now start denied, with Allow and Reject controlling analytics and advertising measurement consent.
+- Localized the cookie notice in all 13 supported languages and linked it to both automatic and manual language changes.
+- Added ads.txt plus About, Privacy and Terms pages to the Cloudflare deployment output.
 
 ## v0.52 · 2026.09.22
 
-- 지구 카드에 야간 불빛 켜기·끄기를 추가하고, NASA Black Marble 2016 관측 지도를 직접 적용했습니다.
-- 13,500×6,750 원본의 불빛 형태와 밝기 분포를 유지한 채 4K로 정밀 축소하고 따뜻한 색조만 더했습니다.
-- 낮과 밤의 경계에서 불빛이 서서히 켜지며, 화면 거리별 전용 해상도로 먼 거리 깜빡임과 GPU 사용량을 줄였습니다.
-- 태양 샤인과 지구 야간 불빛처럼 천체별 시각 옵션은 각 천체 카드의 가장 아래에 통일했습니다.
+- Added a Night Lights toggle to the Earth card and applied NASA's observed Black Marble 2016 map directly.
+- Reduced the measured night-light source to 4K while preserving light shapes, brightness and a warm tint.
+- Lights now fade in across the day–night boundary, while distance-specific resolutions reduce distant flicker and GPU use.
+- Body-specific visual options such as Sun Shine and Earth Night Lights now share the bottom section of each body card.
 
 ## v0.51 · 2026.09.21
 
-- 현재 시대에는 JPL 정밀 공식을, 2051~2999년에는 장기 근사식을 사용하는 계층형 천문 모델을 적용했습니다.
-- 달·유로파·명왕성을 별도 정밀 모델로 계산하고 JPL Horizons 기준값과 자동 비교하는 검증을 추가했습니다.
-- 이전·다음 일식 이동이 같은 사건에서 멈추던 문제를 수정해 어느 방향으로든 계속 이동할 수 있습니다.
-- 지구에서 보이는 행성 모임과 태양 중심의 엄격한 5개 이상 행성 정렬을 서로 다른 사건으로 구분했습니다.
-- 행성 정렬 때 기준축과 참여 행성을 잇는 황금색 가이드를 화면에 표시하고 관측·우주 날짜 색을 구분했습니다.
-- 일식과 행성 정렬 제목·날짜·이동 버튼을 카드 중앙에 균형 있게 정렬했습니다.
+- Applied a layered astronomy model using precise JPL formulas for the current era and long-range approximations from 2051 through 2999.
+- Moved the Moon, Europa and Pluto to dedicated precision models and added automatic comparisons against JPL Horizons reference data.
+- Fixed previous and next eclipse navigation getting stuck on the same event, so travel now continues in either direction.
+- Separated Earth-sky planetary gatherings from strict Sun-centred alignments containing five or more planets.
+- Added gold viewport guides linking the alignment axis and participating planets, with distinct colours for sky and space dates.
+- Centred eclipse and planetary-alignment titles, dates and navigation controls within their cards.
 
 ## v0.50 · 2026.09.21
 
-- 브라우저 언어와 기기 시간대를 따르는 자동 언어를 기본값으로 추가하고, 수동 국가 선택은 별도로 기억합니다.
-- 대만과 홍콩을 번체 중국어·현지 시간·지구 위치 보기와 함께 추가하고, 번체 언어 파일의 404 대체 처리를 보강했습니다.
-- 달과 유로파 카드에 이전·다음 일식 이동을 추가했습니다. 현재 카메라 구도와 추적 상태를 그대로 유지한 채 시간만 부드럽게 이동합니다.
-- 달·유로파의 표시 크기와 위성 궤도 간격을 분리하고, 유로파의 태양 통과 방향과 반복 추적 배율을 바로잡았습니다.
-- 도움말·설정·천체 카드 등 팝업의 닫기 규칙과 감상 모드 전환을 공통 처리로 통일했습니다.
-- Cloudflare 미디어 범위 요청과 GPU 텍스처 로딩·해제 순서를 개선해 음악 연속 재생과 장시간 사용 안정성을 높였습니다.
+- Added Auto Language as the default, following browser language and device time zone while remembering manual country choices separately.
+- Added Taiwan and Hong Kong with Traditional Chinese, local time, Earth locations and a safe locale fallback.
+- Added previous and next eclipse navigation for the Moon and Europa while preserving camera framing and tracking.
+- Separated Moon and Europa display size from satellite-orbit spacing, and corrected Europa alignment and repeated close-up tracking.
+- Unified popup dismissal and presentation-mode transitions across help, settings, body cards and other overlays.
+- Improved Cloudflare media range handling and GPU texture loading and disposal for steadier music playback and long sessions.
 
 ## v0.48 · 2026.09.19
 
-- 국가 위치 보기는 250× 기준으로 시작하며 이후 휠로 자유롭게 확대·축소할 수 있습니다.
-- 랜덤 회전은 켤 때 방향을 한 번 정하고, 끌 때까지 좌·우 회전과 같은 초당 1.8도로 그 방향을 유지합니다. 다시 켜면 새 방향을 정합니다.
-- 접속·새로고침마다 별 위치를 새로 생성하는 동작과 작은 별 안정화·색상 비율을 유지했습니다.
-- 천체 카드의 고정 정보와 숫자 노드를 재사용하여 반복 갱신을 줄였습니다.
-- 고주사율 화면에서 프레임 간격의 누적 오차를 보정했습니다.
-- 좌클릭 회전은 위·아래 제한 없이 이어집니다. 직접 조작한 뒤에도 랜덤·좌우 회전은 현재 각도에서 계속됩니다.
+- Country views start at the 250× lens reference; use the wheel to move closer or farther afterward.
+- Random rotation keeps one direction at 1.8°/s until switched off. Enabling it again chooses a new direction.
+- Kept new star positions on every visit or reload, the tiny-star filter and the approved colour balance.
+- Reused static body information and number nodes to avoid redundant card updates.
+- Corrected accumulated frame-scheduling drift on high-refresh displays.
+- Left-drag crosses both poles without limits, and automatic rotation resumes from the current view.
 
 ## v0.47 · 2026.09.18
 
-- INFO·도움말·설정·천체·QR 카드의 공통 디자인과 닫기·스크롤 동작을 통합했습니다.
-- 업데이트 내역을 한 데이터 파일로 정리하고 로딩 실패 후 재시도를 복구했습니다.
-- 렌더러 메서드 교체와 전역 셰이더 가로채기를 제거하고 GPU·Worker·CPU의 공통 재질 설정을 정리했습니다.
-- 원본과 가공 미디어를 분리하고 아이콘 업로드에 사전 검증·승인·명시적 실행 절차를 추가했습니다.
-- 정상화된 아이폰 배치와 기존 카메라·아이콘을 유지하면서 회귀 테스트와 배포 검증을 보강했습니다.
-- 싱가포르를 국가 목록에 추가했습니다. 기존 영어 번역을 공유하며 싱가포르 시간과 지구 보기 위치를 사용합니다.
-- 작은 별에 픽셀 면적 필터를 적용해 이동 중 깜빡임을 줄이고, 황색·붉은색 별의 출현 비율을 각각 30% 낮췄습니다. 줄어든 비율은 흰색과 푸른색 별에 절반씩 배분합니다.
-- 벨기에와 네덜란드를 추가했습니다. 네덜란드어 번역을 공유하고 각 나라의 지역 시간·지구 보기·선택값 저장을 기존 공통 기능에 연결했습니다.
+- Unified the shared appearance, dismissal and scrolling of diagnostics, help, settings, body and QR cards.
+- Moved release history into one data module and restored retries after loading failures.
+- Removed renderer method replacement and global shader interception, sharing material settings across GPU, Worker and CPU adapters.
+- Separated original sources from derived media and added preflight checks, approval and explicit UI uploads.
+- Preserved the approved iPhone layout, camera controls and icons while strengthening regression and deployment checks.
+- Added Singapore to the country list, reusing English translations with Singapore time and the shared Earth-view location control.
+- Pixel-area filtering stabilizes tiny stars in motion. Yellow and red stars are 30% rarer; white and blue stars share the difference.
+- Added Belgium and the Netherlands with a shared Dutch interface, regional time, Earth-view locations and saved country selection.
 
 ## v0.46 · 2026.09.18
 
-- 정지된 일반 화면은 30fps로 낮추고, 드래그·자동 회전·카메라 전환·시간 가속 중에는 60fps를 유지하도록 렌더 주기를 최적화했습니다.
-- 실제 RAF 지연을 감지해 프레임 드롭이 이어질 때 자동으로 부하를 낮추고, 배율·회전 UI의 중복 DOM 갱신과 라벨 충돌 계산을 줄였습니다.
-- GPU 궤도 렌더링에서 공통 카메라와 uniform 상태를 재사용하고 텍스처 업로드 상태 처리를 정리했습니다.
-- 행성 텍스처의 경계 이음새 보정을 런타임에서 빌드 단계로 옮겨 확대 시 픽셀 읽기·쓰기와 순간 메모리 사용을 줄였습니다.
-- 렌더링·텍스처·라벨·UI hot path를 추가 정리해 장시간 실행과 저사양 환경에서의 미세 끊김을 줄였습니다.
+- Static scenes now render at 30 fps, while dragging, auto-rotation, camera transitions and accelerated time continue at 60 fps.
+- Monitored frame delay lowers load during sustained drops and reduces repeated interface and label calculations.
+- GPU orbit rendering now reuses shared camera and uniform state, and texture-upload state handling has been cleaned up.
+- Moved texture seam correction into the build pipeline to reduce close-up processing and temporary memory.
+- Additional renderer, texture, label and UI hot-path cleanup reduces small stutters during long sessions and on lower-end hardware.
 
 ## v0.45 · 2026.09.17
 
-- 별 밀도 기본값을 100%로 조정하고 새로고침·재실행·초기화 때마다 별 위치를 새롭게 랜덤 배치하며, 크기·밝기·색상도 서로 독립적으로 랜덤화하고 황색 별 비중을 줄였습니다.
-- 대부분의 별은 안정된 밝기를 유지하고 일부만 5~25초 범위로 느리고 불규칙하게 반짝이며, 아주 소수만 5~10초 동안 잠시 사라지거나 드물게 십자 광채를 냅니다.
-- 태양 표면의 촘촘한 흐름 구조는 유지하면서 현재 효과에서 약 5% 더 낮춰 움직임을 조금 더 차분하게 조정했습니다.
-- 목성의 실험적 제트·난류·대적점 셰이더를 제거하고 업그레이드 전 기본 가스행성 셰이더로 완전히 복원했습니다.
-- 뷰포트에서 마우스 오른쪽 버튼을 누른 채 위아래로 드래그하면 휠 설정과 무관하게 카메라를 전진·후진할 수 있습니다.
+- Star density defaults to 100%. Reloads and resets randomize positions while size, brightness and colour remain independent.
+- Most stars stay steady. Some twinkle over 5–25 seconds; a few disappear for 5–10 seconds or show rare cross flares.
+- The Sun keeps its fine flow structure while the current motion strength is reduced by another 5% for a calmer result.
+- Jupiter’s experimental jets, turbulence and Great Red Spot shader are removed, fully restoring the original gas-giant shader.
+- Dragging vertically with the right mouse button over the viewport now dollies the camera in and out independently of the wheel mode.
 
 ## v0.43 · 2026.09.17
 
-- 별 밀도 기본값은 200%로 유지하면서 위치·크기·밝기·색·반짝임 주기를 서로 독립적으로 랜덤화해 규칙적인 별 배열을 없앴습니다.
-- 별은 적색·백색·청백색·황색 계열이 낮은 채도로 섞이며, 아주 밝은 별 일부만 드물게 십자 광채가 나타납니다.
-- 태양 표면은 속도는 유지하면서 더 촘촘한 흐름의 변형 강도를 높여 작은 규모의 꿈틀거림이 분명히 보이도록 조정했습니다.
-- 별 파티클은 최대 풀을 GPU에 한 번 올린 뒤 슬라이더 값에 따라 그리는 개수만 바꾸도록 해 오래된 그래픽카드의 추가 부담을 제한했습니다.
+- Star density defaults to 200%, with position, size, brightness, colour and twinkle timing randomized independently.
+- Low-saturation red, white, blue-white and yellow stars are mixed, with rare cross-shaped flares only on a few bright stars.
+- The Sun keeps its motion speed but uses stronger fine-scale warping so small-scale surface motion is clearly visible.
+- Uploaded the maximum star pool once; density changes adjust only the draw count to reduce GPU load.
 
 ## v0.42 · 2026.09.17
 
-- iPhone 안전 영역을 적용하고 국가명을 누르면 해당 지역의 지구를 바로 추적합니다.
-- GPU 텍스처 LRU와 자동 DPR·30/60fps 조절로 모바일 메모리와 렌더 부하를 줄였습니다.
-- 256×128 저해상도 텍스처 단계를 추가하고 Cloudflare 배포에서 미디어를 같은 도메인으로 불러옵니다.
-- 업데이트 내역을 필요할 때만 불러오고 같은 공개 버전 안의 r1·r2 패치도 자동 감지합니다.
+- iPhone safe areas are respected, and clicking the region label tracks that location on Earth.
+- GPU texture LRU plus adaptive DPR and 30/60 fps reduce mobile memory and rendering load.
+- A 256×128 texture tier and same-origin Cloudflare media loading reduce transfer and connection overhead.
+- Release notes now load on demand, and r1/r2 patches can update automatically within the same public version.
 
 ## v0.41 · 2026.09.16
 
-- 시계 숫자를 누르면 설정된 폰트가 순서대로 전환됩니다.
-- AM/PM을 눌러 12시간·24시간 표기를 바로 전환할 수 있습니다.
-- iPhone 홈 화면에 공식 아이콘을 적용하고 두 손가락 화면 이동을 지원합니다.
-- 날짜·상태·브랜드·후원 영역의 간격과 동작을 정리했습니다.
+- Clicking the clock cycles through the configured fonts.
+- clicking AM/PM switches directly between 12- and 24-hour time.
+- iPhone home-screen icons and two-finger panning are now supported.
+- spacing and behavior were refined across date, status, branding, and support areas.
 
 ## v0.40 · 2026.09.15
 
-- 태양 코로나와 홍염의 프레임별 합성을 GPU로 옮겼습니다.
-- 웹과 로컬 실행본 모두 언어와 고해상도 재질을 Cloudflare에서 불러옵니다.
-- 궤도 밝기 최대치를 높이고 로컬 직접 실행을 복구했습니다.
-- 불필요한 대용량 단독 HTML 생성과 중복 정적 에셋 배포를 제거했습니다.
+- Moved solar corona and prominence compositing to the GPU.
+- cloud-hosted language and high-resolution assets.
+- increased maximum orbit brightness.
+- removed duplicate heavy builds.
 
 ## v0.39 · 2026.09.15
 
-- 궤도 좌표와 카메라 투영을 GPU 정적 버퍼·셰이더로 옮겨 프레임별 계산을 줄였습니다.
-- 언어·음악·저장·팝업 동작을 독립 모듈로 분리하고 스타일시트를 하나로 통합했습니다.
-- 기본시점과 휠 방식, 배경음악과 언어 버튼의 배치를 서로 바꿨습니다.
+- Moved orbit coordinates and camera projection to GPU buffers.
+- separated language, music, storage, and popup modules.
+- reorganized the main controls.
 
 ## v0.38 · 2026.09.15
 
-- 시간·옵션·천체 카드의 모든 슬라이더 디자인을 하나로 통일했습니다.
-- 업데이트 내역을 단일 파일로 합치고 이전·다음 화살표 탐색을 추가했습니다.
-- 저장한 100% 천체 크기와 궤도 간격이 재실행 때 정확히 복원되도록 수정했습니다.
-- 숨긴 유로파의 저장 카메라 복원과 스크롤 안내 갱신을 안정화했습니다.
+- Unified all slider styles.
+- consolidated update history.
+- stabilized saved body size.
+- orbit spacing, camera restore, and scroll cues.
 
 ## v0.37 · 2026.09.14
 
-- 화성 사진과 겹치던 합성 요철을 제거해 분화구 음영 과장을 줄였습니다.
-- 12개 천체 카드 설명을 주요 구성 물질 중심으로 갱신했습니다.
-- 카드 본문과 핵심 정보에 중복되던 공전주기 문장을 정리했습니다.
+- Removed exaggerated synthetic craters from Mars and refreshed all 12 body descriptions around composition without repeating orbital periods.
+- Additional usability and stability improvements.
+- Additional usability and stability improvements.
 
 ## v0.36 · 2026.09.14
 
-- 유로파를 균일한 4096×2048 얼음 표면으로 재구성했습니다.
-- 달과 수성 사진 위에 중복되던 합성 요철을 제거했습니다.
-- 후원 문구·링크·하단 크레딧 디자인을 정리했습니다.
+- Rebuilt Europa as a uniform 4K ice surface.
+- removed duplicate relief from the Moon and Mercury.
+- refined support links and credits.
 
 ## v0.35 · 2026.09.14
 
-- 지구를 제외한 주요 천체를 라이선스가 명확한 고해상도 구면 재질로 교체했습니다.
-- 화면 점유율에 따라 2K·4K 재질을 선택하는 거리별 품질 단계를 적용했습니다.
-- 원본 해상도 이상으로 가짜 선명도를 만드는 처리를 제거했습니다.
+- Upgraded major bodies except Earth to licensed high-resolution spherical textures with 2K/4K distance-based detail.
+- Additional usability and stability improvements.
+- Additional usability and stability improvements.
 
 ## v0.34 · 2026.09.14
 
-- Chrome과 Edge의 투명 GPU 합성을 통일해 궤도선 표시 차이를 해결했습니다.
-- 전체 화면 전환 때 궤도선과 고리가 순간적으로 튀는 현상을 줄였습니다.
-- 팝업·메뉴·조작 패널의 페이드와 배율 표시 시점을 통일했습니다.
-- 새 릴리스 확인과 대용량 재질 캐시 주소를 분리했습니다.
+- Unified transparent GPU compositing in Chrome and Edge and smoothed orbit.
+- ring, popup behavior and presentation were improved.
+- menu behavior and presentation were improved.
+- zoom transitions.
 
 ## v0.33 · 2026.09.13
 
-- 사용자가 확정한 화면 옵션과 카메라 구도를 새 초기 설정으로 적용했습니다.
-- 천체 크기와 태양·지구·목성 하위 궤도 간격 조절을 추가했습니다.
-- 토성과 천왕성 고리의 모아레와 자글거림을 줄였습니다.
-- 초기화 확인창과 우주 배경 시작 방향을 정리했습니다.
+- Applied the approved defaults.
+- added body-size and child-orbit controls.
+- reduced ring moiré.
+- refined reset and background startup behavior.
 
 ## v0.32 · 2026.09.13
 
-- 실제 크기와 일반 보기의 행성·위성 계층을 분리했습니다.
-- 일반 보기 궤도 간격과 24시간 표기 옵션을 추가했습니다.
-- 줌과 실제 카메라 이동, 천체 중심 이동을 부드럽게 연결했습니다.
-- 좌·우 자동 회전 상태를 재실행 후에도 유지했습니다.
-- 배경과 다국어 UI를 보강했습니다.
+- Separated true-scale and overview hierarchies.
+- added orbit-spacing and 24-hour options.
+- improved zoom behavior and presentation were improved.
+- dolly, regional time.
+- multilingual UI behavior and presentation were improved.
 
 ## v0.31 · 2026.09.13
 
-- 우측 조작 패널에 줌·이동 방식을 추가했습니다.
-- 세로 회전 제한을 없애고 가운데 버튼 이동 범위를 넓혔습니다.
-- 카메라 1·2·3에 줌·이동 방식까지 함께 저장합니다.
-- 좌측 하단의 축척·출처·연락처·저작권 정보를 정리했습니다.
+- Added zoom and dolly camera modes.
+- free vertical rotation.
+- wider panning, complete camera presets.
+- clearer footer credits.
 
 ## v0.3 · 2026.09.13
 
-- 행성 표면과 고리를 3D 부모·자식 좌표계로 정리했습니다.
-- GPU 직접 렌더링과 거리별 텍스처 해상도를 적용했습니다.
-- 태양 표면과 코로나의 움직임을 개선했습니다.
-- 실제 크기 비율 전환과 주요 지역 시각을 추가했습니다.
-- 시계·투명 카드·다국어 레이아웃을 다듬었습니다.
+- Rebuilt body and ring transforms as a 3D hierarchy.
+- added GPU rendering and texture LOD.
+- improved the Sun.
+- expanded true-scale and regional-time views.
+- Additional usability and stability improvements.
 
 ## v0.26 · 2026.09.13
 
-- 일반 확대에서도 64배 이후 태양 표면이 계속 커지도록 수정했습니다.
-- 도움말과 설정 카드의 확정된 투명 디자인을 고정했습니다.
-- 임시 디자인 조절 항목과 저장 코드를 제거했습니다.
-- 배포용 단일 HTML은 최신 파일만 유지하도록 정리했습니다.
+- Extended close solar zoom.
+- finalized transparent cards.
+- removed temporary design controls.
+- kept only the latest standalone build.
 
 ## v0.25 · 2026.09.13
 
-- 별과 혜성을 행성 원판에서 가려 표면이 불투명하게 보이도록 했습니다.
-- 숫자 시간의 중앙을 유지하며 AM/PM을 독립 배치했습니다.
-- 명왕성·태양·천왕성의 구면용 재질을 보강했습니다.
-- 도움말·설정·시간 카드의 투명 디자인을 통일했습니다.
-- 지구-달과 목성-유로파의 부모·자식 궤도를 추가했습니다.
+- Made body discs opaque to stars and comets.
+- centered the numeric clock independently of AM/PM.
+- improved key textures.
+- added Moon and Europa child orbits.
+- Additional usability and stability improvements.
 
 ## v0.24 · 2026.09.12
 
-- 카메라 조작 때 행성 표면이 따라 회전하던 좌표 오류를 수정했습니다.
-- 행성과 고리가 동일한 축 프레임을 공유하도록 정리했습니다.
-- 행성별 자전축 기울기를 천문 기준값으로 정리했습니다.
-- 태양 코로나 효과와 고배속 표면 갱신 부하를 개선했습니다.
-- 숫자 시간 중앙을 AM/PM 폭과 분리했습니다.
+- Fixed planets rotating with the camera.
+- unified body and ring axes.
+- corrected axial tilts.
+- improved solar effects and high-speed updates.
+- Additional usability and stability improvements.
 
 ## v0.23 · 2026.09.12
 
-- 12시간·24시간 시계 표기 선택을 추가했습니다.
-- 고배속 표면 렌더 작업의 제출 빈도를 제한했습니다.
-- 멀리 있는 천체의 표면 해상도 상한을 낮췄습니다.
-- 화면에서 큰 천체를 먼저 처리하도록 우선순위를 정리했습니다.
+- Added 12/24-hour clocks.
+- limited high-speed surface work.
+- lowered distant texture limits.
+- prioritized large visible bodies.
 
 ## v0.22 · 2026.09.12
 
-- 감상 모드에서도 지역·UTC 표기를 유지했습니다.
-- 시계 콜론 간격과 시스템 폰트 선택지를 개선했습니다.
-- 중복 시간대 표시 요소를 제거했습니다.
-- 매 프레임 실행되던 표면·배경 재개 처리를 탭 복귀 시점으로 옮겼습니다.
+- Preserved region and UTC labels in viewing mode.
+- improved clock spacing and fonts.
+- removed duplicate timezone UI.
+- reduced per-frame resume work.
 
 ## v0.21 · 2026.09.12
 
-- 감상 모드의 시계 위치와 날짜 표시를 일반 모드와 통일했습니다.
-- 시뮬레이션 상태 표시 위치를 조정했습니다.
-- 시계 숫자 폰트 선택을 추가했습니다.
-- 첫 화면 아래에서 행성 표면 캐시를 미리 준비하도록 했습니다.
+- Unified clock and date placement in viewing mode.
+- adjusted simulation status.
+- added clock fonts.
+- preloaded visible body textures.
 
 ## v0.20 · 2026.09.12
 
-- 날짜 선택 UI와 연결된 이벤트를 제거했습니다.
-- 하단 재생 카드를 더 작게 정리했습니다.
-- 사용하지 않는 이미지 포함 HTML 저장 코드를 제거했습니다.
-- 숨겨진 품질 분기를 정리했습니다.
+- Removed the date picker.
+- compacted playback controls.
+- removed unused embedded images.
+- cleaned obsolete quality branches.
 
 ## v0.18 · 2026.09.12
 
-- 저장 시점 이동에서 천체 위치와 크기를 연속 보간했습니다.
-- 좌·우 회전 아이콘을 실제 동작과 맞췄습니다.
-- 하단 재생 카드를 축소했습니다.
-- 실제 시간에서 배속 단위 전환 흐름을 다듬었습니다.
+- Smoothed saved-view interpolation.
+- matched rotation icons to behavior.
+- compacted playback controls.
+- refined real-time speed units.
 
 ## v0.17 · 2026.09.12
 
-- 수동 카메라 입력의 즉시 반응을 복원했습니다.
-- 가운데 버튼의 화면 이동 범위를 확대했습니다.
-- 천체 추적을 화면 중심까지 한 번에 이동하도록 바꿨습니다.
-- 시간·일·년 배속 범위를 정리했습니다.
-- 중복 속도 도움말과 설명을 제거했습니다.
+- Restored immediate manual camera response.
+- expanded panning.
+- centered tracked bodies.
+- refined speed ranges.
+- removed duplicate help text.
 
 ## v0.16 · 2026.09.12
 
-- 카메라 전환을 직접 이동과 부드러운 시작·끝 곡선으로 통일했습니다.
-- 각도 변경 중 불필요한 자동 재프레이밍을 제거했습니다.
-- 자동 회전이 현재 팬·줌·화면 중심을 유지하도록 했습니다.
-- 지역 가까이 보기와 시간 배속 범위를 확장했습니다.
+- Unified camera transitions with easing.
+- removed unwanted reframing.
+- preserved framing during auto-rotation.
+- expanded close views and time rates.
 
 ## v0.15 · 2026.09.12
 
-- 카메라 전환과 연속 입력을 하나의 보간 흐름으로 통일했습니다.
-- 숫자 1·2·3 저장 시점과 F·ESC 동작을 안정화했습니다.
-- 4096×2048 우주 배경을 구면용 WebP로 보강했습니다.
-- 배경·궤도·표면 계산의 캐시 재사용을 확대했습니다.
-- 단일 HTML의 배경 중복 포함을 제거했습니다.
+- Unified camera animation and continuous input.
+- stabilized presets and fullscreen keys.
+- upgraded the spherical background.
+- expanded caching.
+- Additional usability and stability improvements.
 
 ## v0.14 · 2026.09.12
 
-- 4096×2048 구면 우주 배경을 제작했습니다.
-- 배경 전용 GPU·CPU 렌더 경로를 안정화했습니다.
-- 카메라와 궤도 투영 계산 캐시를 추가했습니다.
-- 탭 숨김과 WebGL 복구 처리를 개선했습니다.
-- 설치 없는 단일 HTML 갱신 도구를 추가했습니다.
+- Created a 4K spherical space background and stabilized dedicated background rendering.
+- projection caching.
+- tab suspension behavior and presentation were improved.
+- WebGL recovery behavior and presentation were improved.
+- Additional usability and stability improvements.
 
 ## v0.13 · 2026.09.12
 
-- 카메라 1·2·3의 적용·저장·삭제·취소를 하나의 팝업으로 통합했습니다.
-- 감상 모드 토글을 오른쪽 조작부에 통합하고 활동이 없을 때 조작부와 커서를 숨겼습니다.
-- 구면 텍스처의 경도 이음선을 보정하고 확대 상한과 가까이 보기 크기를 높였습니다.
-- 탭 복귀와 카메라 조작 중 표면 재질 교체를 안정화했습니다.
-- 천체 이름 겹침 정리와 시계 초 표시를 선택 옵션으로 분리했습니다.
+- Unified Camera 1–3 apply, save, delete and cancel actions in one popup.
+- Moved viewing mode into the right controls and hid controls and the cursor after inactivity.
+- Corrected texture seams and increased zoom and close-view limits.
+- Stabilized surface-material swaps after tab return and during camera movement.
+- Improved label overlap and made clock seconds optional.
 
 ## v0.12 · 2026.09.12
 
-- 오른쪽 조작부에 확대·축소·기본 시점·저장 카메라·좌우 회전을 세로로 정리했습니다.
-- 현재 카메라 구도를 유지하는 좌우 자동 회전을 추가했습니다.
-- 감상 모드에서도 활동 중에는 같은 조작부를 사용할 수 있도록 했습니다.
-- 자동 회전 중에도 천체 표면 재질이 멎지 않도록 중간 결과 수용 범위를 제한적으로 적용했습니다.
+- Reorganized zoom, reset, saved-camera and rotation controls in the right panel.
+- Added automatic left and right rotation that preserves current framing.
+- Kept the same controls available during activity in viewing mode.
+- Prevented surface textures from freezing during automatic rotation.
 
 ## v0.11 · 2026.09.12
 
-- 먼지 띠와 나선 은하를 360도 우주 배경에 자연스럽게 합성했습니다.
-- 혜성 꼬리를 하나로 이어지는 곡선 띠와 투명도 그라데이션으로 개선했습니다.
-- 카메라 1·2·3 저장·삭제 확인 팝업과 부드러운 시점 전환을 추가했습니다.
-- CPU 호환 배경도 카메라 이동 중 완료된 중간 프레임을 활용하도록 개선했습니다.
+- Blended dust lanes and a spiral galaxy into the 360° sky.
+- Rebuilt the comet tail as one curved band with a transparency gradient.
+- Added saved-camera confirmation and smooth view transitions.
+- Reused completed CPU background frames during camera movement.
 
 ## v0.10 · 2026.09.11
 
-- 감상 모드에서도 선택 지역의 시간대 표기를 유지했습니다.
-- 각도·확대·이동·추적 대상을 저장하는 카메라 1·2·3 기능을 추가했습니다.
-- 카메라 저장 삭제 확인창과 키보드 불러오기를 추가했습니다.
-- 천체 재질을 비동기로 교체할 때 기존 정상 이미지를 유지하도록 안정화했습니다.
+- Preserved regional time labels in viewing mode.
+- Added Camera 1–3 presets for angle, zoom, position and tracking.
+- Added preset deletion confirmation and keyboard recall.
+- Kept the last valid texture during asynchronous material updates.
 
 ## v0.09 · 2026.09.11
 
-- 천체별 추적 상태 카드를 제거하고 기본 시점 버튼으로 복귀 동작을 통일했습니다.
-- 감상 모드에서는 활동할 때만 기본 시점과 모드 전환 버튼이 나타나도록 했습니다.
-- 약 1.8초 동안 입력이 없으면 버튼과 커서를 함께 숨기도록 정리했습니다.
+- Removed separate tracking cards and unified return behavior with the default-view button.
+- Showed default-view and mode controls only during activity in viewing mode.
+- Hid buttons and the cursor after about 1.8 seconds of inactivity.
 
 ## v0.08 · 2026.09.11
 
-- 360도 우주 배경의 반복 경계와 극점 불연속을 수정했습니다.
-- GPU와 CPU 호환 경로가 같은 텍셀 중심과 밝기 계산을 사용하도록 맞췄습니다.
-- 작은 천체의 추적 확대값이 다른 천체에 잘못 적용되던 문제를 수정했습니다.
-- 드래그 직후의 잘못된 더블클릭 추적과 지구·달 근접 표시 간격을 수정했습니다.
+- Fixed seams and pole discontinuities in the 360° sky.
+- Matched GPU and CPU texel sampling and brightness.
+- Stopped close-up values from leaking between bodies.
+- Fixed accidental post-drag tracking and Earth–Moon spacing.
 
 ## v0.07 · 2026.09.11
 
-- 주요 행성과 달에 라이선스가 명확한 공개 구면 텍스처를 적용했습니다.
-- 실제 사진과 겹치던 가상 요철을 제거하고 GPU·CPU 출력 해상도 상한을 분리했습니다.
-- 우주 배경 안개를 줄이고 곡선 경로를 따르는 장식용 혜성을 추가했습니다.
-- 감상 모드에서 인터페이스를 완전히 숨기고 태양 샤인 변화 속도를 높였습니다.
+- Applied clearly licensed spherical textures to major planets and the Moon.
+- Removed duplicate artificial relief and separated GPU and CPU resolution limits.
+- Reduced sky haze and added a decorative curved comet.
+- Fully hid the interface in viewing mode and quickened Sun-shine changes.
 
 ## v0.06 · 2026.09.11
 
-- 태양을 기준으로 초기·확대 구도의 화면 중심을 통일했습니다.
-- 지구 Blue Marble과 주요 천체·우주 배경의 구면용 재질을 내장했습니다.
-- GPU 셰이더, CPU 호환 렌더링과 작업 스레드 표면 계산 경로를 정리했습니다.
-- 기기 시각 기준의 로컬 궤도·자전 보정과 한국 보기의 서울 낮·밤 안내를 추가했습니다.
-- 태양은 샤인 중심의 간결한 표현으로 정리했습니다.
+- Centered initial and close views on the Sun.
+- Added spherical materials for Earth, major bodies and the sky.
+- Organized GPU, CPU and worker surface-rendering paths.
+- Linked local orbits and rotation to device time and added Seoul day/night guidance.
+- Simplified the Sun around its shine effect.
 
 ## v0.05 · 2026.09.11
 
-- 화면에 보이는 천체 표면만 공통 작업 스레드에서 계산하도록 렌더 구조를 복원했습니다.
-- 확대용 2048×1024 표면과 최대 1024×1024 초점 천체 출력을 적용했습니다.
-- 중복 표면 요청을 최신 상태로 합치고 오래된 결과와 화면 밖 작업을 폐기하도록 했습니다.
-- 하단 천체 버튼과 재생 카드 배치를 정리하고 제작자 표시를 Life User로 통일했습니다.
+- Restored worker rendering for visible body surfaces.
+- Added 2048×1024 close-up surfaces and 1024×1024 focused-body output.
+- Merged duplicate surface requests and discarded stale offscreen work.
+- Refined footer body controls, playback layout and creator credit.
 
 ## v0.04 · 2026.09.11
 
-- 카메라의 상하 회전 범위를 -90°에서 +90°까지 넓혔습니다.
-- 토성·천왕성 고리를 행성 자전축과 같은 적도면 좌표계로 정리했습니다.
-- 가까이 보기의 표면 해상도와 모든 천체의 최대 화면 크기를 통일했습니다.
-- 가운데 버튼 수직 이동과 기본 시점 복원 범위를 추가했습니다.
-- 태양의 장식 효과 속도와 도움말·재생 카드 배치를 조정했습니다.
+- Expanded vertical camera rotation from −90° to +90°.
+- Aligned Saturn and Uranus rings with each planet’s equator.
+- Unified close-view resolution and maximum body size.
+- Added vertical movement and a broader default-view reset.
+- Refined solar effects, Help and playback layout.
 
 ## v0.03 · 2026.09.11
 
-- 태양에 입상 조직, 다층 코로나, 홍염과 미세한 표면 흐름을 추가했습니다.
-- 달의 표시 궤도 크기를 지구 표시 크기와 분리했습니다.
-- 확대 범위를 64배로 늘리고 더블클릭·가까이 보기 천체 추적을 추가했습니다.
-- 천체 이름 충돌 회피와 부드러운 위치 이동을 모든 천체에 적용했습니다.
+- Added granular solar texture, layered corona, prominences and subtle flow.
+- Separated the Moon’s display size from its orbit size.
+- Expanded zoom to 64× and added double-click close tracking.
+- Added label collision avoidance and smooth movement for every body.
 
 ## v0.02 · 2026.09.11
 
-- 지구 표시 크기를 초기 버전의 1.5배로 확대했습니다.
-- 모든 천체의 자전을 항성 자전 주기와 시뮬레이션 시각에 연결했습니다.
-- 금성·천왕성·명왕성의 역행 방향 중복 적용을 수정했습니다.
-- 감상 모드에서 입력이 없으면 커서를 자동으로 숨기도록 했습니다.
+- Increased Earth’s display size by 50%.
+- Linked every body’s rotation to sidereal periods and simulated time.
+- Fixed duplicate retrograde reversal for Venus, Uranus and Pluto.
+- Added automatic cursor hiding in viewing mode.
 
 ## v0.01 · 2026.09.11
 
-- 실제 기기 시각과 같은 시간축에서 움직이는 태양계 시계를 처음 공개했습니다.
-- 태양·8개 행성·달·명왕성과 궤도, 자전, 시간 배속을 Canvas 2D로 구현했습니다.
-- 카메라 회전·확대, 천체 정보, 감상 모드와 표시 옵션을 제공했습니다.
-- 설치나 계정 없이 웹과 단일 HTML에서 실행할 수 있도록 구성했습니다.
+- Released the first Solar Time clock on a real-time device timeline.
+- Rendered the Sun, eight planets, Moon, Pluto, orbits, rotation and time speed in Canvas 2D.
+- Added camera rotation, zoom, body information, viewing mode and display options.
+- Supported the web and a standalone HTML build without installation or an account.

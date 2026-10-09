@@ -1,9 +1,9 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8'),data=p=>JSON.parse(read(p));
-const baseline=data('tests/fixtures/release-history-v069.json'),api=require('../tools/i18n.cjs'),notes=require('../src/release-notes.js');
+const api=require('../tools/i18n.cjs'),notes=require('../src/release-notes.js');
 
-test('rolling retention keeps exactly ten validated releases with a unique Korean archive',()=>{
+test('rolling retention keeps exactly ten validated releases with a unique English archive',()=>{
  const compiled=api.compile(root),rows=compiled.releases,archive=compiled.archive;
  assert.equal(rows.length,10);assert.equal(compiled.codes.length,15);
  assert.deepEqual(notes.RELEASES.map(r=>r.version),rows.map(r=>r.version));
@@ -14,14 +14,14 @@ test('rolling retention keeps exactly ten validated releases with a unique Korea
  for(const row of archive)assert.deepEqual(Object.keys(row).sort(),['date','items','version']);
 });
 
-test('every pre-migration Korean record preserves its date and exact text',()=>{
- const compiled=api.compile(root),all=[...compiled.releases.map(r=>({version:r.version,date:r.date,items:r.localized.kor})),...compiled.archive];
- assert.ok(all.length>=baseline.totalCount);
- for(const [version,digest] of Object.entries(baseline.korean))assert.equal(api.fingerprint(all.find(r=>r.version===version)),digest,version);
- assert.equal(all.at(-1).version,'0.01');
+test('the English archive is complete and older entries are concise',()=>{
+ const compiled=api.compile(root),all=[...compiled.releases.map(r=>({version:r.version,date:r.date,items:r.localized.en})),...compiled.archive];
+ assert.equal(all.length,69);assert.equal(all.at(-1).version,'0.01');
+ assert.equal(compiled.archive.reduce((count,row)=>count+row.items.length,0),245);
+ for(const row of compiled.archive){assert.ok(row.items.every(item=>/[A-Za-z]/.test(item)),row.version);if(Number(row.version)<0.64)assert.ok(row.items.every(item=>item.length<=140),row.version);}
 });
 
-test('older translations and fallback permissions are absent while Korean pages remain generated',()=>{
+test('older translations and fallback permissions are absent while English pages remain generated',()=>{
  const compiled=api.compile(root),allow=data('i18n/legacy-allowlist.json'),fixture=data('tests/fixtures/i18n-v061.json');
  for(const row of compiled.archive){
   assert.ok(!compiled.releases.some(r=>r.version===row.version));

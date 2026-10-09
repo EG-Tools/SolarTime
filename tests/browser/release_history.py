@@ -41,7 +41,7 @@ def verify_history(page,root,label,language,check):
   if version in anchors:check(anchors[version].lower() in page.locator('#release-notes-list').inner_text().lower(),label+' historical content '+version)
  check(not page.locator('#release-notes-older').is_disabled(),label+' archive entry follows the tenth release')
  page.locator('#release-notes-older').click()
- check(page.locator('#release-notes-all').is_visible(),label+' complete Korean archive link')
+ check(page.locator('#release-notes-all').is_visible(),label+' complete English archive link')
  check(page.locator('#release-notes-all').get_attribute('href')=='changelog.html',label+' archive points to the Solar Time history page')
  check(page.locator('#release-notes-older').is_disabled(),label+' archive terminal boundary')
  page.locator('#release-notes-newer').click()

@@ -24,20 +24,20 @@
     <h2>Astronomy and orbital references</h2>
     <p>Planetary positions are based on approximate and long-term orbital models published by NASA/JPL. Reference states are checked offline against JPL Horizons. The Moon, Europa, Pluto, eclipses, and alignment views use dedicated project models. The released application does not contact JPL Horizons while it runs.</p>
     <ul>
-      <li><a href="https://ssd.jpl.nasa.gov/planets/approx_pos.html" target="_blank" rel="noopener noreferrer">NASA/JPL approximate positions of the planets</a></li>
-      <li><a href="https://ssd.jpl.nasa.gov/horizons/" target="_blank" rel="noopener noreferrer">NASA/JPL Horizons</a></li>
-      <li><a href="https://nssdc.gsfc.nasa.gov/planetary/factsheet/" target="_blank" rel="noopener noreferrer">NASA/NSSDCA planetary fact sheets</a></li>
-      <li><a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener noreferrer">Astronomy Engine by Don Cross</a>, redistributed under the MIT License</li>
+      <li><a href="https://ssd.jpl.nasa.gov/planets/approx_pos.html" target="_blank" rel="noopener noreferrer">NASA/JPL approximate positions of the planets</a> provides the orbital elements and correction terms used to calculate planet positions across Solar Time's supported dates.</li>
+      <li><a href="https://ssd.jpl.nasa.gov/horizons/" target="_blank" rel="noopener noreferrer">NASA/JPL Horizons</a> supplies reference vectors used by the offline validation suite to check selected dates. Solar Time does not query Horizons while visitors use the site.</li>
+      <li><a href="https://nssdc.gsfc.nasa.gov/planetary/factsheet/" target="_blank" rel="noopener noreferrer">NASA/NSSDCA planetary fact sheets</a> provide physical reference values such as body dimensions, gravity, temperature, and rotation data shown in the information cards.</li>
+      <li><a href="https://github.com/cosinekitty/astronomy" target="_blank" rel="noopener noreferrer">Astronomy Engine by Don Cross</a> provides precision routines for the Moon and Europa positions and for solar-eclipse searches. It is redistributed under the MIT License.</li>
     </ul>
 
     <h2>Planet imagery and textures</h2>
     <p>Earth imagery includes NASA Earth Observatory Blue Marble and Black Marble references. Venus uses NASA Magellan radar imagery for its surface. Several planet and Moon maps are derived from the Solar System Scope texture collection by INOVE under the Creative Commons Attribution 4.0 license. Each map is prepared into multiple levels of detail for the Solar Time renderer.</p>
     <ul>
-      <li><a href="https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation-5935/" target="_blank" rel="noopener noreferrer">NASA Earth Observatory · Blue Marble Next Generation</a></li>
-      <li><a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/" target="_blank" rel="noopener noreferrer">NASA Earth Observatory · Earth at Night</a></li>
-      <li><a href="https://science.nasa.gov/3d-resources/venus/" target="_blank" rel="noopener noreferrer">NASA/JPL-Caltech · Venus Magellan radar mosaic</a></li>
-      <li><a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener noreferrer">Solar System Scope / INOVE texture collection</a></li>
-      <li><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">Creative Commons Attribution 4.0 International</a></li>
+      <li><a href="https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation-5935/" target="_blank" rel="noopener noreferrer">NASA Earth Observatory · Blue Marble Next Generation</a> is prepared as the daylight surface of Earth. It is a global composite rather than a live satellite image.</li>
+      <li><a href="https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/" target="_blank" rel="noopener noreferrer">NASA Earth Observatory · Earth at Night</a> provides the 2016 Black Marble source used for lights on Earth's night side. It is an annual composite, not live electrical activity.</li>
+      <li><a href="https://science.nasa.gov/3d-resources/venus/" target="_blank" rel="noopener noreferrer">NASA/JPL-Caltech · Venus Magellan radar mosaic</a> forms the cloud-free Venus surface used by the visualization. It is radar-derived simulated colour, not a visible-light photograph.</li>
+      <li><a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener noreferrer">Solar System Scope / INOVE texture collection</a> supplies licensed maps for Mercury, Venus's atmosphere, the Moon, Mars, Jupiter, Saturn, Neptune, and Saturn's rings.</li>
+      <li><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">Creative Commons Attribution 4.0 International</a> is the license governing the Solar System Scope maps. Solar Time retains the required attribution and source links on this page.</li>
     </ul>
 
     <h2>Original and AI-assisted artwork</h2>
@@ -45,11 +45,14 @@
 
     <h2>Music and alarm audio</h2>
     <ul>
-      <li>Ambient background music was created by Lyrikey with Suno AI. <a href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Visit Lyrikey on Suno</a>.</li>
+      <li>Ambient background music was created by Lyrikey with Suno AI and accompanies the main solar-system view and travel sequences. <a href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Visit Lyrikey on Suno</a>.</li>
       <li>The default alarm, “Soft Morning,” is by Maryan Dembitskyi and is provided through Pixabay for free use. <a href="https://pixabay.com/ko/users/marmixer-6762941/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=484625" target="_blank" rel="noopener noreferrer">View the creator page on Pixabay</a>.</li>
     </ul>
 
-    <div class="notice"><strong>Complete technical record</strong><p>The full asset-by-asset source list, processing notes, model limitations, and license details are maintained in the public <a href="https://github.com/EG-Tools/SolarTime/blob/main/assets/CREDITS.md" target="_blank" rel="noopener noreferrer">Solar Time credits and sources document</a>.</p></div>
+    <h2>Source preparation and limitations</h2>
+    <p>Large maps are resized into several levels of detail so distant bodies can load a smaller texture before a close view uses higher resolution. This processing preserves the source artwork but does not create new measured surface detail.</p>
+    <p>Earth's cloud and night-light layers are fixed composites rather than live weather or electrical activity. Saturn's ring map is converted into a radial colour-and-transparency profile, while procedural materials may appear temporarily during loading or in compatibility mode.</p>
+    <p>Planet sizes, orbit spacing, texture colours, unobserved terrain, event presentation, and travel effects may be adjusted for legibility. Alignment dates generated by Solar Time are model results and are not named official astronomical events.</p>
 
     <h2>Corrections and licensing</h2>
     <p>If an attribution needs correction, or if you have a question about a source or license, contact <a href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a>. Source records are updated when assets or scientific references change.</p>

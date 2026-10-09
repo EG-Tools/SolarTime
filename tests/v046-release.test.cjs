@@ -5,7 +5,7 @@ const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(roo
 const {metadata}=require('./helpers/region-metadata.cjs');
 function notesApi(){return require('../src/release-notes.js');}
 const priorRegionOrder=order=>Array.from(order).filter(c=>!require('./fixtures/regions-v061.json').some(r=>r.code===c));
-const notesFor=version=>{const api=notesApi(),recent=api.RELEASES.find(r=>r.version===version);return (recent?api.itemsFor(recent,'kor'):require('../i18n/releases-archive-ko.json').find(r=>r.version===version)?.items||[]).join(' ');};
+const notesFor=version=>{const api=notesApi(),recent=api.RELEASES.find(r=>r.version===version);return (recent?api.itemsFor(recent,'en'):require('../i18n/releases-archive-en.json').find(r=>r.version===version)?.items||[]).join(' ');};
 function visualApi(){const context={window:{SolarAssets:{stars:[]}}};vm.createContext(context);vm.runInContext(read('src/visual-effects.js'),context);return context.window.SolarVisualEffects;}
 
 test('v0.46 page build stays consistent while unchanged coordinator keeps its bundle revision',()=>{
@@ -57,7 +57,7 @@ test('Jupiter experimental shader is removed so the stock gas-giant path is used
 });
 
 test('v0.45 release notes match the calmer stars, softer Sun and restored Jupiter shader',()=>{
-  const notes=notesFor('0.45');for(const text of ['황색 별 비중을 줄였습니다','5~25초','5~10초','약 5% 더 낮춰','기본 가스행성 셰이더로 완전히 복원'])assert.ok(notes.includes(text),text);
+  const notes=notesFor('0.45');for(const text of ['Star density defaults','motion strength','original gas-giant shader'])assert.ok(notes.includes(text),text);
 });
 
 test('default wheel travels while right drag controls lens zoom without changing the wheel mode',()=>{
@@ -77,11 +77,11 @@ test('default wheel travels while right drag controls lens zoom without changing
 });
 
 test('v0.43 notes no longer advertise the discarded Jupiter shader experiment',()=>{
-  assert.doesNotMatch(notesFor('0.43'),/대적점|Great Red Spot/);assert.match(notesFor('0.43'),/GPU에 한 번 올린 뒤 슬라이더 값에 따라 그리는 개수만 바꾸도록/);
+  assert.doesNotMatch(notesFor('0.43'),/Great Red Spot/);assert.match(notesFor('0.43'),/density changes adjust only the draw count/);
 });
 
 test('v0.45 notes include the right-drag dolly control',()=>{
-  assert.match(notesFor('0.45'),/마우스 오른쪽 버튼을 누른 채 위아래로 드래그/);
+  assert.match(notesFor('0.45'),/right mouse button.*dollies the camera/);
 });
 
 
@@ -293,7 +293,7 @@ assert.ok(html.includes(cacheUrl('src/runtime-optimizations.css')));
 test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   const html=read('index.html'),app=read('src/app.js'),renderer=read('src/renderer.js'),surface=read('src/surface.js'),performance=read('src/performance.js'),pipeline=read('tools/asset-pipeline.cjs');
   const assetRevision=JSON.parse(read('assets/revision.json')),manifest=JSON.parse(read('assets/manifest.json'));
- const notes=notesApi();assert.equal(notes.RELEASES[0].version,JSON.parse(read('version.json')).version);assert.equal(notes.RELEASES.length,10);const archive=require('../i18n/releases-archive-ko.json');for(const version of ['0.58','0.57','0.56','0.55','0.54','0.53','0.52'])assert.ok(archive.some(r=>r.version===version&&r.items.length),version);
+ const notes=notesApi();assert.equal(notes.RELEASES[0].version,JSON.parse(read('version.json')).version);assert.equal(notes.RELEASES.length,10);const archive=require('../i18n/releases-archive-en.json');for(const version of ['0.58','0.57','0.56','0.55','0.54','0.53','0.52'])assert.ok(archive.some(r=>r.version===version&&r.items.length),version);
   for(const code of ['kor','en','chn','jpn','hi','es','de','fr','pt','it','id'])assert.ok(notes.itemsFor(notes.RELEASES[0],code).length>0,code);
  assert.ok(app.includes(cacheUrl('src/release-notes.js')));assert.ok(html.includes('<h3 id="release-notes-version">v'+JSON.parse(read('version.json')).version+'</h3>'));assert.doesNotMatch(app,/CURRENT_RELEASE_ITEMS|withCurrentRelease|releaseByVersion/);
 

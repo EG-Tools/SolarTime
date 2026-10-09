@@ -33,6 +33,8 @@ test('policy and original-content pages are public, linked and crawlable',()=>{
  assert.match(robots,/User-agent: Mediapartners-Google\s+Allow: \//);
  assert.match(robots,/User-agent: Google-Display-Ads-Bot\s+Allow: \//);
  assert.ok(robots.includes('https://solartime.app/sitemap.xml'));
+ assert.match(html,/class="source-link" href="credits\.html"/);
+ assert.doesNotMatch(html,/github\.com\/EG-Tools\/SolarTime|assets\/CREDITS\.md/);
 });
 
 test('credits page identifies authorship, scientific sources, media and licenses',()=>{
@@ -43,7 +45,19 @@ test('credits page identifies authorship, scientific sources, media and licenses
  assert.match(page,/Creative Commons Attribution 4\.0 International/);
  assert.match(page,/Lyrikey with Suno AI/);
  assert.match(page,/Soft Morning/);
- assert.match(page,/assets\/CREDITS\.md/);
+ assert.match(page,/Source preparation and limitations/);
+ assert.doesNotMatch(page,/github\.com\/EG-Tools\/SolarTime|assets\/CREDITS\.md/);
+ const items=[...page.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(match=>match[1].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim());
+ assert.equal(items.length,11);
+ assert.ok(items.every(item=>item.length>=100),'every credit identifies how its source is used');
+});
+
+test('the English update archive declares its language and leads to informational pages',()=>{
+ const page=read('changelog.html');
+ assert.match(page,/<html lang="en">/);
+ assert.match(page,/visit the <a href="guide\.html">Guide<\/a>/);
+ assert.match(page,/project and its astronomy model/);
+ assert.match(page,/<a href="credits\.html">Credits<\/a> documents sources, uses and licenses/);
 });
 
 test('desktop ad stays hidden until a real slot or an explicit local preview is requested',()=>{

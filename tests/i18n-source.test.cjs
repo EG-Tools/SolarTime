@@ -15,7 +15,7 @@ test('all generated translations are deterministic and current',()=>{
  const a=api.sync(root);assert.deepEqual(a.changed,[]);assert.equal(a.report.languages,15);assert.deepEqual(api.sync(root).changed,[]);
  const version=data('version.json');assert.equal(api.compile(root).releases[0].version,version.version);
  const compiled=api.compile(root),archive=compiled.archive;assert.ok(Number(archive[0].version)<Number(compiled.releases.at(-1).version));assert.equal(archive.at(-1).version,'0.01');
- assert.match(read('changelog.html'),/전체 업데이트 내역/);assert.match(read('changelog.html'),/id="v0\.01"/);
+ assert.match(read('changelog.html'),/Complete Update History/);assert.match(read('changelog.html'),/id="v0\.01"/);
  for(const file of ['tools/build-pages.cjs','tools/cloudflare-site.cjs'])assert.match(read(file),/require\('\.\/i18n\.cjs'\)\.sync\(root\)/);
 });
 test('all 15 web and file-language bundles preserve approved interface, timer, body and phase text',async()=>{

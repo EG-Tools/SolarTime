@@ -6,13 +6,13 @@ function plan(releases,archive,codes){
  const seen=new Set();let previous=Infinity;
  for(const row of [...releases,...archive]){
   if(!/^0\.\d{1,2}$/.test(row.version)||seen.has(row.version)||Number(row.version)>=previous)throw Error('Duplicate/unsorted release '+row.version);
-  const items=row.localized?.kor||row.items;
-  if(!Array.isArray(items)||!items.length||items.some(s=>typeof s!=='string'||!s.trim()))throw Error('Missing Korean archive text '+row.version);
+  const items=row.localized?.en||row.items;
+  if(!Array.isArray(items)||!items.length||items.some(s=>typeof s!=='string'||!s.trim()))throw Error('Missing English archive text '+row.version);
   seen.add(row.version);previous=Number(row.version);
  }
  const recent=releases.slice(0,10),removed=releases.slice(10),missingTranslations=[];
  for(const r of recent)for(const code of codes){if(r.languagePolicy==='korean-only')continue;const items=r.localized[code];if(!Array.isArray(items)||items.length!==r.localized.kor.length||items.some(s=>typeof s!=='string'||!s.trim()))missingTranslations.push(r.version+':'+code);}
- const archived=[...removed.map(r=>({version:r.version,date:r.date,items:[...r.localized.kor]})),...archive];
+ const archived=[...removed.map(r=>({version:r.version,date:r.date,items:[...r.localized.en]})),...archive];
  return {recent,archived,removed:removed.map(r=>r.version),missingTranslations};
 }
 function run(root,{write=false}={}){
@@ -26,8 +26,8 @@ function run(root,{write=false}={}){
  const planned={...data,releases:p.recent,archive:p.archived};
  const outputs=i18n.outputs(root,planned).out;
  const changes=new Map([
-  // Archive FIRST: never delete translated records before Korean text is saved.
-  ['i18n/releases-archive-ko.json',json(p.archived)],
+  // Archive FIRST: never delete translated records before English text is saved.
+  ['i18n/releases-archive-en.json',json(p.archived)],
   ['i18n/releases.json',json(p.recent)],[legacyFile,json(legacy)],...outputs
  ]);
  // Retired translations must also leave the historical test fingerprints.
