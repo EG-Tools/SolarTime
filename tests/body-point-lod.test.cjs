@@ -10,6 +10,22 @@ function fixture(){
  return {r,c,calls,created};
 }
 const item=(id='earth',r=.01,z=0)=>({body:{id,color:'#4499ff'},r,screen:{x:100,y:60,z,behind:false}});
+
+test('retreat and opening never reverse parent-child depth or point occlusion',()=>{
+ const {r,c,calls}=fixture();
+ Object.assign(r,{cx:100,cy:60,scale:.25,overviewFitScale:.25,fitScale:.25,options:{overviewOrbitGap:100},bodyScales:{},satelliteOrbitScales:{sun:.01,earth:.01,jupiter:.01}});
+ for(const [parent,child] of [[A.SUN,A.BODIES[0]],...A.SATELLITES.map(s=>[A.BODIES.find(b=>b.id===s.parent),s])]){
+  for(const dolly of [.001,.1,.99,1,1.01,2])for(const side of [-1,1]){
+   r.camera={azimuth:0,elevation:0,zoom:1,dolly};r.scale=r.fitScale*dolly;
+   const radius=r.localOrbitRadius(parent,child,0)/r.scale;
+   const p=item(child.id,.1),host=item(parent.id,12);
+   p.screen=r.project({x:0,y:side*radius,z:0});host.screen=r.project({x:0,y:0,z:0});
+   assert.equal(Math.sign(r.bodyDepthOrder(p,host)),-side,`${parent.id}/${child.id}, dolly=${dolly}: physical depth order`);
+   calls.length=0;r.drawBodyPoint(c,p,[host]);
+   assert.equal(calls.some(call=>call[0]==='clip'),side===1,`${parent.id}/${child.id}, dolly=${dolly}: rear points are masked, front points remain visible`);
+  }
+ }
+});
 test('projected diameter alone drives the 1px point to 2px textured-disc transition',()=>{
  const {r}=fixture();
  const ids=['sun','earth','saturn','moon','europa','pluto'];

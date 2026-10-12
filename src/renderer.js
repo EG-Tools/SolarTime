@@ -748,7 +748,10 @@
     project(p,out=null) {
       const v=this.projectView(p),result=out||{};
       result.x=this.cx+v.x*this.scale;result.y=this.cy+v.y*this.scale;result.z=v.z;result.perspective=v.perspective??1;
-      result.clipW=result.perspective>0?1/result.perspective:Infinity;result.occlusionDepth=NaN;result.behind=!!v.behind;
+      // Retreat uses a negative travel coefficient, reversing W's depth order.
+      // W controls magnification only: solid bodies and point masks must keep
+      // the camera-space front/back order on both sides of dolly=1.
+      result.clipW=result.perspective>0?1/result.perspective:Infinity;result.occlusionDepth=v.z;result.behind=!!v.behind;
       return result;
     }
     getBodies() { return this.options.pluto?A.BODIES:(this.bodiesWithoutPluto||(this.bodiesWithoutPluto=A.BODIES.filter(b=>b.id!=='pluto'))); }
