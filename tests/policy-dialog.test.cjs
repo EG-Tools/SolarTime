@@ -10,7 +10,8 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 test('main information buttons navigate to standalone HTML pages',()=>{
   const html=read('index.html'),code=read('src/policy-dialog.js');
   const nav=/<nav class="site-policy-links"[^>]*>(.*?)<\/nav>/.exec(html)?.[1]||'';
-  assert.match(nav,/href="guide\.html">GUIDE<\/a><a href="about\.html">ABOUT<\/a><a href="credits\.html">CREDITS<\/a><a href="privacy\.html">PRIVACY<\/a><a href="terms\.html">TERMS<\/a><a href="changelog\.html">UPDATES<\/a>/);
+  assert.match(nav,/class="site-policy-row"><a href="guide\.html">GUIDE<\/a><a href="credits\.html">CREDITS<\/a><a href="changelog\.html">UPDATES<\/a><\/span>/);
+  assert.match(nav,/class="site-policy-row"><a href="about\.html">ABOUT<\/a><a href="privacy\.html">PRIVACY<\/a><a href="terms\.html">TERMS<\/a><\/span>/);
   assert.doesNotMatch(nav,/target=/);
   assert.ok(code.includes("const intercepted=links.filter(link=>!link.closest('.site-policy-links'))"));
   assert.ok(code.includes("for(const link of intercepted)link.addEventListener('click'"));
@@ -27,7 +28,7 @@ test('cookie privacy can reuse the dialog while public pages stay independently 
   assert.ok(code.includes("url.searchParams.set('embed','1')"));
   assert.ok(code.includes('UI.show(dialog,()=>dialog.showModal())'));
   assert.ok(css.includes('html.embedded body{min-height:0;background:transparent}'));
-  for(const file of ['guide.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
+  for(const file of ['guide.html','constellations.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
     const page=read(file);
     assert.ok(page.includes('src="'+cacheUrl('src/policy-dialog.js')+'"'),file);
     assert.ok(page.includes('rel="canonical" href="https://solartime.app/'+file+'"'),file);

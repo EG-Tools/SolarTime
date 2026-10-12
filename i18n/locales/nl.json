@@ -1,5 +1,12 @@
 {
   "ui": {
+    "solarSystemMode": "Zonnestelselmodus",
+    "constellationMode": "Sterrenbeeldmodus",
+    "expandRotationTouch": "Uitklappen: lang indrukken",
+    "expandRotationMouse": "Uitklappen: rechtsklikken",
+    "scrollUp": "Omhoog scrollen",
+    "scrollDown": "Omlaag scrollen",
+    "skyNavigate": "Ga naar {name}",
     "openingTravel": "Openingsreis",
     "openingDefault": "Standaardopening",
     "openingNone": "Geen",
@@ -129,6 +136,9 @@
     "savedCameras": "Opgeslagen weergaven",
     "planetSwitch": "Planeet wisselen",
     "trackBody": "Object volgen",
+    "trackConstellation": "Sterrenbeeld volgen",
+    "showConstellation": "Verbindingslijnen tonen",
+    "showSolarSystem": "Zonnestelsel tonen",
     "zoomInOut": "In-/uitzoomen",
     "cameraRotate": "Draaien",
     "cameraTravel": "Vooruit · achteruit",
@@ -222,9 +232,30 @@
     "cookieSettings": "Cookie-instellingen",
     "cookieDismiss": "Sluiten zonder uw keuze te wijzigen",
     "cookieChoiceNote": "Toestaan wordt 6 maanden onthouden. Weigeren en X worden niet opgeslagen, dus bij het volgende bezoek vragen we het opnieuw.",
-    "music": "Muziek"
+    "music": "Muziek",
+    "asterism": "Asterisme",
+    "constellation": "Sterrenbeeld",
+    "ursaMajor": "Grote Beer",
+    "warpShortcut": "Warp",
+    "constellationsShortcut": "Sterrenbeelden tonen",
+    "targetSwitch": "Vorig / volgend doel",
+    "targetSwitchHint": "Wissel tussen planeten, regio’s of sterrenbeelden, afhankelijk van de huidige weergave."
   },
   "timer": {
+    "helperDownloadPrivacy": "Alleen eenmalige willekeurige aanvraag-ID’s, de helperversie en opdrachtresultaten worden naar Solar Time verzonden. Geen accounts, bestanden of computernamen. Bevestigingen verlopen en worden automatisch verwijderd.",
+    "helperDownloadPermission": "Wordt voor de huidige gebruiker geïnstalleerd zonder beheerdersrechten. Gebruikt PowerShell, een URL-koppeling en de afsluitopdracht van Windows.",
+    "helperRemoveRequested": "Windows heeft het annuleren en verwijderen van de helper bevestigd.",
+    "helperInstallDescription": "Voer het laatst gedownloade CMD-installatieprogramma uit en controleer daarna de helper. Sta toe dat de browser PowerShell opent.",
+    "helperInstallQuestion": "De geïnstalleerde helper nu controleren?",
+    "shutdownPending": "Wachten op bevestiging van Windows. Sta toe dat de helper wordt geopend.",
+    "shutdownUnknown": "Het Windows-resultaat is niet bevestigd. Afsluiten kan nog gepland staan. Gebruik Annuleren om dit te controleren.",
+    "shutdownFailed": "Windows-opdracht mislukt (code {code}).",
+    "shutdownNotLaunched": "De helper is niet geopend. Klik opnieuw op de schakelaar en accepteer de browsermelding.",
+    "helperVerifyFailed": "Controle van de helper mislukt. Voer het nieuwste installatieprogramma uit en sta toe dat de helper wordt geopend.",
+    "shutdownDataWarning": "Sla je werk op: gepland afsluiten van Windows kan apps gedwongen sluiten.",
+    "minutes": "min",
+    "timer": "Timer",
+    "alarm": "Alarm",
     "timerClose": "Timer sluiten",
     "alarmDuration": "Alarmtijd",
     "scheduledShutdown": "Gepland afsluiten",
@@ -280,6 +311,27 @@
     "helperInstallTitle": "Installatie van module bevestigen"
   },
   "bodies": {
+    "polaris": ["Poolster","De helderste ster van de Kleine Beer staat dicht bij de noordelijke hemelpool. Ze lijkt bijna stil te staan en helpt het noorden te vinden."],
+    "ursa-major": ["Grote Beer","Dit grote noordelijke sterrenbeeld omvat de Grote Steelpan. De lijnen lopen door naar het lichaam en de poten van de beer."],
+    "ursa-minor": ["Kleine Beer","De Poolster staat aan het einde van de steel van de kleine pan. Kochab en Pherkad vormen de buitenrand van de pan."],
+    "cassiopeia": ["Cassiopeia","Vijf heldere sterren vormen een W of M, afhankelijk van de kijkrichting. Ze staat ongeveer tegenover de Grote Steelpan, aan de andere kant van de Poolster."],
+    "orion": ["Orion","Drie sterren op een rij vormen de gordel. De rode Betelgeuze contrasteert met de blauwwitte Rigel; Orion valt op tijdens winteravonden in Korea."],
+    "scorpius": ["Schorpioen","De rode Antares leidt naar een lang lichaam en een gekromde staart. Aan de zuidelijke zomerhemel van Korea vormen Shaula en Lesath de angel."],
+    "leo": ["Leeuw","Een sikkelvormige kop bij Regulus en een driehoekig lichaam tekenen de leeuw. Denebola markeert de staart; hij is goed zichtbaar op lenteavonden in Korea."],
+    "cygnus": ["Zwaan","De hals en vleugels vormen het Noorderkruis. Deneb hoort bij de Zomerdriehoek en Albireo markeert de kop."],
+    "taurus": ["Stier","De oranje Aldebaran, een V-vormige kop en twee lange hoorns kenmerken de Stier. Aldebaran staat vóór de Hyaden en hoort niet bij die sterrenhoop."],
+    "aries": ["Ram","Hamal, Sheratan en Mesarthim vormen een korte boog. Dit dierenriemsterrenbeeld markeerde historisch het begin van de lente."],
+    "gemini": ["Tweelingen","Castor en Pollux markeren de hoofden van de tweeling. Twee vertakte sterrenketens vormen hun lichamen."],
+    "cancer": ["Kreeft","Een zwak Y-vormig dierenriemsterrenbeeld rond Asellus Borealis en Asellus Australis. De Bijenkorf helpt het onder een donkere hemel te vinden."],
+    "virgo": ["Maagd","De blauwwitte Spica valt op in dit uitgestrekte dierenriemsterrenbeeld. Tussen Leeuw en Weegschaal staat het op lenteavonden in Korea aan de zuidelijke hemel."],
+    "libra": ["Weegschaal","Zubeneschamali en Zubenelgenubi omlijnen de weegschaal. Deze sterren werden vroeger gezien als de scharen van de Schorpioen."],
+    "sagittarius": ["Boogschutter","Sterren bij Kaus Australis en Nunki vormen de Theepot. Verder in deze richting ligt het centrum van de Melkweg."],
+    "capricornus": ["Steenbok","Tussen Algedi en Deneb Algedi ligt een brede, lage wig. Dit zwakke dierenriemsterrenbeeld is herkenbaar aan zijn driehoekige omtrek."],
+    "aquarius": ["Waterman","Lange sterrenstromen lopen vanaf Sadalsuud en Sadalmelik naar het zuiden. Verbindingslijnen helpen dit uitgestrekte dierenriemsterrenbeeld te herkennen."],
+    "pisces": ["Vissen","Twee vissen zijn verbonden door lange koorden die bij Alrescha samenkomen. Hun zwakke omtrek beslaat een groot gebied bij de hemelequator."],
+    "pegasus": ["Pegasus","Alpheratz, Algenib, Markab en Scheat vormen het Grote Vierkant. Sterrenketens lopen door naar hals en benen; het valt op in de Koreaanse herfst."],
+    "andromeda": ["Andromeda","Een sterrenketen loopt van Alpheratz via Mirach naar Almach. Vlakbij ligt het Andromedastelsel, dat onder een donkere hemel met het blote oog zichtbaar is."],
+    "crux": ["Zuiderkruis","Acrux en Gacrux vormen de lange as; Mimosa en Imai de dwarsbalk. Dit kleine kruis helpt het zuiden te vinden."],
     "sun": [
       "Zon",
       "Een ster die voornamelijk uit waterstof en helium bestaat. Kernfusie in de kern levert energie in de vorm van heet plasma en licht."
@@ -327,6 +379,10 @@
     "pluto": [
       "Pluto",
       "Een dwergplaneet van gesteente en waterijs, met een oppervlak bedekt door bevroren stikstof, methaan en koolstofmonoxide."
+    ],
+    "big-dipper": [
+      "Grote Wagen",
+      "Een asterisme van zeven heldere sterren in de Grote Beer. De wagenvorm is een klassieke wegwijzer aan de noordelijke hemel; de lijn van Merak naar Dubhe wijst naar de Poolster."
     ]
   },
   "phases": {

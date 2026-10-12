@@ -31,8 +31,8 @@
   const ringShadowGLSL=`float ringShadow(vec3 point,vec3 sunDirection){
     float toward=-dot(point,sunDirection);
     float clearance=length(point+sunDirection*max(toward,0.));
-    // 10% weaker shadow; 50% wider penumbra around the same centre (1.02).
-    return 1.-.702*(1.-smoothstep(.90,1.14,clearance))*smoothstep(0.,.15,toward);
+    // Shared by the ring sheet and every debris layer; 10% less darkening.
+    return 1.-.6318*(1.-smoothstep(.90,1.14,clearance))*smoothstep(0.,.15,toward);
   }`;
   const api=Object.freeze({sun,seam,warpGLSL,lightingGLSL,ringSamplingGLSL,ringShadowGLSL});
   if(typeof module==='object'&&module.exports)module.exports=api;else root.SolarSurfaceStyle=api;

@@ -2,7 +2,7 @@
 (function(root){
   'use strict';
   const modules=root.SolarModules||(root.SolarModules={}),MAX_MINUTES=99*60+59,MAX_SOUND_BYTES=30*1024*1024,DEFAULT_ALARM_FILE='00 - Soft Morning.mp3';
-  const ALARM_VOLUME=.864,PREVIEW_VOLUME=.696,FALLBACK_VOLUME=.192;
+  const ALARM_VOLUME=.864,PREVIEW_VOLUME=.696,DEFAULT_RETRY_DELAY=2000;
   const integer=(value,min,max,fallback=0)=>{const number=Math.trunc(Number(value));return Number.isFinite(number)?Math.max(min,Math.min(max,number)):fallback;};
   const totalMinutes=(hours,minutes)=>Math.min(MAX_MINUTES,integer(hours,0,99)*60+integer(minutes,0,59));
   function soundStore(indexedDB=root.indexedDB){
@@ -21,7 +21,7 @@
     const panel=$('timer-panel'),button=$('timer-button'),alarmDialog=$('alarm-dialog'),shutdownDialog=$('shutdown-dialog'),downloadDialog=$('shutdown-helper-download-dialog'),installDialog=$('shutdown-helper-install-dialog'),removeDialog=$('shutdown-helper-remove-dialog');
     const controls={alarm:{toggle:$('alarm-enabled'),hours:$('alarm-hours'),minutes:$('alarm-minutes'),target:$('alarm-target')},shutdown:{toggle:$('shutdown-enabled'),hours:$('shutdown-hours'),minutes:$('shutdown-minutes'),target:$('shutdown-target')}};
     let state={alarm:{enabled:false,hours:0,minutes:5,deadline:0},shutdown:{enabled:false,hours:1,minutes:0,deadline:0,status:'idle'},helperEnabled:false,helperProgress:0,helperConfirmed:false,helperRevision:'',helperInstallToken:'',helperInstallDeadline:0,soundMode:'default',soundName:''};
-    let interval=0,audioContext=null,toneInterval=0,customBuffer=null,defaultBuffer=null,defaultPromise=null,customSource=null,defaultAlarmMedia=null,previewSource=null,previewMedia=null,previewKind='',previewRequest=0,ringing=false,disposed=false,nextInstallPoll=0,installPollTask=null,nativeBusy='',nativeSerial=0,helperBusy=false;
+    let interval=0,audioContext=null,defaultRetryTimer=0,customBuffer=null,defaultBuffer=null,defaultPromise=null,customSource=null,defaultAlarmMedia=null,defaultPrimedMedia=null,defaultPrimedUrl='',defaultPrimeToken=0,previewSource=null,previewMedia=null,previewKind='',previewRequest=0,ringing=false,disposed=false,nextInstallPoll=0,installPollTask=null,nativeBusy='',nativeSerial=0,helperBusy=false;
     let selectionTask=0,customResource=null,customTask=null,soundGeneration=0,soundAbort=null,soundWriteTask=Promise.resolve(),defaultGeneration=0,defaultAbort=null,toneRequest=0;
     let defaultResource=null,defaultPreviewCleanup=null,defaultPlaybackCleanup=null;
     let targetFormatter=null,formatterKey='',targetLabels=new Map();
@@ -98,6 +98,29 @@
       const local=new URL('assets/music/'+encodeURIComponent(DEFAULT_ALARM_FILE),document.baseURI).href,host=root.location?.hostname||'',asset=root.SolarAssets?.music?.[DEFAULT_ALARM_FILE],remote=asset?.fallback||(asset?.base?new URL(asset.path,asset.base).href:'');
       const localFirst=root.location?.protocol==='file:'||host==='localhost'||host==='127.0.0.1';return [...new Set((localFirst?[local,remote]:[remote,local]).filter(Boolean))];
     }
+    function releasePrimedDefault(){
+      ++defaultPrimeToken;const media=defaultPrimedMedia;defaultPrimedMedia=null;defaultPrimedUrl='';
+      try{media?.pause();if(media){media.removeAttribute?.('src');media.src='';media.load?.();}}catch(_){}
+    }
+    function primeDefaultPlayback(){
+      if(state.soundMode==='custom'||typeof root.Audio!=='function')return false;
+      releasePrimedDefault();const url=defaultSoundUrls()[0];if(!url)return false;
+      const token=defaultPrimeToken,media=new root.Audio(url);defaultPrimedMedia=media;defaultPrimedUrl=url;
+      media.preload='auto';media.loop=false;media.muted=false;media.volume=0;
+      try{
+        Promise.resolve(media.play()).then(()=>{
+          if(disposed||token!==defaultPrimeToken||defaultPrimedMedia!==media)return;
+          media.pause();try{media.currentTime=0;}catch(_){}media.volume=ALARM_VOLUME;
+        }).catch(()=>{if(token===defaultPrimeToken&&defaultPrimedMedia===media)releasePrimedDefault();});
+      }catch(_){releasePrimedDefault();return false;}
+      return true;
+    }
+    function takePrimedDefault(urls){
+      const media=defaultPrimedMedia,url=defaultPrimedUrl;if(!media||!urls.includes(url))return null;
+      defaultPrimedMedia=null;defaultPrimedUrl='';++defaultPrimeToken;
+      try{media.pause();media.currentTime=0;media.muted=false;media.volume=ALARM_VOLUME;}catch(_){}
+      return media;
+    }
     async function loadDefaultSound(){
       if(disposed)return null;if(defaultResource)return defaultResource;if(defaultPromise)return defaultPromise;
       const generation=defaultGeneration,abort=typeof root.AbortController==='function'?new root.AbortController():null;defaultAbort=abort;
@@ -113,7 +136,7 @@
     function invalidateSound(){soundGeneration++;soundAbort?.abort();soundAbort=null;customTask=null;}
     function releaseIdleAudio(){
       if(ringing||state.alarm.enabled||previewSource||previewMedia)return;
-      if(!selectionTask)invalidateSound();releaseCustom();releaseDefault();audioContext?.suspend?.()?.catch?.(()=>{});
+      if(!selectionTask)invalidateSound();releaseCustom();releaseDefault();releasePrimedDefault();audioContext?.suspend?.()?.catch?.(()=>{});
     }
     function soundPreparation(blob){soundAbort?.abort();soundAbort=typeof root.AbortController==='function'?new root.AbortController():null;return modules.AlarmSound.prepare(blob,{getContext:primeAudio,signal:soundAbort?.signal});}
     async function loadStoredSound(){
@@ -143,22 +166,21 @@
       const current=()=>!disposed&&!done&&(preview?request===previewRequest:ringing&&request===toneRequest);
       const detach=()=>{root.clearTimeout?.(watchdog);watchdog=0;unbind();unbind=()=>{};if(media){try{media.pause();media.removeAttribute?.('src');media.src='';media.load?.();}catch(_){}}};
       const cleanup=()=>{done=true;detach();};
-      const fallbackTone=()=>{if(!preview&&current()&&!toneInterval){pulse();toneInterval=root.setInterval(pulse,1200);}};
       if(preview){defaultPreviewCleanup?.();defaultPreviewCleanup=cleanup;}else{defaultPlaybackCleanup?.();defaultPlaybackCleanup=cleanup;}
       const attempt=()=>{
         if(!current())return false;
-        if(index>=urls.length){fallbackTone();if(preview){previewMedia=null;previewKind='';syncPreview();releaseIdleAudio();}return false;}
-        const next=new root.Audio(urls[index++]);media=next;let failed=false;
+        if(index>=urls.length){if(preview){previewMedia=null;previewKind='';syncPreview();releaseIdleAudio();}else scheduleDefaultRetry(request);return false;}
+        const url=urls[index++],next=!preview&&index===1?takePrimedDefault(urls)||new root.Audio(url):new root.Audio(url);media=next;let failed=false;
         next.preload='auto';next.loop=!preview;next.volume=preview?PREVIEW_VOLUME:ALARM_VOLUME;
         if(preview){previewMedia=next;previewKind='default';}else defaultAlarmMedia=next;
         const live=()=>current()&&media===next&&!failed;
         const fail=()=>{
           if(!live())return;failed=true;detach();
           if(preview){previewMedia=null;previewKind='';}else defaultAlarmMedia=null;
-          fallbackTone();attempt();if(preview)syncPreview();
+          attempt();if(preview)syncPreview();
         };
         const watch=()=>{if(!live()||watchdog)return;const time=Number(next.currentTime)||0;watchdog=root.setTimeout?.(()=>{watchdog=0;if(live()&&(Number(next.currentTime)||0)<=time+.05)fail();},3000);};
-        const playing=()=>{if(!live())return;root.clearTimeout?.(watchdog);watchdog=0;if(!preview){clearInterval(toneInterval);toneInterval=0;}};
+        const playing=()=>{if(!live())return;root.clearTimeout?.(watchdog);watchdog=0;if(!preview){root.clearTimeout?.(defaultRetryTimer);defaultRetryTimer=0;}};
         const ended=()=>{if(!live()||!preview)return;cleanup();previewMedia=null;previewKind='';syncPreview();releaseIdleAudio();};
         let lastTime=0;const progress=()=>{if(!live())return;const time=Number(next.currentTime)||0;if(time>lastTime+.05){root.clearTimeout?.(watchdog);watchdog=0;lastTime=time;}};
         const handlers={error:fail,playing,ended,waiting:watch,stalled:watch,timeupdate:progress};
@@ -177,9 +199,9 @@
       const current=()=>!disposed&&(preview?previewRequest===request&&previewMedia===media:ringing&&toneRequest===request&&defaultAlarmMedia===media);
       const stop=()=>{try{media.pause();media.removeAttribute?.('src');media.src='';media.load?.();}catch(_){};};
       const ended=()=>{if(!current())return;if(preview){previewMedia=null;previewKind='';syncPreview();releaseIdleAudio();}};
-      const failed=()=>{if(!current()){stop();return;}if(preview){previewMedia=null;previewKind='';syncPreview();}else {defaultAlarmMedia=null;if(!toneInterval){pulse();toneInterval=root.setInterval(pulse,1200);}}stop();};
+      const failed=()=>{if(!current()){stop();return;}if(preview){previewMedia=null;previewKind='';syncPreview();}else {defaultAlarmMedia=null;stop();startDefaultTone(request);}};
       media.addEventListener('ended',ended,{once:true});media.addEventListener('error',failed,{once:true});
-      try{Promise.resolve(media.play()).then(()=>{if(!current()){stop();return;}if(!preview){clearInterval(toneInterval);toneInterval=0;}}).catch(failed);}catch(_){failed();}
+      try{Promise.resolve(media.play()).then(()=>{if(!current())stop();}).catch(failed);}catch(_){failed();}
       if(preview)syncPreview();return true;
     }
     async function togglePreview(kind){
@@ -191,23 +213,56 @@
       if(resource?.url){playDefaultPreview(request,[resource.url]);return;}
       if(!resource?.buffer){playDefaultPreview(request);return;}playPreview(kind,resource.buffer,request);
     }
-    function pulse(){if(!ringing||!audioContext)return;const start=audioContext.currentTime;for(const [offset,frequency] of [[0,880],[.18,660]]){const oscillator=audioContext.createOscillator(),gain=audioContext.createGain();oscillator.type='sine';oscillator.frequency.value=frequency;gain.gain.setValueAtTime(.0001,start+offset);gain.gain.exponentialRampToValueAtTime(FALLBACK_VOLUME,start+offset+.025);gain.gain.exponentialRampToValueAtTime(.0001,start+offset+.15);oscillator.connect(gain).connect(audioContext.destination);oscillator.start(start+offset);oscillator.stop(start+offset+.17);}}
-    function playLoop(buffer){if(!buffer||!audioContext)return false;customSource=audioContext.createBufferSource();const gain=audioContext.createGain();gain.gain.value=ALARM_VOLUME;customSource.buffer=buffer;customSource.loop=true;customSource.connect(gain).connect(audioContext.destination);customSource.start();return true;}
+    function playLoop(buffer){
+      if(!buffer||!audioContext)return false;
+      let source=null;
+      let gain=null;
+      try{
+        source=audioContext.createBufferSource();
+        gain=audioContext.createGain();
+        gain.gain.value=ALARM_VOLUME;
+        source.buffer=buffer;
+        source.loop=true;
+        source.connect(gain).connect(audioContext.destination);
+        source.start();
+        customSource=source;
+        return true;
+      }catch(_){
+        try{source?.stop?.();source?.disconnect?.();gain?.disconnect?.();}catch(_){}
+        if(customSource===source)customSource=null;
+        return false;
+      }
+    }
     function playDefaultAlarmMedia(urls){return playDefaultMedia({request:toneRequest,...(urls?{urls}:{})});}
+    function scheduleDefaultRetry(request){
+      if(defaultRetryTimer||disposed||!ringing||request!==toneRequest)return;
+      defaultRetryTimer=root.setTimeout?.(()=>{defaultRetryTimer=0;if(!disposed&&ringing&&request===toneRequest)startDefaultTone(request);},DEFAULT_RETRY_DELAY)||0;
+    }
+    function startDefaultTone(request=toneRequest){
+      if(disposed||!ringing||request!==toneRequest)return false;
+      if(defaultResource?.url&&playDefaultAlarmMedia([defaultResource.url]))return true;
+      if(defaultBuffer&&playLoop(defaultBuffer))return true;
+      if(playDefaultAlarmMedia())return true;
+      loadDefaultSound().then(value=>{
+        if(disposed||!ringing||request!==toneRequest||defaultAlarmMedia||customSource)return;
+        if(value?.url&&playDefaultAlarmMedia([value.url]))return;
+        if(value?.buffer&&playLoop(value.buffer))return;
+        if(!playDefaultAlarmMedia())scheduleDefaultRetry(request);
+      });
+      return false;
+    }
     function startTone(){
       stopPreview();primeAudio();const request=++toneRequest,custom=state.soundMode==='custom';
-      if(custom&&customResource?.url){if(playCustomMedia(customResource,{request}))return;}
-      if(!custom&&defaultResource?.url){if(playDefaultAlarmMedia([defaultResource.url]))return;}
-      const selected=custom?customBuffer:defaultBuffer;if(playLoop(selected))return;
-      pulse();toneInterval=root.setInterval(pulse,1200);
-      const ready=custom?loadStoredSound():loadDefaultSound();
-      ready.then(value=>{if(disposed||!ringing||request!==toneRequest||(state.soundMode==='custom')!==custom)return;
-        if(custom&&value?.url){playCustomMedia(value,{request});return;}
-        if(!custom&&value?.url){playDefaultAlarmMedia([value.url]);return;}
-        const buffer=value?.buffer;if(buffer&&playLoop(buffer)){clearInterval(toneInterval);toneInterval=0;}else if(!custom)playDefaultAlarmMedia();
+      if(!custom){startDefaultTone(request);return;}
+      if(customResource?.url&&playCustomMedia(customResource,{request}))return;
+      if(customBuffer&&playLoop(customBuffer))return;
+      loadStoredSound().then(value=>{if(disposed||!ringing||request!==toneRequest)return;
+        if(value?.url&&playCustomMedia(value,{request}))return;
+        if(value?.buffer&&playLoop(value.buffer))return;
+        startDefaultTone(request);
       });
     }
-    function stopTone(){ringing=false;++toneRequest;defaultPlaybackCleanup?.();defaultPlaybackCleanup=null;clearInterval(toneInterval);toneInterval=0;try{customSource?.stop();customSource?.disconnect?.();}catch(_){}customSource=null;try{defaultAlarmMedia?.pause();if(defaultAlarmMedia){defaultAlarmMedia.src='';defaultAlarmMedia.load?.();}}catch(_){}defaultAlarmMedia=null;releaseIdleAudio();}
+    function stopTone(){ringing=false;++toneRequest;defaultPlaybackCleanup?.();defaultPlaybackCleanup=null;root.clearTimeout?.(defaultRetryTimer);defaultRetryTimer=0;try{customSource?.stop();customSource?.disconnect?.();}catch(_){}customSource=null;try{defaultAlarmMedia?.pause();if(defaultAlarmMedia){defaultAlarmMedia.src='';defaultAlarmMedia.load?.();}}catch(_){}defaultAlarmMedia=null;releaseIdleAudio();}
     function closeAlarm(){root.clearTimeout?.(leaseTimer);leaseTimer=0;releaseAlarmLock?.();releaseAlarmLock=null;stopTone();if(alarmDialog.open)UI.hide(alarmDialog,()=>alarmDialog.close());}
     function closeShutdown(){if(shutdownDialog.open)UI.hide(shutdownDialog,()=>shutdownDialog.close());}
     function ring(){state.alarm.enabled=false;state.alarm.deadline=0;state.alarm.ringing=true;state.alarm.owner=owner;save();sync();ringing=true;try{onAlarmStart();}catch(error){root.console?.warn?.('Alarm start hook failed',error);}startTone();if(!alarmDialog.open)UI.show(alarmDialog,()=>alarmDialog.showModal());}
@@ -234,7 +289,7 @@
       if(minutes<1){notify(t('timerDurationRequired'));sync();return false;}
       if(name==='shutdown'&&(!eligible||!state.helperEnabled)){notify(t(!eligible?'shutdownUnsupported':'shutdownHelperRequired'));sync();return false;}
       const report=root.SolarUsageAnalytics?.begin(name==='alarm'?(usageAction==='snooze'?'solar_alarm_snooze':'solar_alarm_set'):'solar_shutdown_set',name==='alarm'&&usageAction!=='snooze'?{sound_type:state.soundMode}:{});
-      if(name==='alarm'){closeAlarm();primeAudio();if(state.soundMode==='custom')loadStoredSound();else loadDefaultSound();}
+      if(name==='alarm'){closeAlarm();primeAudio();if(state.soundMode==='custom'){releasePrimedDefault();loadStoredSound();}else {primeDefaultPlayback();loadDefaultSound();}}
       if(name==='shutdown'){
         const request=++nativeSerial;nativeBusy='schedule';state.shutdown.enabled=true;state.shutdown.status='pending';state.shutdown.deadline=0;
         // Start the protocol request while user activation is still live.
@@ -365,7 +420,7 @@
     });
     UI.bindDialog(removeDialog,closeRemoveConfirm);
     $('alarm-sound-default').addEventListener('change',()=>{if(!$('alarm-sound-default').checked)return;stopPreview();invalidateSound();releaseCustom();state.soundMode='default';save();syncSound();if(state.alarm.enabled)loadDefaultSound();else releaseIdleAudio();});
-    $('alarm-sound-custom').addEventListener('change',async()=>{if(!$('alarm-sound-custom').checked)return;stopPreview();primeAudio();const generation=soundGeneration,resource=await loadStoredSound();if(disposed||generation!==soundGeneration)return;if(resource){state.soundMode='custom';save();syncSound();}else $('alarm-sound-file').click();});
+    $('alarm-sound-custom').addEventListener('change',async()=>{if(!$('alarm-sound-custom').checked)return;stopPreview();releasePrimedDefault();primeAudio();const generation=soundGeneration,resource=await loadStoredSound();if(disposed||generation!==soundGeneration)return;if(resource){state.soundMode='custom';save();syncSound();}else $('alarm-sound-file').click();});
     $('alarm-sound-choose').addEventListener('click',event=>{event.preventDefault();event.stopPropagation();$('alarm-sound-file').click();});
     for(const kind of ['default','custom'])$('alarm-preview-'+kind).addEventListener('click',event=>{event.preventDefault();event.stopPropagation();togglePreview(kind);});
     $('alarm-sound-file').addEventListener('change',event=>{const file=event.target.files?.[0];event.target.value='';return chooseSound(file);});
@@ -380,5 +435,5 @@
     document.addEventListener('visibilitychange',visibilityCheck);root.addEventListener?.('pageshow',visibilityCheck);root.addEventListener?.('focus',visibilityCheck);
     return Object.freeze({isBusy:()=>ringing||state.alarm.enabled||state.alarm.ringing||!!previewSource||!!previewMedia||!!nativeBusy||helperBusy,open,close:()=>open(false),refreshLanguage,check,getState:()=>JSON.parse(JSON.stringify(state)),getDiagnostics:()=>({...metrics,retainedDecodedBytes:modules.AlarmSound.decodedBytes(defaultBuffer)+modules.AlarmSound.decodedBytes(customBuffer),customStreaming:!!customResource?.url,defaultStreaming:!!defaultResource?.url,wakeScheduled:!!interval}),dispose(){if(disposed)return;disposed=true;++nativeSerial;invalidateSound();releaseCustom();releaseDefault();shutdownBridge?.dispose?.();root.clearTimeout?.(interval);interval=0;root.removeEventListener?.('storage',storageChanged);root.removeEventListener?.('pageshow',visibilityCheck);root.removeEventListener?.('focus',visibilityCheck);document.removeEventListener('visibilitychange',visibilityCheck);document.removeEventListener('pointerdown',closeOnViewport);scrollBinding.dispose();stopPreview();closeAlarm();closeShutdown();closeDownloadConfirm();closeInstallConfirm();closeRemoveConfirm();audioContext?.close?.().catch(()=>{});}});
   }
-  modules.TimerController=Object.freeze({create,totalMinutes,MAX_MINUTES,MAX_SOUND_BYTES,DEFAULT_ALARM_FILE,ALARM_VOLUME,PREVIEW_VOLUME,FALLBACK_VOLUME});
+  modules.TimerController=Object.freeze({create,totalMinutes,MAX_MINUTES,MAX_SOUND_BYTES,DEFAULT_ALARM_FILE,ALARM_VOLUME,PREVIEW_VOLUME,DEFAULT_RETRY_DELAY});
 })(window);

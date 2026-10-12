@@ -1,5 +1,12 @@
 {
   "copy": {
+    "solarSystemMode": "太陽系模式",
+    "constellationMode": "星座模式",
+    "expandRotationTouch": "展開：長按",
+    "expandRotationMouse": "展開：按滑鼠右鍵",
+    "scrollUp": "向上捲動",
+    "scrollDown": "向下捲動",
+    "skyNavigate": "前往{name}",
     "openingTravel": "開場旅行",
     "openingDefault": "預設開場",
     "openingNone": "無",
@@ -129,6 +136,9 @@
     "savedCameras": "已儲存視角",
     "planetSwitch": "切換行星",
     "trackBody": "追蹤天體",
+    "trackConstellation": "追蹤星座",
+    "showConstellation": "顯示連線",
+    "showSolarSystem": "顯示太陽系",
     "zoomInOut": "放大·縮小",
     "cameraRotate": "旋轉",
     "cameraTravel": "前進·後退",
@@ -223,6 +233,13 @@
     "cookieDismiss": "關閉，不變更選擇",
     "cookieChoiceNote": "允許會保留6個月。拒絕和 X 不會儲存，下次造訪時會再次詢問。",
     "music": "音樂",
+    "asterism": "星群",
+    "constellation": "星座",
+    "ursaMajor": "大熊座",
+    "warpShortcut": "躍遷",
+    "constellationsShortcut": "顯示星座",
+    "targetSwitch": "上一個 / 下一個目標",
+    "targetSwitchHint": "依目前檢視切換行星、地區或星座。",
     "timer": "計時器",
     "timerClose": "關閉計時器",
     "alarm": "鬧鐘",
@@ -271,8 +288,8 @@
     "helperDisabled": "Solar Time 關機輔助模組已停用。",
     "helperDownloadTitle": "已驗證的官方輔助模組",
     "helperDownloadDescription": "這是由 Solar Time 製作並審核的 Windows 排程關機檔案。",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
+    "helperDownloadPrivacy": "僅向Solar Time傳送一次性隨機請求ID、助手版本和命令結果，不傳送帳戶、檔案或電腦名稱。回執到期後會自動清理。",
+    "helperDownloadPermission": "僅為目前使用者安裝，不需要管理員權限。使用PowerShell、URL關聯及Windows關機命令。",
     "helperDownloadSource": "公開原始碼與 SHA-256，可驗證檔案是否變更。",
     "helperViewSource": "查看原始碼",
     "helperChecksumLabel": "SHA-256",
@@ -281,18 +298,102 @@
     "helperRemoveTitle": "移除關機輔助模組",
     "helperRemoveDescription": "取消排程關機，並從目前的 Windows 帳戶移除輔助模組及其連線資訊。",
     "helperRemoveQuestion": "要移除輔助模組嗎？",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
+    "helperRemoveRequested": "Windows已確認取消並移除助手。",
     "helperInstallTitle": "確認輔助模組安裝",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallDescription": "執行最新下載的CMD安裝程式，然後驗證已安裝的助手。請允許瀏覽器開啟PowerShell。",
+    "helperInstallQuestion": "現在驗證已安裝的助手？",
+    "shutdownPending": "正在等待Windows確認。請允許開啟助手。",
+    "shutdownUnknown": "尚未確認Windows結果，關機排程可能仍然有效。請使用「取消」檢查。",
+    "shutdownFailed": "Windows命令失敗（代碼{code}）。",
+    "shutdownNotLaunched": "助手未開啟。請再次按開關，並允許瀏覽器提示。",
+    "helperVerifyFailed": "助手驗證失敗。請執行最新安裝程式，然後允許開啟助手。",
+    "shutdownDataWarning": "請儲存工作：Windows定時關機可能會強制關閉應用程式。"
   },
   "bodies": {
+    "polaris": [
+      "北極星",
+      "小熊座最亮的恆星，靠近地球的北天極。它看起來幾乎靜止，可用於辨認北方。"
+    ],
+    "ursa-major": [
+      "大熊座",
+      "北方天空的大型星座，包含北斗七星。從勺狀星群延伸的連線勾勒出熊的身體和腿。"
+    ],
+    "ursa-minor": [
+      "小熊座",
+      "北極星位於小勺的柄端。帝星和太子星構成勺口外側。"
+    ],
+    "cassiopeia": [
+      "仙后座",
+      "五顆亮星隨觀察角度呈W或M形。它與北斗七星大致分處北極星的兩側。"
+    ],
+    "orion": [
+      "獵戶座",
+      "三顆排成一線的腰帶星十分醒目。紅色參宿四與藍白色參宿七形成對比，在韓國冬季晚間常見。"
+    ],
+    "scorpius": [
+      "天蠍座",
+      "紅色心宿二連接修長的身體和彎曲的尾巴。韓國夏季南方天空可見，尾端的尾宿八和尾宿九形似毒針。"
+    ],
+    "leo": [
+      "獅子座",
+      "軒轅十四附近的鐮刀形頭部與三角形身體勾勒出獅子。五帝座一位於尾端，韓國春季晚間易於尋找。"
+    ],
+    "cygnus": [
+      "天鵝座",
+      "長頸與雙翼組成北十字。天津四是夏季大三角的一角，輦道增七位於頭部。"
+    ],
+    "taurus": [
+      "金牛座",
+      "橙色畢宿五、V形臉部與長角是其特徵。畢宿五位於畢星團前方，並非星團成員。"
+    ],
+    "aries": [
+      "牡羊座",
+      "婁宿三、婁宿一和婁宿二組成短小弧線。這個黃道星座曾是春分位置的歷史標誌。"
+    ],
+    "gemini": [
+      "雙子座",
+      "北河二與北河三代表雙子的頭部。兩條分支星鏈構成身體。"
+    ],
+    "cancer": [
+      "巨蟹座",
+      "圍繞鬼宿三和鬼宿四的暗淡Y形黃道星座。暗夜中可藉蜂巢星團尋找。"
+    ],
+    "virgo": [
+      "室女座",
+      "藍白色角宿一是這個寬廣黃道星座的亮星。它位於獅子座與天秤座之間，韓國春季晚間的南方天空可見。"
+    ],
+    "libra": [
+      "天秤座",
+      "氐宿四與氐宿一勾勒出天秤。這裡的恆星曾被視為天蠍的雙鉗。"
+    ],
+    "sagittarius": [
+      "人馬座",
+      "箕宿三和斗宿四附近的亮星組成茶壺形狀。銀河系中心位於這個黃道星座方向的遠處。"
+    ],
+    "capricornus": [
+      "摩羯座",
+      "牛宿二與壘壁陣四之間展開低而寬的楔形。這個暗淡的黃道星座常以三角輪廓辨認。"
+    ],
+    "aquarius": [
+      "寶瓶座",
+      "虛宿一與危宿一向南延伸出長長的星鏈，如同水流。連線有助於看清這個分布廣泛的黃道星座。"
+    ],
+    "pisces": [
+      "雙魚座",
+      "兩條長繩狀星鏈連接兩條魚，並在外屏七處相交。暗淡的輪廓橫跨天赤道附近的大片天空。"
+    ],
+    "pegasus": [
+      "飛馬座",
+      "壁宿二、壁宿一、室宿一與室宿二組成秋季大四邊形。星鏈從中延伸成頸部和腿部。"
+    ],
+    "andromeda": [
+      "仙女座",
+      "星鏈從壁宿二經奎宿九延伸至天大將軍一。附近的仙女座星系在暗夜中可用肉眼看到。"
+    ],
+    "crux": [
+      "南十字座",
+      "十字架二與十字架一構成長軸，十字架三與十字架四構成橫軸。這個小巧的南十字可用於辨認南方。"
+    ],
     "sun": [
       "太陽",
       "一顆主要由氫和氦組成的恒星。核心核聚變產生的能量以高溫等離子體和光的形式釋放。"
@@ -340,6 +441,10 @@
     "pluto": [
       "冥王星",
       "一顆由岩石和水冰構成的矮行星，表面覆蓋氮、甲烷和一氧化碳冰。"
+    ],
+    "big-dipper": [
+      "北斗七星",
+      "由大熊座中七顆明亮恆星組成的星群。勺形輪廓是辨認北方天空的經典標誌，從天璇指向天樞的連線可延伸至北極星。"
     ]
   },
   "phases": {

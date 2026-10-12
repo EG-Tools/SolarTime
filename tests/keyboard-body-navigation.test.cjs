@@ -7,7 +7,10 @@ test('left and right arrows follow the visible footer body order with wraparound
   assert.match(app,/available=bodies\.filter\(body=>!navButtons\.get\(body\.id\)\?\.hidden\)/);
   assert.match(app,/currentIndex<0\?\(direction>0\?0:available\.length-1\):\(currentIndex\+direction\+available\.length\)%available\.length/);
   assert.match(app,/key==='arrowleft'\|\|key==='arrowright'/);
-  assert.match(app,/navigateBody\(key==='arrowright'\?1:-1\)/);
+  assert.match(app,/const direction=key==='arrowright'\?1:-1/);
+  assert.match(app,/if\(renderer\.skyFeatureShortcutMode\|\|selectedSkyFeature\)navigateSkyFeature\(direction\)/);
+  assert.match(app,/else if\(renderer\.earthRegionNavigationActive\)navigateRegion\(direction\)/);
+  assert.match(app,/else navigateBody\(direction\)/);
 });
 
 test('keyboard body navigation preserves an active tracking camera',()=>{
@@ -28,7 +31,7 @@ test('Enter follows the selected or nearest visible planet and restores the prio
 
 test('Help uses three keyboard columns, four mouse columns and two columns on phones',()=>{
   const html=read('index.html'),css=read('styles.css');
-  assert.deepEqual([...html.matchAll(/<div class="shortcut-row">(.*?)<\/div>/g)].map(row=>[...row[1].matchAll(/data-i18n="([^"]+)"/g)].map(m=>m[1])),[['pause','realTime','fullscreen'],['music','zenMode','actualScaleShortcut'],['defaultCamera','savedCameras','ringTravel'],['planetSwitch','cameraTravel']]);
+  assert.deepEqual([...html.matchAll(/<div class="shortcut-row">(.*?)<\/div>/g)].map(row=>[...row[1].matchAll(/data-i18n="([^"]+)"/g)].map(m=>m[1])),[['pause','realTime','ringTravel'],['music','zenMode','fullscreen'],['actualScaleShortcut','defaultCamera','savedCameras'],['constellationsShortcut','targetSwitch','cameraTravel']]);
   assert.match(html,/shortcut-row shortcut-mouse-row[^]*cameraRotate[^]*zoomInOut[^]*screenPan[^]*cameraTravel/);
   assert.match(css,/\.shortcut-row\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(css,/\.shortcut-mouse-row\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);

@@ -1,5 +1,12 @@
 {
   "ui": {
+    "solarSystemMode": "太阳系模式",
+    "constellationMode": "星座模式",
+    "expandRotationTouch": "展开：长按",
+    "expandRotationMouse": "展开：右键点击",
+    "scrollUp": "向上滚动",
+    "scrollDown": "向下滚动",
+    "skyNavigate": "前往{name}",
     "openingTravel": "开场旅行",
     "openingDefault": "默认开场",
     "openingNone": "无",
@@ -129,6 +136,9 @@
     "savedCameras": "已保存视角",
     "planetSwitch": "切换行星",
     "trackBody": "追踪天体",
+    "trackConstellation": "追踪星座",
+    "showConstellation": "显示连线",
+    "showSolarSystem": "显示太阳系",
     "zoomInOut": "放大·缩小",
     "cameraRotate": "旋转",
     "cameraTravel": "前进·后退",
@@ -222,9 +232,27 @@
     "cookieSettings": "Cookie 设置",
     "cookieDismiss": "关闭，不更改选择",
     "cookieChoiceNote": "允许会保留6个月。拒绝和 X 不会保存，下次访问时会再次询问。",
-    "music": "音乐"
+    "music": "音乐",
+    "asterism": "星群",
+    "constellation": "星座",
+    "ursaMajor": "大熊座",
+    "warpShortcut": "跃迁",
+    "constellationsShortcut": "显示星座",
+    "targetSwitch": "上一个 / 下一个目标",
+    "targetSwitchHint": "根据当前视图切换行星、地区或星座。"
   },
   "timer": {
+    "helperDownloadPrivacy": "仅向Solar Time发送一次性随机请求ID、助手版本和命令结果，不发送账户、文件或计算机名称。回执过期后会自动清理。",
+    "helperDownloadPermission": "仅为当前用户安装，无需管理员权限。使用PowerShell、URL关联和Windows关机命令。",
+    "helperRemoveRequested": "Windows已确认取消并移除助手。",
+    "helperInstallDescription": "运行最新下载的CMD安装程序，然后验证已安装的助手。请允许浏览器打开PowerShell。",
+    "helperInstallQuestion": "现在验证已安装的助手？",
+    "shutdownPending": "正在等待Windows确认。请允许打开助手。",
+    "shutdownUnknown": "尚未确认Windows结果，关机计划可能仍然有效。请使用“取消”检查。",
+    "shutdownFailed": "Windows命令失败（代码{code}）。",
+    "shutdownNotLaunched": "助手未打开。请再次点击开关，并允许浏览器提示。",
+    "helperVerifyFailed": "助手验证失败。请运行最新安装程序，然后允许打开助手。",
+    "shutdownDataWarning": "请保存工作：Windows定时关机可能会强制关闭应用程序。",
     "timer": "计时器",
     "timerClose": "关闭计时器",
     "alarm": "闹钟",
@@ -283,6 +311,27 @@
     "helperInstallTitle": "确认辅助模块安装"
   },
   "bodies": {
+    "polaris": ["北极星","小熊座最亮的恒星，靠近地球的北天极。它看起来几乎静止，可用于辨认北方。"],
+    "ursa-major": ["大熊座","北方天空的大型星座，包含北斗七星。从勺状星群延伸的连线勾勒出熊的身体和腿。"],
+    "ursa-minor": ["小熊座","北极星位于小勺的柄端。帝星和太子星构成勺口外侧。"],
+    "cassiopeia": ["仙后座","五颗亮星随观察角度呈W或M形。它与北斗七星大致分处北极星的两侧。"],
+    "orion": ["猎户座","三颗排成一线的腰带星十分醒目。红色参宿四与蓝白色参宿七形成对比，在韩国冬季晚间常见。"],
+    "scorpius": ["天蝎座","红色心宿二连接修长的身体和弯曲的尾巴。韩国夏季南方天空可见，尾端的尾宿八和尾宿九形似毒针。"],
+    "leo": ["狮子座","轩辕十四附近的镰刀形头部与三角形身体勾勒出狮子。五帝座一位于尾端，韩国春季晚间易于寻找。"],
+    "cygnus": ["天鹅座","长颈与双翼组成北十字。天津四是夏季大三角的一角，辇道增七位于头部。"],
+    "taurus": ["金牛座","橙色毕宿五、V形脸部与长角是其特征。毕宿五位于毕星团前方，并非星团成员。"],
+    "aries": ["白羊座","娄宿三、娄宿一和娄宿二组成短小弧线。这个黄道星座曾是春分位置的历史标志。"],
+    "gemini": ["双子座","北河二与北河三代表双子的头部。两条分支星链构成身体。"],
+    "cancer": ["巨蟹座","围绕鬼宿三和鬼宿四的暗淡Y形黄道星座。暗夜中可借蜂巢星团寻找。"],
+    "virgo": ["室女座","蓝白色角宿一是这个宽广黄道星座的亮星。它位于狮子座与天秤座之间，韩国春季晚间的南方天空可见。"],
+    "libra": ["天秤座","氐宿四与氐宿一勾勒出天秤。这里的恒星曾被视为天蝎的双钳。"],
+    "sagittarius": ["人马座","箕宿三和斗宿四附近的亮星组成茶壶形状。银河系中心位于这个黄道星座方向的远处。"],
+    "capricornus": ["摩羯座","牛宿二与垒壁阵四之间展开低而宽的楔形。这个暗淡的黄道星座常以三角轮廓辨认。"],
+    "aquarius": ["宝瓶座","虚宿一与危宿一向南延伸出长长的星链，如同水流。连线有助于看清这个分布广泛的黄道星座。"],
+    "pisces": ["双鱼座","两条长绳状星链连接两条鱼，并在外屏七处相交。暗淡的轮廓横跨天赤道附近的大片天空。"],
+    "pegasus": ["飞马座","壁宿二、壁宿一、室宿一与室宿二组成秋季大四边形。星链从中延伸成颈部和腿部。"],
+    "andromeda": ["仙女座","星链从壁宿二经奎宿九延伸至天大将军一。附近的仙女座星系在暗夜中可用肉眼看到。"],
+    "crux": ["南十字座","十字架二与十字架一构成长轴，十字架三与十字架四构成横轴。这个小巧的南十字可用于辨认南方。"],
     "sun": [
       "太阳",
       "一颗主要由氢和氦组成的恒星。核心核聚变产生的能量以高温等离子体和光的形式释放。"
@@ -330,6 +379,10 @@
     "pluto": [
       "冥王星",
       "一颗由岩石和水冰构成的矮行星，表面覆盖氮、甲烷和一氧化碳冰。"
+    ],
+    "big-dipper": [
+      "北斗七星",
+      "由大熊座中七颗明亮恒星组成的星群。勺形轮廓是辨认北方天空的经典标志，从天璇指向天枢的连线可延伸至北极星。"
     ]
   },
   "phases": {

@@ -127,6 +127,7 @@
   }
   function automaticLanguageLabel(){return modules.LanguageData.automaticLabels[detectCopy()]||modules.LanguageData.automaticLabels.en;}
   function apply(document,translate){
+    for(const element of document.querySelectorAll('.scroll-cue'))element.setAttribute('aria-label',translate(element.classList.contains('scroll-cue-up')?'scrollUp':'scrollDown'));
     for(const element of document.querySelectorAll('[data-i18n]'))element.textContent=translate(element.dataset.i18n);
     for(const element of document.querySelectorAll('[data-i18n-aria]'))element.setAttribute('aria-label',translate(element.dataset.i18nAria));
     for(const element of document.querySelectorAll('[data-i18n-title]'))element.title=translate(element.dataset.i18nTitle);

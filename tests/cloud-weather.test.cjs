@@ -350,7 +350,7 @@ test('optional CPU A map has a 2K cap, failure cooldown, and zero skips both map
 });
 
 test('optional direct map fades in once and paused presentation stays awake only during blending',()=>{
-  const {DirectRenderer}=context(),direct=Object.create(DirectRenderer.prototype);
+  const {DirectRenderer}=context(),direct=Object.create(DirectRenderer.prototype);direct.textures=new Map();
   assert.equal(direct.cloudAlternativeMix(false,0),0);
   assert.equal(direct.cloudAlternativeMix(true,100),0);
   assert.equal(direct.cloudAlternativeMix(true,700),.5);

@@ -60,10 +60,10 @@ test('page suspension releases Escape and bfcache restoration obtains a fresh ca
 });
 test('Escape cancels flight first, then exits fullscreen without restarting or cutting the return',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function handleEscape\(\) \{[\s\S]*?\n      \}/)[0];
- const doc={fullscreenElement:{}},tour={state:'cruising',stops:0,stop(){if(this.state!=='cruising')return false;this.stops++;this.state='returning';return true;}};
+ const order=[],clock={paused:true},doc={fullscreenElement:{}},tour={state:'cruising',stops:0,stop(){if(this.state!=='cruising')return false;order.push('stop');this.stops++;this.state='returning';return true;}};
  const renderer={ringTour:tour};let exits=0;
- const escape=vm.runInNewContext('('+body+')',{openingReplayLocked:false,openingActive:false,renderer,document:doc,exitFullscreen(){exits++;doc.fullscreenElement=null;}});
- escape();assert.equal(tour.state,'returning');assert.equal(exits,0);assert.ok(doc.fullscreenElement);
+ const escape=vm.runInNewContext('('+body+')',{openingReplayLocked:false,openingActive:false,renderer,clock,pause(){order.push('resume');clock.paused=false;},document:doc,exitFullscreen(){exits++;doc.fullscreenElement=null;}});
+ escape();assert.equal(tour.state,'returning');assert.equal(exits,0);assert.ok(doc.fullscreenElement);assert.deepEqual(order,['resume','stop']);
  escape();assert.equal(exits,1);assert.equal(renderer.ringTour,tour);assert.equal(tour.stops,1);
  escape();assert.equal(exits,1);assert.equal(tour.stops,1);
  renderer.ringTour=null;doc.fullscreenElement={};escape();assert.equal(exits,2,'no flight: first Escape exits fullscreen');
@@ -72,7 +72,7 @@ test('Escape during an opening or departure cancels pending resume and restores 
  const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function handleEscape\(\) \{[\s\S]*?\n      \}/)[0];
  for(const departing of [false,true]){
   const calls=[],context={openingReplayLocked:false,openingActive:true,openingDeparture:departing,resumeTravel:true,
-   openingCameraTarget:{zoom:.1,dolly:.002,panX:.2},renderer:{animateCamera(target){assert.equal(target,context.openingCameraTarget);calls.push('return');}},finishOpening(){calls.push('unlock');context.openingActive=false;}};
+   clock:{paused:false},pause(){throw new Error('an active clock must not toggle');},openingCameraTarget:{zoom:.1,dolly:.002,panX:.2},renderer:{animateCamera(target){assert.equal(target,context.openingCameraTarget);calls.push('return');}},finishOpening(){calls.push('unlock');context.openingActive=false;}};
   vm.runInNewContext('('+body+')',context)();
   assert.equal(context.openingActive,false);assert.equal(context.openingDeparture,false);assert.equal(context.resumeTravel,false);
   assert.deepEqual(calls,['unlock','return']);
@@ -83,12 +83,12 @@ test('opening selection keeps the normal rotation blend unless Saturn was select
  const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function beginOpening\(mono=performance\.now\(\)\)\{[\s\S]*?\n      \}/)[0];
  for(const mode of ['default','saturn']){
   const blend={seconds:0,yaw:0,pitch:0},calls=[];
-  const renderer={prepareOpeningTour(){calls.push('prepare');},animateOpeningCamera(){this.cameraTween={duration:5000,rotationBlend:blend};return true;},keepOpeningParticlesUntilBoarding(){calls.push('particles');}};
+  const renderer={prepareRingTourResources(){calls.push('prepare');},animateOpeningCamera(){this.cameraTween={duration:5000,rotationBlend:blend};return true;},keepOpeningParticlesUntilBoarding(){calls.push('particles');}};
   const context={openingRunMode:mode,resumeTravel:mode==='saturn',openingCameraTarget:{zoom:1,dolly:1},renderer,lockOpeningControls(){},loading:{classList:{add(){}}}};
   assert.equal(vm.runInNewContext('('+body+')',context)(100),true);
   assert.equal(context.openingStartedAt,100);
   if(mode==='default'){
-   assert.equal(renderer.cameraTween.rotationBlend,blend);assert.equal(renderer.cameraTween.flyThrough,undefined);assert.deepEqual(calls,[]);
+   assert.equal(renderer.cameraTween.rotationBlend,blend);assert.equal(renderer.cameraTween.flyThrough,undefined);assert.deepEqual(calls,['prepare']);
   }else{
    assert.equal(renderer.cameraTween.rotationBlend,null);assert.equal(renderer.cameraTween.flyThrough,true);assert.deepEqual(calls,['prepare','particles']);
   }
@@ -97,7 +97,8 @@ test('opening selection keeps the normal rotation blend unless Saturn was select
 
 test('Escape cannot interrupt a locked T warp',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function handleEscape\(\) \{[\s\S]*?\n      \}/)[0];
- assert.doesNotThrow(()=>vm.runInNewContext('('+body+')',{openingReplayLocked:true})());
+ const clock={paused:true};let resumes=0;
+ assert.doesNotThrow(()=>vm.runInNewContext('('+body+')',{openingReplayLocked:true,clock,pause(){resumes++;clock.paused=false;}})());assert.equal(resumes,1);
 });
 
 test('top dialog alone closes; a fading card consumes repeated Escape',()=>{const h=harness(false),help=new Element('dialog'),info=new Element('dialog');for(const d of [help,info]){h.ui.bindDialog(d,()=>h.ui.hide(d,()=>d.close()));h.ui.show(d,()=>d.showModal());}assert.equal(h.ui.topDialog(),info);h.ui.dismissTopDialog();assert.ok(info.open&&help.open);h.ui.dismissTopDialog();h.runTimers();assert.equal(info.open,false);assert.ok(help.open);h.ui.dismissTopDialog();h.runTimers();assert.equal(help.open,false);assert.equal(h.ui.dismissTopDialog(),false);});

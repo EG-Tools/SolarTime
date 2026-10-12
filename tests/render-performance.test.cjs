@@ -62,8 +62,8 @@ test('memory counts resident/cached maps, auxiliary resources and both canvases 
  Object.assign(surface,{canvas:{width:100,height:80},stats:{texturePixels:1000},coronaTexture:{width:64,height:64},cloudWeather:{texture:{},map:{data:new Uint8Array(32768)}},orbitBufferBytes:4096,antialiasMemory:true,externalTextureBytes:8192});
  Object.assign(sky,{gl:{},ready:true,texture:{},buffer:{},starBuffer:{},starCount:100,canvas:{width:100,height:80},stats:{textureSize:[64,32]}});
  r.gpu=surface;r.sky=sky;
- const usage=r.memoryUsage();assert.equal(usage.surface.textures,4000);assert.equal(usage.sky.textures,8192);
- assert.equal(usage.knownBytes,4000+64*64*4+32768+4096+48+4+8192+2400+48);
+ const usage=r.memoryUsage();assert.equal(usage.surface.textures,4000);assert.equal(usage.sky.textures,8192*4/3);
+ assert.equal(usage.knownBytes,4000+64*64*4+32768+4096+48+4+8192*4/3+2400+48);
  assert.equal(usage.framebufferEstimate,100*80*4*6);assert.equal(usage.totalEstimate,usage.knownBytes+usage.framebufferEstimate);
  assert.equal(surface.auxiliaryTextureBytes(),64*64*4+32768+4+8192);
  surface.contextLost=true;sky.ready=false;assert.equal(r.memoryUsage().totalEstimate,0);

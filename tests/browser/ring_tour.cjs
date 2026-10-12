@@ -10,7 +10,7 @@ module.exports=async({root,evaluate,send,session})=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  async function until(expression,ms=35000){const end=Date.now()+ms;while(!await evaluate(expression)){if(Date.now()>end)throw Error('Timed out: '+expression);await delay(100);}}
- const mouse=(type,x,y,button='none',buttons=0)=>send('Input.dispatchMouseEvent',{type,x,y,button,buttons,clickCount:button==='none'?0:1},session);
+ const mouse=(type,x,y,button='none',buttons=0,clickCount=1)=>send('Input.dispatchMouseEvent',{type,x,y,button,buttons,clickCount:button==='none'?0:clickCount},session);
  const esc=async()=>{await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27},session);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27},session);};
  async function checkTravelCard(){
   const choose=id=>evaluate(`document.querySelector('#planet-nav [data-body="${id}"]').click()`);
@@ -180,6 +180,11 @@ module.exports=async({root,evaluate,send,session})=>{
   // Seed only this runner's disposable browser profile, never the user's tabs.
   await send('Page.addScriptToEvaluateOnNewDocument',{source:`try{localStorage.setItem('solar-time.camera-presets.v1',JSON.stringify({schema:2,slots:[1,2,3].map(n=>({azimuth:n*.4,elevation:.25,zoom:1.1*n,dolly:1+n*.2,focus:n===2?'earth':null,panX:.03,panY:0,mode:'move'}))}));}catch{}`},session);
   await send('Emulation.setDeviceMetricsOverride',{width:1280,height:800,deviceScaleFactor:1,mobile:false},session);
+  if(process.argv.includes('--opening-cold')){
+   const probe=require('./opening_handoff.cjs'),args={evaluate,send,session,until};
+   const cold=await probe({...args,coldUrl:'http://127.0.0.1:'+server.address().port+'/'});
+   const warm=await probe(args);return {cold,warm};
+  }
   await send('Page.navigate',{url:'http://127.0.0.1:'+server.address().port+'/'},session);
   if(process.argv.includes('--help-onboarding'))return await require('./help_onboarding.cjs')({evaluate,send,session,until,esc,delay,mouse});
   await until('!!window.SolarTime?.renderer&&!SolarTime.getState().opening');
@@ -187,6 +192,11 @@ module.exports=async({root,evaluate,send,session})=>{
   assert.ok((await evaluate('SolarTime.getPresets()')).every(Boolean),'all three test presets must be seeded before app initialization');
   await evaluate("SolarTime.renderer.stopAutoRotate();document.getElementById('cookie-reject').click()");
   if(process.argv.includes('--ring-tour-card'))return await checkTravelCard();
+  if(process.argv.includes('--body-point-travel'))return await require('./body_point_travel.cjs')({evaluate,until});
+  if(process.argv.includes('--opening-handoff'))return await require('./opening_handoff.cjs')({evaluate,send,session,until});
+  if(process.argv.includes('--constellations'))return await require('./constellations.cjs')({evaluate,send,session,until,mouse});
+  if(process.argv.includes('--return-continuity'))return await require('./travel_return_continuity.cjs')({evaluate,send,session,until});
+  if(process.argv.includes('--texture-upload'))return await require('./texture_upload.cjs')({evaluate});
   if(process.argv.includes('--travel-optimization'))return await require('./travel_optimization.cjs')({root,evaluate,until,esc});
   if(process.argv.includes('--focus-input'))return await require('./focus_input.cjs')({evaluate,send,session,until,esc,delay,mouse});
   if(process.argv.includes('--travel-return'))return await require('./travel_return.cjs')({evaluate,send,session,until,esc,delay,mouse});

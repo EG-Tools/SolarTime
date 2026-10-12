@@ -85,12 +85,12 @@ test('v0.45 notes include the right-drag dolly control',()=>{
 });
 
 
-test('r6 pushes the starfield farther away without slowing the background drift',()=>{
+test('r6 star depth remains while the later fixed celestial sphere has no passive drift',()=>{
   const effects=read('src/visual-effects.js'),sky=read('src/sky.js'),renderer=read('src/renderer.js'),html=read('index.html');
   assert.match(effects,/size=clamp\(size,\.14,1\.52\)\*\.82/);
   assert.match(effects,/lively=step\(\.55,appearance\.x\)/);
   assert.match(effects,/flarePulse\*13\.12/);
-  assert.match(sky,/DRIFT=\.22\*Math\.PI\/180/);
+  assert.doesNotMatch(sky,/\bDRIFT\b|options\.skyMotion/);
   assert.match(sky,/pow\(haze,vec3\(\.95\)\)\*\.5984/);
   assert.match(sky,/255\*\.5896/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
@@ -106,7 +106,7 @@ test('tiny-star stability uses pixel-area filtering, not just the former r7 foot
   assert.match(sky,/Math\.sqrt\(8388608\/\(w\*h\)\)/);
   assert.doesNotMatch(sky,/pulse=Math\.max\(0,Math\.sin\(t\*TAU\)\)\*\*16/);
   assert.match(sky,/if\(r<\.55\)\{root\.SolarVisualEffects\.drawTinyStar/);
-  assert.match(sky,/DRIFT=\.22\*Math\.PI\/180/);
+  assert.doesNotMatch(sky,/\bDRIFT\b|options\.skyMotion/);
   assert.match(renderer,/AUTO_ROTATE_SPEED=1\.8\*DEG/);
   assert.match(html,/src\/sky\.js\?v=[a-f0-9]{12}/);
   assert.ok(html.includes(cacheUrl('src/visual-effects.js')));
@@ -198,7 +198,7 @@ test('r12 simplifies and reorders the right-side view controls',()=>{
   assert.ok(!app.includes("'zoom-out'"));
   const start=html.indexOf('<div id="view-controls"'),end=html.indexOf('<section class="playback ui"',start),block=html.slice(start,end);
   assert.ok(block.includes('id="zoom-value"'));
-  const ordered=['id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
+  const ordered=['id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="rotation-mode-toggle"','id="zen-toggle"'];
   let cursor=-1;
   for(const token of ordered){const next=block.indexOf(token);assert.ok(next>cursor,token+' order');cursor=next;}
   assert.ok(app.includes("key==='+'||key==='='"));
@@ -239,7 +239,7 @@ test('r13 removes unused sky reference images from the repository',()=>{
 test('r14 moves the scale readout to the top and enlarges it by one pixel',()=>{
   const html=read('index.html'),css=read('styles.css');
   const start=html.indexOf('<div id="view-controls"'),end=html.indexOf('<section class="playback ui"',start),block=html.slice(start,end);
-  const ordered=['id="zoom-value"','id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="rotate-left"','id="rotate-right"','id="zen-toggle"'];
+  const ordered=['id="zoom-value"','id="fit-view"','id="camera-preset-1"','id="camera-preset-2"','id="camera-preset-3"','id="rotation-mode-toggle"','id="zen-toggle"'];
   let cursor=-1;
   for(const token of ordered){const next=block.indexOf(token);assert.ok(next>cursor,token+' order');cursor=next;}
   assert.match(css,/\.view-controls #zoom-value\{padding:0;min-width:0;font-size:10px;line-height:1(?:;margin-bottom:5px)?\}/);

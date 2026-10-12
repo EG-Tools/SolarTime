@@ -2,6 +2,30 @@
 (function(root){
 'use strict';
 const STYLE=root.SolarSurfaceStyle;
+const TEXTURE_UPLOAD_PIXELS=512*1024;
+// One analytic cone per supported satellite: no shadow map, extra draw or samples.
+const ECLIPSE_GLSL=`
+  uniform vec4 shadowCaster;uniform float shadowSpread;
+  float eclipseLight(vec3 n){
+    if(shadowCaster.w<=0.)return 1.;
+    vec3 q=shadowCaster.xyz-n;float along=dot(q,light);
+    if(along<=0.)return 1.;
+    float spread=along*shadowSpread,soft=max(2./max(diameter,1.),.001);
+    float inner=max(0.,shadowCaster.w-spread),outer=shadowCaster.w+spread+soft;
+    float distance=length(q-light*along);
+    float coverage=1.-smoothstep(max(0.,inner-soft),outer,distance);
+    float peak=min(1.,shadowCaster.w*shadowCaster.w/max(spread*spread,.0000001));
+    return 1.-.38*coverage*peak*smoothstep(0.,.12,dot(n,light));
+  }`;
+function eclipseLight(nx,ny,nz,light,caster,spread,diameter){
+  if(!caster||caster[3]<=0)return 1;
+  const x=caster[0]-nx,y=caster[1]-ny,z=caster[2]-nz,along=x*light[0]+y*light[1]+z*light[2];
+  if(along<=0)return 1;
+  const width=along*spread,soft=Math.max(2/Math.max(diameter,1),.001),inner=Math.max(0,caster[3]-width-soft),outer=caster[3]+width+soft;
+  const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v);};
+  const coverage=1-smooth((Math.hypot(x-light[0]*along,y-light[1]*along,z-light[2]*along)-inner)/(outer-inner));
+  return 1-.38*coverage*Math.min(1,caster[3]**2/Math.max(width*width,1e-7))*smooth((nx*light[0]+ny*light[1]+nz*light[2])/.12);
+}
 if(!STYLE)throw Error('surface-style.js must load before surface.js');
 const EARTH_NIGHT_GLSL=`
   vec3 stableNight(vec2 uv,float facing){
@@ -324,6 +348,7 @@ function surfaceKernel(style){
     uniform vec3 axisU,axisV,pole,light; uniform float phase,kind,hasBump,diameter,texel,nightTexel,effectTime,sunActivity,nightLights,cloudAmount;
     const float PI=3.141592653589793;
     vec3 world(vec3 q){return axisU*q.x+axisV*q.y+pole*q.z;}
+    ${ECLIPSE_GLSL}
     ${EARTH_NIGHT_GLSL}
     ${ATMOSPHERIC_CLOUD_GLSL}
     void main(){
@@ -379,6 +404,7 @@ function surfaceKernel(style){
       }else if(kind==3.||kind==4.){
         col+=vec3(.18,.26,.33)*pow(1.-n.z,5.)*day*.16;
       }
+    col*=eclipseLight(n);
       float alpha=clamp((1.-sqrt(rr))*diameter,0.,1.);
       gl_FragColor=vec4(col,alpha);
     }`;
@@ -393,7 +419,7 @@ function surfaceKernel(style){
         if(!g.getProgramParameter(program,g.LINK_STATUS))throw Error(g.getProgramInfoLog(program));this.program=program;
         this.buffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
         this.attribute=g.getAttribLocation(program,'a');
-        this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
+        this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
       }catch(error){if(this.gl){this.gl.getExtension('WEBGL_lose_context')?.loseContext();this.gl=null;}this.canvas=makeCanvas(32);this.ctx=this.canvas.getContext('2d');this.stats.fallback=error.message;}
     }
     async texture(id,width,signal){
@@ -478,6 +504,7 @@ function surfaceKernel(style){
         g.uniform1f(u.cloudDetail,Number.isFinite(job.cloudDetail)?clamp(job.cloudDetail,0,1):1);
         if(cloudState){g.uniform2fv(u.cloudDrift,cloudState.drift);g.uniform3fv(u.cloudWeather,cloudState.blend);g.uniform4fv(u.cloudLife,cloudState.life);g.uniform4fv(u.cloudAltLife,cloudState.altLife);g.uniform1f(u.cloudAltOffset,cloudState.altOffset);g.uniform1f(u.cloudReveal,cloudReveal);}
         g.uniform3fv(u.axisU,frame.u);g.uniform3fv(u.axisV,frame.v);g.uniform3fv(u.pole,frame.pole);g.uniform3fv(u.light,light);
+        g.uniform4fv(u.shadowCaster,job.shadowCaster||[0,0,0,0]);g.uniform1f(u.shadowSpread,job.shadowSpread||0);
         g.uniform1f(u.phase,phase);g.uniform1f(u.kind,id==='earth'?1:id==='sun'?2:id==='venus'?5:id==='uranus'?4:['jupiter','saturn','neptune'].includes(id)?3:0);
         g.uniform1f(u.hasBump,bump!==color?1:0);g.uniform1f(u.diameter,n);g.uniform1f(u.texel,1/width);g.uniform1f(u.nightTexel,1/night.width);g.uniform1f(u.effectTime,seconds);g.uniform1f(u.sunActivity,activity?1:0);g.uniform1f(u.nightLights,night!==color?1:0);g.uniform1f(u.cloudAmount,cloudAmount);g.drawArrays(g.TRIANGLES,0,6);
         if(g.isContextLost())throw Error('WebGL context lost');
@@ -546,6 +573,7 @@ function surfaceKernel(style){
             const opacity=cloudAmount,rim=(1-nz)**5*day*.16*opacity;
             for(let k=0;k<3;k++)data[i+k]=data[i+k]*(1-opacity)+255*atmosphericTexture(clouds,cu,cv,false,k)*lit*opacity+255*(k===0?.18:k===1?.26:.33)*rim;
           }
+          const shade=eclipseLight(nx,ny,nz,light,job.shadowCaster,job.shadowSpread||0,n);for(let k=0;k<3;k++)data[i+k]*=shade;
           data[i+3]=map[m+6];
           if((m/7)%8192===0&&performance.now()-sliceStart>6){await new Promise(resolve=>setTimeout(resolve,0));if(this.disposed)throw Error('Surface disposed');sliceStart=performance.now();}
         }
@@ -567,7 +595,7 @@ class SurfaceService{
     this.stats={backend:'compatibility',submitted:0,accepted:0,discarded:0,workerMs:0,mapPixels:0,texturePixels:0};
     if(worker&&typeof Worker==='function'&&typeof OffscreenCanvas==='function'){
       let url;try{
-        const boot=`const EARTH_NIGHT_GLSL=${JSON.stringify(EARTH_NIGHT_GLSL)};const ATMOSPHERIC_CLOUD_GLSL=${JSON.stringify(ATMOSPHERIC_CLOUD_GLSL)};const kernel=(${surfaceKernel.toString()})(${JSON.stringify(STYLE)});const engine=new kernel.Engine();onmessage=async e=>{const {jobs,revision,epoch,assets}=e.data;if(assets)kernel.setAssets(assets);const start=performance.now();try{for(const job of jobs){const canvas=await engine.render(job);const bitmap=canvas.transferToImageBitmap();postMessage({kind:'frame',revision,epoch,job,bitmap},[bitmap]);}postMessage({kind:'done',revision,epoch,ms:performance.now()-start,stats:engine.stats,mapPixels:engine.mapPixels,texturePixels:engine.texturePixels});}catch(error){postMessage({kind:'error',revision,epoch,message:error.message});}};`;
+        const boot=`const ECLIPSE_GLSL=${JSON.stringify(ECLIPSE_GLSL)};const eclipseLight=${eclipseLight.toString()};const EARTH_NIGHT_GLSL=${JSON.stringify(EARTH_NIGHT_GLSL)};const ATMOSPHERIC_CLOUD_GLSL=${JSON.stringify(ATMOSPHERIC_CLOUD_GLSL)};const kernel=(${surfaceKernel.toString()})(${JSON.stringify(STYLE)});const engine=new kernel.Engine();onmessage=async e=>{const {jobs,revision,epoch,assets}=e.data;if(assets)kernel.setAssets(assets);const start=performance.now();try{for(const job of jobs){const canvas=await engine.render(job);const bitmap=canvas.transferToImageBitmap();postMessage({kind:'frame',revision,epoch,job,bitmap},[bitmap]);}postMessage({kind:'done',revision,epoch,ms:performance.now()-start,stats:engine.stats,mapPixels:engine.mapPixels,texturePixels:engine.texturePixels});}catch(error){postMessage({kind:'error',revision,epoch,message:error.message});}};`;
         url=URL.createObjectURL(new Blob([boot],{type:'text/javascript'}));this.worker=new Worker(url);this.worker.onmessage=e=>this.receive(e.data);this.worker.onerror=e=>{this.stats.workerError=e.message||'Worker unavailable';this.fallback();};this.stats.backend='worker';
       }catch(error){this.stats.workerError=error.message;this.fallback();}finally{if(url)URL.revokeObjectURL(url);}
     }
@@ -662,10 +690,12 @@ const DIRECT_QUAD_VERTEX=`attribute vec2 a;
   uniform vec2 center,viewport;uniform float radius;varying vec2 p;
   void main(){p=a;vec2 q=center+a*radius;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);}`;
 const DIRECT_PLANET_FRAGMENT=`precision highp float;
-  varying vec2 p;uniform sampler2D colorMap,bumpMap,cloudsMap,nightMap;
+  varying vec2 p;uniform sampler2D colorMap,bumpMap,cloudsMap,nightMap,previousColorMap;
+  uniform float colorLodMix;
   uniform vec3 axisU,axisV,pole,light;uniform float phase,kind,hasBump,diameter,texel,nightTexel,effectTime,sunActivity,nightLights,cloudAmount;
   const float PI=3.141592653589793;
   vec3 world(vec3 q){return axisU*q.x+axisV*q.y+pole*q.z;}
+  ${ECLIPSE_GLSL}
   ${EARTH_NIGHT_GLSL}
   ${ATMOSPHERIC_CLOUD_GLSL}
   void main(){
@@ -679,6 +709,7 @@ const DIRECT_PLANET_FRAGMENT=`precision highp float;
     vec2 uv=vec2((angle+PI)/(2.*PI)-phase,.5-latitude/PI);
     ${STYLE.warpGLSL}
     vec3 base=texture2D(colorMap,uv).rgb,normal=n;
+    if(colorLodMix<1.)base=mix(texture2D(previousColorMap,uv).rgb,base,colorLodMix);
     if(kind==4.){
       float band=.5+.5*sin(latitude*18.+sin(latitude*4.)*.45);
       float haze=pow(max(0.,1.-abs(local.z)),2.);
@@ -717,17 +748,27 @@ const DIRECT_PLANET_FRAGMENT=`precision highp float;
     }else if(kind==2.){
       ${STYLE.lightingGLSL}
     }else if(kind==3.||kind==4.)col+=vec3(.18,.26,.33)*pow(1.-n.z,5.)*day*.16;
+    col*=eclipseLight(n);
     float alpha=clamp((1.-sqrt(rr))*diameter,0.,1.);gl_FragColor=vec4(col,alpha);
   }`;
 // The corona keeps the established filament texture, but all per-frame
 // rotation, pulsing, halo composition and blending now run in this GPU pass.
 // One procedural texture upload replaces two large Canvas2D drawImage calls
 // and a radial-gradient allocation on every frame.
+const DIRECT_CORONA_VERTEX=`attribute vec2 a;
+  uniform vec2 center,viewport;uniform float radius,effectTime;
+  varying vec2 p,nearUV,farUV,layerOpacity;
+  vec2 rotated(vec2 q,float angle){float c=cos(angle),s=sin(angle);return vec2(c*q.x-s*q.y,s*q.x+c*q.y);}
+  void main(){
+    p=a;vec2 q=center+a*radius;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);
+    float t=effectTime*24.;
+    nearUV=rotated(a*5.1,-t*.003)/6.6+.5;
+    farUV=rotated(a*5.1,t*.003-1.73)/(6.6*1.08)+.5;
+    layerOpacity=vec2(.8*(1.+sin(t*.19)*.035),.37*(1.+sin(t*.19+1.)*.035));
+  }`;
 const DIRECT_CORONA_FRAGMENT=`precision highp float;
-  varying vec2 p;uniform sampler2D coronaMap;uniform float effectTime;
-  vec2 rotatePoint(vec2 q,float angle){float c=cos(angle),s=sin(angle);return vec2(c*q.x-s*q.y,s*q.x+c*q.y);}
-  vec4 filament(vec2 q,float angle,float scale,float opacity){
-    vec2 uv=rotatePoint(q,-angle)/(6.6*scale)+.5;
+  varying vec2 p,nearUV,farUV,layerOpacity;uniform sampler2D coronaMap;
+  vec4 filament(vec2 uv,float opacity){
     if(any(lessThan(uv,vec2(0.)))||any(greaterThan(uv,vec2(1.))))return vec4(0.);
     vec4 sample=texture2D(coronaMap,uv);sample.a*=opacity;return sample;
   }
@@ -738,9 +779,8 @@ const DIRECT_CORONA_FRAGMENT=`precision highp float;
     vec2 q=p*5.1;float distanceFromSun=length(q);if(distanceFromSun<.98||distanceFromSun>5.1)discard;
     float halo=distanceFromSun<1.63?mix(.25,.095,clamp((distanceFromSun-.92)/.71,0.,1.)):
       distanceFromSun<3.01?mix(.095,.026,(distanceFromSun-1.63)/1.38):mix(.026,0.,(distanceFromSun-3.01)/2.09);
-    float t=effectTime*24.;
-    vec4 nearLayer=filament(q,t*.003,1.,.8*(1.+sin(t*.19)*.035));
-    vec4 farLayer=filament(q,1.73-t*.003,1.08,.37*(1.+sin(t*.19+1.)*.035));
+    vec4 nearLayer=filament(nearUV,layerOpacity.x);
+    vec4 farLayer=filament(farUV,layerOpacity.y);
     vec3 premul=vec3(0.);float alpha=0.;
     over(premul,alpha,vec3(1.,.655,.263),halo);
     over(premul,alpha,nearLayer.rgb,nearLayer.a);
@@ -902,8 +942,8 @@ class DirectRenderer{
     this.orbitBufferBytes=0;this.antialiasMemory=g.getContextAttributes?.()?.antialias!==false;
     this.maxTextureSize=Math.min(4096,2**Math.floor(Math.log2(g.getParameter(g.MAX_TEXTURE_SIZE))));
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
-    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount']);
-    this.coronaProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
+    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','previousColorMap','colorLodMix','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread']);
+    this.coronaProgram=directProgram(g,DIRECT_CORONA_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
     this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','roll','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','color','ink','inkWeight']);
     this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel','light']);
     this.quad=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.quad);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
@@ -913,6 +953,7 @@ class DirectRenderer{
     g.uniform1i(this.planetProgram.u.nightMap,3);
     g.uniform1i(this.planetProgram.u.cloudWeatherMap,4);
     g.uniform1i(this.planetProgram.u.cloudAltMap,5);
+    g.uniform1i(this.planetProgram.u.previousColorMap,6);
     g.useProgram(this.coronaProgram.program);g.uniform1i(this.coronaProgram.u.coronaMap,3);
     g.useProgram(this.ring.program);g.uniform1i(this.ring.u.ringMap,0);
     for(const p of [this.planetProgram,this.coronaProgram,this.line,this.ring]){p.viewportWidth=NaN;p.viewportHeight=NaN;}
@@ -993,16 +1034,17 @@ class DirectRenderer{
     return this.textureIsWanted(name)?(preview?150:100):0;
   }
   // This is an early request through the SAME progressive owner, not a second
-  // download/cache. Start only the preview; a resident final tier is a fast path.
+  // download/cache. Start with the preview; repeated arrival intent advances
+  // to detail before close-up. A resident final tier is a fast path.
   prefetchBody(name,target=4096){
     if(this.disposed||this.paused||this.contextLost)return;
     const asset=root.SolarAssets?.materials?.[name];if(!asset)return;
-    this.textureIntent={id:name,until:performance.now()+2500};
     target=directPower(Math.min(target,this.maxTextureSize,asset.tiers?.at(-1)?.width||target));
+    this.textureIntent={id:name,target,until:performance.now()+2500};
     const current=this.textures.get(name);
-    if(current?.asset===asset&&current.texture&&current.width>=PREVIEW_TEXTURE_WIDTH)return;
+    if(current?.asset===asset&&current.texture&&current.width>=target)return;
     if(this.restoreRecent(name,asset,target))return;
-    this.textureFor(name,Math.min(PREVIEW_TEXTURE_WIDTH,target),true);
+    this.textureFor(name,this.texturePlan?.constrained?Math.min(target,this.texturePlan.targets.get(name)||PREVIEW_TEXTURE_WIDTH):target,true);
     this.pumpTextureQueue();
   }
   cancelTexture(name){
@@ -1043,6 +1085,41 @@ class DirectRenderer{
     finally{this.activeDecodes--;this.decodeWaiters.shift()?.();}
   }
   recentKey(name,source,width){return name+':'+width+'|'+source.key;}
+  waitForTextureUpload(signal){
+    signal?.throwIfAborted();
+    return new Promise((resolve,reject)=>{
+      const queue=this.textureUploadWaiters||(this.textureUploadWaiters=[]);
+      const abort=()=>{const i=queue.indexOf(wake);if(i>=0)queue.splice(i,1);if(!queue.length&&this.textureUploadFrame!=null){cancelAnimationFrame(this.textureUploadFrame);this.textureUploadFrame=null;}reject(signal.reason);};
+      const wake=()=>{signal?.removeEventListener('abort',abort);resolve();};
+      queue.push(wake);signal?.addEventListener('abort',abort,{once:true});this.pumpTextureUploads();
+    });
+  }
+  pumpTextureUploads(){
+    if(this.textureUploadFrame!=null||!this.textureUploadWaiters?.length)return;
+    this.textureUploadFrame=requestAnimationFrame(()=>{this.textureUploadFrame=null;this.textureUploadWaiters.shift()?.();this.pumpTextureUploads();});
+  }
+  async uploadTexturePixels(texture,source,width,height,signal,valid){
+    const g=this.gl,bind=()=>{g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);};
+    if(width*height<2048*1024||typeof requestAnimationFrame!=='function'||typeof createImageBitmap!=='function'){
+      bind();g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,source);return true;
+    }
+    // Keep the resident preview until every row is ready. Large 4K uploads
+    // used to block camera handoffs for a whole 50–70 ms task. All material
+    // loads now share one bounded upload turn per animation frame.
+    await this.waitForTextureUpload(signal);if(!valid())return false;
+    bind();g.texImage2D(g.TEXTURE_2D,0,g.RGBA,width,height,0,g.RGBA,g.UNSIGNED_BYTE,null);
+    const rows=Math.max(1,Math.floor(TEXTURE_UPLOAD_PIXELS/width));
+    for(let y=0;y<height;y+=rows){
+      let strip;
+      try{
+        signal?.throwIfAborted();if(!valid())return false;
+        strip=await createImageBitmap(source,0,y,width,Math.min(rows,height-y),{premultiplyAlpha:'none',colorSpaceConversion:'none'});
+        await this.waitForTextureUpload(signal);if(!valid())return false;
+        bind();g.texSubImage2D(g.TEXTURE_2D,0,0,y,g.RGBA,g.UNSIGNED_BYTE,strip);
+      }finally{strip?.close?.();}
+    }
+    return true;
+  }
   discardRecent(key){
     const old=this.recentTextures?.get(key);if(!old)return;
     if(!this.contextLost)this.gl.deleteTexture(old.texture);
@@ -1063,10 +1140,11 @@ class DirectRenderer{
     if(!record?.texture)return;
     // Store the actually uploaded source, not an unfinished replacement URL.
     const source=record.residentSource||record.source;
-    if(!this.contextLost&&record.width>=PREVIEW_TEXTURE_WIDTH&&source){
+    if(!this.contextLost&&source){
       this.recentTextures ||= new Map();
       const key=this.recentKey(name,source,record.width);this.discardRecent(key);
       this.recentTextures.set(key,{asset:record.residentAsset||record.asset,source,texture:record.texture,width:record.width,height:record.height});
+      return key;
     }else{
       if(!this.contextLost)this.gl.deleteTexture(record.texture);
       this.stats.texturePixels-=record.width*record.height;
@@ -1077,8 +1155,8 @@ class DirectRenderer{
     if(!saved)return null;
     if(saved.asset!==asset){this.discardRecent(key);return null;}
     this.recentTextures.delete(key);const current=this.textures.get(name);
-    this.cancelTexture(name);this.parkTexture(name,current);
-    const record={...saved,residentSource:saved.source,pending:false,token:++this.textureToken,retryAt:0};
+    this.cancelTexture(name);const previousLod=this.parkTexture(name,current);
+    const record={...saved,residentSource:saved.source,pending:false,token:++this.textureToken,retryAt:0,previousLod:current?.asset===asset?previousLod:null,lodStarted:performance.now()};
     this.textures.set(name,record);this.resetTextureBindings();this.trimRecent();
     this.stats.recentHits=(this.stats.recentHits||0)+1;this.stats.accepted=(this.stats.accepted||0)+1;
     return record;
@@ -1101,13 +1179,18 @@ class DirectRenderer{
       }
       this.trimRecent(width*height*4);
       root.SolarPerformance?.trimTextures(this,width*height*4);
-      const g=this.gl;texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);
-      g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,upload);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,radial?g.CLAMP_TO_EDGE:g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,name==='clouds-alt'?g.REPEAT:g.CLAMP_TO_EDGE);
+      const g=this.gl;texture=g.createTexture();
+      const valid=()=>!this.disposed&&!this.contextLost&&!signal?.aborted&&generation===this.generation&&this.textures.get(name)?.token===token;
+      if(!await this.uploadTexturePixels(texture,upload,width,height,signal,valid))return;
+      if(!valid())return;
+      g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();
+      g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,radial?g.CLAMP_TO_EDGE:g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,name==='clouds-alt'?g.REPEAT:g.CLAMP_TO_EDGE);
       // Explicit screen-size texture tiers provide LOD without the longitude
       // derivative seam that implicit mip selection creates on a sphere.
       g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
       const record=this.textures.get(name);if(!record||record.token!==token||record.source.key!==source.key){g.deleteTexture(texture);texture=null;this.stats.discarded++;return;}
-      this.parkTexture(name,record);
+      const previousLod=this.parkTexture(name,record);
+      record.previousLod=record.residentAsset===record.asset?previousLod:null;record.lodStarted=performance.now();
       Object.assign(record,{texture,width,height,residentSource:source,residentAsset:record.asset,pending:false,error:null,retryAt:width<target?Date.now()+30000:0});texture=null;this.stats.accepted++;this.stats.texturesLoaded++;this.stats.texturePixels+=width*height;
       this.trimRecent();
     }catch(error){const record=this.textures.get(name);if(!signal?.aborted&&generation===this.generation&&record&&record.token===token){record.pending=false;record.error=error.message;record.retryAt=Date.now()+30000;this.stats.error=error.message;}}
@@ -1116,6 +1199,8 @@ class DirectRenderer{
   texture(name,target){const result=this.textureFor(name,target);root.SolarPerformance?.touchTexture(this,name);return result;}
   textureFor(name,target,previewIntent=false){
     const asset=root.SolarAssets?.materials?.[name];if(!asset)return null;
+    const intent=this.textureIntent;
+    if(intent?.id===name&&performance.now()<intent.until&&!this.texturePlan?.constrained)target=Math.max(target,intent.target||0);
     target=directPower(Math.min(target,this.maxTextureSize,previewIntent?Infinity:this.texturePlan?.targets.get(name)??Infinity,asset.tiers?.at(-1)?.width||target));
     let record=this.textures.get(name);
     const assetChanged=!record||record.asset!==asset,now=performance.now();
@@ -1137,10 +1222,19 @@ class DirectRenderer{
     if(retryReady&&(changed||resize)&&(!record?.pending||record.pendingTarget!==target||changed)){
       this.cancelTexture(name);
       const old=record?.texture||null,token=++this.textureToken,generation=this.generation;
-      record={asset,source,residentAsset:record?.residentAsset||record?.asset,residentSource:record?.residentSource||record?.source,texture:old,width:record?.width||0,height:record?.height||0,pending:true,pendingTarget:target,token};
+      record={asset,source,residentAsset:record?.residentAsset||record?.asset,residentSource:record?.residentSource||record?.source,texture:old,width:record?.width||0,height:record?.height||0,previousLod:record?.previousLod,lodStarted:record?.lodStarted,pending:true,pendingTarget:target,token};
       this.textures.set(name,record);this.queueTexture({name,source,target,token,generation});
     }
     return record?.texture?record:null;
+  }
+  colorLod(record,now=performance.now()){
+    const previous=this.recentTextures?.get(record.previousLod),t=Math.max(0,Math.min(1,(now-record.lodStarted)/350));
+    if(!previous||!Number.isFinite(t)||t>=1){record.previousLod=null;return null;}
+    return {texture:previous.texture,mix:t*t*(3-2*t)};
+  }
+  hasLodTransition(now=performance.now()){
+    for(const record of this.textures.values())if(record.previousLod&&now-record.lodStarted<350&&this.recentTextures?.has(record.previousLod))return true;
+    return false;
   }
   prepareOrbit(key,xyz,components=3){
     if(!key||!xyz?.length||this.disposed||this.contextLost)return null;
@@ -1205,7 +1299,22 @@ class DirectRenderer{
     }
     const p=this.coronaProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius*5.1);g.uniform1f(p.u.effectTime,time);
     this.bindTextureUnit(3,record.texture);
-    g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
+    this.drawCoronaQuad(screen,radius);
+  }
+  drawCoronaQuad(screen,radius){
+    const g=this.gl,w=this.canvas.width,h=this.canvas.height,sx=w/this.width,sy=h/this.height;
+    // This square is strictly inside the shader's already discarded solar
+    // disc. Close views need not shade millions of invisible core pixels.
+    const half=Math.max(0,radius*.98/Math.SQRT2-2/Math.min(sx,sy));
+    const x0=Math.max(0,Math.min(w,Math.ceil((screen.x-half)*sx))),x1=Math.max(0,Math.min(w,Math.floor((screen.x+half)*sx)));
+    const y0=Math.max(0,Math.min(h,Math.ceil(h-(screen.y+half)*sy))),y1=Math.max(0,Math.min(h,Math.floor(h-(screen.y-half)*sy)));
+    if(x1<=x0||y1<=y0||(x1-x0)*(y1-y0)<w*h*.2||g.isEnabled(g.SCISSOR_TEST)){
+      g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;return;
+    }
+    g.enable(g.SCISSOR_TEST);
+    try{for(const [x,y,width,height] of [[0,0,w,y0],[0,y1,w,h-y1],[0,y0,x0,y1-y0],[x1,y0,w-x1,y1-y0]]){
+      if(width<=0||height<=0)continue;g.scissor(x,y,width,height);g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
+    }}finally{g.disable(g.SCISSOR_TEST);}
   }
   rings(body,frame,screen,radius,front,light){
     const saturn=body.id==='saturn',inner=saturn?1.28:1.58,outer=saturn?2.26:1.94,g=this.gl,p=this.ring;
@@ -1260,6 +1369,7 @@ class DirectRenderer{
     const ringFrame=body.id==='saturn'||body.id==='uranus'?this.bodyRingFrame(frame,job.phase):frame;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,ringFrame,screen,radius,false,job.light);
     const g=this.gl,p=this.planetProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius);g.uniform3fv(p.u.axisU,frame.u);g.uniform3fv(p.u.axisV,frame.v);g.uniform3fv(p.u.pole,frame.pole);g.uniform3fv(p.u.light,job.light);
+    g.uniform4fv(p.u.shadowCaster,job.shadowCaster||[0,0,0,0]);g.uniform1f(p.u.shadowSpread,job.shadowSpread||0);
     g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='venus'?5:job.id==='uranus'?4:['jupiter','saturn','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);g.uniform1f(p.u.nightTexel,1/(night?.width||color.width));g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);g.uniform1f(p.u.cloudAmount,clouds?cloudAmount:0);
     g.uniform1f(p.u.cloudAltMix,altMix);
     g.uniform1f(p.u.cloudDetail,cloudDetail);g.uniform1f(p.u.cloudReveal,Number.isFinite(job.cloudReveal)?job.cloudReveal:1);
@@ -1268,6 +1378,7 @@ class DirectRenderer{
     this.bindTextureUnit(0,color.texture);this.bindTextureUnit(1,bump?.texture||color.texture);this.bindTextureUnit(2,clouds?.texture||this.black);this.bindTextureUnit(3,night?.texture||this.black);
     this.bindTextureUnit(4,weather?.texture||this.black);
     this.bindTextureUnit(5,cloudsAlt?.texture||this.black);
+    const lod=this.colorLod(color);this.bindTextureUnit(6,lod?.texture||color.texture);g.uniform1f(p.u.colorLodMix,lod?.mix??1);
     g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,ringFrame,screen,radius,true,job.light);
     let frameRecord=this.frames.get(job.id);if(!frameRecord){frameRecord={job:null,image:{width:0,height:0,gpu:true}};this.frames.set(job.id,frameRecord);}
@@ -1296,5 +1407,5 @@ class DirectRenderer{
     this.canvas.removeEventListener('webglcontextlost',this.onLost);this.canvas.removeEventListener('webglcontextrestored',this.onRestored);
   }
 }
-root.SolarSurface={kernel:()=>surfaceKernel(STYLE),Service:SurfaceService,DirectRenderer,effectRevision:'solar-surface-v047',shaderSources:Object.freeze({planet:DIRECT_PLANET_FRAGMENT})};if(typeof module==='object'&&module.exports)module.exports=root.SolarSurface;
+root.SolarSurface={eclipseLight,kernel:()=>surfaceKernel(STYLE),Service:SurfaceService,DirectRenderer,effectRevision:'solar-surface-v047',shaderSources:Object.freeze({planet:DIRECT_PLANET_FRAGMENT})};if(typeof module==='object'&&module.exports)module.exports=root.SolarSurface;
 })(typeof window==='object'?window:globalThis);

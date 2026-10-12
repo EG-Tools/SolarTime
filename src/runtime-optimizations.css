@@ -16,7 +16,7 @@ body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
 .timezone-readout:hover{color:var(--accent);background:rgba(233,200,141,.07);outline:none}
 .timezone-readout:focus-visible{color:var(--accent);background:rgba(233,200,141,.07);outline:none}
 .timezone-readout:focus-visible{box-shadow:0 0 0 1px rgba(233,200,141,.55)}
-.date-line .timezone-reset{width:13px;height:13px;margin-left:-8px;padding:0;letter-spacing:0}
+.date-line .timezone-reset{position:absolute;left:calc(100% + 4px);top:50%;transform:translateY(-50%);width:13px;height:13px;margin:0;padding:0;letter-spacing:0}
 
 @media(min-width:1800px){
   .clock-face{top:max(70px,calc(var(--solar-safe-top) + 8px))}

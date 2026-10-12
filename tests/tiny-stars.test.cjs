@@ -49,12 +49,24 @@ test('tiny point sprites have enough integer-sized support for the whole pixel-a
 test('tiny stars bypass animation and alpha cutoff without removing large-star animation',()=>{
  const effects=api();
  for(const precision of ['highp','mediump']){
-  const s=effects.starShaderSources(precision),tiny=s.fragment.slice(s.fragment.indexOf('if(tinyStar>.5)'),s.fragment.indexOf('vec2 q=gl_PointCoord'));
+  const s=effects.starShaderSources(precision),tiny=s.fragment.slice(s.fragment.indexOf('if(tinyStar>.5)'),s.fragment.indexOf('vec2 q='));
   assert.ok(s.vertex.startsWith('precision highp float;'));
   assert.ok(s.vertex.includes('if(tinyStar>.5){intensity=appearance.y;flarePulse=0.;}'));
   assert.ok(tiny.includes('covered.x*covered.y'));assert.doesNotMatch(tiny,/if\(alpha|discard;|sin\(/);
   assert.match(s.vertex,/twinklePeriod=mix\(5\.0,25\.0/);assert.match(s.fragment,/cross\*\.58\*flarePulse/);
  }
+});
+test('each star moves only in depth on an independent roughly thirty-second cycle',()=>{
+ const effects=api();assert.deepEqual({...effects.STAR_DEPTH_MOTION},{minPeriod:24,maxPeriod:36,minAmplitude:.018,maxAmplitude:.055});
+ const a=Array.from({length:5},(_,i)=>effects.starDepthScale(11.2,i*7)),b=Array.from({length:5},(_,i)=>effects.starDepthScale(23.8,i*7));
+ assert.notDeepEqual(a,b);for(const value of [...a,...b])assert.ok(value>=.945&&value<=1.055);
+ const vertex=effects.starShaderSources('highp').vertex;assert.match(vertex,/position\*travelScale-manualEye/);assert.match(vertex,/uniform vec4 featureQuiet/);
+});
+test('world-direction quiet filtering is stable through depth movement',()=>{
+ const effects=api(),zones=[{x:1,y:0,z:0,radius:.1},{x:0,y:1,z:0,radius:.1}];let visible=0;
+ for(let i=0;i<10000;i++){const seed=i+.37,first=effects.starQuietVisible(1,0,0,seed,zones);if(first)visible++;assert.equal(effects.starQuietVisible(99,0,0,seed,zones),first);assert.equal(effects.starQuietVisible(.08,0,0,seed,zones),first);}
+ assert.ok(visible>3300&&visible<3700);assert.equal(effects.starQuietVisible(0,1,0,.01,zones),false);assert.equal(effects.starQuietVisible(0,0,1,.01,zones),true);
+ const shader=effects.starShaderSources('highp',2).vertex;assert.match(shader,/normalize\(position\)-zone\.xyz/);assert.doesNotMatch(shader,/ndc-zone/);
 });
 test('compatibility draws whole output pixels and restores caller paint state',()=>{
  const effects=api(),calls=[],ctx={globalAlpha:.8,fillStyle:'#123456',fillRect(...a){calls.push([this.globalAlpha,...a]);}};

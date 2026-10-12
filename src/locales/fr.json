@@ -1,5 +1,12 @@
 {
   "copy": {
+    "solarSystemMode": "Mode système solaire",
+    "constellationMode": "Mode constellations",
+    "expandRotationTouch": "Développer : appui long",
+    "expandRotationMouse": "Développer : clic droit",
+    "scrollUp": "Défiler vers le haut",
+    "scrollDown": "Défiler vers le bas",
+    "skyNavigate": "Aller à {name}",
     "openingTravel": "Voyage d’ouverture",
     "openingDefault": "Ouverture par défaut",
     "openingNone": "Aucun",
@@ -129,6 +136,9 @@
     "savedCameras": "Vues enregistrées",
     "planetSwitch": "Changer de planète",
     "trackBody": "Suivre l’astre",
+    "trackConstellation": "Suivre la constellation",
+    "showConstellation": "Afficher les lignes",
+    "showSolarSystem": "Afficher le système solaire",
     "zoomInOut": "Zoom avant · arrière",
     "cameraRotate": "Rotation",
     "cameraTravel": "Avancer · reculer",
@@ -223,6 +233,13 @@
     "cookieDismiss": "Fermer sans modifier votre choix",
     "cookieChoiceNote": "L’autorisation est mémorisée pendant 6 mois. Le refus et X ne sont pas enregistrés ; la question sera reposée à la prochaine visite.",
     "music": "Musique",
+    "asterism": "Astérisme",
+    "constellation": "Constellation",
+    "ursaMajor": "Grande Ourse",
+    "warpShortcut": "Saut spatial",
+    "constellationsShortcut": "Afficher les constellations",
+    "targetSwitch": "Cible précédente / suivante",
+    "targetSwitchHint": "Passez entre les planètes, les régions ou les constellations selon la vue actuelle.",
     "timer": "Minuteur",
     "timerClose": "Fermer le minuteur",
     "alarm": "Alarme",
@@ -271,8 +288,8 @@
     "helperDisabled": "L’assistant d’arrêt de Solar Time est désactivé.",
     "helperDownloadTitle": "Assistant officiel vérifié",
     "helperDownloadDescription": "Ce fichier d’arrêt programmé de Windows est créé et vérifié par Solar Time.",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
+    "helperDownloadPrivacy": "Seuls des identifiants aléatoires à usage unique, la version de l’assistant et les résultats des commandes sont envoyés à Solar Time. Aucun compte, fichier ni nom d’ordinateur n’est transmis. Les accusés de réception expirent et sont supprimés automatiquement.",
+    "helperDownloadPermission": "Installation pour l’utilisateur actuel sans droits administrateur. Utilise PowerShell, une association d’URL et la commande d’arrêt de Windows.",
     "helperDownloadSource": "Le code source et le SHA-256 sont publics afin de vérifier toute modification.",
     "helperViewSource": "Voir le code source",
     "helperChecksumLabel": "SHA-256",
@@ -281,18 +298,102 @@
     "helperRemoveTitle": "Supprimer l’assistant d’arrêt",
     "helperRemoveDescription": "Annule l’arrêt programmé et supprime l’assistant ainsi que son association du compte Windows actuel.",
     "helperRemoveQuestion": "Supprimer l’assistant ?",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
+    "helperRemoveRequested": "Windows a confirmé l’annulation et la suppression de l’assistant.",
     "helperInstallTitle": "Confirmer l’installation de l’assistant",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallDescription": "Exécutez le dernier programme d’installation CMD téléchargé, puis vérifiez l’assistant installé. Autorisez le navigateur à ouvrir PowerShell.",
+    "helperInstallQuestion": "Vérifier maintenant l’assistant installé ?",
+    "shutdownPending": "En attente de confirmation de Windows. Autorisez l’ouverture de l’assistant.",
+    "shutdownUnknown": "Le résultat Windows n’est pas confirmé. Un arrêt peut encore être programmé. Utilisez Annuler pour vérifier.",
+    "shutdownFailed": "Échec de la commande Windows (code {code}).",
+    "shutdownNotLaunched": "L’assistant ne s’est pas ouvert. Cliquez à nouveau sur l’interrupteur et acceptez la demande du navigateur.",
+    "helperVerifyFailed": "Échec de la vérification. Exécutez le dernier programme d’installation, puis autorisez l’ouverture de l’assistant.",
+    "shutdownDataWarning": "Enregistrez votre travail : l’arrêt programmé de Windows peut forcer la fermeture des applications."
   },
   "bodies": {
+    "polaris": [
+      "Étoile Polaire",
+      "L’étoile la plus brillante de la Petite Ourse se trouve près du pôle nord céleste. Presque immobile en apparence, elle permet de repérer le nord."
+    ],
+    "ursa-major": [
+      "Grande Ourse",
+      "Cette vaste constellation boréale comprend la Grande Casserole. Les lignes se prolongent vers le corps et les pattes de l’ourse."
+    ],
+    "ursa-minor": [
+      "Petite Ourse",
+      "L’étoile Polaire marque le bout du manche de la petite casserole. Kochab et Pherkad forment le bord extérieur du récipient."
+    ],
+    "cassiopeia": [
+      "Cassiopée",
+      "Cinq étoiles brillantes dessinent un W ou un M selon l’orientation. Elle se trouve à peu près à l’opposé de la Grande Casserole par rapport à la Polaire."
+    ],
+    "orion": [
+      "Orion",
+      "Trois étoiles alignées forment sa ceinture. Bételgeuse, rouge, contraste avec Rigel, bleu-blanc ; Orion domine les soirées d’hiver en Corée."
+    ],
+    "scorpius": [
+      "Scorpion",
+      "La rouge Antarès est suivie d’un long corps et d’une queue recourbée. Dans le ciel austral de l’été coréen, Shaula et Lesath dessinent le dard."
+    ],
+    "leo": [
+      "Lion",
+      "Une tête en faucille près de Régulus et un corps triangulaire dessinent le lion. Denebola marque la queue ; il est bien visible au printemps en Corée."
+    ],
+    "cygnus": [
+      "Cygne",
+      "Le cou et les ailes forment la Croix du Nord. Deneb appartient au Triangle d’été, tandis qu’Albiréo marque la tête."
+    ],
+    "taurus": [
+      "Taureau",
+      "Aldébaran, orangée, un visage en V et deux longues cornes caractérisent le Taureau. Aldébaran se trouve devant les Hyades, sans appartenir à cet amas."
+    ],
+    "aries": [
+      "Bélier",
+      "Hamal, Sheratan et Mesarthim forment une courte courbe. Cette constellation zodiacale marquait historiquement le début du printemps."
+    ],
+    "gemini": [
+      "Gémeaux",
+      "Castor et Pollux marquent les têtes des jumeaux. Deux chaînes ramifiées d’étoiles dessinent leurs corps."
+    ],
+    "cancer": [
+      "Cancer",
+      "Une discrète constellation zodiacale en Y autour d’Asellus Borealis et d’Asellus Australis. L’amas de la Crèche aide à la repérer sous un ciel sombre."
+    ],
+    "virgo": [
+      "Vierge",
+      "Spica, bleu-blanc, se distingue dans cette vaste constellation zodiacale. Entre le Lion et la Balance, elle apparaît au sud les soirs de printemps en Corée."
+    ],
+    "libra": [
+      "Balance",
+      "Zubeneschamali et Zubenelgenubi dessinent la balance. Ces étoiles étaient autrefois considérées comme les pinces du Scorpion."
+    ],
+    "sagittarius": [
+      "Sagittaire",
+      "Les étoiles proches de Kaus Australis et de Nunki forment la Théière. Le centre de la Voie lactée se trouve au-delà, dans cette direction."
+    ],
+    "capricornus": [
+      "Capricorne",
+      "Une large figure en coin s’étend entre Algedi et Deneb Algedi. Cette constellation zodiacale peu lumineuse se reconnaît à son contour triangulaire."
+    ],
+    "aquarius": [
+      "Verseau",
+      "De longs courants d’étoiles descendent vers le sud depuis Sadalsuud et Sadalmelik. Les lignes permettent de suivre cette constellation zodiacale très étendue."
+    ],
+    "pisces": [
+      "Poissons",
+      "Deux poissons sont reliés par de longs cordons se rejoignant à Alrescha. Leur faible silhouette couvre une vaste région près de l’équateur céleste."
+    ],
+    "pegasus": [
+      "Pégase",
+      "Alpheratz, Algenib, Markab et Scheat forment le Grand Carré. Des chaînes prolongent le cou et les pattes ; Pégase se distingue en automne en Corée."
+    ],
+    "andromeda": [
+      "Andromède",
+      "Une chaîne relie Alpheratz à Almach en passant par Mirach. La galaxie d’Andromède, voisine, est visible à l’œil nu sous un ciel sombre."
+    ],
+    "crux": [
+      "Croix du Sud",
+      "Acrux et Gacrux forment le grand axe ; Mimosa et Imai, la traverse. Cette petite croix aide à repérer le sud."
+    ],
     "sun": [
       "Soleil",
       "Une étoile composée surtout d’hydrogène et d’hélium. La fusion de son cœur libère de l’énergie sous forme de plasma chaud et de lumière."
@@ -340,6 +441,10 @@
     "pluto": [
       "Pluton",
       "Une planète naine de roche et de glace d’eau, dont la surface est couverte de glaces d’azote, de méthane et de monoxyde de carbone."
+    ],
+    "big-dipper": [
+      "Grande Casserole",
+      "Astérisme formé de sept étoiles brillantes de la Grande Ourse. Sa silhouette de casserole guide vers le ciel du nord, et la ligne de Merak à Dubhe indique la direction de l’étoile Polaire."
     ]
   },
   "phases": {

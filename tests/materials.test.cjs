@@ -25,7 +25,7 @@ test('Sky and planet maps stage a complete baseline before detail LODs',()=>{
  assert.match(sky,/loadSkyImage\(root\.SolarAssets\?\.sky,512,this\.abort\.signal\)/);
  assert.match(sky,/Sky image request timed out/);
  assert.match(sky,/signal\?\.addEventListener\?\.\('abort',abort,\{once:true\}\)/);
- assert.match(sky,/for\(const width of \[1024,2048\]\)/);
+ assert.match(sky,/for\(const width of widths\)/);assert.match(sky,/width<=maxTextureSize/);
  assert.match(surface,/BASELINE_TEXTURE_WIDTH=256/);
  assert.match(surface,/visibleTexturesReady\(\)/);
  assert.match(app,/renderer\.sky\?\.startDetailUpgrade\?\.\(\)/);
@@ -35,15 +35,15 @@ test('Surface raster is limited to 1024 independently of detailed input maps',()
  assert.ok(renderer.includes('detailWidth:4096,maxRaster:1024'));assert.ok(surface.includes('Math.min(1024,job.diam)'));
  assert.ok(renderer.includes('materialRevision'));assert.ok(surface.includes('t.source!==source.key'));
 });
-test('Viewing mode exposes the single complete toolbar only while awake',()=>{
+test('Viewing mode exposes the both viewport toolbars only while awake',()=>{
  const css=fs.readFileSync(require.resolve('../styles.css'),'utf8');
  assert.ok(css.includes('body.zen button'));
- assert.ok(css.includes('body.zen.pointer-awake #view-controls button'));
+ assert.ok(css.includes('body.zen.pointer-awake .view-controls button'));
  assert.ok(css.includes('body.zen dialog[open] :is(button,input,select,a)'));
  assert.ok(!css.includes('#view-controls>:not(#fit-view):not(#show-ui)'));
  const html=fs.readFileSync(require.resolve('../index.html'),'utf8'),app=fs.readFileSync(require.resolve('../src/app.js'),'utf8');
  assert.ok(!html.includes('id="focus-reset"'));assert.ok(!app.includes("$('focus-reset')"));
  assert.equal((html.match(/id="fit-view"/g)||[]).length,1);
  assert.equal((html.match(/id="zen-toggle"/g)||[]).length,1);
- assert.ok(app.includes('viewControls.inert=zen&&!awake'));
+ assert.ok(app.includes('group.inert=zen&&!awake'));
 });

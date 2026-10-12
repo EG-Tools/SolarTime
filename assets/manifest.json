@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "revision": "assetpack-20260930-r1",
-  "generatedAt": "2026-09-30T00:25:02.437Z",
+  "generatedAt": "2026-10-11T23:43:19.801Z",
   "materials": {
     "clouds-alt": {
       "remoteOnly": true,
@@ -757,6 +757,13 @@
         "bytes": 94742,
         "sha256": "473eea7a6908b35b4bcf6f63ade9ccda332698a196f90fe96e8cd848209122cb"
       }
+    ],
+    "galaxyAtlas": {
+      "path": "releases/content/backgrounds/galaxy-atlas.e544896893ea889e.webp",
+      "cells": 2
+    },
+    "galaxyIndices": [
+      0
     ]
   },
   "music": {
@@ -807,6 +814,12 @@
       "path": "releases/content/music/07 - Weightless Emptiness.624d595db3cf990c.mp3",
       "bytes": 4911127,
       "sha256": "624d595db3cf990c68a76f270b40517cf5a0c08827d4eb270e191be8eacd1afc"
+    },
+    "08 - Deep Space Journey.mp3": {
+      "source": "music/08 - Deep Space Journey.mp3",
+      "path": "releases/content/music/08 - Deep Space Journey.f9b2691de45beb9f.mp3",
+      "bytes": 3045992,
+      "sha256": "f9b2691de45beb9f5f8b617ea2facc36187a4e013ee1ff3c1f46ad3eed655817"
     }
   }
 }

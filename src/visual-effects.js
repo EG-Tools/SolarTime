@@ -6,7 +6,9 @@
   const TAU=Math.PI*2;
   // Percentage depths in the preview's 100-unit background volume.
   const STAR_DEPTH_RANGE=Object.freeze({min:8,max:99});
+  const STAR_DEPTH_MOTION=Object.freeze({minPeriod:24,maxPeriod:36,minAmplitude:.018,maxAmplitude:.055});
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+  const fract=value=>value-Math.floor(value);
   const randomGenerator=seed=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   function runtimeSeed(){
     let seed=((Date.now()>>>0)^Math.floor(Math.random()*4294967296))>>>0;
@@ -63,6 +65,19 @@
     }
     starWorldCache.set(source,data);return data;
   }
+  function starDepthScale(seed,seconds,amplitudeScale=1){
+    const period=STAR_DEPTH_MOTION.minPeriod+(STAR_DEPTH_MOTION.maxPeriod-STAR_DEPTH_MOTION.minPeriod)*fract(seed*.4142135623);
+    const amplitude=(STAR_DEPTH_MOTION.minAmplitude+(STAR_DEPTH_MOTION.maxAmplitude-STAR_DEPTH_MOTION.minAmplitude)*fract(seed*.7320508076))*amplitudeScale;
+    return 1+amplitude*Math.sin(seconds/period*TAU+fract(seed*.6180339887)*TAU);
+  }
+  function starQuietVisible(x,y,z,seed,zones){
+    const length=Math.hypot(x,y,z);if(!length||!zones)return true;
+    for(const zone of zones){
+      const distance=Math.hypot(x/length-zone.x,y/length-zone.y,z/length-zone.z)/zone.radius,t=clamp((distance-.35)/.9,0,1),quiet=.65*(1-t*t*(3-2*t));
+      if(fract(seed*.913571)<quiet)return false;
+    }
+    return true;
+  }
   function uploadStarPoolToSky(sky,stars){
     if(!sky)return;
     let data;if(stars instanceof Float32Array)data=stars;else{const list=Array.isArray(stars)?stars:[];data=new Float32Array(list.length*6);for(let i=0;i<list.length;i++)data.set(list[i],i*6);}
@@ -109,43 +124,51 @@
   // Paint whole output pixels in compatibility mode. Rescaling even a
   // prefiltered sprite adds a second sampling/8-bit-alpha pass and can shimmer.
   const STAR_CSS_COLORS=STAR_COLORS.map(c=>'rgb('+c.map(v=>Math.round(v*255)).join(',')+')');
-  function drawTinyStar(ctx,x,y,size,brightness,seed,ratio=1){
+  const tinyWeights=new Float64Array(32);
+  function drawTinyStar(ctx,x,y,size,brightness,seed,ratio=1,color=''){
     if(!(brightness>0)||!(ratio>0))return;
     const m=tinyStarMetrics(size,ratio),cx=x*ratio,cy=y*ratio,r=m.radius;
     const tone=((seed*.173205+size*.37)%1+1)%1;
     const alpha=ctx.globalAlpha,fill=ctx.fillStyle,energy=alpha*clamp(brightness,0,1)*m.energy;
-    ctx.fillStyle=STAR_CSS_COLORS[starColorIndex(tone)];
-    const right=Math.ceil(cx+r),bottom=Math.ceil(cy+r),pixel=1/ratio;
+    ctx.fillStyle=color||STAR_CSS_COLORS[starColorIndex(tone)];
+    const left=Math.floor(cx-r),right=Math.ceil(cx+r),bottom=Math.ceil(cy+r),pixel=1/ratio;
+    for(let px=left;px<right;px++)tinyWeights[px-left]=tinyAxisCDF(px+1-cx,r)-tinyAxisCDF(px-cx,r);
     for(let py=Math.floor(cy-r);py<bottom;py++){
       const wy=tinyAxisCDF(py+1-cy,r)-tinyAxisCDF(py-cy,r);
-      for(let px=Math.floor(cx-r);px<right;px++){
-        const wx=tinyAxisCDF(px+1-cx,r)-tinyAxisCDF(px-cx,r);
+      for(let px=left;px<right;px++){
+        const wx=tinyWeights[px-left];
         ctx.globalAlpha=energy*wx*wy;ctx.fillRect(px/ratio,py/ratio,pixel,pixel);
       }
     }
     ctx.globalAlpha=alpha;ctx.fillStyle=fill;
   }
-  function starShaderSources(precision){return {vertex:`precision highp float;
-    attribute vec3 position,appearance;uniform vec3 right,down,forward,manualEye;uniform vec2 size;uniform float fov,pointScale,seconds;
-    varying ${precision} float intensity,starTone,flarePulse,tinyStar,pointPixels,tinyRadius,tinyEnergy;
+  function starShaderSources(precision,quietCount=1){return {vertex:`precision highp float;
+    attribute vec3 position,appearance;uniform vec3 right,down,forward,manualEye;uniform vec2 size;uniform vec4 featureQuiet[${quietCount}];uniform float fov,pointScale,seconds;
+    varying ${precision} float intensity,starTone,flarePulse,tinyStar,pointPixels,tinyRadius,tinyEnergy,shapePixels;
     void main(){
-     vec3 relative=position-manualEye;
+     float seed=appearance.z;float travelPeriod=mix(24.0,36.0,fract(seed*.4142135623));float travelAmplitude=mix(.018,.055,fract(seed*.7320508076));float travelScale=1.0+travelAmplitude*sin(seconds/travelPeriod*6.28318530718+fract(seed*.6180339887)*6.28318530718);float proximity=1.0/travelScale;
+     vec3 relative=position*travelScale-manualEye;
      float distance2=dot(relative,relative);
      float depth=dot(relative,forward);
      if(depth>=0.||depth*depth<=.0064*distance2){gl_Position=vec4(2.,2.,1.,1.);gl_PointSize=1.;return;}
-     float seed=appearance.z;float twinklePeriod=mix(5.0,25.0,fract(seed*.754877666));float behavior=fract(seed*.2718281828+appearance.y*.53);float twinkles=step(.70,behavior);float rests=step(.972,behavior);float restVisible=mix(42.0,105.0,fract(seed*.4142135623));float restHidden=mix(5.0,10.0,fract(seed*.318309886));float restCycle=restVisible+restHidden;float restTime=mod(seconds+fract(seed*.56984029)*restCycle,restCycle);float visible=1.-rests*step(restVisible,restTime);float lively=step(.55,appearance.x);tinyStar=1.-lively;
+     float twinklePeriod=mix(5.0,25.0,fract(seed*.754877666))*(.7+.6*fract(seed*.381966011));float behavior=fract(seed*.2718281828+appearance.y*.53);float twinkles=step(.70,behavior);float rests=step(.972,behavior);float restVisible=mix(42.0,105.0,fract(seed*.4142135623));float restHidden=mix(5.0,10.0,fract(seed*.318309886));float restCycle=restVisible+restHidden;float restTime=mod(seconds+fract(seed*.56984029)*restCycle,restCycle);float visible=1.-rests*smoothstep(restVisible-2.,restVisible,restTime)*(1.-smoothstep(restCycle-2.,restCycle,restTime));float lively=step(.55,appearance.x);tinyStar=1.-lively;
      float phase=fract(seed*.6180339887)*6.28318530718;float primary=.5+.5*sin(seconds/twinklePeriod*6.28318530718+phase);float secondary=.5+.5*sin(seconds/(twinklePeriod*1.618+3.0)*6.28318530718+fract(seed*.141421356)*6.28318530718);float irregular=primary*.68+secondary*.32;float variation=mix(.96+.04*irregular,.58+.42*irregular,twinkles);float flareWave=pow(max(0.,primary),18.);
-     intensity=appearance.y*mix(1.0,variation,lively)*mix(1.0,visible,lively);starTone=fract(seed*.173205+appearance.x*.37);flarePulse=step(.9985,fract(seed*.91337+appearance.y*.71))*flareWave*smoothstep(.50,.84,appearance.y)*lively*mix(1.0,visible,lively);
+     intensity=appearance.y*mix(1.0,variation,lively)*mix(1.0,visible,lively)*mix(1.0,proximity,.22);starTone=fract(seed*.173205+appearance.x*.37);flarePulse=step(.9985,fract(seed*.91337+appearance.y*.71))*flareWave*smoothstep(.50,.84,appearance.y)*lively*mix(1.0,visible,lively);
      if(tinyStar>.5){intensity=appearance.y;flarePulse=0.;}
      vec2 ndc=vec2(dot(relative,right)/(-depth*fov*size.x/size.y),-dot(relative,down)/(-depth*fov));
-     gl_Position=vec4(ndc,0.,1.);float basePoint=(appearance.x*10.+flarePulse*13.12)*pointScale;float point=clamp(max(basePoint,3.0),3.0,29.);
-     pointPixels=mix(point,ceil(point),tinyStar);tinyRadius=max(1.,point*.312);tinyEnergy=point*point*${TINY_PROFILE_INTEGRAL};gl_PointSize=pointPixels;
-    }`,fragment:`precision ${precision} float;varying ${precision} float intensity,starTone,flarePulse,tinyStar,pointPixels,tinyRadius,tinyEnergy;
+     for(int i=0;i<${quietCount};i++){vec4 zone=featureQuiet[i];if(zone.w>0.){float quietDistance=length(normalize(position)-zone.xyz)/zone.w;float quiet=.65*(1.-smoothstep(.35,1.25,quietDistance));if(fract(seed*.913571)<quiet){gl_Position=vec4(2.,2.,1.,1.);gl_PointSize=1.;return;}}}
+     gl_Position=vec4(ndc,0.,1.);float basePoint=(appearance.x*10.+flarePulse*13.12)*pointScale*mix(1.0,proximity,.35*lively);float point=clamp(max(basePoint,3.0),3.0,29.);
+     shapePixels=point;pointPixels=ceil(point);tinyRadius=max(1.,point*.312);tinyEnergy=point*point*${TINY_PROFILE_INTEGRAL};gl_PointSize=pointPixels;
+    }`,fragment:`precision ${precision} float;varying ${precision} float intensity,starTone,flarePulse,tinyStar,pointPixels,tinyRadius,tinyEnergy,shapePixels;
     vec3 starColor(float tone){
      if(tone<${STAR_PALETTE.redEnd})return vec3(1.,.80,.74);
      if(tone<${STAR_PALETTE.warmEnd})return vec3(1.,.93,.79);
      if(tone>${STAR_PALETTE.blueStart})return vec3(.77,.88,1.);
      return vec3(.985,.99,1.);
+    }
+    vec2 starProfile(vec2 q){
+     float d=length(q);
+     return vec2(1.-smoothstep(.08,.5,d),1.-smoothstep(.015,.21,d));
     }
     void main(){
      if(tinyStar>.5){
@@ -154,12 +177,15 @@
       // No alpha discard or cross flare for tiny stars: both reintroduce popping.
       gl_FragColor=vec4(starColor(starTone),tinyEnergy*covered.x*covered.y*intensity);return;
      }
-     vec2 q=gl_PointCoord-.5;float d=length(q);
-     float halo=1.-smoothstep(.08,.5,d),core=1.-smoothstep(.015,.21,d);
+     vec2 q=(gl_PointCoord-.5)*pointPixels/shapePixels;float d=length(q);
+     // Integrate four subpixel locations instead of sampling the sharp core once.
+     vec2 tap=vec2(.25/shapePixels,0.);
+     vec2 profile=(starProfile(q+tap+tap.yx)+starProfile(q+tap-tap.yx)+starProfile(q-tap+tap.yx)+starProfile(q-tap-tap.yx))*.25;
+     float halo=profile.x,core=profile.y;
      float cross=(1.-smoothstep(.012,.042,min(abs(q.x),abs(q.y))))*(1.-smoothstep(.12,.5,max(abs(q.x),abs(q.y))));
      float alpha=(halo*.22+core*.96)*intensity+cross*.58*flarePulse;if(alpha<.002)discard;
      vec3 color=mix(starColor(starTone),vec3(1.),core*.16);
      gl_FragColor=vec4(color,alpha);
     }`};}
-  root.SolarVisualEffects=Object.freeze({BASE_STAR_COUNT,MAX_STAR_MULTIPLIER,MAX_STAR_COUNT,runtimeSeed,buildNaturalStarData,buildNaturalStarPool,regenerateStars,drawCount,starsFor,STAR_DEPTH_RANGE,starWorldData,starShaderSources,STAR_PALETTE,starColor,tinyStarMetrics,tinyStarCoverage,drawTinyStar});
+  root.SolarVisualEffects=Object.freeze({BASE_STAR_COUNT,MAX_STAR_MULTIPLIER,MAX_STAR_COUNT,runtimeSeed,buildNaturalStarData,buildNaturalStarPool,regenerateStars,drawCount,starsFor,STAR_DEPTH_RANGE,STAR_DEPTH_MOTION,starWorldData,starDepthScale,starQuietVisible,starShaderSources,STAR_PALETTE,starColor,tinyStarMetrics,tinyStarCoverage,drawTinyStar});
 })(window);

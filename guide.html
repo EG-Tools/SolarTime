@@ -2,21 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="A practical guide to Solar Time: camera controls, simulation time, planets, cinematic travel, display settings, music, timers, and troubleshooting.">
+  <meta name="description" content="Learn Solar Time camera controls, constellation viewing and connecting lines, regional time, planet tracking, Saturn travel, music, and timers.">
   <meta name="google-adsense-account" content="ca-pub-5773171100052324">
-  <link rel="canonical" href="https://solartime.app/guide.html"><script src="src/policy-dialog.js?v=525a7f777bf7"></script><link rel="stylesheet" href="site-info.css?v=fe2d59833b93">
+  <link rel="canonical" href="https://solartime.app/guide.html"><script src="src/policy-dialog.js?v=525a7f777bf7"></script><link rel="stylesheet" href="site-info.css?v=5fe31402ee48">
   <script src="src/consent.js?v=97c3343f45eb"></script>
   <script src="src/google-analytics.js?v=e24144b73eb2"></script>
   <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
   <title>Solar Time Guide</title>
 </head>
 <body><div class="site-shell">
-  <header class="site-header"><a class="site-brand" href="./">SOLAR TIME</a><nav class="site-nav" aria-label="Site information"><a href="guide.html" aria-current="page">GUIDE</a><a href="about.html">ABOUT</a><a href="credits.html">CREDITS</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a><a href="changelog.html">UPDATES</a></nav></header>
+  <header class="site-header"><a class="site-brand" href="./">SOLAR TIME</a><nav class="site-nav" aria-label="Site information"><a href="guide.html" aria-current="page">GUIDE</a><a href="constellations.html">CONSTELLATIONS</a><a href="about.html">ABOUT</a><a href="credits.html">CREDITS</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a><a href="changelog.html">UPDATES</a></nav></header>
   <main>
     <p class="eyebrow">EXPLORE · OBSERVE · TRAVEL</p><h1>Guide to Solar Time</h1>
-    <p class="lead">Solar Time turns the current time into a navigable view of the solar system. This guide explains how to move through the scene, change simulation time, follow a planet, use cinematic travel, and keep the experience running smoothly.</p>
+    <p class="lead">Solar Time turns the current time into a navigable view of the solar system and a sky of recognisable star patterns. Learn to follow planets, explore constellations, change simulation time, and compose your own view.</p>
     <nav class="guide-toc" aria-label="Guide sections">
-      <a href="#start">Start here</a><a href="#camera">Camera</a><a href="#time">Time</a><a href="#bodies">Planets</a><a href="#travel">Travel</a><a href="#display">Display</a><a href="#shortcuts">Shortcuts</a><a href="#troubleshooting">Help</a>
+      <a href="#start">Start here</a><a href="#camera">Camera</a><a href="#time">Time</a><a href="#bodies">Planets</a><a href="#constellations">Constellations</a><a href="#travel">Travel</a><a href="#display">Display</a><a href="#shortcuts">Shortcuts</a><a href="#troubleshooting">Help</a>
     </nav>
 
     <section id="start" class="guide-section">
@@ -37,7 +37,7 @@
         <article class="info-card"><h3>Follow a body</h3><p>Double-click a planet or major moon to follow it. The camera approaches smoothly and continues to track the body as simulation time advances.</p></article>
         <article class="info-card"><h3>Save a composition</h3><p>Camera slots 1–3 store favorite viewpoints. Open a numbered slot to save, recall, or remove its view.</p></article>
       </div>
-      <p>Default View restores the overview without erasing saved camera slots. The forward/back control can switch the wheel between a flat zoom and physical camera travel, which changes the sense of depth around nearby bodies.</p>
+      <p>Default View restores the overview without erasing saved camera slots. Wheel movement changes camera distance; right-drag changes the lens. In constellation viewing, the lens is fixed at 1.2× and wheel movement, middle-drag panning, and right-drag lens changes are disabled. Left-drag still rotates the view.</p>
     </section>
 
     <section id="time" class="guide-section">
@@ -54,11 +54,25 @@
       <p>Earth and Venus include cloud controls. High-resolution surfaces are loaded as you approach a body, so a sharper texture may replace the first image after a short moment.</p>
     </section>
 
+    <section id="constellations" class="guide-section">
+      <h2>Explore constellations</h2>
+      <p>The named sky includes 20 constellations, the Big Dipper pattern, and Polaris. Their directions stay fixed on the celestial sphere while you move the camera. For illustrated shapes and things to look for, open the <a href="constellations.html">Constellation Explorer</a>.</p>
+      <ol class="guide-steps">
+        <li><strong>Find a pattern</strong><span>Rotate the scene and rest the pointer over a named star or its connecting lines for about half a second. The guide draws in; unpinned lines fade over two seconds when you move away.</span></li>
+        <li><strong>Open its card</strong><span>Click the pattern to read its description. Enable Connecting lines to keep its guide visible after closing the card. Polaris uses a circular marker instead of a line figure.</span></li>
+        <li><strong>Enter constellation viewing</strong><span>Choose Constellation view in the card, or double-click the pattern. Use the card arrows or keyboard arrows to browse neighbouring patterns; shared-star groups stay together in the route.</span></li>
+      </ol>
+      <p><kbd>*</kbd> is the master switch for saved line displays, not a camera-mode switch. Turning it back on restores individually enabled guides; it does not enable patterns you switched off. A temporary hover can still reveal a pattern. Individual choices and the master setting are remembered when browser storage is available.</p>
+      <p>Selected or hovered guides use blue-white lines; other visible guides use softer gold. Lines draw progressively and then brighten and dim gently. Their colours indicate interaction, not the physical colour of the stars.</p>
+      <p>In constellation viewing, left-drag rotates the camera at a fixed 1.2× lens. The card's Show solar system switch displays or hides a small solar system. Choose Solar system view to return to the previous camera, or press <kbd>0</kbd> for the default composition. Double-clicking the visible miniature also returns. Escape closes an open card first; with no card or dialog open, it returns from constellation viewing to the default view.</p>
+      <p class="guide-tip"><strong>Current card labels:</strong> constellation cards currently use Korean text: <span lang="ko">별자리 보기</span> means Constellation view, <span lang="ko">태양계 보기</span> means Solar system view, <span lang="ko">이음선 표시</span> means Connecting lines, and <span lang="ko">태양계 표시</span> means Show solar system. Polaris has its own marker switch.</p>
+    </section>
+
     <section id="travel" class="guide-section">
       <h2>Opening, warp, and Saturn ring travel</h2>
       <p>Press <kbd>T</kbd> to start the selected travel sequence. The UFO control chooses the opening style. A journey may pass through a departure, continuous flight, and arrival sequence before restoring the solar-system view.</p>
       <p>Saturn ring travel approaches Saturn, enters the ring field, and continues around the rings. Press <kbd>Space</kbd> to pause the cinematic camera. During the ring tour, a paused view can still be rotated for screenshots; during warp, manual camera control remains locked so the flight direction stays coherent. Press Space again to continue.</p>
-      <p>Cinematic travel temporarily locks settings that would change planet size, orbit spacing, eclipse or alignment targets, scale mode, reset state, close-up targets, or regional clock selection. The controls become available again when the sequence ends or is exited.</p>
+      <p>Opening and warp temporarily lock camera destinations and controls that would disrupt the sequence. During Saturn travel, selecting another planet to track or choosing an Earth region first returns through the default view, then approaches the new target. Press <kbd>0</kbd> for the default view or <kbd>Esc</kbd> to leave the tour smoothly; an open card or dialog may consume Escape first.</p>
     </section>
 
     <section id="display" class="guide-section">
@@ -84,13 +98,16 @@
         <div role="row"><span role="cell"><kbd>0</kbd></span><span role="cell">Return to the default view</span></div>
         <div role="row"><span role="cell"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span role="cell">Recall a saved camera view</span></div>
         <div role="row"><span role="cell"><kbd>T</kbd></span><span role="cell">Start travel</span></div>
-        <div role="row"><span role="cell"><kbd>←</kbd> <kbd>→</kbd></span><span role="cell">Select the previous or next celestial body</span></div>
-        <div role="row"><span role="cell"><kbd>↑</kbd> <kbd>↓</kbd></span><span role="cell">Move the camera forward or backward</span></div>
+        <div role="row"><span role="cell"><kbd>*</kbd></span><span role="cell">Hide or restore individually enabled constellation guides</span></div>
+        <div role="row"><span role="cell"><kbd>←</kbd> <kbd>→</kbd></span><span role="cell">Browse constellations when a constellation is selected or tracked; browse regions in Earth region mode; otherwise select planets and moons</span></div>
+        <div role="row"><span role="cell"><kbd>↑</kbd> <kbd>↓</kbd></span><span role="cell">Move forward or backward outside constellation viewing and locked travel sequences</span></div>
       </div>
     </section>
 
     <section id="troubleshooting" class="guide-section">
       <h2>Troubleshooting</h2>
+      <h3>Pressing * does not reveal a pattern</h3><p>The master switch respects each pattern's saved Connecting lines setting. Hover over the pattern, click to open its card, enable its individual display, then check the master switch. A pattern behind the camera will only appear after you rotate toward it.</p>
+      <h3>A constellation looks different from another star chart</h3><p>Connecting lines are visual guides, not official sky boundaries. Different charts connect the same stars differently, and camera rotation can turn the figure upside down. Compare its main stars in the <a href="constellations.html#patterns">illustrated catalogue</a>.</p>
       <h3>The view feels lost or too close</h3><p>Press <kbd>0</kbd> to restore the default view. If the lens still feels unusual, right-drag until the magnification indicator returns to a comfortable value.</p>
       <h3>A texture looks soft</h3><p>Stay near the selected body for a moment. Detailed textures load progressively and may take longer on a slow connection or a device with a limited graphics budget.</p>
       <h3>Music or an alarm is silent</h3><p>Interact with the page once and check the browser tab, operating-system volume, and site autoplay permission. A user gesture is required by many browsers before audio can begin.</p>

@@ -1,5 +1,12 @@
 {
   "ui": {
+    "solarSystemMode": "Mode tata surya",
+    "constellationMode": "Mode rasi bintang",
+    "expandRotationTouch": "Perluas: tekan lama",
+    "expandRotationMouse": "Perluas: klik kanan",
+    "scrollUp": "Gulir ke atas",
+    "scrollDown": "Gulir ke bawah",
+    "skyNavigate": "Buka {name}",
     "openingTravel": "Perjalanan pembuka",
     "openingDefault": "Pembuka bawaan",
     "openingNone": "Tidak ada",
@@ -129,6 +136,9 @@
     "savedCameras": "Tampilan tersimpan",
     "planetSwitch": "Ganti planet",
     "trackBody": "Lacak benda",
+    "trackConstellation": "Lacak rasi bintang",
+    "showConstellation": "Tampilkan garis penghubung",
+    "showSolarSystem": "Tampilkan tata surya",
     "zoomInOut": "Perbesar · perkecil",
     "cameraRotate": "Putar",
     "cameraTravel": "Maju · mundur",
@@ -222,9 +232,29 @@
     "cookieSettings": "Pengaturan cookie",
     "cookieDismiss": "Tutup tanpa mengubah pilihan",
     "cookieChoiceNote": "Pilihan Izinkan diingat selama 6 bulan. Tolak dan X tidak disimpan, sehingga akan ditanyakan lagi pada kunjungan berikutnya.",
-    "music": "Musik"
+    "music": "Musik",
+    "asterism": "Asterisme",
+    "constellation": "Rasi bintang",
+    "ursaMajor": "Ursa Major",
+    "warpShortcut": "Warp",
+    "constellationsShortcut": "Tampilkan rasi bintang",
+    "targetSwitch": "Target sebelumnya / berikutnya",
+    "targetSwitchHint": "Beralih antara planet, wilayah, atau rasi bintang sesuai tampilan saat ini."
   },
   "timer": {
+    "helperDownloadPrivacy": "Hanya ID permintaan acak sekali pakai, versi asisten, dan hasil perintah yang dikirim ke Solar Time. Akun, berkas, dan nama komputer tidak dikirim. Bukti konfirmasi kedaluwarsa dan dihapus otomatis.",
+    "helperDownloadPermission": "Diinstal untuk pengguna saat ini tanpa akses administrator. Menggunakan PowerShell, asosiasi URL, dan perintah matikan Windows.",
+    "helperRemoveRequested": "Windows mengonfirmasi pembatalan dan penghapusan asisten.",
+    "helperInstallDescription": "Jalankan pemasang CMD terbaru yang diunduh, lalu verifikasi asisten terpasang. Izinkan browser membuka PowerShell.",
+    "helperInstallQuestion": "Verifikasi asisten terpasang sekarang?",
+    "shutdownPending": "Menunggu konfirmasi Windows. Izinkan asisten dibuka.",
+    "shutdownUnknown": "Hasil Windows belum dikonfirmasi. Komputer mungkin masih dijadwalkan mati. Gunakan Batal untuk memeriksa.",
+    "shutdownFailed": "Perintah Windows gagal (kode {code}).",
+    "shutdownNotLaunched": "Asisten tidak terbuka. Klik sakelar lagi dan izinkan permintaan browser.",
+    "helperVerifyFailed": "Verifikasi asisten gagal. Jalankan pemasang terbaru, lalu izinkan asisten dibuka.",
+    "shutdownDataWarning": "Simpan pekerjaan Anda: pematian terjadwal Windows dapat menutup aplikasi secara paksa.",
+    "timer": "Timer",
+    "alarm": "Alarm",
     "timerClose": "Tutup timer",
     "alarmDuration": "Waktu alarm",
     "scheduledShutdown": "Matikan terjadwal",
@@ -281,6 +311,27 @@
     "helperInstallTitle": "Konfirmasi pemasangan modul"
   },
   "bodies": {
+    "polaris": ["Polaris","Bintang paling terang di Ursa Minor berada dekat kutub langit utara. Tampak hampir tidak bergerak dan membantu menunjukkan arah utara."],
+    "ursa-major": ["Beruang Besar","Rasi besar di langit utara ini mencakup Biduk Besar. Garis dari biduk berlanjut membentuk tubuh dan kaki beruang."],
+    "ursa-minor": ["Beruang Kecil","Polaris berada di ujung gagang biduk kecil ini. Kochab dan Pherkad membentuk sisi luar mangkuknya."],
+    "cassiopeia": ["Cassiopeia","Lima bintang terang membentuk W atau M sesuai sudut pandang. Letaknya kira-kira berseberangan dengan Biduk Besar terhadap Polaris."],
+    "orion": ["Orion","Tiga bintang sejajar membentuk sabuknya. Betelgeuse yang merah kontras dengan Rigel yang putih kebiruan; Orion menonjol pada malam musim dingin di Korea."],
+    "scorpius": ["Scorpius","Antares yang merah diikuti tubuh panjang dan ekor melengkung. Di langit selatan pada musim panas Korea, Shaula dan Lesath menandai sengatnya."],
+    "leo": ["Leo","Kepala berbentuk sabit di dekat Regulus dan tubuh segitiga membentuk singa. Denebola menandai ekor; rasi ini menonjol pada malam musim semi di Korea."],
+    "cygnus": ["Cygnus","Leher dan sayap angsa membentuk Salib Utara. Deneb termasuk Segitiga Musim Panas, sedangkan Albireo menandai kepala."],
+    "taurus": ["Taurus","Aldebaran yang jingga, wajah berbentuk V, dan dua tanduk panjang menandai Taurus. Aldebaran berada di depan gugus Hyades, bukan bagian darinya."],
+    "aries": ["Aries","Hamal, Sheratan, dan Mesarthim membentuk lengkungan pendek. Rasi zodiak ini dahulu menjadi penanda awal musim semi."],
+    "gemini": ["Gemini","Castor dan Pollux menandai kepala si kembar. Dua rantai bintang bercabang membentuk tubuh mereka."],
+    "cancer": ["Cancer","Rasi zodiak redup berbentuk Y di sekitar Asellus Borealis dan Asellus Australis. Gugus Sarang Lebah membantu menemukannya di langit gelap."],
+    "virgo": ["Virgo","Spica yang putih kebiruan menonjol dalam rasi zodiak luas ini. Di antara Leo dan Libra, rasi ini tampak di selatan pada malam musim semi di Korea."],
+    "libra": ["Libra","Zubeneschamali dan Zubenelgenubi membentuk timbangan. Bintang-bintangnya dahulu dianggap sebagai capit Scorpius."],
+    "sagittarius": ["Sagittarius","Bintang di dekat Kaus Australis dan Nunki membentuk Teko. Pusat Bima Sakti terletak lebih jauh dalam arah rasi zodiak ini."],
+    "capricornus": ["Capricornus","Bentuk baji lebar dan rendah membentang antara Algedi dan Deneb Algedi. Rasi zodiak redup ini dikenali dari garis segitiganya."],
+    "aquarius": ["Aquarius","Aliran bintang panjang memanjang ke selatan dari Sadalsuud dan Sadalmelik. Garis penghubung membantu memperjelas rasi zodiak yang tersebar luas ini."],
+    "pisces": ["Pisces","Dua ikan dihubungkan oleh tali panjang yang bertemu di Alrescha. Garis redupnya melintasi wilayah luas dekat ekuator langit."],
+    "pegasus": ["Pegasus","Alpheratz, Algenib, Markab, dan Scheat membentuk Persegi Besar. Rantai bintang berlanjut ke leher dan kaki; menonjol pada musim gugur di Korea."],
+    "andromeda": ["Andromeda","Rantai bintang membentang dari Alpheratz melalui Mirach ke Almach. Di dekatnya terdapat Galaksi Andromeda, yang tampak dengan mata telanjang di langit gelap."],
+    "crux": ["Salib Selatan","Acrux dan Gacrux membentuk sumbu panjang; Mimosa dan Imai membentuk palang. Salib kecil ini membantu menemukan arah selatan."],
     "sun": [
       "Matahari",
       "Bintang yang terutama tersusun dari hidrogen dan helium. Fusi di intinya melepaskan energi sebagai plasma panas dan cahaya."
@@ -328,6 +379,10 @@
     "pluto": [
       "Pluto",
       "Planet katai yang tersusun dari batuan dan es air, dengan permukaan berlapis es nitrogen, metana, dan karbon monoksida."
+    ],
+    "big-dipper": [
+      "Biduk",
+      "Asterisme yang dibentuk oleh tujuh bintang terang di Ursa Major. Bentuknya yang menyerupai gayung menjadi penunjuk klasik langit utara, dan garis dari Merak ke Dubhe mengarah ke Polaris."
     ]
   },
   "phases": {

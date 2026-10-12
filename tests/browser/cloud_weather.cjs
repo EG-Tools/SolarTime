@@ -35,6 +35,13 @@ async function main(){
     assert.equal(result.backend,'gpu');assert.ok(result.difference<=3);assert.ok(result.visible>80);
     assert.ok(result.disabled&&result.cached&&result.disposed);assert.deepEqual(result.errors,[0,0]);
     assert.ok(result.workerFrame.backend==='worker'&&result.workerFrame.ready);
+    if(process.argv.includes('--sun-profile')){
+      for(const file of ['src/astro.js','src/renderer.js'])await evaluate(fs.readFileSync(path.join(root,file),'utf8'));
+      const source=fs.readFileSync(process.argv[process.argv.indexOf('--sun-profile')+1],'utf8');
+      await evaluate('window.__sunBaseline='+JSON.stringify({vertex:source.match(/const DIRECT_QUAD_VERTEX=`([\s\S]*?)`;/)[1],fragment:source.match(/const DIRECT_CORONA_FRAGMENT=`([\s\S]*?)`;/)[1]})+';void 0');
+      const report=await evaluate(fs.readFileSync(path.join(__dirname,'sun_corona.cjs'),'utf8'));
+      console.log(JSON.stringify({sunCorona:report}));assert.equal(report.error,0);assert.ok(report.difference<=2);
+    }
     if(process.argv.includes('--render-perf')){
       for(const file of ['src/astronomy-engine.min.js','src/astro.js','src/renderer.js'])await evaluate(fs.readFileSync(path.join(root,file),'utf8'));
       const report=await evaluate(fs.readFileSync(path.join(__dirname,'render_perf.js'),'utf8'));
@@ -112,11 +119,17 @@ async function main(){
     if(process.argv.includes('--alignment-app'))console.log(JSON.stringify({alignmentApp:await require('./alignment_app.cjs')({root,evaluate,send,session})}));
     if(process.argv.includes('--orbit-spacing-app'))console.log(JSON.stringify({orbitSpacingApp:await require('./orbit_spacing_app.cjs')({root,evaluate,send,session})}));
     if(process.argv.includes('--keyboard-camera-app'))console.log(JSON.stringify({keyboardCameraApp:await require('./keyboard_camera.cjs')({root,evaluate,send,session})}));
+    if(process.argv.includes('--body-point-occlusion')){
+      for(const file of ['src/astro.js','src/renderer.js','src/ring-tour.js'])await evaluate(fs.readFileSync(path.join(root,file),'utf8'));
+      const report=await evaluate(fs.readFileSync(path.join(__dirname,'body_point_occlusion.js'),'utf8'));
+      console.log(JSON.stringify({bodyPointOcclusion:report}));assert.equal(report.error,0);
+      for(const row of report.rows){assert.ok(row.samples>10,row.name);assert.equal(row.leaked,0,row.name+' hidden points');assert.equal(row.foreground,row.samples,row.name+' foreground points');}
+    }
     if(process.argv.includes('--ring-debris')){
       await evaluate(fs.readFileSync(path.join(root,'src/ring-tour.js'),'utf8'));
       const debris=await evaluate(fs.readFileSync(path.join(__dirname,'ring_debris.js'),'utf8'));console.log(JSON.stringify({ringDebris:debris}));assert.equal(debris.error,0);
     }
-    if(['--travel-return','--focus-input','--travel-pause','--travel-optimization','--ring-tour-app','--replay-transition','--flight-atlas','--travel-controls','--opening-settings','--ring-tour-resume','--ring-tour-shortcuts','--ring-tour-card','--ring-tour-fullscreen','--ring-tour-navigation','--help-onboarding'].some(flag=>process.argv.includes(flag)))console.log(JSON.stringify({ringTourApp:await require('./ring_tour.cjs')({root,evaluate,send,session})}));
+    if(['--texture-upload','--return-continuity','--opening-cold','--constellations','--opening-handoff','--body-point-travel','--travel-return','--focus-input','--travel-pause','--travel-optimization','--ring-tour-app','--replay-transition','--flight-atlas','--travel-controls','--opening-settings','--ring-tour-resume','--ring-tour-shortcuts','--ring-tour-card','--ring-tour-fullscreen','--ring-tour-navigation','--help-onboarding'].some(flag=>process.argv.includes(flag)))console.log(JSON.stringify({ringTourApp:await require('./ring_tour.cjs')({root,evaluate,send,session})}));
     await send('Target.closeTarget',{targetId:target});target=null;
     await send('Browser.close').catch(()=>{});
   }finally{

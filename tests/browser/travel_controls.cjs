@@ -74,11 +74,11 @@ module.exports=async({evaluate,send,session,until,esc,delay})=>{
  assert.equal(await evaluate('document.activeElement.id==="live-button"'),false);
  assert.equal(await evaluate('document.getElementById("live-button").matches(":focus-visible")'),false);
  await until('!SolarTime.renderer.cameraTween');
- await evaluate('SolarTime.renderer.prepareOpeningTour()');
+ await evaluate('SolarTime.renderer.prepareRingTourResources()');
  await until('SolarTime.renderer.preparedRingTour?.preparationReady&&SolarTime.renderer.preparedRingTour.resources?.ready');
  const handoff=await evaluate(`(()=>{
   const r=SolarTime.renderer,ms=SolarTime.getState().simulationMs,now=performance.now(),home=r.defaultCameraSnapshot();
-  r.prepareOpeningTour();if(!r.preparedRingTour?.resources)throw Error(r.preparedRingTourError||'preparation failed');const pool=r.preparedRingTour.points;
+  r.prepareRingTourResources();if(!r.preparedRingTour?.resources)throw Error(r.preparedRingTourError||'preparation failed');const pool=r.preparedRingTour.points;
   r.restoreCamera({...home,dolly:.001});r.animateOpeningCamera(home,now,5000);r.cameraTween.flyThrough=true;r.cameraTween.rotationBlend=null;
   r.draw(ms,0,now+3984);r.captureOpeningFlight(now+3984);r.draw(ms,0,now+4000);r.captureOpeningFlight(now+4000);
   const before=r.frameBodies.filter(p=>!p.screen.behind).map(p=>({id:p.body.id,x:p.screen.x,y:p.screen.y,r:p.r}));

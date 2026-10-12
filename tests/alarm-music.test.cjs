@@ -16,13 +16,14 @@ function fixture({soundMode='default',hook='normal',pendingPlay=false,hidden=fal
  const document=new Element();Object.assign(document,{getElementById:get,documentElement:{lang:'en'},baseURI:'https://solartime.app/',hidden});
  const audio=new Element();Object.assign(audio,{paused:true,ended:false,error:null,currentTime:0,src:'',volume:.55,muted:true,load(){},pause(){this.paused=true;},play(){this.paused=false;return pendingPlay?new Promise(resolve=>{resolvePlay=resolve;}):Promise.resolve();}});
  const events=[],frames=new Map();let frameId=0;
+ class AlarmAudio extends Element{constructor(url=''){super();this.src=url;this.currentTime=0;this.duration=120;this.volume=1;this.muted=false;}load(){if(this.src)queueMicrotask(()=>this.onloadedmetadata?.());}pause(){this.paused=true;}removeAttribute(){this.src='';}play(){this.paused=false;if(this.volume>0)events.push({type:'alarm-media',paused:audio.paused,muted:audio.muted,enabled:music.enabled});return Promise.resolve();}}
  const requestAnimationFrame=fn=>{frames.set(++frameId,fn);return frameId;},cancelAnimationFrame=id=>frames.delete(id);
  const node=()=>({gain:{value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}},frequency:{},connect(target){return target;},start(){events.push({type:'alarm',paused:audio.paused,muted:audio.muted,enabled:music.enabled});},stop(){}});
  class AudioContext{constructor(){this.currentTime=0;this.destination={};}resume(){return Promise.resolve();}close(){return Promise.resolve();}decodeAudioData(){return Promise.resolve({decoded:true});}createBufferSource(){return node();}createGain(){return node();}createOscillator(){return node();}}
  const request=result=>{const r={result};queueMicrotask(()=>r.onsuccess?.());return r;};
- const blob={arrayBuffer:async()=>new ArrayBuffer(4)};
+ const blob=new Blob(['alarm']);
  const indexedDB={open:()=>request({transaction:()=>({objectStore:()=>({get:()=>request(soundMode==='custom'?{blob,name:'custom.wav'}:null),put:()=>request(null)})})})};
- const window={document,SolarModules:{},indexedDB,AudioContext,location:{href:'https://solartime.app/',protocol:'https:',hostname:'solartime.app'},console:{warn(){}},setInterval:()=>1,clearInterval(){},requestAnimationFrame,setTimeout:()=>1,clearTimeout(){},fetch:async()=>({ok:true,blob:async()=>blob})};
+ const window={document,SolarModules:{},indexedDB,Audio:AlarmAudio,AudioContext,location:{href:'https://solartime.app/',protocol:'https:',hostname:'solartime.app'},console:{warn(){}},setInterval:()=>1,clearInterval(){},requestAnimationFrame,setTimeout:()=>1,clearTimeout(){},fetch:async()=>({ok:true,blob:async()=>blob})};
  class Clock extends Date{static now(){return clock;}}
  const context={window,document,Date:Clock,Intl,URL,performance:{now:()=>0},requestAnimationFrame,cancelAnimationFrame,clearInterval(){},setTimeout};
  for(const name of ['music-player','alarm-sound','timer-controller'])vm.runInNewContext(read('src/'+name+'.js'),context);
@@ -55,7 +56,7 @@ test('pending music play/fade cannot re-enable music after ringing in a hidden t
  assert.equal(f.music.enabled,false);assert.equal(f.audio.paused,true);assert.equal(f.audio.muted,true);assert.equal(f.get('music-toggle').getAttribute('aria-pressed'),'false');f.dispose();
 });
 for(const hook of ['omitted','throw'])test('alarm still rings with '+hook+' optional start hook',async()=>{
- const f=fixture({hook});await f.arm();f.advance(60001);assert.equal(f.get('alarm-dialog').open,true);assert.ok(f.events.length>0);f.dispose();
+ const f=fixture({hook});await f.arm();f.advance(60001);await flush();assert.equal(f.get('alarm-dialog').open,true);assert.ok(f.events.length>0);f.dispose();
 });
 test('app wires the alarm hook to the shared music OFF API, not to a toggle or volume workaround',()=>{
  assert.match(read('src/app.js'),/onAlarmStart:\(\)=>setMusicEnabled\(false\)/);

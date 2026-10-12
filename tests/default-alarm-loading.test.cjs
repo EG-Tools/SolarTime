@@ -35,11 +35,22 @@ test('default URL failover is finite and a failed decoder falls back to streamin
  const f=fixture({metadata:'error'});assert.equal(await f.api.prepareDefault(['a','a','b'],{getContext:()=>f.context}),null);assert.equal(f.media.length,2);assert.equal(f.fetches(),0);
  const decode=fixture({duration:2,decodeFn:()=>Promise.reject(Error('codec'))});assert.ok((await decode.prepare()).url);assert.equal(decode.pending.size,0);
 });
-test('default stream playback preserves alarm/preview gains, restores fallback on error, and stops cleanly',async()=>{
+test('default stream playback preserves alarm/preview gains, retries Soft Morning on error, and stops cleanly',async()=>{
  const f=timerFixture(),instances=[];class Audio extends Element{constructor(url){super();this.src=url;this.currentTime=0;instances.push(this);}play(){return Promise.resolve();}pause(){this.paused=true;}removeAttribute(){this.src='';}load(){}}
  f.window.Audio=Audio;f.window.SolarModules.AlarmSound={...f.window.SolarModules.AlarmSound,prepareDefault:async()=>({buffer:null,url:'https://example.test/default.mp3',dispose(){this.url='';}})};
- await f.arm();await flush();assert.equal(f.timer.getDiagnostics().defaultStreaming,true);assert.equal(f.counts.decodes,0);await f.advance(60000);assert.equal(instances.at(-1).volume,.864);assert.equal(instances.at(-1).loop,true);await instances.at(-1).fire('error');assert.ok(f.ramps.includes(.192));await f.get('alarm-stop').fire('click');assert.equal(f.timer.getDiagnostics().defaultStreaming,false);assert.equal(f.pending.size,0);
+ await f.arm();await flush();assert.equal(f.timer.getDiagnostics().defaultStreaming,true);assert.equal(f.counts.decodes,0);await f.advance(60000);assert.equal(instances.at(-1).volume,.864);assert.equal(instances.at(-1).loop,true);await instances.at(-1).fire('error');await f.advance(2000);assert.match(instances.at(-1).src,/default\.mp3$|Soft%20Morning\.mp3$/);assert.equal(f.ramps.length,0);await f.get('alarm-stop').fire('click');assert.equal(f.timer.getDiagnostics().defaultStreaming,false);assert.equal(f.pending.size,0);
  await f.get('alarm-preview-default').fire('click');await flush();assert.equal(instances.at(-1).volume,.696);await f.get('alarm-preview-default').fire('click');assert.equal(instances.at(-1).paused,true);assert.equal(f.pending.size,0);f.dispose();
+});
+test('a cold default alarm starts Soft Morning directly without an eager emergency chirp',async()=>{
+ const f=timerFixture(),instances=[];class Audio extends Element{constructor(url){super();this.src=url;this.currentTime=0;this.plays=0;instances.push(this);}play(){this.plays++;return Promise.resolve();}pause(){this.paused=true;}removeAttribute(){this.src='';}load(){}}
+ f.window.Audio=Audio;f.window.SolarModules.AlarmSound={...f.window.SolarModules.AlarmSound,prepareDefault:()=>new Promise(()=>{})};
+ await f.arm();await flush();assert.equal(instances.length,1);assert.equal(instances[0].plays,1);assert.equal(instances[0].paused,true);await f.advance(60000);await flush();assert.equal(instances.length,1);assert.equal(instances[0].plays,2);assert.match(instances[0].src,/00%20-%20Soft%20Morning\.mp3/);assert.equal(instances[0].loop,true);assert.equal(f.ramps.length,0);f.dispose();
+});
+
+test('a failed custom alarm falls back only to Soft Morning, never a synthesized chirp',async()=>{
+ const record={blob:new Blob(['custom'],{type:'audio/mpeg'}),name:'custom.mp3'},f=timerFixture({saved:{soundMode:'custom',soundName:'custom.mp3'},record,prepare:async()=>({url:'blob:custom',buffer:null,dispose(){}})}),instances=[];
+ class Audio extends Element{constructor(url){super();this.src=url;this.currentTime=0;instances.push(this);}play(){return Promise.resolve();}pause(){this.paused=true;}removeAttribute(){this.src='';}load(){}}
+ f.window.Audio=Audio;await f.arm();await flush();await f.advance(60000);assert.equal(instances.at(-1).src,'blob:custom');await instances.at(-1).fire('error');await flush();assert.match(instances.at(-1).src,/00%20-%20Soft%20Morning\.mp3/);assert.equal(f.ramps.length,0);f.dispose();
 });
 test('a late default resource cannot revive a cancelled alarm or preview',async()=>{
  for(const kind of ['alarm','preview']){const f=timerFixture(),d=deferred();let disposed=0;f.window.SolarModules.AlarmSound={...f.window.SolarModules.AlarmSound,prepareDefault:()=>d.promise};const task=kind==='alarm'?f.arm():f.get('alarm-preview-default').fire('click');await flush();kind==='alarm'?await f.cancel():f.timer.close();d.resolve({url:'remote',buffer:null,dispose(){disposed++;}});await task;await flush();assert.equal(disposed,1);assert.equal(f.timer.getDiagnostics().defaultStreaming,false);assert.equal(f.pending.size,0);f.dispose();}
@@ -48,7 +59,7 @@ test('a late default resource cannot revive a cancelled alarm or preview',async(
 test('a stalled response body is cancelled at the overall deadline',async()=>{
  let cancelled=false;const f=fixture({duration:3,fetchFn:async()=>new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(8));},cancel(){cancelled=true;}}))});const task=f.prepare(),check=assert.rejects(task,/timed out/);await flush();await f.advance(12000);await check;assert.equal(cancelled,true);assert.equal(f.pending.size,0);
 });
-test('default streaming readiness timeout restores the fallback tone and cannot restart after stop',async()=>{
+test('default streaming readiness timeout retries Soft Morning and cannot restart after stop',async()=>{
  const f=timerFixture(),d=deferred();class Audio extends Element{constructor(url){super();this.src=url;this.currentTime=0;}play(){return d.promise;}pause(){this.paused=true;}removeAttribute(){this.src='';}load(){}}
- f.window.Audio=Audio;f.window.SolarModules.AlarmSound={...f.window.SolarModules.AlarmSound,prepareDefault:async()=>({buffer:null,url:'remote',dispose(){this.url='';}})};await f.arm();await f.advance(60000);await f.advance(3000);assert.ok(f.ramps.includes(.192));await f.get('alarm-stop').fire('click');d.resolve();await flush();assert.equal(f.timer.getDiagnostics().defaultStreaming,false);assert.equal(f.pending.size,0);f.dispose();
+ f.window.Audio=Audio;f.window.SolarModules.AlarmSound={...f.window.SolarModules.AlarmSound,prepareDefault:async()=>({buffer:null,url:'remote',dispose(){this.url='';}})};await f.arm();await f.advance(60000);await f.advance(3000);assert.equal(f.ramps.length,0);await f.get('alarm-stop').fire('click');d.resolve();await flush();assert.equal(f.timer.getDiagnostics().defaultStreaming,false);assert.equal(f.pending.size,0);f.dispose();
 });

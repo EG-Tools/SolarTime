@@ -24,7 +24,7 @@ test('all 15 web and file-language bundles preserve approved interface, timer, b
  const compiled=api.compile(root);
  for(const protocol of ['https:','file:']){
   const environment=runtime({protocol}),{loader}=environment;
-  for(const code of compiled.codes){const bundle=await loader.load(code);const previous={...bundle,copy:{...bundle.copy}};for(const key of ['music','openingTravel','openingDefault','openingNone','openingReload','cookieSettings','cookieDismiss','cookieChoiceNote','defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan','releaseNotesAll','atmosphericClouds','ringTravel','ringTravelStarted','ringTravelUnavailable'])delete previous.copy[key];assert.equal(api.fingerprint(previous),gold[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
+  for(const code of compiled.codes){const bundle=await loader.load(code);assert.equal(api.fingerprint(bundle),data('tests/fixtures/i18n-v077.json')[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
   assert.equal(environment.scripts.length,protocol==='file:'?1:0,protocol+' compatibility payload');
  }
 });
@@ -49,15 +49,14 @@ test('ring travel labels are localized for all languages including older file-la
  assert.equal(compiled.bundles.kor.copy.ringTravel,'여행');assert.equal(compiled.bundles.en.copy.ringTravel,'Travel');
 });
 
-test('footer shows mean orbit first and size-distance scale second in every language',()=>{
- const compiled=api.compile(root);
- for(const code of compiled.codes){
-  const lines=compiled.bundles[code].copy.scaleNoteLineOne.split('\n');
-  assert.equal(lines.length,2,code);assert.ok(lines.every(line=>line.trim()),code);
- }
- assert.equal(compiled.bundles.kor.copy.scaleNoteLineOne,'평균 궤도 근사\n크기 거리 측정 조정');
- assert.equal(compiled.bundles.en.copy.scaleNoteLineOne,'Mean orbit approximation\nAdjusted size and distance scale');
- assert.ok(read('styles.css').includes('.signature [data-i18n="scaleNoteLineOne"]{white-space:pre}'));
+test('footer signature stays English and outside localization',()=>{
+ const html=read('index.html');
+ const signature=html.match(/<div class="signature"[^>]*>[\s\S]*?<\/div>/)?.[0]||'';
+ assert.match(signature,/class="signature" lang="en"/);
+ assert.match(signature,/Mean orbit approximation\s*Adjusted size and distance scale/);
+ assert.match(signature,/Rotation and orbit linked to time/);
+ assert.doesNotMatch(signature,/data-i18n(?:-|=)/);
+ assert.ok(read('styles.css').includes('.signature .scale-note-primary{white-space:pre}'));
 });
 test('English fallback is independent of previously visited languages, and does not mutate network data',async()=>{
  const input={copy:{timer:'Un minuteur',settings:'',alarmRinging:null},bodies:{earth:['Terre']},phases:{}};
@@ -70,8 +69,8 @@ test('direct file launches overlay the current localized help introduction on an
  const {loader,installFileCopy}=runtime({protocol:'file:'}),old={copy:{helpIntroPurpose:'Old public fallback'},bodies:{},phases:{}};
  const bundle=loader.resolveBundle(old,'kor',{local:true,fileCopy:installFileCopy()}),current=data('src/locales/kor.json').copy;
  for(const key of ['helpIntroTitle','helpIntroPurpose','helpIntroExperience','helpIntroDesktop','helpFeatures','helpFeatureSolar','helpFeatureTime','helpFeatureMusic','helpFeatureTimer'])assert.equal(bundle.copy[key],current[key],key);
- for(const key of ['defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan'])assert.equal(bundle.copy[key],current[key],key);
- assert.deepEqual(['defaultCamera','savedCameras','planetSwitch','trackBody','zoomInOut','cameraRotate','cameraTravel','screenPan'].map(key=>bundle.copy[key]),['기본 시점','저장된 시점','행성 전환','천체 추적','줌인·아웃','회전','전진·후진','이동']);
+ for(const key of ['defaultCamera','savedCameras','planetSwitch','trackBody','showConstellation','showSolarSystem','zoomInOut','cameraRotate','cameraTravel','screenPan'])assert.equal(bundle.copy[key],current[key],key);
+ assert.deepEqual(['defaultCamera','savedCameras','planetSwitch','trackBody','showConstellation','showSolarSystem','zoomInOut','cameraRotate','cameraTravel','screenPan'].map(key=>bundle.copy[key]),['기본 시점','저장된 시점','행성 전환','천체 추적','이음선 표시','태양계 표시','줌인·아웃','회전','전진·후진','이동']);
  assert.equal(current.helpIntroTitle,'우주 속 한순간');
  assert.equal(current.helpIntroPurpose,'Solar Time은 현재 시각과 행성의 움직임을 담은 웹 기반 태양계 시계입니다.\n일과 공부중 잠시 쉬고 싶을때 감상하는 화면보호기 용도로 만들어졌습니다.');
  assert.equal(current.helpIntroExperience,'잔잔한 배경음악과 함께 태양계를 감상하고,\n카메라를 이용해서 나만의 우주 풍경을 만들어 보세요.');
@@ -112,11 +111,11 @@ test('duplicate JSON keys, unknown keys and cross-namespace collisions are rejec
 test('directly editing generated output fails checks until rebuilt from the source',()=>{
  const dir=sandbox();try{fs.appendFileSync(path.join(dir,'src/locales/fr.json'),' ');assert.throws(()=>api.sync(dir),/Generated translation files differ/);assert.deepEqual(api.sync(dir,{write:true}).changed,['src/locales/fr.json']);assert.deepEqual(api.sync(dir).changed,[]);}finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
-test('known inherited translations remain reported, not counted as complete, and source changes invalidate allowances',()=>{
- const compiled=api.compile(root);assert.equal(compiled.report.fullyTranslated,false);assert.equal(compiled.report.fallbacks.filter(x=>x.key.startsWith('timer.')).length,133);assert.equal(compiled.report.fallbacks.filter(x=>x.key.startsWith('release.')).length,0);assert.equal(compiled.report.placeholderVariantCount,4);
- assert.throws(()=>api.sync(root,{strict:true}),/not completed translations/);
- const dir=sandbox();try{const en=data('i18n/locales/en.json',dir);en.timer.shutdownUnknown+=' Updated meaning.';write('i18n/locales/en.json',en,dir);assert.throws(()=>api.compile(dir),/missing translation|changed fallback/);}finally{fs.rmSync(dir,{recursive:true,force:true});}
+test('all current UI translations are explicit and a missing translation blocks generation',()=>{
+ const compiled=api.compile(root);assert.equal(compiled.report.fullyTranslated,true);assert.equal(compiled.report.fallbacks.length,0);assert.equal(compiled.report.placeholderVariantCount,4);
+ const dir=sandbox();try{const fr=data('i18n/locales/fr.json',dir);delete fr.timer.shutdownUnknown;write('i18n/locales/fr.json',fr,dir);assert.throws(()=>api.compile(dir),/missing translation/);}finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
 test('source-only changes are reported before translation completeness, without reviewing generated duplication',()=>{
  const dir=sandbox();try{
   for(const args of [['init','-q'],['config','user.email','test@invalid.example'],['config','user.name','Test'],['add','i18n'],['commit','-qm','source baseline']]){const result=cp.spawnSync('git',args,{cwd:dir,encoding:'utf8'});assert.equal(result.status,0,result.stderr);}
@@ -136,7 +135,7 @@ test('music shortcut keeps current Korean and English labels with old file-launc
   assert.equal((await loader.load('kor')).copy.music,'배경 음악');
  }
  const {loader,installFileCopy}=runtime({protocol:'file:'});
- assert.equal(loader.resolveBundle({copy:{},bodies:{},phases:{}},'en',{local:true,fileCopy:installFileCopy()}).copy.music,'Background Music');
+ assert.equal(loader.resolveBundle({copy:{},bodies:{},phases:{}},'en',{local:true,fileCopy:installFileCopy()}).copy.music,'Background music');
 });
 
 test('file launches retain current shutdown translations with older server bundles',async()=>{

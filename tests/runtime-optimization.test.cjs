@@ -28,11 +28,11 @@ test('returning to the foreground checks an installation immediately; late resul
  const f=fixture({installed:true,hidden:true,saved:{helperProgress:50,helperInstallToken:'a'.repeat(32),helperInstallDeadline:1790290600000}});await f.advance(100);const old=f.counts.probes;f.document.hidden=false;await f.document.fire('visibilitychange');await flush();assert.equal(f.counts.probes,old+1);
  const pending=deferred();f.bridge.installStatus=()=>pending.promise;await f.window.fire('focus');f.dispose();pending.resolve(true);await flush();assert.equal(f.timer.getState().helperConfirmed,false);assert.equal(f.pending.size,0);
 });
-test('all base alarm gains increase exactly 20 percent, including preview and emergency tone',async()=>{
+test('alarm and preview gains retain their reviewed 20 percent increase without a synthesized fallback',async()=>{
  const f=fixture();const api=f.window.SolarModules.TimerController;
- for(const [old,current] of [[.72,api.ALARM_VOLUME],[.58,api.PREVIEW_VOLUME],[.16,api.FALLBACK_VOLUME]])assert.ok(Math.abs(current/old-1.2)<1e-12);
+ for(const [old,current] of [[.72,api.ALARM_VOLUME],[.58,api.PREVIEW_VOLUME]])assert.ok(Math.abs(current/old-1.2)<1e-12);
  await f.arm();await flush();await f.advance(60000);assert.ok(f.nodes.some(n=>n.kind==='gain'&&n.gain.value===.864));await f.get('alarm-stop').fire('click');assert.equal(f.timer.getDiagnostics().retainedDecodedBytes,0);f.dispose();
- const fallback=fixture({fetchFn:()=>new Promise(()=>{})});await fallback.arm();await fallback.advance(60000);assert.ok(fallback.ramps.includes(.192));fallback.dispose();
+ const fallback=fixture({fetchFn:()=>new Promise(()=>{})});await fallback.arm();await fallback.advance(60000);assert.equal(fallback.ramps.length,0);fallback.dispose();
 });
 test('last audio choice wins when earlier preparations complete later',async()=>{
  const tasks=new Map(),f=fixture({prepare:blob=>{const d=deferred();tasks.set(blob.name,d);return d.promise;}});f.timer.open(true);

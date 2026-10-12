@@ -15,10 +15,10 @@ function measure(r){
  assert.ok(points.every(p=>!p.behind&&Number.isFinite(p.x)),'the entire orbit must be in front of the camera');
  return {width:(Math.max(...points.map(p=>p.x))-Math.min(...points.map(p=>p.x)))/r.w,sun:r.project({x:0,y:0,z:0}).y/r.h};
 }
-test('home frames the rendered Neptune orbit at 75% and the Sun at 57% across viewports and orbit spacing',()=>{
+test('home frames the rendered Neptune orbit at 65% and the Sun at 57% across viewports and orbit spacing',()=>{
  for(const [w,h] of [[1280,800],[390,844],[900,500],[2560,1080]])for(const gap of [50,100,400])for(const spacing of [null,0,.05,.1,.5,1]){
   const r=fixture(w,h);r.options.overviewOrbitGap=gap;r.options.actualOrbitSpacing=spacing??0;r.actualScaleMix=spacing===null?0:1;
-  r.camera=r.defaultCameraSnapshot(ms);const actual=measure(r);close(actual.width,.75);close(actual.sun,.57);
+  r.camera=r.defaultCameraSnapshot(ms);const actual=measure(r);close(actual.width,.65);close(actual.sun,.57);
  }
 });
 test('home uses body hierarchy and camera bank, without changing the live projection or caches',()=>{
@@ -29,13 +29,13 @@ test('home uses body hierarchy and camera bank, without changing the live projec
  assert.deepEqual(Object.keys(r),keys);for(const key of keys)assert.equal(r[key],before[key],key);
  assert.deepEqual([...r.precisionOrbitPathCache],cache);assert.deepEqual(r.solarMorph,[1,2,3,4]);assert.equal(r.frameCache.size,1);
  r.camera=home;r.flightLook=null;r.cameraTween=null;r.trackingAnchor=null;
- const actual=measure(r);close(actual.width,.75);close(actual.sun,.57);
+ const actual=measure(r);close(actual.width,.65);close(actual.sun,.57);
 });
 test('home recalculates after resize and spacing changes instead of reusing stale geometry',()=>{
  const r=fixture();r.rebuild(ms);const first=r.defaultCameraSnapshot(ms);
  r.w=420;r.h=700;r.options.overviewOrbitGap=250;
  r.camera=r.defaultCameraSnapshot(ms);assert.notEqual(r.camera.dolly,first.dolly);
- const actual=measure(r);close(actual.width,.75);close(actual.sun,.57);
+ const actual=measure(r);close(actual.width,.65);close(actual.sun,.57);
 });
 test('fresh home works before any draw and agrees with the same scene after drawing',()=>{
  const r=fixture();r.lastPathMs=NaN;

@@ -175,10 +175,23 @@
     "savedCameras",
     "planetSwitch",
     "trackBody",
+    "showConstellation",
+    "showSolarSystem",
     "zoomInOut",
     "cameraRotate",
     "cameraTravel",
-    "screenPan"
+    "screenPan",
+    "warpShortcut",
+    "constellationsShortcut",
+    "targetSwitch",
+    "targetSwitchHint",
+    "solarSystemMode",
+    "constellationMode",
+    "expandRotationTouch",
+    "expandRotationMouse",
+    "scrollUp",
+    "scrollDown",
+    "skyNavigate"
   ],
   "invariantKeys": [
     "timer.helperChecksumLabel"

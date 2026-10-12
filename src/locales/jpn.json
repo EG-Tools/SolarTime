@@ -1,5 +1,12 @@
 {
   "copy": {
+    "solarSystemMode": "太陽系モード",
+    "constellationMode": "星座モード",
+    "expandRotationTouch": "展開：長押し",
+    "expandRotationMouse": "展開：右クリック",
+    "scrollUp": "上へスクロール",
+    "scrollDown": "下へスクロール",
+    "skyNavigate": "{name}へ移動",
     "openingTravel": "オープニング旅行",
     "openingDefault": "標準オープニング",
     "openingNone": "なし",
@@ -129,6 +136,9 @@
     "savedCameras": "保存した視点",
     "planetSwitch": "惑星切替",
     "trackBody": "天体追跡",
+    "trackConstellation": "星座を追跡",
+    "showConstellation": "結線を表示",
+    "showSolarSystem": "太陽系を表示",
     "zoomInOut": "ズームイン・アウト",
     "cameraRotate": "回転",
     "cameraTravel": "前進・後退",
@@ -223,6 +233,13 @@
     "cookieDismiss": "選択を変更せずに閉じる",
     "cookieChoiceNote": "許可は6か月間保存されます。拒否とXは保存されず、次回のアクセス時に再度確認します。",
     "music": "音楽",
+    "asterism": "アステリズム",
+    "constellation": "星座",
+    "ursaMajor": "おおぐま座",
+    "warpShortcut": "ワープ",
+    "constellationsShortcut": "星座を表示",
+    "targetSwitch": "前 / 次の対象",
+    "targetSwitchHint": "現在の表示に応じて、惑星・地域・星座を切り替えます。",
     "timer": "タイマー",
     "timerClose": "タイマーを閉じる",
     "alarm": "アラーム",
@@ -271,8 +288,8 @@
     "helperDisabled": "Solar Time 終了補助モジュールは無効です。",
     "helperDownloadTitle": "確認済みの公式補助モジュール",
     "helperDownloadDescription": "Solar Time が作成・確認した Windows 予約終了用ファイルです。",
-    "helperDownloadPrivacy": "Only one-time random request IDs, helper version and command results are sent to Solar Time. No account, file or computer name is sent. Receipts expire and are cleaned up automatically.",
-    "helperDownloadPermission": "Installs for the current user without administrator access. Uses PowerShell, a URL association and the Windows shutdown command.",
+    "helperDownloadPrivacy": "Solar Timeに送信されるのは、一度限りのランダムな要求ID、ヘルパーのバージョン、コマンドの結果のみです。アカウント、ファイル、コンピューター名は送信されません。確認記録は期限切れ後に自動削除されます。",
+    "helperDownloadPermission": "管理者権限なしで現在のユーザー用にインストールします。PowerShell、URLの関連付け、Windowsのシャットダウンコマンドを使用します。",
     "helperDownloadSource": "ソースと SHA-256 を公開し、ファイルの変更を確認できます。",
     "helperViewSource": "ソースコードを見る",
     "helperChecksumLabel": "SHA-256",
@@ -281,18 +298,102 @@
     "helperRemoveTitle": "終了補助モジュールを削除",
     "helperRemoveDescription": "予約終了を取り消し、現在の Windows アカウントから補助モジュールと関連付けを削除します。",
     "helperRemoveQuestion": "補助モジュールを削除しますか？",
-    "helperRemoveRequested": "Windows confirmed cancellation and removal of the helper.",
+    "helperRemoveRequested": "Windowsがキャンセルとヘルパーの削除を確認しました。",
     "helperInstallTitle": "補助モジュールのインストール確認",
-    "helperInstallDescription": "Run the latest downloaded CMD installer, then verify the installed helper. Allow the browser to open PowerShell.",
-    "helperInstallQuestion": "Verify the installed helper now?",
-    "shutdownPending": "Waiting for Windows confirmation. Allow the helper to open.",
-    "shutdownUnknown": "Windows result is unconfirmed. A shutdown may still be scheduled. Use Cancel to check.",
-    "shutdownFailed": "Windows command failed (code {code}).",
-    "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
-    "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "helperInstallDescription": "最新のCMDインストーラーを実行してから、ヘルパーを確認してください。ブラウザーからPowerShellを開くことを許可してください。",
+    "helperInstallQuestion": "インストール済みヘルパーを今すぐ確認しますか？",
+    "shutdownPending": "Windowsの確認を待っています。ヘルパーを開くことを許可してください。",
+    "shutdownUnknown": "Windowsの結果が未確認です。シャットダウンが予約されている可能性があります。「キャンセル」で確認してください。",
+    "shutdownFailed": "Windowsコマンドが失敗しました（コード{code}）。",
+    "shutdownNotLaunched": "ヘルパーが開きませんでした。スイッチをもう一度押し、ブラウザーの確認を許可してください。",
+    "helperVerifyFailed": "ヘルパーの確認に失敗しました。最新のインストーラーを実行し、ヘルパーを開くことを許可してください。",
+    "shutdownDataWarning": "作業を保存してください。Windowsの予約シャットダウンはアプリを強制終了することがあります。"
   },
   "bodies": {
+    "polaris": [
+      "北極星",
+      "こぐま座で最も明るく、地球の天の北極に近い星です。ほとんど動かないように見え、北を知る目印になります。"
+    ],
+    "ursa-major": [
+      "おおぐま座",
+      "北斗七星を含む北天の大きな星座です。ひしゃくから胴体や脚へと線が伸びています。"
+    ],
+    "ursa-minor": [
+      "こぐま座",
+      "小さなひしゃくの柄の先に北極星があります。コカブとフェルカドがひしゃくの外側を形作ります。"
+    ],
+    "cassiopeia": [
+      "カシオペヤ座",
+      "五つの明るい星が、見る角度によってWやMの形に見えます。北極星を挟んで北斗七星とほぼ反対側にあります。"
+    ],
+    "orion": [
+      "オリオン座",
+      "一直線に並ぶ三つの帯の星が目印です。赤いベテルギウスと青白いリゲルが対照的で、韓国では冬の夕空に目立ちます。"
+    ],
+    "scorpius": [
+      "さそり座",
+      "赤いアンタレスから長い胴体と曲がった尾が続きます。韓国の夏の南天で見られ、シャウラとレサトが尾の針を示します。"
+    ],
+    "leo": [
+      "しし座",
+      "レグルス付近の鎌形の頭と三角形の胴体が特徴です。デネボラが尾を示し、韓国の春の夕空で探しやすい星座です。"
+    ],
+    "cygnus": [
+      "はくちょう座",
+      "長い首と翼が北十字を作ります。デネブは夏の大三角の一角で、アルビレオが頭にあります。"
+    ],
+    "taurus": [
+      "おうし座",
+      "橙色のアルデバラン、V字の顔、長い二本の角が目印です。アルデバランはヒアデス星団の手前にあり、星団の一員ではありません。"
+    ],
+    "aries": [
+      "おひつじ座",
+      "ハマル、シェラタン、メサルティムが短い曲線を作ります。歴史的に春分の位置の目印となった黄道星座です。"
+    ],
+    "gemini": [
+      "ふたご座",
+      "カストルとポルックスが双子の頭を示します。二筋に分かれた星の連なりが体を形作ります。"
+    ],
+    "cancer": [
+      "かに座",
+      "アセルス・ボレアリスとアセルス・アウストラリス付近に淡いY字を描く黄道星座です。暗い空ではプレセペ星団が目印になります。"
+    ],
+    "virgo": [
+      "おとめ座",
+      "青白いスピカを中心に広がる黄道星座です。しし座とてんびん座の間にあり、韓国では春の夕方の南天に見られます。"
+    ],
+    "libra": [
+      "てんびん座",
+      "ズベンエスカマリとズベンエルゲヌビが天秤の形を作ります。これらの星は、かつてさそりの爪と考えられていました。"
+    ],
+    "sagittarius": [
+      "いて座",
+      "カウス・アウストラリスとヌンキ付近の星がティーポット形を作ります。この黄道星座の方向の奥に銀河系の中心があります。"
+    ],
+    "capricornus": [
+      "やぎ座",
+      "アルゲディとデネブ・アルゲディの間に低く広いくさび形が広がります。淡い黄道星座で、三角形の輪郭が目印です。"
+    ],
+    "aquarius": [
+      "みずがめ座",
+      "サダルスウドとサダルメリクから南へ水流のような星の列が伸びます。広く散らばった黄道星座なので、結線をたどると形が分かります。"
+    ],
+    "pisces": [
+      "うお座",
+      "二匹の魚が長いひもで結ばれ、アルレシャで合流します。淡い輪郭が天の赤道付近を広く横切ります。"
+    ],
+    "pegasus": [
+      "ペガスス座",
+      "アルフェラッツ、アルゲニブ、マルカブ、シェアトが秋の四辺形を作ります。そこから首や脚の方向へ星の列が伸びます。"
+    ],
+    "andromeda": [
+      "アンドロメダ座",
+      "アルフェラッツからミラクを経てアルマクへ星が連なります。近くには暗い空で肉眼でも見えるアンドロメダ銀河があります。"
+    ],
+    "crux": [
+      "みなみじゅうじ座",
+      "アクルックスとガクルックスが長い軸、ミモザとイマイが横軸を作ります。小さな南十字は南を知る目印になります。"
+    ],
     "sun": [
       "太陽",
       "主に水素とヘリウムからなる恒星です。中心部の核融合エネルギーが高温のプラズマと光として放出されます。"
@@ -340,6 +441,10 @@
     "pluto": [
       "冥王星",
       "岩石と水の氷からなる準惑星で、表面は窒素・メタン・一酸化炭素の氷に覆われています。"
+    ],
+    "big-dipper": [
+      "北斗七星",
+      "おおぐま座にある7つの明るい恒星で形づくられるアステリズムです。ひしゃく形の並びは北の空を探す代表的な目印で、メラクからドゥベへ結んだ方向は北極星を指します。"
     ]
   },
   "phases": {

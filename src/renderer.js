@@ -4,6 +4,8 @@
   const A=window.SolarAstro, {TAU,DEG,clamp}=A,SATELLITES=A.SATELLITES||Object.freeze([A.MOON].filter(Boolean));
   const OVERVIEW_ORBIT=A.OVERVIEW_ORBIT||Object.freeze({gap:90,minGap:50,maxGap:400});
   const ACTUAL_ORBIT_SPACING=Object.freeze({normalBlendEnd:.1,minimumMix:.01});
+  const ACTUAL_SCALE_TRANSITION=Object.freeze({duration:2000,homeDuration:1100});
+  const SKY_SOLAR_SCALE=.05;
   const OVERVIEW_GAP_MULTIPLIER=1.5;
   // The radial map includes transparent inner padding: visible ink starts
   // near 1.35 Saturn radii, not the texture quad's 1.28 boundary.
@@ -19,7 +21,7 @@
   // wall-clock time never belong to this registry. Aliases are shifted once.
   const ANIMATION_TIMESTAMPS=[
     ['', ['orbitRevealStart','openingAnnotationStart','openingOrbitStart','cameraChangeAt','presentationUntil']],
-    ['cameraTween',['start']],['cameraTween.replay',['clearSince']],
+    ['cameraTween',['start']],['skySolarTween',['start']],['cameraTween.replay',['clearSince']],
     ['openingPointReveal',['start']],['lookRelease',['start']],['bankRelease',['start']],
     ['ringTour.replayBridge',['start']],['ringTour',['lastMono']],['autoRotation',['mono']],['openingFlight',['mono']],
     ['sky.skySample',['time']],['sky.skyPrevious',['time']],['cameraTween.replay.skyFrom',['time']],
@@ -132,12 +134,17 @@
   // Retain the approved viewing angle and lens. defaultCameraSnapshot derives
   // distance and pan from the live orbit layout instead of a captured viewport.
   const DEFAULT_CAMERA=Object.freeze({azimuth:6.24870825667827,elevation:.25293208858658467,zoom:1.1853048513203654,dolly:1,focus:null,panY:0,panX:0});
-  const DEFAULT_FRAME=Object.freeze({body:'neptune',widthRatio:.75,sunYRatio:.57,iterations:32});
+  const DEFAULT_FRAME=Object.freeze({body:'neptune',widthRatio:.65,sunYRatio:.57,iterations:32});
   const REGION_TRACKED_WHEEL_STEPS=7;
+  const SKY_FEATURE_TRACK=Object.freeze({zoom:1.2});
   // Region picking deliberately uses small representative-city safe zones.
   // It does not infer national borders, islands or disputed territory.
   // Screen-space appearance only: never change physical size, lens or camera pose.
-  const BODY_POINT=Object.freeze({fadeBegin:2.2,fadeEnd:5.2,growthFullAt:1.2,sizeCurve:.25});
+  // A projected DIAMETER of 2px is the smallest textured disc. It blends to the
+  // shared point sprite only between 2px and 1px, then remains a point at 1px.
+  // Renderer radii are CSS pixels, so those diameter thresholds are 1 and .5.
+  const BODY_POINT=Object.freeze({pointRadius:.5,textureRadius:1,size:2.2,sizeCurve:.25});
+  const STAR_GLOW_EXTENT=6;
   const OPENING_POINT_REVEAL=1500;
   const POINT_TOUR_CAMERA_HANDOFF=1.2;
   const RANDOM_ROTATION=2;
@@ -148,6 +155,7 @@
   const LABEL=Object.freeze({response:.16,switchDelay:140,dwell:320,margin:18,padding:3});
   const DISPLAY_SAFETY=Object.freeze({satelliteShell:.60,localGap:.8});
   const SATELLITE_ORBIT_PARENTS=new Set(SATELLITES.map(body=>body.parent));
+  const ECLIPSE_CASTERS=Object.freeze({earth:'moon',jupiter:'europa'});
   const ORBIT_HIERARCHY_PARENTS=new Set(['sun',...SATELLITE_ORBIT_PARENTS]);
   const normalizeElevation=value=>A.wrap(value+Math.PI)-Math.PI;
   function noise(x,y) {
@@ -174,7 +182,7 @@
       this.gpu=null;this.gpuError=null;
       const gpuCanvas=typeof document==='object'&&typeof document.getElementById==='function'?document.getElementById('planet-layer'):null;
       if(gpuCanvas&&window.SolarSurface?.DirectRenderer){try{this.gpu=new window.SolarSurface.DirectRenderer(gpuCanvas);}catch(error){this.gpuError=error.message;}}
-      this.options={actualScale:false,overviewOrbitGap:100,actualOrbitSpacing:0,orbitBrightness:.5,dollyZoom:true,labels:true,avoidLabels:false,twinkle:true,activity:true,alignmentGuideVisible:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,skyMotion:true,comets:true,quality:'auto'};
+      this.options={actualScale:false,overviewOrbitGap:100,actualOrbitSpacing:0,orbitBrightness:.5,dollyZoom:true,labels:true,avoidLabels:false,twinkle:true,activity:true,alignmentGuideVisible:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,comets:true,quality:'auto'};
       this.bodyScales=Object.create(null);this.satelliteOrbitScales=Object.create(null);
       this.camera={...DEFAULT_CAMERA};
       this.site={label:'KOREA',latitude:37.5665,longitude:126.978};
@@ -185,10 +193,10 @@
       this.frameBodies=[];this.surfaceBodies=[];this.directBodies=[];this.labelBodies=[];this.satelliteLayouts=[];this.compatSurfaceJobs=[];
       this.frameItems=new Map();this.frameSerial=0;
       this.physicsMs=NaN;this.physicsBodies=new Map();this.physicsSatellites=new Map();
-      this.stats={orbitProjections:0,orbitBufferBuilds:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);
-      this.selected=null;this.hover=null;this.earthRegionHover=null;this.countryBorders=null;this.alignmentGuide=null;this.lastPathMs=NaN;this.dirty=true;this.presentationDirty=true;this.presentationUntil=0;this.presentedResources='';this.frameCount=0;
+      this.stats={orbitProjections:0,orbitBufferBuilds:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);this.boundStarGlow.extent=STAR_GLOW_EXTENT;
+      this.selected=null;this.hover=null;this.earthRegionHover=null;this.earthRegionNavigation=false;this.countryBorders=null;this.alignmentGuide=null;this.lastPathMs=NaN;this.dirty=true;this.presentationDirty=true;this.presentationUntil=0;this.presentedResources='';this.frameCount=0;
       this.orbitRevealStart=performance.now();this.openingAnnotationStart=NaN;this.openingOrbitStart=NaN;this.openingPointReveal=null;
-      this._flightParticles=new FlightParticleLifecycle();this.openingParticleSprite=null;this.ringTour=null;this.pendingTravelFocus=null;
+      this._flightParticles=new FlightParticleLifecycle();this.openingParticleSprite=null;this.ringTour=null;this.pendingTravelFocus=null;this.skyFeatureTrack=null;this.skySolarMix=0;this.skySolarVisible=true;this.skySolarTarget=null;this.skySolarHover=false;this.skySolarHoverTween=null;this.openingPresentation=false;
       this.lastSurfaceSubmit=-Infinity;this.lastSurfaceSimMs=NaN;this.lastSurfaceMono=NaN;
       this.sky=new window.SolarSky(background);
       this.resize();
@@ -251,38 +259,42 @@
       if(duration>0&&Number.isFinite(mono))this.presentationUntil=Math.max(this.presentationUntil,mono+duration);
     }
     needsDraw(mono=performance.now()){
-      return !!this.preparedRingTour?.needsWarmup()||
+      return !!this.preparedRingTour?.needsWarmup()||!!this.gpu?.hasLodTransition?.(mono)||
         this.dirty||this.presentationDirty||this.resourceSignature()!==this.presentedResources||
-        (!this.animationPaused&&(!!this.ringTour||!!this.cameraTween||!!this.bankRelease||this.particleLifecycle().size>0||!!this.autoRotation||this.orbitRevealAlpha(mono)<.9999||mono<this.presentationUntil))||!!this.actualScaleTween||!!this.orbitSpacingTween||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
+        (!this.animationPaused&&(!!this.ringTour||!!this.cameraTween||!!this.skySolarTween||!!this.bankRelease||this.particleLifecycle().size>0||!!this.autoRotation||this.orbitRevealAlpha(mono)<.9999||mono<this.presentationUntil))||!!this.actualScaleTween||!!this.orbitSpacingTween||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
     }
-    starGlow(c,x,y,r,alpha) {
+    starGlow(c,x,y,r,alpha,color='207,226,255') {
       if(!(r>0)||!(alpha>0))return;
       // One normalized sprite per DPR, not a new gradient/path for each star.
-      const ratio=this.dpr||1,key=ratio;
+      const ratio=this.dpr||1,key=ratio+'|'+color;
       let sprite=this.starSprites.get(key);
       if(!sprite){
         const n=Math.ceil(64*ratio),canvas=document.createElement('canvas');canvas.width=canvas.height=n;
         const g=canvas.getContext('2d'),radius=n/12,center=n/2;
         const halo=g.createRadialGradient(center,center,0,center,center,n/2);
-        halo.addColorStop(0,'rgba(207,226,255,1)');halo.addColorStop(.15,'rgba(151,195,249,.55)');halo.addColorStop(1,'rgba(112,161,226,0)');
-        g.fillStyle=halo;g.fillRect(0,0,n,n);g.strokeStyle='rgba(213,228,252,.6)';
+        halo.addColorStop(0,`rgba(${color},1)`);halo.addColorStop(.15,`rgba(${color},.48)`);halo.addColorStop(1,`rgba(${color},0)`);
+        g.fillStyle=halo;g.fillRect(0,0,n,n);g.strokeStyle=`rgba(${color},.56)`;
         g.lineWidth=radius*.5;g.beginPath();g.moveTo(center-radius*4,center);g.lineTo(center+radius*4,center);
         g.moveTo(center,center-radius*4);g.lineTo(center,center+radius*4);g.stroke();
-        g.fillStyle='rgba(247,250,255,1)';g.beginPath();g.arc(center,center,radius*.6,0,TAU);g.fill();
+        g.fillStyle=`rgb(${color})`;g.beginPath();g.arc(center,center,radius*.6,0,TAU);g.fill();
         sprite=canvas;this.starSprites.set(key,sprite);this.stats.starSprites++;
       }
       const previous=c.globalAlpha;c.globalAlpha=previous*clamp(alpha,0,1);
-      c.drawImage(sprite,x-r*6,y-r*6,r*12,r*12);c.globalAlpha=previous;
+      const extent=r*STAR_GLOW_EXTENT;c.drawImage(sprite,x-extent,y-extent,extent*2,extent*2);c.globalAlpha=previous;
     }
     bodyPointLod(body,radius) {
       if(!Number.isFinite(radius)||radius<=0)return {size:0,alpha:0};
       // Keep every body's point representation on one screen-space curve.
       // The shallow power keeps sub-pixel bodies visible without replacing
       // their projected size relationship with planet-class ranks.
-      const normalized=clamp(radius/BODY_POINT.fadeBegin,0,1);
-      const growth=ease(clamp(radius/BODY_POINT.growthFullAt,0,1));
-      return {size:BODY_POINT.fadeBegin*Math.pow(normalized,BODY_POINT.sizeCurve),
-        alpha:(1-ease(clamp((radius-BODY_POINT.fadeBegin)/(BODY_POINT.fadeEnd-BODY_POINT.fadeBegin),0,1)))*mix(.58,1,growth)};
+      const normalized=clamp(radius/BODY_POINT.pointRadius,0,1);
+      const growth=ease(normalized),blend=1-ease(clamp((radius-BODY_POINT.pointRadius)/(BODY_POINT.textureRadius-BODY_POINT.pointRadius),0,1));
+      // Enter at a small sprite footprint, then reach the established point
+      // size only as the textured disc reaches 1px. This removes the apparent
+      // size pop caused by fading a full-size halo over a 2px texture.
+      const entryScale=mix(.35,1,blend);
+      return {size:BODY_POINT.size*Math.pow(normalized,BODY_POINT.sizeCurve)*entryScale,
+        alpha:blend*mix(.58,1,growth)};
     }
     drawBodyPoint(c,item,occluders=[],reveal=1) {
       const {screen,body,r}=item,point=this.bodyPointLod(body,r),extent=point.size*1.8;
@@ -302,22 +314,46 @@
       // Intersect each outside-disc region separately. One even-odd path for
       // multiple discs would expose the point again where two blockers overlap.
       for(const other of occluders){
-        if(other===item||other.screen?.behind||!(other.r>.65)||!(other.screen.z>screen.z+1e-9))continue;
+        const spherePose=other.body.id===this.ringTour?.job?.id?this.ringTour.pose:null;
+        if(other===item||!spherePose&&(other.screen?.behind||!(other.r>.65)))continue;
+        const pointDepth=screen.occlusionDepth,otherDepth=other.screen.occlusionDepth,pointW=screen.clipW,otherW=other.screen.clipW;
+        // Ring-tour framing temporarily corrects homogeneous W to preserve a
+        // seamless handoff. Occlusion must keep the uncorrected physical camera
+        // depth or a planet behind Saturn can be composited over its surface.
+        const foreground=Number.isFinite(pointDepth)&&Number.isFinite(otherDepth)&&Math.abs(otherDepth-pointDepth)>1e-9?otherDepth>pointDepth:
+          Number.isFinite(pointW)&&Number.isFinite(otherW)&&Math.abs(otherW-pointW)>1e-9?otherW<pointW:other.screen.z>screen.z+1e-9;
+        if(!foreground)continue;
+        // The travel shader raycasts a sphere, whose near/off-axis silhouette
+        // extends beyond the centre's projected circle (even behind its plane).
+        // Use the same exact mask as flight particles, not a second disc test.
+        if(spherePose){
+          const mask=this.particleSphereMask(spherePose);if(mask.empty)continue;
+          c.beginPath();c.rect(0,0,this.w,this.h);this.traceSphereMask(c,mask);c.clip('evenodd');continue;
+        }
         const dx=screen.x-other.screen.x,dy=screen.y-other.screen.y;
         if(dx*dx+dy*dy>=(other.r+extent)**2)continue;
         c.beginPath();c.rect(0,0,this.w,this.h);
         c.moveTo(other.screen.x+other.r,other.screen.y);c.arc(other.screen.x,other.screen.y,other.r,0,TAU);c.clip('evenodd');
       }
-      const parentAlpha=c.globalAlpha;c.globalAlpha=parentAlpha*point.alpha*reveal;
+      const parentAlpha=c.globalAlpha,pointAlpha=parentAlpha*point.alpha*reveal;
+      // Preserve the unresolved disc light budget as the halo footprint grows.
+      // A wider sprite must not brighten a shrinking planet.
+      const haloGain=Math.min(1,Math.pow(BODY_POINT.pointRadius/point.size,2));
+      c.globalAlpha=pointAlpha*haloGain;
       c.drawImage(sprite,screen.x-extent,screen.y-extent,extent*2,extent*2);
-      // Below textured-disc resolution this is a point presentation, not a
-      // translucent planet surface. Fade the whole point with the shared solar
-      // reveal; the actual planet layer remains binary and fully opaque.
-      if(r<BODY_POINT.fadeBegin){
-        c.globalAlpha=parentAlpha*reveal;c.fillStyle=color;c.beginPath();
-        c.arc(screen.x,screen.y,clamp(point.size*.3,.04,.9),0,TAU);c.fill();
-      }
+      // The core uses the same continuous LOD weight as the halo; never add an
+      // opaque core abruptly at the 1px boundary.
+      c.globalAlpha=pointAlpha;c.fillStyle=color;c.beginPath();
+      c.arc(screen.x,screen.y,clamp(point.size*.23,.04,BODY_POINT.pointRadius),0,TAU);c.fill();
       c.restore();return true;
+    }
+    bodyDepthOrder(a,b) {
+      const ad=a?.screen?.occlusionDepth,bd=b?.screen?.occlusionDepth,aw=a?.screen?.clipW,bw=b?.screen?.clipW;
+      // Travel projection corrections affect screen continuity only. Keep GPU
+      // compositing on the same physical ring-camera depth used by point masks.
+      if(Number.isFinite(ad)&&Number.isFinite(bd)&&Math.abs(ad-bd)>1e-9)return ad-bd;
+      if(Number.isFinite(aw)&&Number.isFinite(bw)&&Math.abs(aw-bw)>1e-9)return bw-aw;
+      return (a?.screen?.z??0)-(b?.screen?.z??0);
     }
     cameraBasis() {
       const {azimuth:a,elevation:e}=this.camera,r=this.flightBank||0;
@@ -701,7 +737,8 @@
     }
     project(p,out=null) {
       const v=this.projectView(p),result=out||{};
-      result.x=this.cx+v.x*this.scale;result.y=this.cy+v.y*this.scale;result.z=v.z;result.perspective=v.perspective??1;result.behind=!!v.behind;
+      result.x=this.cx+v.x*this.scale;result.y=this.cy+v.y*this.scale;result.z=v.z;result.perspective=v.perspective??1;
+      result.clipW=result.perspective>0?1/result.perspective:Infinity;result.occlusionDepth=NaN;result.behind=!!v.behind;
       return result;
     }
     getBodies() { return this.options.pluto?A.BODIES:(this.bodiesWithoutPluto||(this.bodiesWithoutPluto=A.BODIES.filter(b=>b.id!=='pluto'))); }
@@ -847,7 +884,8 @@
       this.actualFitScale=this.actualScaleFit();
       this.fitScale=mix(this.overviewFitScale,this.actualFitScale,this.orbitScaleMix());
       this.scale=this.fitScale*this.camera.zoom*(this.camera.dolly??1);
-      this.centerX=(left+right)/2+this.w*(this.camera.panX||0);this.centerY=baseY+this.h*this.camera.panY;
+      const panTravel=this.camera.panDolly?(this.camera.dolly??1)/this.camera.panDolly:1;
+      this.centerX=(left+right)/2+this.w*(this.camera.panX||0)*panTravel;this.centerY=baseY+this.h*this.camera.panY*panTravel;
       // Warp arrival starts at the particles' viewport-centred vanishing point.
       // Restore the normal layout and saved pan through the same camera progress.
       const arrival=this.cameraTween?.replay?.arrivalProgress;
@@ -863,7 +901,12 @@
       const tween=this.actualScaleTween;if(!tween)return;
       const p=clamp((mono-tween.started)/tween.duration,0,1),e=p*p*(3-2*p);this.actualScaleMix=mix(tween.from,tween.to,e);
       this.dirty=true;
-      if(p>=1){this.actualScaleMix=tween.to;this.actualScaleTween=null;}
+      if(p>=1){
+        const follow=tween.homeFollow;this.actualScaleMix=tween.to;this.actualScaleTween=null;
+        // Finish the full two-second scale morph first. Only then invoke the
+        // same Home transition as the 0 key, preserving its horizontal bearing.
+        if(follow&&this.animateHome(mono,ACTUAL_SCALE_TRANSITION.homeDuration)&&this.cameraTween)this.cameraTween.actualScaleHome=true;
+      }
     }
     advanceOrbitSpacing(mono=performance.now()){
       const tween=this.orbitSpacingTween;if(!tween)return;
@@ -920,8 +963,11 @@
         this.lastSurfaceSubmit=-Infinity;this.dirty=true;return;
       }
       if(key==='actualScale'){
-        const mono=performance.now();this.advanceActualScale(mono);this.options.actualScale=!!value;
-        if(animate)this.actualScaleTween={from:this.actualScaleMix,to:value?1:0,started:mono,duration:2000};
+        const mono=performance.now();this.advanceActualScale(mono);
+        const enabled=!!value,changing=enabled!==this.options.actualScale;
+        if(changing&&this.cameraTween?.actualScaleHome)this.cancelCameraTween(mono,true);
+        this.options.actualScale=enabled;
+        if(animate)this.actualScaleTween={from:this.actualScaleMix,to:enabled?1:0,started:mono,duration:ACTUAL_SCALE_TRANSITION.duration,homeFollow:changing};
         else{this.actualScaleMix=value?1:0;this.actualScaleTween=null;}
         this.lastSurfaceSubmit=-Infinity;this.dirty=true;return;
       }
@@ -980,16 +1026,97 @@
       return r*(body.id==='sun'?5.1:body.id==='saturn'?2.3:body.id==='uranus'?2:1.3)+16;
     }
     visible(p,r=0) {return !p.behind&&p.x+r>=0&&p.x-r<=this.w&&p.y+r>=0&&p.y-r<=this.h;}
+    skyFeatureHit(x,y){return this.sky?.featureHit?.(x,y)||null;}
+    setSkyFeatureHover(id){if(this.sky?.setFeatureHover?.(id))this.invalidatePresentation(Math.max(1300,this.sky.featureHoverTransitionDuration?.()||0));}
+    setSkyFeatureSelected(id){if(this.sky?.setFeatureSelected?.(id))this.invalidatePresentation(this.sky.featureRelationTransitionDuration?.()||0);}
+    setSkyFeatureTrack(track){
+      this.skyFeatureTrack=track||null;
+      this.sky?.setFeatureTracked?.(track?.id||null);
+      this.invalidatePresentation(this.sky?.featureRelationTransitionDuration?.()||0);return this.skyFeatureTrack;
+    }
+    get skyFeatureInputLocked(){return !!this.skyFeatureTrack;}
+    get skyFeatureShortcutMode(){return this.skyFeatureTrack?2:0;}
+    get skyFeatureShortcutId(){return this.skyFeatureShortcutMode?this.skyFeatureTrack.id:null;}
+    get earthRegionNavigationActive(){return !!this.earthRegionNavigation;}
+    setEarthRegionNavigation(active){this.earthRegionNavigation=!!active;return this.earthRegionNavigation;}
+    setOpeningPresentation(active,kind='opening'){this.openingPresentation=active?kind:null;this.invalidatePresentation();}
+    skyFeatureDisplay(id){return !!this.sky?.isFeaturePinned?.(id);}
+    skyFeatureDisplayPreferences(){return this.sky?.featureDisplayPreferences?.()||[];}
+    skyFeatureDisplayMaster(){return this.sky?.featureDisplayMaster!==false;}
+    restoreSkyFeatureDisplay(ids,master=true){this.sky?.restoreFeatureDisplay?.(ids);this.sky?.setFeatureDisplayMaster?.(master);this.invalidatePresentation();}
+    setSkyFeatureDisplay(id,enabled){if(this.sky?.setFeaturePinned?.(id,enabled))this.invalidatePresentation(this.sky.featureDisplayTransitionDuration?.(enabled)??650);}
+    skySolarDisplay(){return this.skySolarVisible!==false;}
+    setSkySolarDisplay(enabled){
+      const next=enabled!==false;if(next===this.skySolarDisplay())return false;
+      this.skySolarVisible=next;if(!next)this.setSkySolarHover(false);this.invalidatePresentation(700);return true;
+    }
+    skySolarHoverOpacity(mono=performance.now()){
+      const tween=this.skySolarHoverTween;if(!tween)return this.skySolarHover?1:0;
+      const u=clamp((mono-tween.start)/tween.duration,0,1),value=mix(tween.from,tween.to,ease(u));
+      if(u>=1)this.skySolarHoverTween=null;return value;
+    }
+    setSkySolarHover(active,mono=performance.now()){
+      active=!!active;if(active===this.skySolarHover)return false;
+      const from=this.skySolarHoverOpacity(mono);this.skySolarHover=active;
+      this.skySolarHoverTween={from,to:active?1:0,start:mono,duration:active?260:500};
+      this.invalidatePresentation(this.skySolarHoverTween.duration,mono);return true;
+    }
+    skySolarHit(x,y){
+      const target=this.skySolarTarget;
+      return !!(this.skyFeatureInputLocked&&this.skySolarDisplay()&&target&&Math.hypot(x-target.x,y-target.y)<=target.r+10);
+    }
+    toggleAllSkyFeatureDisplay(){
+      const enabled=!this.skyFeatureDisplayMaster();
+      if(this.sky?.setFeatureDisplayMaster?.(enabled))this.invalidatePresentation(this.sky.featureDisplayTransitionDuration?.(enabled)??650);
+      return enabled;
+    }
+    isSkyFeatureTracked(id){return !!id&&this.skyFeatureTrack?.id===id;}
+    beginSkyFeatureTracking(id,pose,mono,duration,mode='shortcut-view',targetState,trackState){
+      if(!pose||![pose.azimuth,pose.elevation,mono,duration].every(Number.isFinite)||duration<=0)return false;
+      const currentTrack=this.skyFeatureTrack,rotation=currentTrack?.rotation||{direction:this.rotationIntent,generation:this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration};
+      const from=this.cameraInputState(mono),returnState=currentTrack?.returnState||from,returnBank=currentTrack?.returnBank??(this.flightBank||0);
+      let to={...from,azimuth:A.wrap(pose.azimuth),elevation:normalizeElevation(pose.elevation),focus:null,panX:0,panY:0};
+      to=targetState?.(to,from)||to;
+      // The shared camera tween already suspends and resumes the selected
+      // left/right/random rotation. Keep that intent while changing sky targets.
+      if(!this.animateCamera(to,mono,duration))return false;
+      this.setSkyFeatureHover(null);
+      this.cameraTween.skySolar={from:this.skySolarMix||0,to:1};
+      this.cameraTween.bankTo=pose.bank||0;this.setSkyFeatureTrack({id,returnState,returnBank,rotation,mode,...trackState});return true;
+    }
+    startSkyFeatureTracking(id,mono=performance.now(),duration=1600,mode='shortcut-view'){
+      const pose=this.sky?.featureCameraPose?.(id,.5,.5);if(!pose)return false;
+      return this.beginSkyFeatureTracking(id,pose,mono,duration,mode,(to,from)=>{
+        to.zoom=SKY_FEATURE_TRACK.zoom;
+        to.panX=from.panX;to.panY=from.panY;return to;
+      });
+    }
+    startSkyFeatureShortcutView(id,mono=performance.now(),duration=1600){
+      const started=this.startSkyFeatureTracking(id,mono,duration,'shortcut-view');
+      if(started)this.revealSkyFeature(id,mono);return started;
+    }
+    revealSkyFeature(id,mono=performance.now()){
+      if(!this.sky?.revealFeature?.(id,undefined,mono))return false;
+      this.invalidatePresentation(this.sky.featureRevealDuration(),mono);return true;
+    }
+    stopSkyFeatureTracking(mono=performance.now(),duration=1600){
+      const track=this.skyFeatureTrack;if(!track)return false;
+      this.setSkyFeatureTrack(null);
+      if(!this.animateCamera(track.returnState,mono,duration))return false;
+      this.cameraTween.bankTo=track.returnBank||0;
+      if(track.rotation.direction){this.pendingAutoRotation={...track.rotation};this.rotationGeneration=track.rotation.generation;}
+      return true;
+    }
 
     cameraSnapshot() {return {...this.camera,mode:this.options.dollyZoom?'move':'zoom'};}
-    defaultCameraSnapshot(ms=Number.isFinite(this.lastPathMs)?this.lastPathMs:Date.now()) {
+    defaultCameraSnapshot(ms=Number.isFinite(this.lastPathMs)?this.lastPathMs:Date.now(),actualScaleMix=this.actualScaleMix||0) {
       const state={...DEFAULT_CAMERA,mode:'move'};
       // Reuse the actual layout/projection on an isolated view. Measuring a
       // candidate must not replace the live camera, anchor or render caches.
       const view=Object.assign(Object.create(Renderer.prototype),{
         w:this.w||1280,h:this.h||800,camera:state,
         options:{pluto:true,...this.options},bodyScales:this.bodyScales||{},satelliteOrbitScales:this.satelliteOrbitScales||{},
-        actualScaleMix:this.actualScaleMix||0,orbitSpacingTween:this.orbitSpacingTween,
+        actualScaleMix:clamp(Number.isFinite(actualScaleMix)?actualScaleMix:0,0,1),orbitSpacingTween:this.orbitSpacingTween,
         flightBank:this.flightBank||0,flightLook:null,projectionAnchor:null,trackingAnchor:null,cameraTween:null,
         paths:this.paths,pathKey:this.pathKey,fitKey:this.fitKey,overviewFitScale:this.overviewFitScale,
         precisionOrbitPathCache:new Map(this.precisionOrbitPathCache)
@@ -1043,6 +1170,7 @@
       if(!state||typeof state!=='object')return false;
       for(const key of ['azimuth','elevation','zoom','panX','panY'])if(!Number.isFinite(state[key]))return false;
       const dolly=state.dolly??1;if(!Number.isFinite(dolly))return false;
+      if(state.panDolly!==undefined&&(!Number.isFinite(state.panDolly)||state.panDolly<=0))return false;
       if(state.azimuth<0||state.azimuth>=TAU||state.elevation<VIEW.minElevation||state.elevation>=VIEW.maxElevation||
         state.zoom<VIEW.minZoom||state.zoom>VIEW.maxZoom||dolly<Math.min(VIEW.minDolly,OPENING_TIMING.departureDolly)||dolly>VIEW.maxDolly||state.panX<VIEW.minPanX||state.panX>VIEW.maxPanX||
         state.panY<VIEW.minPanY||state.panY>VIEW.maxPanY)return false;
@@ -1054,15 +1182,17 @@
       if(!Renderer.validCamera(state))return false;
       if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       this.endRingTour();
+      this.skySolarMix=0;this.skySolarTween=null;this.solarComposite=null;
       this.setReplaySolarOpacity(1);
       const mono=performance.now(),direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
       // Bank belongs to the camera lineage, not to an individual transition.
       // The first camera after refresh establishes it (normally zero); every
       // restore/preset/opening keeps that same roll instead of re-leveling.
-      this.cameraTween=null;this.flightBank=Number.isFinite(this.flightBank)?this.flightBank:0;this.flightLook=null;this.lookRelease=null;this.bankRelease=null;this.clearOpeningParticleFields();this.autoRotation=null;this.pendingAutoRotation=null;this.trackingAnchor=null;if(state.mode!==undefined)this.setDollyMode(state.mode==='move',false);
+      this.cameraTween=null;this.flightBank=Number.isFinite(this.flightBank)?this.flightBank:0;this.flightLook=null;this.lookRelease=null;this.bankRelease=null;this.clearOpeningParticleFields();this.autoRotation=null;this.pendingAutoRotation=null;this.trackingAnchor=null;this.earthRegionNavigation=false;this.setSkyFeatureTrack(null);if(state.mode!==undefined)this.setDollyMode(state.mode==='move',false);
       // Commit one camera transaction. Time, selected body and display toggles are not preset data.
       this.camera={azimuth:state.azimuth,elevation:state.elevation,zoom:state.zoom,dolly:state.dolly??1,
         focus:state.focus,panX:state.panX,panY:state.panY};
+      if(state.panDolly!==undefined)this.camera.panDolly=state.panDolly;
       if(direction)this.beginAutoRotation(direction,mono,generation);
       this.cameraChangeAt=performance.now();this.dirty=true;this.clearLabels();this.invalidateSurfaces();return true;
     }
@@ -1099,6 +1229,7 @@
       const resolvedTiming=timing==='opening'?'opening':'smooth';
       const openingPath=resolvedTiming==='opening'?{from,to,arc:to.focus===null?this.openingCameraArc():null,points:[]}:null;
       this.cameraTween={from,to,start:mono,duration,input,timing:resolvedTiming,openingPath,progress:0,fromAnchor:interruptedAnchor,bankFrom:this.flightBank||0};this.bankRelease=null;
+      if((this.skySolarMix||0)>0)this.cameraTween.skySolar={from:this.skySolarMix,to:0};
       if(resolvedTiming==='opening')this.cameraTween.rotationBlend={seconds:0,yaw:0,pitch:0};
       if(to.focus)this.prepareCloseup(to.focus);
       if(direction)this.pendingAutoRotation={direction,generation};
@@ -1194,6 +1325,9 @@
         labels:new Map(annotationIds.map(id=>[id,this.openingLabelOpacity(mono,id)])),
         orbits:new Map(annotationIds.map(id=>[id,this.openingOrbitOpacity(mono,id)]))};
       if(!this.animateCamera(state,mono,outbound+duration,false,'opening',!!tour))return false;
+      if(this.skyFeatureTrack&&!this.cameraTween.skySolar)this.cameraTween.skySolar={from:1,to:0};
+      if(this.cameraTween.skySolar)this.cameraTween.skySolar.holdUntilArrival=true;
+      this.setSkyFeatureTrack(null);
       const move=this.cameraTween,start=flightEye(move.from),turn=Math.floor(Math.random()*2);
       // Rebase only position. Orientation is the exact displayed departure
       // frame, including inherited bank; never rebuild it from Euler angles.
@@ -1246,18 +1380,20 @@
       const scene=this.replayRenderContext||(this.replayRenderContext=Object.create(Renderer.prototype));
       const frameCache=scene.replayFrameCache||(scene.replayFrameCache=new Map());
       Object.assign(scene,this);scene.replayRenderContext=null;scene.replayFrameCache=frameCache;frameCache.clear();scene.frameCache=frameCache;
-      scene.camera=slide.camera;scene.flightBank=slide.bank;scene.flightLook=slide.look;scene.trackingAnchor=slide.anchor;
+      scene.camera=slide?.camera||this.camera;scene.flightBank=slide?.bank??this.flightBank;scene.flightLook=slide?slide.look:this.flightLook;scene.trackingAnchor=slide?slide.anchor:this.trackingAnchor;
       scene.basis=null;scene.bankSkyBasis=null;scene.bankSkyAxes=null;
-      scene.rebuild(ms);scene.centerX+=slide.x;scene.centerY+=slide.y;scene.cx+=slide.x;scene.cy+=slide.y;
+      scene.rebuild(ms);
+      scene.centerX+=slide.x||0;scene.centerY+=slide.y||0;
+      scene.cx=scene.homeCx=scene.centerX;scene.cy=scene.homeCy=scene.centerY;
       return scene;
     }
     adoptReplayScene(scene){
       if(scene===this)return;
-      for(const key of ['frameSerial','projected','presentationDirty','presentedResources','replayLayerStyle','openingPointReveal','openingParticles','lastLabelMono','lastSurfaceSubmit','lastSurfaceSimMs','lastSurfaceMono','coronaTexture','coronaBuild','coronaBuildKey'])this[key]=scene[key];
+      for(const key of ['frameSerial','projected','presentationDirty','presentedResources','replayLayerStyle','solarComposite','openingPointReveal','openingParticles','lastLabelMono','lastSurfaceSubmit','lastSurfaceSimMs','lastSurfaceMono','coronaTexture','coronaBuild','coronaBuildKey'])this[key]=scene[key];
     }
     replaySkyCamera(camera,mono){
       const frame=this.replayPresentation(mono),path=this.cameraTween?.replay;
-      return {...camera,transitionFov:frame.fov,replaySky:path?{...frame,from:path.skyFrom,clock:mono,carry:Math.max(0,(mono-this.cameraTween.start-path.resetAt)/1000)}:null};
+      return {...camera,transitionFov:frame.fov,openingGuides:this.openingPresentation==='opening',replaySky:path?{...frame,from:path.skyFrom,clock:mono,carry:Math.max(0,(mono-this.cameraTween.start-path.resetAt)/1000)}:null};
     }
     openingReplayPose(move,elapsed){
       if(elapsed>=move.replay.resetAt){
@@ -1320,7 +1456,7 @@
       if(elapsed<path.particleAt){path.clearSince=null;return;}
       // Only resolvable bodies can delay hiding the scene: in true scale a
       // subpixel distant planet must not block a warp for an entire orbit.
-      const visible=bodies.some(p=>!p.screen.behind&&p.r>=.5&&this.visible(p.screen,p.r*(p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3)+24));
+      const visible=!this.solarSceneHidden(mono)&&bodies.some(p=>!p.screen.behind&&p.r>=.5&&this.visible(p.screen,p.r*(p.body.id==='sun'?5.1:p.body.id==='saturn'?2.3:p.body.id==='uranus'?2:1.3)+24));
       const timedOut=elapsed>=REPLAY_TRANSITION.maxDeparture;
       if(!timedOut){
         if(visible){path.clearSince=null;return;}
@@ -1358,7 +1494,7 @@
       const a=s.azimuth,e=s.elevation;
       const right=[Math.cos(a),-Math.sin(a),0],up=[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)];
       const forward=[Math.sin(a)*Math.cos(e),Math.cos(a)*Math.cos(e),-Math.sin(e)];
-      const eye=flightEye(s).map((value,i)=>value+(-right[i]*s.panX+up[i]*s.panY)/Math.max(.00001,s.dolly));
+      const eye=flightEye(s).map((value,i)=>value+(-right[i]*s.panX+up[i]*s.panY)/Math.max(.00001,s.panDolly??s.dolly));
       return {eye,right,up,forward};
     }
     replayDustSample(path,elapsed,field){
@@ -1574,6 +1710,7 @@
     fadeOpeningParticleField(mono=performance.now(),duration=PARTICLE_TRANSITION.finalFade,field=this.openingParticles) {
       mono=this.animationMono(mono);
       if(!field||field.exitAt!==null)return false;
+      field.holdExitEnvelope=!!field.awaitingSaturn;field.awaitingSaturn=false;
       field.exitAt=mono;field.exitElapsed=field.elapsed;field.exitBaseAlpha=Math.max(0,Number(field.alpha)||0);field.fadeDuration=Math.max(1,duration);
       this.invalidatePresentation(field.fadeDuration,mono);return true;
     }
@@ -1583,8 +1720,7 @@
       // fade. Preserve that exact envelope while the independent per-grain
       // retirement runs; re-enabling the old arrival fade here erased the
       // complete source layer on the handoff frame.
-      field.holdExitEnvelope=!!field.awaitingSaturn;
-      field.awaitingSaturn=false;this.fadeOpeningParticleField(mono,duration,field);
+      this.fadeOpeningParticleField(mono,duration,field);
       this.particleLifecycle().retire(field);return true;
     }
     clearOpeningParticleField(field=this.openingParticles) {
@@ -1666,7 +1802,6 @@
       const retiring=tour&&(tour!==this.ringTour||tour.disposed||tour.state==='returning'||tour.state==='complete');
       if(retiring)this.fadeOpeningParticleField(mono,PARTICLE_TRANSITION.finalFade,field);
       const elapsed=path.saturnTour?particleTime:Math.max(0,mono-field.start);
-      if(field.awaitingSaturn&&!this.cameraTween?.flyThrough)field.awaitingSaturn=false;
       // Retirement keeps the layer brightness stable. Individual grains own
       // staggered fades in particleRetirementAlpha(), so a handoff never dims
       // the complete field like a single light switch.
@@ -1706,7 +1841,6 @@
       mono=this.animationMono(mono);
       if(!field)return null;
       const elapsed=Math.max(0,mono-field.start),path=field.replay;
-      if(field.awaitingSaturn&&!this.cameraTween?.flyThrough)field.awaitingSaturn=false;
       const exitAge=field.exitAt===null?0:Math.max(0,mono-field.exitAt);
       field.exitAge=exitAge;
       const end=this.replayOpeningAt(path)+(path.openingMove?path.inbound+WARP_PARTICLES.afterglow:Math.max(0,path.inbound-WARP_PARTICLES.exitLead));
@@ -1723,22 +1857,24 @@
           rows.push({time:particleElapsed,distance:field.distance,axes,position});
         }
       }
-      const finish=field.awaitingSaturn?1:1-ease((elapsed-(end-PARTICLE_TRANSITION.finalFade))/PARTICLE_TRANSITION.finalFade);
-      const baseAlpha=this.replayParticleAlpha(particleElapsed,particlePath,field.velocity)*finish;
+      if(field.exitAt===null)field.naturalExitAge=field.awaitingSaturn?null:Math.max(0,elapsed-(end-PARTICLE_TRANSITION.finalFade));
+      const baseAlpha=this.replayParticleAlpha(particleElapsed,particlePath,field.velocity);
       field.alpha=field.exitAt===null?baseAlpha:field.exitBaseAlpha;
       return field;
     }
     particleRetirementAlpha(p,field) {
-      if(field.exitAt===null)return 1;
-      const duration=Math.max(1,field.fadeDuration||PARTICLE_TRANSITION.finalFade);
-      const progress=clamp((field.exitAge||0)/duration,0,1);
+      const retiring=field.exitAt!==null;
+      if(!retiring&&!(field.naturalExitAge>0))return 1;
+      const duration=Math.max(1,retiring?(field.fadeDuration||PARTICLE_TRANSITION.finalFade):PARTICLE_TRANSITION.finalFade);
+      const progress=clamp(Math.max((retiring?(field.exitAge||0):0)/duration,(field.naturalExitAge||0)/PARTICLE_TRANSITION.finalFade),0,1);
       // Fixed per-grain phases make the same particle fade consistently at
       // every frame rate. The first grains begin immediately, while the last
       // retain full brightness through 40% of the shared retirement window.
+      // Completion is staggered too, before the field cleanup deadline.
       const phase=clamp(Number.isFinite(p.retirePhase)?p.retirePhase:
         ((Number(p.rotation)||0)%TAU+TAU)%TAU/TAU,0,1);
-      const delay=phase*.4;
-      return 1-ease((progress-delay)/Math.max(.001,1-delay));
+      const delay=phase*.4,finish=.6+phase*.4;
+      return 1-ease((progress-delay)/(finish-delay));
     }
     prepareSaturnEntryVolume(field){
       const rows=field.cameraFrames,current=rows?.[rows.length-1];if(!current)return;
@@ -1906,14 +2042,8 @@
       const elapsed=this.particleFieldElapsed(field);
       return ease((elapsed-at)/SATURN_APPEAR.duration);
     }
-    projectSaturnOpeningParticle(p,field,out,visibleOnly=false,frame=this.openingParticleProjection(field)) {
-      out.saturnOccluded=false;out.saturnDistanceAlpha=1;out.saturnVolumeAlpha=1;
-      const path=this.particleFieldPath(field),elapsed=this.particleFieldElapsed(field);
-      if(visibleOnly&&!path.openingMove&&elapsed<=frame.birthAt){out.visible=false;out.alpha=0;return out;}
-      // Birth-time randomness stays fixed: no frame-to-frame flicker.
-      const lifetime=clamp((p.life-1000)/4000,0,1),timing=p.rotation/TAU;
+    particleArrivalEnvelope(p,field,frame,path,elapsed,lifetime,timing,contraction) {
       const arrival=frame.arrival;
-      const contraction=ease((arrival-timing*200)/(1000+lifetime*800));
       const fadeStart=path.inbound*(WARP_PARTICLES.arrivalHold+lifetime*.3);
       const fadeEnd=path.inbound+WARP_PARTICLES.afterglow*(.025+.975*lifetime);
       // Cap the first second at 200; restore the existing departure density
@@ -1921,7 +2051,6 @@
       // and fade durations, so their visible count grows rather than popping.
       const entrance=ease((elapsed-path.brakeAt-timing*WARP_PARTICLES.loopSpread)
         /(WARP_PARTICLES.loopFade*(.75+lifetime*.5)));
-      const birthAt=frame.birthAt,birth=this.warpParticleBirth(p,field,frame);
       const early=frame.early;
       const birthDensity=p.edgeKeep===false?entrance:p.earlyKeep===false?early:1;
       // The other half now also retires throughout arrival, doubling the
@@ -1932,8 +2061,19 @@
       const exitWindow=frame.exitWindow;
       const warpExit=path.openingMove?1:1-ease((arrival-timing*exitWindow*.267)
         /(exitWindow*(.333+lifetime*.4)));
-      const remaining=(field.awaitingSaturn||field.holdExitEnvelope)?birthDensity
+      return (field.awaitingSaturn||field.holdExitEnvelope)?birthDensity
         :(1-ease((arrival-fadeStart)/(fadeEnd-fadeStart)))*birthDensity*endDensity*warpExit;
+    }
+    projectSaturnOpeningParticle(p,field,out,visibleOnly=false,frame=this.openingParticleProjection(field)) {
+      out.saturnOccluded=false;out.saturnDistanceAlpha=1;out.saturnVolumeAlpha=1;
+      const path=this.particleFieldPath(field),elapsed=this.particleFieldElapsed(field);
+      if(visibleOnly&&!path.openingMove&&elapsed<=frame.birthAt){out.visible=false;out.alpha=0;return out;}
+      // Birth-time randomness stays fixed: no frame-to-frame flicker.
+      const lifetime=clamp((p.life-1000)/4000,0,1),timing=p.rotation/TAU;
+      const arrival=frame.arrival;
+      const contraction=ease((arrival-timing*200)/(1000+lifetime*800));
+      const remaining=this.particleArrivalEnvelope(p,field,frame,path,elapsed,lifetime,timing,contraction);
+      const birth=this.warpParticleBirth(p,field,frame);
       // The shared entry profile owns its local staggered fade-in. Replayed
       // warp grains keep their existing appearance instead.
       const profile=this.isSaturnEntryParticleField(field);
@@ -2009,26 +2149,8 @@
       const lifetime=clamp((p.life-1000)/4000,0,1),timing=p.rotation/TAU;
       const arrival=frame.arrival;
       const contraction=ease((arrival-timing*200)/(1000+lifetime*800));
-      const fadeStart=field.replay.inbound*(WARP_PARTICLES.arrivalHold+lifetime*.3);
-      const fadeEnd=field.replay.inbound+WARP_PARTICLES.afterglow*(.025+.975*lifetime);
-      // Cap the first second at 200; restore the existing departure density
-      // smoothly after it. Additional loop grains have fixed random delays
-      // and fade durations, so their visible count grows rather than popping.
-      const entrance=ease((field.elapsed-field.replay.brakeAt-timing*WARP_PARTICLES.loopSpread)
-        /(WARP_PARTICLES.loopFade*(.75+lifetime*.5)));
-      const birthAt=frame.birthAt,birth=this.warpParticleBirth(p,field,frame);
-      const early=frame.early;
-      const birthDensity=p.edgeKeep===false?entrance:p.earlyKeep===false?early:1;
-      // The other half now also retires throughout arrival, doubling the
-      // population reduction without reviving any previously fading grain.
-      const retirement=500+lifetime*(field.replay.inbound+WARP_PARTICLES.afterglow-500);
-      const retireFade=Math.min(1000,retirement);
-      const endDensity=p.edgeKeep===false?1-contraction:1-ease((arrival-retirement+retireFade)/retireFade);
-      const exitWindow=frame.exitWindow;
-      const warpExit=field.replay.openingMove?1:1-ease((arrival-timing*exitWindow*.267)
-        /(exitWindow*(.333+lifetime*.4)));
-      const remaining=(field.awaitingSaturn||field.holdExitEnvelope)?birthDensity
-        :(1-ease((arrival-fadeStart)/(fadeEnd-fadeStart)))*birthDensity*endDensity*warpExit;
+      const remaining=this.particleArrivalEnvelope(p,field,frame,field.replay,field.elapsed,lifetime,timing,contraction);
+      const birth=this.warpParticleBirth(p,field,frame);
       // Replayed warp grains are already visible and must not appear again.
       const appearance=field.replay.openingMove?ease((arrival-timing*WARP_PARTICLES.openingAppear/3)
         /(WARP_PARTICLES.openingAppear*(1+lifetime)/3))
@@ -2107,7 +2229,14 @@
       }
       return spans;
     }
+    traceSphereMask(c,mask){
+      if(mask.empty)return;
+      if(mask.ellipse&&typeof c.ellipse==='function'){
+        const e=mask.ellipse;c.moveTo(e.x+e.rx*Math.cos(e.angle),e.y+e.rx*Math.sin(e.angle));c.ellipse(e.x,e.y,e.rx,e.ry,e.angle,0,TAU);
+      }else for(let y=0;y<this.h;y++)for(const [left,right] of this.particleSphereRow(mask,y+.5))c.rect(left,y,right-left,1);
+    }
     clipParticleBodies(c,mono,presentation=this.replayPresentation(mono)){
+      if(this.solarSceneHidden(mono))return;
       // Clip only the particle pass. The full glow and tail disappear behind
       // solid bodies while rings retain their transparent material.
       if(typeof c.clip!=='function'||typeof c.rect!=='function'||presentation.solar<=0)return;
@@ -2116,18 +2245,18 @@
         const mask=this.particleSphereMask(pose);
         if(!mask.empty){
           c.beginPath();c.rect(0,0,this.w,this.h);
-          if(mask.ellipse&&typeof c.ellipse==='function'){
-            const e=mask.ellipse;c.moveTo(e.x+e.rx*Math.cos(e.angle),e.y+e.rx*Math.sin(e.angle));c.ellipse(e.x,e.y,e.rx,e.ry,e.angle,0,TAU);
-          }else for(let y=0;y<this.h;y++)for(const [left,right] of this.particleSphereRow(mask,y+.5))c.rect(left,y,right-left,1);
+          this.traceSphereMask(c,mask);
           c.clip('evenodd');
         }
       }
+      const appearance=this.solarSceneAppearance();
       for(const item of this.frameBodies||[]){
         if(pose&&item.body.id==='saturn')continue;
         const screen=item.screen,r=item.r;
         if(!screen||screen.behind||!(r>0)||!Number.isFinite(screen.x+screen.y+r)||!this.visible(screen,r+1))continue;
         // Separate clips keep overlapping planet silhouettes excluded as a union.
-        c.beginPath();c.rect(0,0,this.w,this.h);c.moveTo(screen.x+r+.5,screen.y);c.arc(screen.x,screen.y,r+.5,0,TAU);c.clip('evenodd');
+        const x=appearance.x+(screen.x-appearance.x)*appearance.scale,y=appearance.y+(screen.y-appearance.y)*appearance.scale,radius=(r+.5)*appearance.scale;
+        c.beginPath();c.rect(0,0,this.w,this.h);c.moveTo(x+radius,y);c.arc(x,y,radius,0,TAU);c.clip('evenodd');
       }
     }
     drawParticlePass(c,mono,draw,presentation=this.replayPresentation(mono)){
@@ -2192,21 +2321,7 @@
         }
         c.restore();return;
       }
-      this.loadFlightParticleAtlas();
-      let sprite=this.openingParticleSprite;
-      if(!sprite){
-        sprite=document.createElement('canvas');sprite.width=128;sprite.height=64;
-        const ctx=sprite.getContext('2d'),colors=['158,197,255','246,207,153','203,184,239','221,231,242'];
-        for(let i=0;i<colors.length;i++){
-          const x=i*32+16,rgb=colors[i],glow=ctx.createRadialGradient(x,16,0,x,16,16);
-          glow.addColorStop(0,`rgba(${rgb},1)`);glow.addColorStop(.15,`rgba(${rgb},.85)`);glow.addColorStop(.4,`rgba(${rgb},.24)`);glow.addColorStop(1,`rgba(${rgb},0)`);
-          ctx.fillStyle=glow;ctx.fillRect(i*32,0,32,32);
-          const halo=ctx.createRadialGradient(x,48,0,x,48,16);
-          halo.addColorStop(0,`rgba(${rgb},.32)`);halo.addColorStop(.28,`rgba(${rgb},.18)`);halo.addColorStop(1,`rgba(${rgb},0)`);
-          ctx.fillStyle=halo;ctx.fillRect(i*32,32,32,32);
-        }
-        this.openingParticleSprite=sprite;
-      }
+      const sprite=this.flightParticleSprite();
       const atlas=sprite===this.flightParticleImage;
       c.save();c.globalCompositeOperation='source-over';
       const count=Math.min(field.points.length,field.drawCount??field.points.length);
@@ -2240,6 +2355,24 @@
       }
       c.restore();
     }
+    flightParticleSprite() {
+      this.loadFlightParticleAtlas();
+      let sprite=this.openingParticleSprite;
+      if(!sprite){
+        sprite=document.createElement('canvas');sprite.width=128;sprite.height=64;
+        const ctx=sprite.getContext('2d'),colors=['158,197,255','246,207,153','203,184,239','221,231,242'];
+        for(let i=0;i<colors.length;i++){
+          const x=i*32+16,rgb=colors[i],glow=ctx.createRadialGradient(x,16,0,x,16,16);
+          glow.addColorStop(0,`rgba(${rgb},1)`);glow.addColorStop(.15,`rgba(${rgb},.85)`);glow.addColorStop(.4,`rgba(${rgb},.24)`);glow.addColorStop(1,`rgba(${rgb},0)`);
+          ctx.fillStyle=glow;ctx.fillRect(i*32,0,32,32);
+          const halo=ctx.createRadialGradient(x,48,0,x,48,16);
+          halo.addColorStop(0,`rgba(${rgb},.32)`);halo.addColorStop(.28,`rgba(${rgb},.18)`);halo.addColorStop(1,`rgba(${rgb},0)`);
+          ctx.fillStyle=halo;ctx.fillRect(i*32,32,32,32);
+        }
+        this.openingParticleSprite=sprite;
+      }
+      return sprite;
+    }
     drawFlightParticles(c,field,project) {
       return this.isSaturnEntryParticleField(field)?this.drawSaturnFlightParticles(c,field,project):this.drawOrdinaryFlightParticles(c,field,project);
     }
@@ -2272,21 +2405,7 @@
         }
         c.restore();return;
       }
-      this.loadFlightParticleAtlas();
-      let sprite=this.openingParticleSprite;
-      if(!sprite){
-        sprite=document.createElement('canvas');sprite.width=128;sprite.height=64;
-        const ctx=sprite.getContext('2d'),colors=['158,197,255','246,207,153','203,184,239','221,231,242'];
-        for(let i=0;i<colors.length;i++){
-          const x=i*32+16,rgb=colors[i],glow=ctx.createRadialGradient(x,16,0,x,16,16);
-          glow.addColorStop(0,`rgba(${rgb},1)`);glow.addColorStop(.15,`rgba(${rgb},.85)`);glow.addColorStop(.4,`rgba(${rgb},.24)`);glow.addColorStop(1,`rgba(${rgb},0)`);
-          ctx.fillStyle=glow;ctx.fillRect(i*32,0,32,32);
-          const halo=ctx.createRadialGradient(x,48,0,x,48,16);
-          halo.addColorStop(0,`rgba(${rgb},.32)`);halo.addColorStop(.28,`rgba(${rgb},.18)`);halo.addColorStop(1,`rgba(${rgb},0)`);
-          ctx.fillStyle=halo;ctx.fillRect(i*32,32,32,32);
-        }
-        this.openingParticleSprite=sprite;
-      }
+      const sprite=this.flightParticleSprite();
       const atlas=sprite===this.flightParticleImage;
       c.save();c.globalCompositeOperation='source-over';
       for(const p of field.points){
@@ -2389,6 +2508,7 @@
     requestFocus(id,mono=performance.now(),duration=1100){
       const body=this.sceneBodies().find(value=>value.id===id);
       if(!body||(SATELLITES.some(value=>value.id===id)&&!this.options.moon)||(id==='pluto'&&!this.options.pluto))return false;
+      this.earthRegionNavigation=false;this.setSkyFeatureTrack(null);
       if(!this.hasActivePlanetTravel())return this.animateFocus(id,mono,duration);
       // Travel always returns to the shared overview first. Keeping the final
       // focus request out of the exit target prevents another planet's anchor
@@ -2398,15 +2518,30 @@
     requestFeature(id,latitude,longitude,ms,mono=performance.now(),duration=1100){
       const body=this.sceneBodies().find(value=>value.id===id);
       if(!body||![latitude,longitude,ms].every(Number.isFinite))return false;
+      this.setSkyFeatureTrack(null);
       if(!this.hasActivePlanetTravel())return this.animateFeature(id,latitude,longitude,ms,mono,duration);
       // Reuse the one travel-return queue. A country request replaces an older
       // body request and continues directly from Home into the region view.
       this.pendingTravelFocus={id,duration,feature:{latitude,longitude,ms}};
       return this.returnPlanetTravelHome(mono,2);
     }
+    requestSkyFeature(id,mono=performance.now(),duration=1600){
+      if(!this.sky?.featureDirection?.(id))return false;
+      if(this.isSkyFeatureTracked(id))return this.stopSkyFeatureTracking(mono,duration);
+      if(!this.hasActivePlanetTravel())return this.startSkyFeatureShortcutView(id,mono,duration);
+      // Sky targets share the existing return queue so a planet tour restores
+      // the common overview before the camera turns toward the celestial sphere.
+      this.pendingTravelFocus={skyFeature:id,duration};return this.returnPlanetTravelHome(mono,2);
+    }
+    requestSkyFeatureNavigation(id,mono=performance.now(),duration=1600){
+      if(!this.sky?.featureDirection?.(id))return false;
+      // Card navigation selects information; only tracking moves the camera.
+      return this.skyFeatureTrack?this.startSkyFeatureShortcutView(id,mono,duration):true;
+    }
     resumeTravelFocus(mono=performance.now(),ms){
       if(!this.pendingTravelFocus||this.hasActivePlanetTravel()||this.cameraTween)return false;
       const request=this.pendingTravelFocus;this.pendingTravelFocus=null;
+      if(request.skyFeature)return this.startSkyFeatureShortcutView(request.skyFeature,mono,request.duration);
       if(request.feature){const feature=request.feature;return this.animateFeature(request.id,feature.latitude,feature.longitude,Number.isFinite(ms)?ms:feature.ms,mono,request.duration);}
       return this.animateFocus(request.id,mono,request.duration);
     }
@@ -2426,7 +2561,9 @@
         if(!keepEarthView)to=inspection;
         else to.dolly=clamp(Math.max(to.dolly??1,inspection.dolly),VIEW.minDolly,VIEW.maxDolly);
       }
-      return this.animateCamera(to,mono,duration,keepEarthView);
+      const started=this.animateCamera(to,mono,duration,keepEarthView);
+      if(started)this.earthRegionNavigation=id==='earth';
+      return started;
     }
     countryInspectionState(snapshot=this.cameraSnapshot()){
       const state=this.trackingMoveState('earth',snapshot,snapshot?.zoom);
@@ -2435,7 +2572,20 @@
       return state;
     }
     animateHome(mono=performance.now(),duration=1100) {
-      return this.animateCamera(this.defaultCameraSnapshot(),mono,duration);
+      const hadTween=!!this.cameraTween,hadSkyTrack=!!this.skyFeatureTrack;
+      this.earthRegionNavigation=false;this.setSkyFeatureTrack(null);
+      // Home resets framing, distance and vertical tilt, while retaining the
+      // user's current left/right solar bearing and its rotation intent.
+      this.advanceCamera(mono);this.advanceAutoRotate(mono);
+      const target=this.defaultCameraSnapshot();target.azimuth=this.camera.azimuth;
+      const current=this.cameraSnapshot(),sameNumber=(a,b)=>Math.abs((a??0)-(b??0))<1e-9;
+      const unchanged=!hadTween&&!hadSkyTrack&&!this.ringTour&&!this.flightLook&&
+        ['elevation','zoom','dolly','panX','panY','panDolly'].every(key=>sameNumber(current[key],target[key]))&&
+        (current.focus??null)===(target.focus??null)&&current.mode===target.mode;
+      // A no-op Home must not create a tween that pauses an otherwise active
+      // left/right/random rotation for the transition duration.
+      if(unchanged)return false;
+      return this.animateCamera(target,mono,duration);
     }
     cameraTweenState(move,t){
       if(move.replay)return this.openingReplayPose(move,t*move.duration);
@@ -2448,6 +2598,7 @@
         // destination focus here so surface detail can prepare before arrival.
         focus:to.focus,
         zoom:mix(from.zoom,to.zoom,p),dolly:mix(from.dolly??1,to.dolly??1,p)};
+      if(from.panDolly!==undefined||to.panDolly!==undefined)state.panDolly=mix(from.panDolly??from.dolly??1,to.panDolly??to.dolly??1,p);
       if(state.zoom<=1&&state.dolly===1&&to.focus===null)state.focus=null;
       return {state,progress:p};
     }
@@ -2458,13 +2609,22 @@
         const s=this.cameraTweenState(move,clamp(u,0,1)).state,a=s.azimuth,e=s.elevation;
         const right=[Math.cos(a),-Math.sin(a),0],up=[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)];
         const eye=[-Math.sin(a)*Math.cos(e),-Math.cos(a)*Math.cos(e),Math.sin(e)];
-        return {right,eye:eye.map((v,i)=>(v-right[i]*s.panX+up[i]*s.panY)/Math.max(.00001,s.dolly))};
+        return {right,eye:eye.map((v,i)=>v/Math.max(.00001,s.dolly)+(-right[i]*s.panX+up[i]*s.panY)/Math.max(.00001,s.panDolly??s.dolly))};
       };
       // Curvature only selects the following S bend; it never rolls the opening.
       return window.SolarRingTour.smoothBank(seconds=>sample(seconds/duration).eye,t*duration,sample(t).right);
     }
+    advanceSkySolar(mono){
+      // Retain the same tween's visual clock when manual rotation cancels its pose.
+      const move=this.cameraTween?.skySolar?this.cameraTween:this.skySolarTween;
+      if(!move)return;
+      const blend=move.skySolar,arrivalDuration=move.replay?Math.max(1,move.replay.inbound-(move.flyThrough?this.saturnOpeningHandoffLead:0)):0;
+      const u=blend.holdUntilArrival&&move.replay?clamp((mono-move.start-this.replayOpeningAt(move.replay))/arrivalDuration,0,1):clamp((mono-move.start)/move.duration,0,1);
+      this.skySolarMix=mix(blend.from,blend.to,ease(u));this.skySolarTween=u<1?move:null;
+    }
     advanceCamera(mono=performance.now()) {
       mono=this.animationMono(mono);
+      this.advanceSkySolar(mono);
       const move=this.cameraTween;
       const releaseLook=()=>{if(!this.lookRelease)return;
         const release=this.lookRelease,p=ease((mono-release.start)/1000),from=release.from;
@@ -2487,9 +2647,11 @@
       // Preserve the bank established by the preceding camera. Path-specific
       // flight roll is carried by the transported frame (flightLook/RingTour),
       // not by fading this shared baseline back to zero.
-      this.flightBank=clamp(Number.isFinite(move.bankFrom)?move.bankFrom:(this.flightBank||0),-bankLimit,bankLimit);
+      const bankFrom=Number.isFinite(move.bankFrom)?move.bankFrom:(this.flightBank||0);
+      this.flightBank=clamp(Number.isFinite(move.bankTo)?mix(bankFrom,move.bankTo,progress):bankFrom,-bankLimit,bankLimit);
       const beforeDolly=this.camera.dolly??1;
       this.camera=t>=1?{azimuth:to.azimuth,elevation:to.elevation,zoom:to.zoom,dolly:to.dolly??1,focus:to.focus,panX:to.panX,panY:to.panY}:state;
+      if(t>=1&&to.panDolly!==undefined)this.camera.panDolly=to.panDolly;
       if(move.input&&!move.replay)this.shiftBackgroundForManualDolly(beforeDolly,this.camera.dolly??1);
       if(!move.replay)releaseLook();
       const blend=move.rotationBlend;
@@ -2803,6 +2965,21 @@
       job.cloudReveal=body.id==='earth'&&job.cloudAmount>0?this.cloudRevealProgress(mono):1;
       const light=direct?(job.light||(job.light=[0,0,0])):[0,0,0];
       light[0]=lightVector.x/len;light[1]=lightVector.y/len;light[2]=lightVector.z/len;job.light=light;
+      // Eclipse geometry uses physical radii and orbits, independently of the
+      // illustrative display scale. Reuse the frame's cached satellite ephemeris.
+      const caster=job.shadowCaster||(job.shadowCaster=[0,0,0,0]);caster[3]=0;
+      job.shadowSpread=0;
+      const satellite=this.options.moon&&SATELLITES.find(value=>value.id===ECLIPSE_CASTERS[body.id]);
+      if(satellite&&r>=4){
+        const unit=this.satelliteUnitAt(satellite,ms),radiusAU=A.BODY_RADIUS_KM[body.id]/A.AU_KM;
+        const scale=A.SATELLITE_MEAN_AU[satellite.id]/radiusAU,view=this.viewDirection(unit);
+        caster[0]=view.x*scale;caster[1]=view.y*scale;caster[2]=view.z*scale;
+        const along=caster[0]*light[0]+caster[1]*light[1]+caster[2]*light[2];
+        const moonRadius=A.BODY_RADIUS_KM[satellite.id]/A.BODY_RADIUS_KM[body.id];
+        job.shadowSpread=A.BODY_RADIUS_KM.sun/A.AU_KM/len;
+        const lateral=Math.hypot(caster[0]-along*light[0],caster[1]-along*light[1],caster[2]-along*light[2]);
+        if(along>1&&lateral<1+moonRadius+(along+1)*job.shadowSpread)caster[3]=moonRadius;
+      }
       if(direct)return job;
       const maximum=priority?SURFACE.maxRaster:384,wanted=Math.min(maximum,screenDiameter);
       const diam=[32,64,128,192,256,384,512,768,1024].find(n=>n>=wanted)||1024;
@@ -2819,7 +2996,7 @@
     suspend() {
       if(this.ringTour)this.ringTour.lastMono=null;
       const mono=performance.now();if(!this.animationPaused)this.cancelCameraTween(mono);this.advanceAutoRotate(mono);
-      this.cancelCoronaBuild();this.physicsSamples?.clear();this.physicsMs=NaN;
+      this.cancelCoronaBuild();this.physicsSamples?.clear();this.physicsMs=NaN;this.solarComposite=null;
       if(!this.animationPaused)this.clearOpeningParticleFields();
       if(this.autoRotation)this.autoRotation.mono=null; // Resume at the same view, never catch up a hidden tab.
       this.surface?.pause();this.sky?.pause?.();
@@ -3153,6 +3330,7 @@
       return {bodies,satelliteLayouts};
     }
     ringTourHit(x,y) {
+      if(this.skyFeatureShortcutMode===2)return null;
       if(this.ringTour||this.cameraTween||!this.gpu||!window.SolarRingTour)return false;
       const p=this.currentFrameItem('saturn');if(!p||p.r<.25||p.screen.behind)return false;
       const dx=(x-p.screen.x)/p.r,dy=(y-p.screen.y)/p.r;
@@ -3169,17 +3347,17 @@
         !g.contextLost&&!g.gl.isContextLost()&&g.textures.get('saturn')?.texture&&g.textures.get('saturn-ring')?.texture&&g.gl.getExtension('ANGLE_instanced_arrays'));
     }
     clearPreparedTour(){this.preparedRingTour?.dispose();this.preparedRingTour=null;}
-    prepareOpeningTour(){
+    prepareRingTourResources(){
       if(this.preparedRingTour||this.ringTour||!this.gpu||!window.SolarRingTour)return;
       const p=this.currentFrameItem('saturn');if(!p||!Number.isFinite(p.r)||!Number.isFinite(p.screen.x))return;
       try{
-        this.preparedRingTour=new window.SolarRingTour({frame:this.bodyFrame(p.body),radius:Math.max(1,p.r),width:this.w,height:this.h,screen:p.screen,grainStyle:rand=>this.flightParticleStyle(rand),particleCapacity:window.SolarPerformance?.particleCapacity?.(this.options.quality)??1,deferPreparation:true,pointified:p.r<BODY_POINT.fadeBegin});
+        this.preparedRingTour=new window.SolarRingTour({frame:this.bodyFrame(p.body),radius:Math.max(1,p.r),width:this.w,height:this.h,screen:p.screen,grainStyle:rand=>this.flightParticleStyle(rand),particleCapacity:window.SolarPerformance?.particleCapacity?.(this.options.quality)??1,deferPreparation:true,pointified:p.r<=BODY_POINT.pointRadius});
       }catch(error){this.preparedRingTourError=error.message;this.clearPreparedTour();}
       finally{this.gpu.resetBindings();this.dirty=true;}
     }
     ringTourDeparturePose(item) {
       const pose=window.SolarRingTour.viewPose({frame:this.bodyFrame(item.body),radius:item.r,width:this.w,height:this.h,screen:item.screen});
-      if(item.r<BODY_POINT.fadeBegin)return {...pose,perspective:1,pointified:true};
+      if(item.r<=BODY_POINT.pointRadius)return {...pose,perspective:1,pointified:true};
       // Express the live normal-camera lens in the ring camera's local frame.
       // The former handoff copied position and rotation but silently reset this
       // value to orthographic, so a separate screen correction had to catch up
@@ -3242,8 +3420,8 @@
       }
       this.prepareCloseup('saturn');this.ringTourHover=false;
       const startPose=fromOpening&&handoff?.pose?handoff.pose:this.ringTourDeparturePose(p);
-      this.ringTour=new window.SolarRingTour({frame:this.bodyFrame(p.body),radius:p.r,width:this.w,height:this.h,screen:p.screen,startPose,target,light:p.directJob.light,phase:p.directJob.phase||0,grainStyle:rand=>this.flightParticleStyle(rand),openingVelocity:fromOpening?(handoff?.velocity||{}):null,openingAcceleration:fromOpening?(handoff?.acceleration||{}):null,prepared:fromOpening?this.preparedRingTour:null,particleCapacity:window.SolarPerformance?.particleCapacity?.(this.options.quality)??1,lensZoom:this.camera.zoom,deferPreparation:true,pointified:p.r<BODY_POINT.fadeBegin});
-      if(fromOpening)this.preparedRingTour=null;
+      this.ringTour=new window.SolarRingTour({frame:this.bodyFrame(p.body),radius:p.r,width:this.w,height:this.h,screen:p.screen,startPose,target,light:p.directJob.light,phase:p.directJob.phase||0,grainStyle:rand=>this.flightParticleStyle(rand),openingVelocity:fromOpening?(handoff?.velocity||{}):null,openingAcceleration:fromOpening?(handoff?.acceleration||{}):null,prepared:this.preparedRingTour,particleCapacity:window.SolarPerformance?.particleCapacity?.(this.options.quality)??1,lensZoom:this.camera.zoom,deferPreparation:true,pointified:p.r<=BODY_POINT.pointRadius});
+      this.preparedRingTour=null;
       if(openingProjection)this.ringTour.entryNormalProjection=openingProjection;
       this.flightLook=null;this.lookRelease=null;
       if(this.flightBank)this.ringTour.returnNormalFrom=this.ringTourNormalProjection();
@@ -3311,7 +3489,7 @@
         tour.returnTargetApplied=true;
       }
       this.syncRingTourAnnotations(tour,mono);
-      if(tour.state==='complete'){this.endRingTour(!!tour.replayBridge);return false;}
+      if(tour.state==='complete'){this.endRingTour(true);return false;}
       this.ctx.clearRect(0,0,this.w,this.h);this.frameCount++;
       const body=A.BODIES.find(b=>b.id==='saturn'),axes=A.bodyAxes(body),physical=this.physicalAt(body,ms),length=Math.hypot(physical.x,physical.y,physical.z)||1;
       tour.phase=A.rotationAt(body,ms)/TAU;tour.job.phase=tour.phase;
@@ -3327,6 +3505,9 @@
         try{if(solar>0)this.drawRingTourBodies(tour,axes,slide?tour.skyCamera(axes,this.camera).viewAxes:camera.viewAxes,ms,seconds,mono);}catch(error){this.ringTourError=error.message;this.endRingTour();return false;}
         gpu.end();
       }
+      // Keep the ordinary sky decorations alive through travel. Their 2D
+      // layer sits above GPU planets, so reuse the solid-body particle mask.
+      this.drawParticlePass(this.ctx,mono,()=>this.sky.decorate(this.ctx,seconds,this.options,this.boundStarGlow),presentation);
       if(solar>0&&!tour.usesWarpParticles&&tour.flightField.alpha>0){
         const frame=tour.grainProjection(this.w,this.h);
         this.drawParticlePass(this.ctx,mono,()=>this.drawFlightParticles(this.ctx,tour.flightField,(p,f,out)=>tour.projectGrain(p,f,out,this.w,this.h,frame)),presentation);
@@ -3375,12 +3556,12 @@
         job.light=project({x:-item.physical.x/magnitude,y:-item.physical.y/magnitude,z:-item.physical.z/magnitude});
         jobs.push(job);if(visibleNow)visible.push(item);
       }
-      this.gpu.prepare(jobs);visible.sort((a,b)=>a.screen.z-b.screen.z);
+      this.gpu.prepare(jobs);visible.sort((a,b)=>this.bodyDepthOrder(a,b));
       // Share the normal far-to-near body ordering. The tour pass must not
       // cover foreground planets just because it owns a separate shader.
       let tourDrawn=false;
       for(const item of visible){
-        if(!tourDrawn&&item.screen.z>=saturn.screen.z){tour.draw(this.gpu,this.w,this.h);tourDrawn=true;}
+        if(!tourDrawn&&this.bodyDepthOrder(item,saturn)>=0){tour.draw(this.gpu,this.w,this.h);tourDrawn=true;}
         if(item.body.id==='sun'&&this.options.activity)this.gpu.corona(this.coronaSource(item.r),item.screen,item.r,seconds);
         this.gpu.planet(item.directJob,item.body,item.screen,item.r,seconds,this.options.activity);
       }
@@ -3424,7 +3605,7 @@
       const v=this.projectView(item.world,true),depth=Math.max(DOLLY.nearRatio,Math.abs(v.denominator??1));
       const screen={x:this.cx+v.x*this.scale/depth,y:this.cy+v.y*this.scale/depth},radius=item.r/depth;
       const pose=window.SolarRingTour.viewPose({frame:this.bodyFrame(item.body),radius,width:this.w,height:this.h,screen});
-      return radius<BODY_POINT.fadeBegin?{...pose,perspective:1,pointified:true}:pose;
+      return radius<=BODY_POINT.pointRadius?{...pose,perspective:1,pointified:true}:pose;
     }
     ringTourNormalProjection(radius=this.bodyRadiusAtZoom(A.BODIES.find(b=>b.id==='saturn'))) {
       // Capture the existing projection owner, including true-scale depth,
@@ -3435,36 +3616,45 @@
       const origin=sample(zero),columns=keys.map(key=>sample({...zero,[key]:1}).map((v,i)=>v-origin[i]));
       return {origin,columns,radius};
     }
+    ringTourRetreatProgress(tour) {
+      const from=tour.returnFrom,to=tour.returnTo;
+      if(!from||!to)return clamp(tour.returnAge/Math.max(.001,tour.returnDuration),0,1);
+      // Use the same projected camera distance that shrinks Saturn. A clock
+      // blend restores the far solar map while the flight is still near the rings.
+      const distance=pose=>mix(pose.orthoScale,-flightDot(pose.eye,pose.forward),pose.perspective)*Math.tan(pose.fov*DEG/2);
+      const start=distance(from),span=distance(to)-start;
+      return Math.abs(span)>1e-9?clamp((distance(tour.pose)-start)/span,0,1):clamp(tour.returnAge/Math.max(.001,tour.returnDuration),0,1);
+    }
     prepareRingTourProjection(projection) {
       const {tour,axes,saturn,saturnRadius,units}=projection,unit=tour.startPose.orthoScale;
+      projection.retreatProgress=tour.state==='returning'&&tour.returnTo?.pointified?this.ringTourRetreatProgress(tour):0;
       if(tour.replayBridge?.correction){projection.correction=tour.replayBridge.correction;return projection;}
-      // Compile the normal-view lens correction once per frame. Each point
-      // then needs only dot products, not closures, temporary arrays or another
-      // normal projection. Columns 3–5 retain the actual-scale depth mapping.
+      // Compile the exact difference between the normal camera and the ring
+      // camera in homogeneous screen space. Actual-size mode deliberately has
+      // independent display-position and physical-depth coordinates; a single
+      // Saturn-depth gain cannot represent that projection and used to rotate
+      // or stretch neighbouring bodies at the handoff.
       const correction=(reference,map)=>{
-        const w=reference.orthoScale/unit,depth=map.origin[2]+map.columns.reduce((sum,col,i)=>sum+col[2]*([saturn.x,saturn.y,saturn.z,saturn.depthX??saturn.x,saturn.depthY??saturn.y,saturn.depthZ??saturn.z][i]),0);
-        const gain=w/Math.max(DOLLY.nearRatio,Math.abs(depth)),f=this.h/(2*Math.tan(reference.fov*Math.PI/360)),k=f/unit;
-        const matrix=Array.from({length:3},(_,row)=>[map.origin[row]*gain,...map.columns.map(col=>col[row]*gain)]);
-        for(const [row,axis,sign] of [[0,reference.right,-1],[1,reference.up,1]]){
-          const v=['x','y','z'].map(key=>(axes.u[key]*axis[0]+axes.pole[key]*axis[1]+axes.v[key]*axis[2])*k/units);
-          for(let i=0;i<3;i++)matrix[row][i+1]+=sign*v[i];
-          matrix[row][0]-=sign*(v[0]*saturn.x+v[1]*saturn.y+v[2]*saturn.z+k*(axis[0]*reference.eye[0]+axis[1]*reference.eye[1]+axis[2]*reference.eye[2]));
-        }
-        matrix[0][0]-=(this.w/2+reference.offset[0]*f)*w;
-        matrix[1][0]-=(this.h/2-reference.offset[1]*f)*w;matrix[2][0]-=w;
-        const perspective=reference.perspective||0;
-        if(perspective>0&&perspective<1){
-          // Subtract the captured lens, not an orthographic stand-in. Otherwise
-          // its depth is applied twice on the very first travel frame.
-          const forward=reference.forward,coeff=['x','y','z'].map(key=>(axes.u[key]*forward[0]+axes.pole[key]*forward[1]+axes.v[key]*forward[2])/units/unit);
-          const constant=-coeff[0]*saturn.x-coeff[1]*saturn.y-coeff[2]*saturn.z-flightDot(forward,reference.eye)/unit-w;
-          for(const [row,gain] of [[0,this.w/2+reference.offset[0]*f],[1,this.h/2-reference.offset[1]*f],[2,1]]){
-            matrix[row][0]-=gain*perspective*constant;
-            for(let i=0;i<3;i++)matrix[row][i+1]-=gain*perspective*coeff[i];
-            matrix[row]=matrix[row].map(value=>value/(1-perspective));
-          }
-        }
-        return {matrix,radius:(map.radius*gain-k)/saturnRadius/(perspective>0&&perspective<1?1-perspective:1)};
+        const f=this.h/(2*Math.tan(reference.fov*Math.PI/360)),k=f/unit,local=[0,0,0];
+        const sample=world=>{
+          framePointToLocal(axes,saturn,units,world,local);
+          const dx=local[0]-reference.eye[0],dy=local[1]-reference.eye[1],dz=local[2]-reference.eye[2];
+          const depth=reference.forward[0]*dx+reference.forward[1]*dy+reference.forward[2]*dz;
+          const w=mix(reference.orthoScale,depth,reference.perspective||0)/unit;
+          return [(this.w/2+reference.offset[0]*f)*w+(reference.right[0]*dx+reference.right[1]*dy+reference.right[2]*dz)*k,
+            (this.h/2-reference.offset[1]*f)*w-(reference.up[0]*dx+reference.up[1]*dy+reference.up[2]*dz)*k,w];
+        };
+        const zero={x:0,y:0,z:0},origin=sample(zero),columns=['x','y','z'].map(key=>{
+          const value=sample({...zero,[key]:1});return value.map((v,i)=>v-origin[i]);
+        });
+        // Homogeneous maps may describe the same pixels with different W.
+        // Normalize the destination to this flight's fixed camera unit before
+        // blending: a far departure followed by Home otherwise lets W=1
+        // overwhelm the tiny flight W, snapping every non-target body home.
+        const mapScale=k/map.radius,weight=reference.pointified?1:Math.max(1e-6,1-(reference.perspective||0));
+        const matrix=Array.from({length:3},(_,row)=>[map.origin[row]*mapScale-origin[row],
+          ...map.columns.map((col,index)=>col[row]*mapScale-(index<3?columns[index][row]:0))].map(value=>value/weight));
+        return {matrix,radius:0};
       };
       let current=correction(tour.returnTo||tour.entryView||tour.startPose,tour.entryNormalProjection||this.ringTourNormalProjection(saturnRadius));
       // A banked/warped normal view is captured early for the eventual exit,
@@ -3494,18 +3684,31 @@
       if(tour.pointified&&tour.state==='entering')remainder=1-ease(tour.age/POINT_TOUR_CAMERA_HANDOFF);
       else if(tour.state==='returning'&&tour.returnTo?.pointified){
         if(!Number.isFinite(tour.returnCorrectionStart))tour.returnCorrectionStart=Number.isFinite(tour.projectionCorrectionWeight)?tour.projectionCorrectionWeight:tour.pointified?1-ease(tour.age/POINT_TOUR_CAMERA_HANDOFF):0;
-        remainder=mix(tour.returnCorrectionStart,1,ease(tour.returnAge/Math.max(.001,tour.returnDuration)));
+        remainder=mix(tour.returnCorrectionStart,1,projection.retreatProgress);
       }
       tour.projectionCorrectionWeight=remainder;
+      // The ring camera already owns Saturn itself. Calibration exists only to
+      // carry the surrounding solar-system projection into that camera; adding
+      // it to the origin body would offset the separately rendered tour sphere.
+      const saturnOrigin=Math.abs(out.localX)+Math.abs(out.localY)+Math.abs(out.localZ)<1e-9;
+      // Saturn stays under the dedicated ring camera throughout the flight.
+      // Only its visibility plane joins the normal camera during return; this
+      // preserves the exact rendered sphere while still reaching the normal
+      // camera's final front/behind result.
+      const returnBlend=tour.state==='returning'||tour.state==='complete'?tour.returnProgress(tour.returnNormalStart||0):0;
+      const calibration=saturnOrigin?0:remainder,delta=[0,0,0];
       const w=bodyDepth/unit,k=focal/unit;
       out.clipX=(this.w/2+pose.offset[0]*focal)*w+(pose.right[0]*dx+pose.right[1]*dy+pose.right[2]*dz)*k;
       out.clipY=(this.h/2-pose.offset[1]*focal)*w-(pose.up[0]*dx+pose.up[1]*dy+pose.up[2]*dz)*k;out.clipW=w;
       for(let i=0;i<3;i++){const row=correction.matrix[i];
-        out[i===0?'clipX':i===1?'clipY':'clipW']+=remainder*(row[0]+row[1]*world.x+row[2]*world.y+row[3]*world.z+row[4]*(world.depthX??world.x)+row[5]*(world.depthY??world.y)+row[6]*(world.depthZ??world.z));
+        delta[i]=row[0]+row[1]*world.x+row[2]*world.y+row[3]*world.z+row[4]*(world.depthX??world.x)+row[5]*(world.depthY??world.y)+row[6]*(world.depthZ??world.z);
+        out[i===0?'clipX':i===1?'clipY':'clipW']+=calibration*delta[i];
       }
-      out.clipRadius=radius*(k/saturnRadius+correction.radius*remainder);
-      out.behind=out.clipW<=.0001;out.z=-depth;
-      const safeW=Math.max(.0001,out.clipW);
+      out.clipRadius=radius*(k/saturnRadius+correction.radius*calibration);
+      const visibilityW=out.clipW+(saturnOrigin?remainder*returnBlend*delta[2]:0);
+      const nearW=.0001/unit;
+      out.behind=visibilityW<=nearW;out.z=-depth;out.occlusionDepth=-depth;
+      const safeW=Math.max(nearW,out.clipW);
       out.x=out.clipX/safeW;out.y=out.clipY/safeW;out.radius=out.clipRadius/safeW;
       return out;
     }
@@ -3540,7 +3743,56 @@
       this.occludeDirectBodies(c,bodies);this.hitTargets.length=0;
       if(this.options.labels){c.save();this.labels(c,bodies,mono);c.restore();}
     }
+    solarSceneHidden(mono=this.animationMono(performance.now())){
+      const move=this.cameraTween;
+      return ((this.skySolarMix||0)>=1&&!this.skySolarDisplay())||!!(move?.replay&&move.skySolar&&mono-move.start<this.replayOpeningAt(move.replay));
+    }
+    solarSceneAppearance(){
+      const amount=clamp(this.skySolarMix||0,0,1);
+      if(amount<=0)return {alpha:1,scale:1,x:0,y:0};
+      const sun=this.currentFrameItem('sun')?.screen;
+      return {alpha:this.skySolarDisplay()?1:1-amount,scale:mix(1,SKY_SOLAR_SCALE,amount),x:sun&&!sun.behind?sun.x:this.cx,y:sun&&!sun.behind?sun.y:this.cy};
+    }
+    updateSkySolarTarget(appearance){
+      if(!this.skyFeatureInputLocked||!this.skySolarDisplay()||(this.skySolarMix||0)<.98){this.skySolarTarget=null;return null;}
+      let radius=0,found=false;
+      for(const item of this.frameBodies||[]){
+        const screen=item.screen;if(!screen||screen.behind||!Number.isFinite(screen.x+screen.y+item.r))continue;
+        const x=appearance.x+(screen.x-appearance.x)*appearance.scale,y=appearance.y+(screen.y-appearance.y)*appearance.scale;
+        radius=Math.max(radius,Math.hypot(x-appearance.x,y-appearance.y)+this.bodyVisibleRadius(item.body,item.r)*appearance.scale);found=true;
+      }
+      const target=found&&this.visible({x:appearance.x,y:appearance.y,behind:false},radius)?{x:appearance.x,y:appearance.y,r:Math.max(13,radius)}:null;
+      this.skySolarTarget=target;return target;
+    }
+    drawSkySolarGuide(c,target,mono){
+      const alpha=this.skySolarHoverOpacity(mono);if(!target||alpha<=1e-4)return;
+      c.save();c.globalAlpha=.9*alpha;c.strokeStyle='#e9bd67';c.lineWidth=1;c.shadowColor='rgba(233,189,103,.38)';c.shadowBlur=6;
+      c.beginPath();c.arc(target.x,target.y,target.r+5,0,TAU);c.stroke();c.restore();
+    }
     drawSolarScene(ms,seconds,mono){
+      const amount=clamp(this.skySolarMix||0,0,1);
+      if(amount<=0||this.solarSceneHidden(mono)){
+        this.solarComposite=null;this.skySolarTarget=null;this.setSkySolarHover(false,mono);return this.paintSolarScene(ms,seconds,mono);
+      }
+      // Composite the whole opaque solar scene once. No body, orbit, camera or
+      // depth coordinate is rescaled independently; sky and travel particles stay outside.
+      const layer=this.solarComposite||(this.solarComposite=(()=>{const canvas=document.createElement('canvas');return {canvas,ctx:canvas.getContext('2d'),scene:Object.create(Renderer.prototype)};})());
+      // Only the composite backing resolution changes. World coordinates, depth
+      // and the user's camera remain untouched. At 5% display scale this still
+      // renders at ten times the final pixel density.
+      const appearance=this.solarSceneAppearance(),ratio=Math.max(.5,Math.min(1,appearance.scale));
+      const width=Math.max(1,Math.round(this.canvas.width*ratio)),height=Math.max(1,Math.round(this.canvas.height*ratio)),c=layer.ctx;
+      if(layer.canvas.width!==width||layer.canvas.height!==height){layer.canvas.width=width;layer.canvas.height=height;}
+      c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,width,height);c.setTransform(width/this.w,0,0,height/this.h,0,0);
+      const scene=layer.scene;Object.assign(scene,this);scene.ctx=c;
+      scene.paintSolarScene(ms,seconds,mono,false);this.adoptReplayScene(scene);
+      if(this.gpu){c.save();c.globalCompositeOperation='destination-over';c.drawImage(this.gpu.canvas,0,0,this.w,this.h);c.restore();this.setReplaySolarOpacity(0);}
+      const out=this.ctx;out.save();out.globalAlpha=appearance.alpha;out.translate(appearance.x,appearance.y);out.scale(appearance.scale,appearance.scale);out.translate(-appearance.x,-appearance.y);out.drawImage(layer.canvas,0,0,this.w,this.h);out.restore();
+      this.hitTargets.length=0;
+      const target=this.updateSkySolarTarget(appearance);this.drawSkySolarGuide(out,target,mono);
+      this.drawOpeningParticles(out,mono,this.replayPresentation(mono));
+    }
+    paintSolarScene(ms,seconds,mono,particles=true){
       const c=this.ctx,presentation=this.replayPresentation(mono),solar=presentation.solar,pointSolar=this.openingPointOpacity(mono,solar);this.setReplaySolarOpacity(solar);c.save();c.globalAlpha=solar;
       const {bodies,satelliteLayouts}=this.updateFrameBodies(ms);
       const earth=this.currentFrameItem('earth');
@@ -3548,6 +3800,14 @@
       for(const body of bodies){this.project(body.world,body.screen);body.r*=body.screen.perspective;}
       this.checkReplayClearance(mono,bodies);
       const direct=!!this.gpu&&this.gpu.begin();
+      if(this.solarSceneHidden(mono)){
+        // Hide drawing and picking only; keep the solar system in its native coordinates.
+        if(direct)this.gpu.end();
+        this.hitTargets.length=0;this.directBodies.length=0;
+        if(particles)this.drawOpeningParticles(c,mono,presentation);
+        this.clearLabels();c.restore();this.projected=bodies;
+        this.presentationDirty=false;this.presentedResources=this.resourceSignature();return;
+      }
       const orbitDirect=direct&&!this.flightLook;
       const orbitBrightness=clamp(Number(this.options.orbitBrightness)||0,0,1),orbitStrength=orbitBrightness*3,orbitFade=this.ringTourReturnOpacity(mono);
       if(orbitBrightness>0&&solar>0) {
@@ -3580,7 +3840,7 @@
       // Orbit guides may retain their staged reveal alpha, but planet bodies do
       // not inherit it. Once present, every solid body is painted at full alpha.
       c.globalAlpha=1;
-      bodies.sort((a,b)=>a.screen.z-b.screen.z);
+      bodies.sort((a,b)=>this.bodyDepthOrder(a,b));
       this.hitTargets.length=0;
       const surfaceBodies=this.surfaceBodies;surfaceBodies.length=0;
       for(const p of bodies)if(solar>0&&this.visible(p.screen,this.bodyVisibleRadius(p.body,p.r,{surface:true})))surfaceBodies.push(p);
@@ -3622,7 +3882,7 @@
       }
       if(solar>0){this.drawRingTourHover(c);this.drawAlignmentGuide(c,ms);this.drawEarthRegionHover(c,earth,ms);this.drawSiteMarker(c,earth,ms,mono);}
       c.restore();
-      this.drawOpeningParticles(c,mono,presentation);
+      if(particles)this.drawOpeningParticles(c,mono,presentation);
       const labelOpacity=this.openingLabelOpacity(mono);
       if(this.options.labels&&labelOpacity>1e-4){const labelBodies=this.labelBodies;labelBodies.length=0;for(const p of bodies)if(this.visible(p.screen,p.r+20))labelBodies.push(p);c.save();this.labels(c,labelBodies,mono);c.restore();}
       else this.clearLabels();

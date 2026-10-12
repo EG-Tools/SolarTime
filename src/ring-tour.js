@@ -4,6 +4,7 @@
   'use strict';
   const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),mix=(a,b,t)=>a+(b-a)*t;
   const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
+  const DEBRIS_MIN_ALPHA=.002;
   const dot=(a,b)=>a.reduce((n,v,i)=>n+v*b[i],0),unit=a=>{const n=Math.hypot(...a)||1;return a.map(v=>v/n);};
   const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
   const blend=(a,b,t)=>a.map((v,i)=>mix(v,b[i],t));
@@ -19,6 +20,7 @@
   const BANK_LIMIT=20*Math.PI/180;
   const BANK_MAX=45*Math.PI/180;
   const BANK_HANDOFF=2;
+  const OPENING_CARRY=Object.freeze({decay:2,settleStart:2.5,settleEnd:4});
   const LANDING_BANK_SETTLE=3.5;
   const ENTRY_BANK_BLEND=4.2;
   const MIN_LENS_SCALE=.8;
@@ -507,7 +509,7 @@
       // Dust's former .13 opacity is reduced by 30%, independently of rocks.
       float alpha=rock.a*fade*occlusion*ringTransition(world,debrisReady)*mix(1.,.091*band.a,fogPass);
       // Fully faded pixels must never occlude another solid instance.
-      if(alpha<.002)discard;
+      if(alpha<${DEBRIS_MIN_ALPHA})discard;
       gl_FragColor=vec4(mix(debrisColor(rock.rgb),rock.rgb,fogPass)*tint*mix(.72,.6,fogPass)*ringShadow(world,light),alpha);
     }`;
   const ROCK_VERTEX=`precision highp float;attribute vec3 corner,normal,position;attribute vec2 detail;
@@ -532,25 +534,26 @@
     ${RAY}
     ${DEBRIS_COLOR}
     void main(){
-      if(fade*debrisReady<.002)discard;vec3 d=world-viewEye;float distance=length(d),hit=sphere(viewEye,d/distance);if(hit>0.&&hit<distance-.001)discard;
+      if(fade*debrisReady<${DEBRIS_MIN_ALPHA})discard;vec3 d=world-viewEye;float distance=length(d),hit=sphere(viewEye,d/distance);if(hit>0.&&hit<distance-.001)discard;
       float density=texture2D(ringMap,vec2(clamp((ringRadius-1.28)/.98,0.,1.),.5)).a;if(fract(seed*19.7)>density)discard;
       float slot=floor(seed*8.);vec4 texel=texture2D(atlas,(vec2(mod(slot,4.),floor(slot/4.))+rockUV)/vec2(4.,2.));
       vec3 albedo=debrisColor(mix(vec3(.39,.38,.35),texel.rgb,smoothstep(.1,.65,texel.a)));
-      float alpha=fade*ringTransition(world,debrisReady);if(alpha<.002)discard;
+      float alpha=fade*ringTransition(world,debrisReady);if(alpha<${DEBRIS_MIN_ALPHA})discard;
       gl_FragColor=vec4(albedo*tint*(.28+.8*max(0.,dot(normalize(face),light)))*ringShadow(world,light),alpha);
     }`;
-  function program(gl,vertex,fragment,names){
-    const shaders=[];let p;
+  function* programSteps(gl,vertex,fragment,names,parallel=null){
+    const shaders=[];let p,complete=false;
     try{
       for(const [type,source] of [[gl.VERTEX_SHADER,vertex],[gl.FRAGMENT_SHADER,fragment]]){
         const s=gl.createShader(type);shaders.push(s);gl.shaderSource(s,source);gl.compileShader(s);
-        if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));
       }
       p=gl.createProgram();shaders.forEach(s=>gl.attachShader(p,s));gl.linkProgram(p);
+      // Poll asynchronous driver compilation once per frame, without blocking.
+      while(parallel?.extension&&!parallel.blocking&&!gl.getProgramParameter(p,parallel.extension.COMPLETION_STATUS_KHR))yield true;
       if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));
       const attributes={};for(let i=0;i<gl.getProgramParameter(p,gl.ACTIVE_ATTRIBUTES);i++){const {name}=gl.getActiveAttrib(p,i);attributes[name]=gl.getAttribLocation(p,name);}
-      return {program:p,u:Object.fromEntries(names.map(n=>[n,gl.getUniformLocation(p,n)])),attributes};
-    }catch(error){if(p)gl.deleteProgram(p);throw error;}finally{shaders.forEach(s=>gl.deleteShader(s));}
+      const result={program:p,u:Object.fromEntries(names.map(n=>[n,gl.getUniformLocation(p,n)])),attributes};complete=true;return result;
+    }finally{if(p&&!complete)gl.deleteProgram(p);shaders.forEach(s=>gl.deleteShader(s));}
   }
   class RingTour{
     constructor({frame,radius,width,height,screen,startPose,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,openingAcceleration,prepared,deferPreparation=false,particleCapacity=1,lensZoom=1,pointified=false}){
@@ -830,6 +833,10 @@
         a.angle+=Math.atan2(Math.sin(c.angle-b.angle),Math.cos(c.angle-b.angle))*t;
         pose={...pose,...orientation(pose,to,t),eye:polarEye(a),
           offset:blend(pose.offset,to.offset,t),
+          // A pointified departure uses perspective, while Home can use the
+          // normal orthographic lens. Returning only position/scale left the
+          // old lens active until disposal, snapping every surrounding orbit.
+          perspective:mix(pose.perspective,to.perspective,t),
           orthoScale:Math.exp(mix(Math.log(pose.orthoScale),Math.log(to.orthoScale),t)),fov:mix(pose.fov,to.fov,t)};
       }
       return pose;
@@ -1003,15 +1010,21 @@
       };
       return mix(lap===1?inherited:target(lap),target(lap+1),weight);
     }
+    openingCarryEnvelope(age){
+      // The old 2.5-second positional bridge had to undo all inherited motion
+      // before its deadline. Its return velocity reached -51% of the incoming
+      // correction, visibly braking/reversing the camera during the blend.
+      // A damped carry releases that correction gradually (at most -25%).
+      // Settle the tail with C2 continuity before the ring approach. Even a
+      // tiny residual can be large in planet radii after a very distant start.
+      // The entry clock, final S path and landing pose remain unchanged.
+      return age>0&&age<OPENING_CARRY.settleEnd?Math.exp(-OPENING_CARRY.decay*age)*(1-transition(age,OPENING_CARRY.settleStart,OPENING_CARRY.settleEnd)):0;
+    }
     openingBridge(age){
-      const handoff=2.5;
-      return this.openingMomentum&&age>0&&age<handoff?handoff*initialTangent(age/handoff):0;
+      return this.openingMomentum?age*(1+OPENING_CARRY.decay*age)*this.openingCarryEnvelope(age):0;
     }
     openingAccelerationBridge(age){
-      const handoff=2.5,u=age/handoff;
-      // Unit second derivative at zero, then zero value/velocity/acceleration
-      // at the end of the same bridge used by opening momentum.
-      return this.openingAcceleration&&age>0&&age<handoff ? .5*age*age*(1-u)**3 : 0;
+      return this.openingAcceleration ? .5*age*age*this.openingCarryEnvelope(age) : 0;
     }
     openingPose(age,fov=this.fov){
       const pose=this.rawEntryPose(age,fov),carry=this.openingMomentum,acceleration=this.openingAcceleration;
@@ -1269,11 +1282,13 @@
         const selected=cache?record.order:order;selected.length=0;
         const candidates=this.instanceCandidates(points,indices,range,frustum,p);this.instanceChecks=candidates.length;
         for(const i of candidates){
-          const x=points[i]-p.eye[0],y=points[i+1]-p.eye[1],z=points[i+2]-p.eye[2],depth=x*p.forward[0]+y*p.forward[1]+z*p.forward[2];
+          const x=points[i]-p.eye[0],y=points[i+1]-p.eye[1],z=points[i+2]-p.eye[2],distanceSquared=x*x+y*y+z*z;
+          if(distanceSquared>rangeSquared)continue;
+          if(this.particleBudget<1&&this.particleDensity(distanceSquared/rangeSquared,points[i+4])<=0)continue;
+          const depth=x*p.forward[0]+y*p.forward[1]+z*p.forward[2];
           const projectedDepth=mix(p.orthoScale,depth,p.perspective);
           const size=points[i+3];
-          if(x*x+y*y+z*z>rangeSquared||projectedDepth < -size*3.5)continue;
-          if(this.particleBudget<1&&this.particleDensity((x*x+y*y+z*z)/rangeSquared,points[i+4])<=0)continue;
+          if(projectedDepth < -size*3.5)continue;
           if(frustum){
             const vx=x*p.right[0]+y*p.right[1]+z*p.right[2],vy=x*p.up[0]+y*p.up[1]+z*p.up[2];
             if(vx-frustum[0][0]*projectedDepth>size*frustum[0][1]||-vx-frustum[1][0]*projectedDepth>size*frustum[1][1]||
@@ -1308,27 +1323,38 @@
     packInstances(points,order,out){
       for(let j=0;j<order.length;j++)for(let k=0;k<5;k++)out[j*5+k]=points[order[j]+k];
     }
-    prepare(gpu,budget=Infinity){
+    prepare(gpu,budget=Infinity,requireScene=false){
       const g=gpu.gl;if(this.disposed||gpu.contextLost||g.isContextLost())return false;
       const start=performance.now();
       try{
         if(!this.resources){
-          const resources=this.resources={gl:g,instances:g.getExtension('ANGLE_instanced_arrays')};
+          const resources=this.resources={gl:g,instances:g.getExtension('ANGLE_instanced_arrays'),parallel:{extension:g.getExtension('KHR_parallel_shader_compile'),blocking:false}};
           if(!resources.instances)throw Error('Instanced ring debris is not supported by this GPU.');
-          resources.scene=program(g,VERTEX,FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','planetMap','ringMap','phase','debrisReady','perspective','orthoScale','light','ringTexel','focal']);
+          this.scenePreparation=programSteps(g,VERTEX,FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','planetMap','ringMap','phase','debrisReady','perspective','orthoScale','light','ringTexel','focal'],resources.parallel);
+        }
+        if(!this.resources.scene){
+          this.resources.parallel.blocking=requireScene;
+          const step=this.scenePreparation.next();
+          this.resources.parallel.blocking=false;
+          if(!step.done)return false;
+          this.resources.scene=step.value;this.scenePreparation=null;
         }
         if(!this.preparationReady&&performance.now()-start<budget)this.advancePreparation(Math.max(0,budget-(performance.now()-start)));
         if(this.preparationReady&&!this.resources.ready){
           if(!this.gpuPreparation)this.gpuPreparation=this.buildGpuResources(gpu);
-          while(performance.now()-start<budget)if(this.gpuPreparation.next().done){this.gpuPreparation=null;break;}
+          while(performance.now()-start<budget){
+            const step=this.gpuPreparation.next();
+            if(step.done){this.gpuPreparation=null;break;}
+            if(step.value===true)break;
+          }
         }
         return !!this.resources.scene;
       }catch(error){this.dispose();throw error;}
     }
     *buildGpuResources(gpu){
       const g=gpu.gl,resources=this.resources;
-      resources.dust=program(g,DEBRIS_VERTEX,DEBRIS_FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','ringMap','atlas','debrisReady','perspective','orthoScale','fogPass','chipPass','atlasGrid','elapsed','light','particleBudget','budgetRange']);yield;
-      resources.rock=program(g,ROCK_VERTEX,ROCK_FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','ringMap','atlas','debrisReady','perspective','orthoScale','light','elapsed','particleBudget','budgetRange']);yield;
+      resources.dust=yield* programSteps(g,DEBRIS_VERTEX,DEBRIS_FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','ringMap','atlas','debrisReady','perspective','orthoScale','fogPass','chipPass','atlasGrid','elapsed','light','particleBudget','budgetRange'],resources.parallel);yield;
+      resources.rock=yield* programSteps(g,ROCK_VERTEX,ROCK_FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','ringMap','atlas','debrisReady','perspective','orthoScale','light','elapsed','particleBudget','budgetRange'],resources.parallel);yield;
       resources.meshBytes=0;
       for(const key of ['mesh','angularMesh','coarseMesh','angularCoarseMesh']){const mesh=rockGeometry(key.startsWith('angular'),key==='coarseMesh'||key==='angularCoarseMesh');resources[key+'Vertices']=mesh.length/6;resources.meshBytes+=mesh.byteLength;
         resources[key]=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,resources[key]);g.bufferData(g.ARRAY_BUFFER,mesh,g.STATIC_DRAW);yield;}
@@ -1369,7 +1395,7 @@
     }
     draw(gpu,width,height){
       const g=gpu.gl,planet=gpu.textures.get('saturn'),ring=gpu.textures.get('saturn-ring');
-      if(!planet?.texture||!ring?.texture||!this.prepare(gpu,3))return false;
+      if(!planet?.texture||!ring?.texture||!this.prepare(gpu,3,true))return false;
       const r=this.resources,{scene,dust,instances}=r,p=this.pose,tan=Math.tan(p.fov*Math.PI/360);
       const viewEye=projectionEye(p),detail=this.ringDetailState(viewEye);
       // The planet phase is simulation time. Observe immutable debris through
@@ -1402,7 +1428,9 @@
         const {mesh,fog,chips,points,indices}=layer,texture=fog||chips?planet.texture:r.atlas,shader=mesh?r.rock:dust;
         const opacity=fog||chips?smooth(this.visualAge/1.2)*(fog?layers.dust:layers.debris):ready;
         const lod=layer.lod===undefined?null:{level:layer.lod,focal:height*(gpu.dpr||1)/(2*tan)};
-        layer.count=texture&&opacity>0?this.visibleInstances(points,fog?1.85:range,this.instanceData,this.instanceOrder,indices,!!mesh||!!fog||!!chips,frustum,lod,this.instanceFrame,false,parentPose):0;
+        // Every fragment is discarded below this shared threshold. Avoid
+        // scanning/sorting the full retreat field for an invisible layer.
+        layer.count=texture&&opacity>=DEBRIS_MIN_ALPHA?this.visibleInstances(points,fog?1.85:range,this.instanceData,this.instanceOrder,indices,!!mesh||!!fog||!!chips,frustum,lod,this.instanceFrame,false,parentPose):0;
         const count=layer.count;if(!count)continue;
         if(mesh)this.nearCount+=count;if(fog)this.fogCount=count;this.submittedInstances+=count;
         if(chips)this.chipCount=count;const vertices=mesh?r[mesh+'Vertices']:chips?r.chipVertices:6;
@@ -1450,7 +1478,7 @@
     }
     dispose(){
       if(this.disposed)return;this.disposed=true;
-      this.preparation?.return();this.preparation=null;this.gpuPreparation?.return();this.gpuPreparation=null;
+      this.preparation?.return();this.preparation=null;this.scenePreparation?.return();this.scenePreparation=null;this.gpuPreparation?.return();this.gpuPreparation=null;
       const r=this.resources;if(r){
         for(const upload of r.layerUploads?.values()||[])r.gl.deleteBuffer(upload.buffer);r.layerUploads?.clear();
         for(const key of ['scene','dust','rock'])if(r[key])r.gl.deleteProgram(r[key].program);

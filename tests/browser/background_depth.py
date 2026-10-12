@@ -21,7 +21,7 @@ def main():
             page.wait_for_function('window.SolarTime && !SolarTime.getState().opening', timeout=60000)
             before = page.evaluate("""async () => {
               const r=SolarTime.renderer,s=r.sky,e=SolarVisualEffects;
-              r.setOption('skyMotion',false,false);r.stopAutoRotate(performance.now());
+              r.stopAutoRotate(performance.now());
               await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
               if(s.stats.backend!=='gpu')throw Error('sky shader did not initialize: '+s.stats.error);
               const data=e.starWorldData(SolarAssets.starData);let min=Infinity,max=0;

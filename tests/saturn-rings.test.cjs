@@ -22,7 +22,7 @@ test('shared Saturn shadow is ten percent lighter with a fifty percent wider pen
  const glsl=require('../src/surface-style.js').ringShadowGLSL;
  const match=glsl.match(/return 1\.-([\d.]+)\*\(1\.-smoothstep\(([\d.]+),([\d.]+),clearance\)/);
  assert.ok(match);const [,strength,inner,outer]=match.map(Number);
- assert.ok(Math.abs(strength-.78*.9)<1e-12);
+ assert.ok(Math.abs(strength-.702*.9)<1e-12);
  assert.ok(Math.abs((outer-inner)-.16*1.5)<1e-12);
  assert.ok(Math.abs((outer+inner)/2-1.02)<1e-12);
  assert.ok(1-strength>.22,'the darkest part remains visibly lighter');

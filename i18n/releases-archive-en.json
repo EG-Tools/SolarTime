@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.67",
+    "date": "2026.09.29",
+    "items": [
+      "Reorganized Help with a concise screen-saver purpose, key features and non-duplicated desktop controls.",
+      "Localized the new introduction in all 13 interface languages; Auto Language prioritizes the browser language on first launch and reset.",
+      "Extended wheel zoom and right-drag camera travel to a 0.1× overview, so the whole solar system can be viewed from much farther away.",
+      "Removed the lower-left watermark from the main view, aligned the information text to the left, and kept the watermark only in Help.",
+      "Use the left and right arrow keys to cycle through the footer bodies; active tracking continues smoothly onto the next body."
+    ]
+  },
+  {
     "version": "0.66",
     "date": "2026.09.28",
     "items": [

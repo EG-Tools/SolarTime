@@ -10,12 +10,12 @@ module.exports=async({root,evaluate,until,esc})=>{
  }
  await evaluate("SolarTime.renderer.animateFocus('saturn')");
  await until('SolarTime.renderer.canStartRingTour()');
- const start=await evaluate("(()=>{const r=SolarTime.renderer,at=performance.now();if(!r.startRingTour())throw Error('start failed');return {ms:performance.now()-at,deferred:!r.ringTour.preparationReady};})()");
- assert.ok(start.deferred);
+ const start=await evaluate("(()=>{const r=SolarTime.renderer,at=performance.now(),pool=r.preparedRingTour?.points;if(!r.startRingTour())throw Error('start failed');return {ms:performance.now()-at,deferred:!r.ringTour.preparationReady,reused:!!pool&&pool===r.ringTour.points};})()");
+ assert.ok(start.deferred||start.reused);
  await until('SolarTime.renderer.ringTour?.preparationReady&&SolarTime.renderer.ringTour.resources?.ready');
  assert.equal(await evaluate('SolarTime.renderer.gpu.gl.getError()'),0);
  await esc();await until('!SolarTime.renderer.ringTour');
- await evaluate('SolarTime.renderer.prepareOpeningTour()');
+ await evaluate('SolarTime.renderer.prepareRingTourResources()');
  assert.equal(await evaluate('!!SolarTime.renderer.preparedRingTour&&!SolarTime.renderer.preparedRingTour.preparationReady'),true);
  // Prepared opening resources progress on the app frame loop while the scene is idle.
  await until('SolarTime.renderer.preparedRingTour?.preparationReady&&SolarTime.renderer.preparedRingTour.resources?.ready');

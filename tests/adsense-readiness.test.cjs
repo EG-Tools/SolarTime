@@ -33,7 +33,8 @@ test('policy and original-content pages are public, linked and crawlable',()=>{
  assert.match(robots,/User-agent: Mediapartners-Google\s+Allow: \//);
  assert.match(robots,/User-agent: Google-Display-Ads-Bot\s+Allow: \//);
  assert.ok(robots.includes('https://solartime.app/sitemap.xml'));
- assert.match(html,/class="source-link" href="credits\.html"/);
+ assert.doesNotMatch(html,/class="source-link"/);
+ assert.match(html,/class="site-policy-row"><a href="guide\.html">GUIDE<\/a><a href="credits\.html">CREDITS<\/a><a href="changelog\.html">UPDATES<\/a>/);
  assert.doesNotMatch(html,/github\.com\/EG-Tools\/SolarTime|assets\/CREDITS\.md/);
 });
 
@@ -44,12 +45,12 @@ test('credits page identifies authorship, scientific sources, media and licenses
  assert.match(page,/Solar System Scope \/ INOVE/);
  assert.match(page,/Natural Earth · Admin 0 Countries/);
  assert.match(page,/Creative Commons Attribution 4\.0 International/);
- assert.match(page,/Lyrikey with Suno AI/);
+ assert.match(page,/BACKGROUND MUSIC SUNO AI - /);
  assert.match(page,/Soft Morning/);
  assert.match(page,/Source preparation and limitations/);
  assert.doesNotMatch(page,/github\.com\/EG-Tools\/SolarTime|assets\/CREDITS\.md/);
  const items=[...page.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(match=>match[1].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim());
- assert.equal(items.length,12);
+ assert.equal(items.length,13);
  assert.ok(items.every(item=>item.length>=100),'every credit identifies how its source is used');
 });
 

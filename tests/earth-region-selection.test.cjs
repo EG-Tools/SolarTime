@@ -95,7 +95,9 @@ test('wheel travel preserves temporary country inspection until an explicit rese
   const app=read('src/app.js');
   const wheel=app.slice(app.indexOf("canvas.addEventListener('wheel'"),app.indexOf("canvas.addEventListener('dblclick'"));
   assert.doesNotMatch(wheel,/clearTemporaryRegion/);
-  assert.match(app,/temporaryRegionId=id===activeRegion\(\)\.id\?null:id/);
+  assert.match(app,/const activeRegionId=\(\)=>REGIONS\[language\]\?language:'kor'/);
+  assert.match(app,/temporaryRegionId=id===activeRegionId\(\)\?null:id/);
+  assert.doesNotMatch(app,/activeRegion\(\)\.id/,'region values do not own their catalog ids');
   assert.match(app,/\$\('timezone-reset'\)\.addEventListener\('click',[\s\S]*clearTemporaryRegion\(\);viewEarthRegion\(region\)/);
   assert.match(read('index.html'),/id="timezone-reset" class="range-reset timezone-reset"[^>]+disabled/);
 });
@@ -114,7 +116,13 @@ test('country readout follows the same travel return policy as planet tracking',
   assert.match(app,/function trackActiveRegion\(\)\{if\(openingActive\)return/);
   assert.match(app,/feature\.disabled=previous\.disabled=next\.disabled=false/);
   assert.match(app,/const id=renderer\.selected;if\(!\['earth','jupiter'\]\.includes\(id\)\)return/);
-  assert.match(app,/function navigateRegion\(direction\)\{\s*if\(renderer\.selected!=='earth'\)return/);
+  assert.match(app,/function navigateRegion\(direction\)\{\s*if\(renderer\.selected!=='earth'&&!renderer\.earthRegionNavigationActive\)return false/);
+  assert.match(app,/const rotateEarth=renderer\.earthRegionNavigationActive\|\|renderer\.earthRegionInteractionReady\(\)/);
+  assert.match(app,/if\(rotateEarth&&!viewEarthRegion\(target\)\)return false;\s*if\(!setTemporaryRegion\(target\.id,!rotateEarth\)\)return false/);
+  assert.match(app,/function setTemporaryRegion\(id,allowUntracked=false\)/);
+  assert.match(app,/if\(renderer\.skyFeatureShortcutMode\|\|selectedSkyFeature\)navigateSkyFeature\(direction\);\s*else if\(renderer\.earthRegionNavigationActive\)navigateRegion\(direction\);\s*else navigateBody\(direction\)/);
+  assert.match(app,/renderer\.setEarthRegionNavigation\(true\)/);
+  assert.match(renderer,/get earthRegionNavigationActive\(\)/);
   assert.match(renderer,/requestFeature\(id,latitude,longitude,ms/);
   assert.match(renderer,/pendingTravelFocus=\{id,duration,feature:/);
   assert.match(renderer,/resumeTravelFocus\(mono,ms\)/);
@@ -128,7 +136,7 @@ test('country card uses alarm-style triangle controls and a nearest-neighbour lo
   vm.createContext(context);vm.runInContext(app.slice(start,end)+';this.route=countryRoute();this.previous=regionNeighbor(-1);this.next=regionNeighbor(1);',context);
   assert.equal(context.route.length,data.catalog.length);assert.equal(new Set(context.route.map(region=>region.id)).size,data.catalog.length);assert.equal(context.route[0].id,'ca');
   assert.equal(context.previous.code,'CA');assert.equal(context.next.code,'MX');
-  assert.match(app,/function viewEarthRegion\(region=displayRegion\(\)\)/);assert.match(app,/viewEarthRegion\(target\)/);assert.match(app,/setTemporaryRegion\(target\.id\)/);
+  assert.match(app,/function viewEarthRegion\(region=displayRegion\(\)\)/);assert.match(app,/viewEarthRegion\(target\)/);assert.match(app,/setTemporaryRegion\(target\.id,!rotateEarth\)/);
 });
 
 test('country borders stay lazy, release-packaged and content-versioned',()=>{

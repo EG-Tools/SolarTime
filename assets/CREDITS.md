@@ -6,9 +6,13 @@ This document lists the media, scientific references and third-party components 
 
 ### Background music
 
-The ambient background tracks are created by Lyrikey with Suno AI.
+The original seven ambient background tracks are created by Lyrikey with Suno AI.
 
 - Lyrikey: https://suno.com/@lyrikey
+
+“Deep Space Journey” by Maryan Dembitskyi was provided directly for Solar Time's background music rotation. The supplied FLAC master is retained locally; web playback uses a 192 kbps MP3 conversion.
+
+- Maryan Dembitskyi: https://pixabay.com/ko/users/marmixer-6762941/
 
 ### Default alarm sound
 
@@ -94,6 +98,12 @@ The prompts used to create these reconstructions and the Earth night-light palet
 Fallback maps, relief effects, rings, the solar corona and other supporting visual materials are authored or procedurally rendered for Solar Time unless another source is listed above.
 
 The space background is an artistic panorama assembled from project-owner-supplied AI artwork and procedural stars, dust and haze. It is not a measured all-sky atlas or an accurate star catalogue. The current package does not redistribute a third-party stock Saturn photograph or an unknown-license planetary screenshot.
+
+### Named constellation stars
+
+The fixed named-star layer is separate from the artistic panorama. The twenty constellation outlines use a reduced HYG Database v4.1 table by David Nash / Astronexus: https://www.astronexus.com/hyg . Source snapshot: https://github.com/astronexus/HYG-Database/blob/main/hyg/CURRENT/hygdata_v41.csv . HYG data and the derived `CATALOG_STAR_ROWS` table in `src/sky.js` are licensed under Creative Commons Attribution-ShareAlike 4.0: https://creativecommons.org/licenses/by-sa/4.0/ . Changes: selected 224 records, retained HIP identifiers, J2000 right ascension/declination, magnitude and spectral class, omitted unused columns, and assigned illustrative spectral colours. Existing Big Dipper and Polaris positions retain their SIMBAD J2000 records and are shared with the parent constellations.
+
+The connecting-line topology is adapted from the Stellarium Western sky culture data by the Stellarium team (text and data: CC BY-SA): https://stellarium.org/ . Solar Time retains the relevant HIP paths, removes line-weight metadata, and derives its own reveal order and rendering. Korean card descriptions are authored for Solar Time. These outlines show recognisable Western patterns, not official IAU boundaries. All named stars use a fixed visual sky depth; stellar distances, proper motion, precession, apparent brightness ratios and sizes are not reproduced physically.
 
 ## Astronomy and ephemeris references
 

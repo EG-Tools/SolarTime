@@ -5,7 +5,7 @@
   const timers=new Map(),bindings=new Map(),dialogOrder=[],cleanups=new Set(),scripts=new Map(),fadeMs=1000;
   let disposed=false;const animationFrames=new Set();
   const later=callback=>{const id=root.requestAnimationFrame(()=>{animationFrames.delete(id);if(!disposed)callback();});animationFrames.add(id);return id;};
-  const duration=()=>root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:fadeMs;
+  const duration=element=>root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?0:(Number(element?.dataset?.uiFadeMs)>0?Number(element.dataset.uiFadeMs):fadeMs);
   const shown=element=>element.tagName==='DIALOG'?element.open:!element.hidden;
   const visible=element=>shown(element)&&!element.classList.contains('ui-fade-closing');
   const forget=element=>{const i=dialogOrder.indexOf(element);if(i>=0)dialogOrder.splice(i,1);};
@@ -17,7 +17,7 @@
     element.classList.add('ui-fade');element.classList.remove('ui-fade-closing');
     const alreadyShown=shown(element);if(!alreadyShown){if(open)open();else element.hidden=false;}
     track(element);
-    if(alreadyShown||!duration()){element.classList.add('ui-fade-visible');return;}
+    if(alreadyShown||!duration(element)){element.classList.add('ui-fade-visible');return;}
     element.classList.remove('ui-fade-visible');void element.offsetWidth;
     later(()=>later(()=>{if(shown(element)&&!element.classList.contains('ui-fade-closing'))element.classList.add('ui-fade-visible');}));
   }
@@ -26,7 +26,7 @@
     if(!shown(element))return;
     element.classList.add('ui-fade','ui-fade-closing');element.classList.remove('ui-fade-visible');
     const finish=()=>{timers.delete(element);if(!element.classList.contains('ui-fade-closing'))return;if(close)close();else element.hidden=true;forget(element);element.classList.remove('ui-fade','ui-fade-closing','ui-fade-visible');};
-    const wait=duration();if(!wait)finish();else timers.set(element,root.setTimeout(finish,wait));
+    const wait=duration(element);if(!wait)finish();else timers.set(element,root.setTimeout(finish,wait));
   }
   function topDialog(){
     for(let i=dialogOrder.length-1;i>=0;i--){const d=dialogOrder[i];if(shown(d)&&bindings.has(d))return d;dialogOrder.splice(i,1);}
@@ -63,12 +63,18 @@
   }
   function bindScrollCues(container,scroller){
     let frame=0,stopped=false;
-    const update=()=>{if(stopped)return;const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;container.classList.toggle('can-scroll-up',scroller.scrollTop>3);container.classList.toggle('can-scroll-down',remaining>3);};
+    const cues=Array.from(container.querySelectorAll?.('.scroll-cue')||[]).map(element=>({element,direction:element.classList.contains('scroll-cue-up')?-1:1}));
+    const update=()=>{if(stopped)return;const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;container.classList.toggle('can-scroll-up',scroller.scrollTop>3);container.classList.toggle('can-scroll-down',remaining>3);
+      for(const {element,direction} of cues){const available=direction<0?scroller.scrollTop>3:remaining>3;element.classList.toggle('scroll-cue-enabled',available);element.tabIndex=available?0:-1;element.setAttribute('aria-disabled',String(!available));}
+    };
+    const activate=(event,direction)=>{event.preventDefault();event.stopPropagation();const maximum=Math.max(0,scroller.scrollHeight-scroller.clientHeight),top=Math.max(0,Math.min(maximum,scroller.scrollTop+direction*scroller.clientHeight*.8));scroller.scrollTo({top,behavior:root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});};
+    for(const cue of cues){const {element,direction}=cue;element.removeAttribute('aria-hidden');element.setAttribute('role','button');element.setAttribute('aria-label',direction<0?'Scroll up':'Scroll down');cue.click=event=>activate(event,direction);cue.key=event=>{if(event.key==='Enter'||event.key===' ')activate(event,direction);};element.addEventListener('click',cue.click);element.addEventListener('keydown',cue.key);}
+    update();
     const schedule=()=>{if(!frame&&!stopped)frame=root.requestAnimationFrame(()=>{frame=0;update();});};
     scroller.addEventListener('scroll',update,{passive:true});
     const observer=typeof root.ResizeObserver==='function'?new root.ResizeObserver(schedule):null;
     if(observer)observer.observe(scroller);
-    const dispose=own(()=>{stopped=true;scroller.removeEventListener('scroll',update);observer?.disconnect();if(frame)root.cancelAnimationFrame(frame);});
+    const dispose=own(()=>{stopped=true;for(const {element,click,key} of cues){element.removeEventListener('click',click);element.removeEventListener('keydown',key);}scroller.removeEventListener('scroll',update);observer?.disconnect();if(frame)root.cancelAnimationFrame(frame);});
     return {update,dispose};
   }
   function loadScript(url,globalName,{timeout=15000}={}){
