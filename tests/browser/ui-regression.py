@@ -355,7 +355,11 @@ def suite(browser,root,size,installed):
  check(page.evaluate('SolarTime.renderer.randomRotation===__randomPath'),tag+' manual drag retains existing random path')
  check(page.evaluate('SolarTime.renderer.camera.elevation<0'),tag+' manual drag crosses 180 without clipping')
  check(page.evaluate("__orbitInput.length>0&&__orbitInput.every(v=>Math.abs(((v.after.elevation-v.before.elevation+Math.PI*3)%(Math.PI*2)-Math.PI)-v.e)<.015)"),tag+' no pole snap or stale-pointerdown reset')
- after_drag=page.evaluate('({...SolarTime.renderer.camera})');page.wait_for_timeout(300)
+ # Observe automatic rotation after release and after pointer inertia settles.
+ # A fixed 300 ms sleep can contain no rendered frame on software-rendered CI.
+ page.wait_for_function('!SolarTime.renderer.pointerCoast',timeout=5000)
+ after_drag=page.evaluate('({...SolarTime.renderer.camera})')
+ page.wait_for_function('e => SolarTime.renderer.camera.elevation!==e',arg=after_drag['elevation'],timeout=5000)
  check(page.evaluate('__fixedDirectionErrors.every(e=>Number.isFinite(e)&&e<1e-7)'),tag+' same direction survives manual control and resumes without reselecting')
  check(page.evaluate('SolarTime.renderer.camera.elevation')!=after_drag['elevation'],tag+' random continues after releasing pointer')
  rotation.click();stopped=page.evaluate('({...SolarTime.renderer.camera})');page.wait_for_timeout(200)
