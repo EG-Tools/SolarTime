@@ -323,10 +323,11 @@ def suite(browser,root,size,installed):
  check(page.evaluate('({...SolarTime.renderer.camera})')==stopped,tag+' fixed rotation off freezes camera')
  before=page.evaluate('({...SolarTime.renderer.camera})')
  rotation.click(button='right');random_rotation.click()
+ page.evaluate('window.__rotationSpeed={seconds:0,travel:0,frames:0};window.__fixedDirectionErrors=[]')
  # A busy shared CI runner can deliver fewer animation frames than wall-clock
  # time suggests. Wait for the behavior being measured instead of assuming
  # 1.2 seconds always contains five rendered frames.
- page.wait_for_function('__rotationSpeed.frames>=5 && __rotationSpeed.seconds>.5',timeout=5000)
+ page.wait_for_function('__fixedDirectionErrors.length>=5 && __rotationSpeed.seconds>.5',timeout=5000)
  active=page.evaluate('({...SolarTime.renderer.camera})')
  check(rotation.get_attribute('data-mode')=='random' and rotation.get_attribute('aria-pressed')=='true' and random_rotation.get_attribute('aria-pressed')=='true',tag+' random turns ON while the previous fixed direction stays unlit')
  check(all(active[k]==before[k] for k in ['zoom','dolly','panX','panY','focus']),tag+' random preserves distance and framing')
@@ -336,7 +337,7 @@ def suite(browser,root,size,installed):
  check(abs(speed['travel']/speed['seconds']-1.8)<.002,tag+' random moves at 1.8 degrees/s immediately, not a tiny nonzero delta')
  check(page.evaluate('SolarAssets.starData===__starPoolBefore'),tag+' random toggle never regenerates stars')
  check(page.evaluate('Object.isFrozen(SolarTime.renderer.randomRotation)'),tag+' chosen rotation direction is immutable')
- check(page.evaluate('__fixedDirectionErrors.length>=5 && __fixedDirectionErrors.every(e=>Number.isFinite(e)&&e<1e-7)'),tag+' every real frame follows the selected fixed direction')
+ check(page.evaluate('__fixedDirectionErrors.length>=5 && __fixedDirectionErrors.every(e=>Number.isFinite(e)&&e<1e-7)'),tag+' every real frame follows the selected fixed direction: '+str(page.evaluate('__fixedDirectionErrors')))
  check(abs(left_speed['travel']/left_speed['seconds']-speed['travel']/speed['seconds'])<.002,tag+' random speed matches left rotation')
  check(abs(right_speed['travel']/right_speed['seconds']-speed['travel']/speed['seconds'])<.002,tag+' random speed matches right rotation')
  # Both poles and the +/-180 wrap remain continuous, even on a running path.

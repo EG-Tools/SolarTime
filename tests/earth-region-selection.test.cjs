@@ -120,7 +120,7 @@ test('country readout follows the same travel return policy as planet tracking',
   assert.match(app,/const rotateEarth=renderer\.earthRegionNavigationActive\|\|renderer\.earthRegionInteractionReady\(\)/);
   assert.match(app,/if\(rotateEarth&&!viewEarthRegion\(target\)\)return false;\s*if\(!setTemporaryRegion\(target\.id,!rotateEarth\)\)return false/);
   assert.match(app,/function setTemporaryRegion\(id,allowUntracked=false\)/);
-  assert.match(app,/if\(renderer\.skyFeatureShortcutMode\|\|selectedSkyFeature\)navigateSkyFeature\(direction\);\s*else if\(renderer\.earthRegionNavigationActive\)navigateRegion\(direction\);\s*else navigateBody\(direction\)/);
+  assert.match(app,/if\(renderer\.skyFeatureShortcutMode\|\|selectedSkyFeature\)navigateSkyFeature\(direction\);\s*else if\(renderer\.earthRegionNavigationActive&&\(!renderer\.selected\|\|renderer\.selected==='earth'\)\)navigateRegion\(direction\);\s*else navigateBody\(direction\)/);
   assert.match(app,/renderer\.setEarthRegionNavigation\(true\)/);
   assert.match(renderer,/get earthRegionNavigationActive\(\)/);
   assert.match(renderer,/requestFeature\(id,latitude,longitude,ms/);
