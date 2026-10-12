@@ -23,6 +23,15 @@ function escapeHarness(keyboard){
  return {...h,capture,events,fullscreen(value){h.doc.fullscreenElement=value?h.doc.documentElement:null;h.doc.dispatchEvent(new Event('fullscreenchange'));}};
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
+test('delayed native close event does not untrack a reopened dialog',()=>{
+ const h=harness(),d=new Element('dialog');
+ d.close=()=>{d.open=false;};
+ h.ui.bindDialog(d,()=>h.ui.hide(d,()=>d.close()));
+ h.ui.show(d,()=>d.showModal());h.ui.dismissTopDialog();
+ h.ui.show(d,()=>d.showModal());d.dispatchEvent(new Event('close'));
+ assert.equal(h.ui.topDialog(),d);
+ assert.equal(h.ui.dismissTopDialog(),true);assert.equal(d.open,false);
+});
 test('fullscreen captures only Escape, then releases it on exit and UI disposal',async()=>{
  const calls=[];let releases=0;
  const h=escapeHarness({lock:async keys=>calls.push([...keys]),unlock(){releases++;}});

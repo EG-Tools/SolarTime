@@ -57,7 +57,8 @@
     const down=event=>{pressedOutside=outside(dialog,event);};
     const click=event=>{if(backdrop&&outside(dialog,event)&&pressedOutside!==false)requestClose();pressedOutside=null;};
     const cancel=event=>{event.preventDefault();event.stopPropagation();if(topDialog()===dialog)dismissTopDialog();};
-    const closed=()=>forget(dialog);
+    // Native close events are queued and may arrive after this dialog reopens.
+    const closed=()=>{if(!shown(dialog))forget(dialog);};
     dialog.addEventListener('pointerdown',down);dialog.addEventListener('click',click);dialog.addEventListener('cancel',cancel);dialog.addEventListener('close',closed);
     return own(()=>{unbind();dialog.removeEventListener('pointerdown',down);dialog.removeEventListener('click',click);dialog.removeEventListener('cancel',cancel);dialog.removeEventListener('close',closed);});
   }
