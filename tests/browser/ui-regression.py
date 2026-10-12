@@ -278,9 +278,12 @@ def suite(browser,root,size,installed):
  check(country['zoom']==country_lens and country['dolly']>1 and abs(country['dolly']-country['reference'])<1e-6,tag+' country uses the shared seven-step travel distance')
  check(page.locator('#zoom-value').inner_text()==f'{country_lens:.1f}×',tag+' lens readout excludes travel magnification')
  page.mouse.move(size[0]*.6,size[1]*.55);page.mouse.wheel(0,-120)
- page.wait_for_timeout(350)
+ # Wheel delivery and animation frames are asynchronous on shared CI runners.
+ # Wait for the required movement, not an assumed 350ms rendering deadline.
+ page.wait_for_function('(before)=>SolarTime.renderer.camera.dolly>before',arg=country['dolly'],timeout=5000)
  check(page.evaluate('SolarTime.renderer.camera.dolly')>country['dolly'] and page.evaluate('SolarTime.renderer.camera.zoom')==country['zoom'],tag+' wheel approaches without changing lens')
- page.mouse.wheel(0,120);page.mouse.wheel(0,120);page.wait_for_timeout(350)
+ page.mouse.wheel(0,120);page.mouse.wheel(0,120)
+ page.wait_for_function('(before)=>SolarTime.renderer.camera.dolly<before',arg=country['dolly'],timeout=5000)
  check(page.evaluate('SolarTime.renderer.camera.dolly')<country['dolly'] and page.evaluate('SolarTime.renderer.camera.zoom')==country['zoom'],tag+' wheel moves away without changing lens')
  rotation=page.locator('#rotation-mode-toggle')
  random_rotation=page.locator('#random-rotate')
