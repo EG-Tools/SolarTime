@@ -366,7 +366,7 @@ test('rotation projects shared stars once and still expires offscreen guide reve
 test('constellation viewing reuses one five-percent solar composite and one hover target',()=>{
  const renderer=read('src/renderer.js'),app=read('src/app.js'),html=read('index.html');
  assert.match(renderer,/const SKY_SOLAR_SCALE=\.05/);assert.match(renderer,/scale:mix\(1,SKY_SOLAR_SCALE,amount\)/);assert.match(renderer,/skySolarDisplay\(\)\?1:1-amount/);assert.match(renderer,/updateSkySolarTarget\(appearance\)/);assert.match(renderer,/skySolarHit\(x,y\)/);assert.match(renderer,/drawSkySolarGuide\(c,target,mono\)/);
- assert.match(app,/renderer\.skySolarHit\(p\.x,p\.y\)/);assert.match(app,/skySolarDisplay:renderer\.skySolarDisplay\(\)/);assert.match(html,/id="sky-feature-display-control"[\s\S]*id="sky-solar-display-control"[\s\S]*id="show-sky-solar"[^>]*checked/);
+ assert.match(app,/renderer\.skySolarHit\(p\.x,p\.y\)/);assert.match(app,/skySolarDisplay:renderer\.skySolarDisplay\(\)/);assert.match(html,/id="sky-feature-display-control"[\s\S]*id="sky-solar-display-control"[\s\S]*id="show-sky-solar"/);assert.doesNotMatch(html,/id="show-sky-solar"[^>]*checked/);assert.match(app,/saved\.skySolarDisplay===true/);assert.match(app,/applyFactoryDefaults\(\)[\s\S]*renderer\.setSkySolarDisplay\(false\)/);assert.match(renderer,/this\.skySolarVisible=false/);
 });
 
 test('constellation guides do not allocate glow images or apply blur',()=>{

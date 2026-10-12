@@ -12,12 +12,13 @@ module.exports=async({evaluate,send,session,ready,waitFor})=>{
   return {id,min:+input.min,max:+input.max,value:+input.value,step:+input.step,valid:input.validity.valid,
    label:document.getElementById('body-size-output').textContent,resetDisabled:document.getElementById('body-size-reset').disabled,
    scale:r.bodySizeScale(id),saved:JSON.parse(localStorage.getItem('eg.solar-time.v0.01')).bodyScales,
-   orbit:{min:+orbit.min,value:+orbit.value,scale:r.satelliteOrbitScale(id)}};
+   orbit:{min:+orbit.min,value:+orbit.value,scale:r.satelliteOrbitScale(id),disabled:orbit.disabled}};
  })()`);
  const expected={sun:[100,300],mercury:[25,400],venus:[25,400],earth:[25,400],mars:[25,400],jupiter:[12.5,200],saturn:[12.5,200],uranus:[12.5,200],neptune:[12.5,200],pluto:[100,1600],moon:[100,400],europa:[50,400]};
  const ranges=[];
  for(const [id,[min,max]] of Object.entries(expected)){
   const row=await control(id);assert.equal(row.min,min,id);assert.equal(row.max,max,id);assert.equal(row.value,100,id);assert.equal(row.valid,true,id);assert.equal(row.step,.1);ranges.push({id,min,max});
+  if(['sun','earth','jupiter'].includes(id))assert.equal(row.orbit.disabled,false,id+' orbit availability at 100%');
  }
  await control('earth',400);assert.equal((await control('moon')).max,1600);
  const moon=await control('moon',1600);assert.equal(moon.scale,16);assert.equal(moon.saved.moon,16);assert.equal(moon.saved.earth,4);

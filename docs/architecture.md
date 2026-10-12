@@ -14,6 +14,8 @@
 
 ## 기본 원칙
 
+일반 보기의 전체 궤도 간격은 태양–수성부터 바깥 행성까지 적용하며 달·유로파의 로컬 궤도에는 적용하지 않습니다. 태양 카드의 수성 간격은 100% 크기에서도 조절할 수 있습니다. `localOrbitRadius()`가 태양–수성·지구–달·목성–유로파의 양쪽 표면과 여백을 보호합니다. `solarOrbitOffset()`은 수성의 이동량을 모든 주 궤도 반지름에 동일하게 더하므로 인접 궤도 간격을 보존합니다. CPU 위치와 GPU 궤도선은 같은 오프셋을 사용하고, 오프셋은 draw uniform으로 전달하여 카메라 이동 시 정점 버퍼를 다시 만들지 않습니다.
+
 음원만 추가할 때는 `node tools/build-assets.cjs --music-only`로 기존 자산 처리기의 MP3 수집·해시 생성을 재사용합니다. 텍스처와 로컬 미리보기 메타데이터를 유지하며, 새 음원 객체만 기존 R2 업로드 도구로 올립니다. 배경음악 목록은 app의 `MUSIC_TRACKS`, 셔플·자동 전환·재시도는 `MusicPlayer`가 소유합니다.
 
 별자리 해설은 정적 영어 페이지 `constellations.html`에서 제공하고, 조작법은 `guide.html#constellations`가 소유합니다. 해설 그림은 `node tools/build-constellation-guide.cjs --write`로 `SolarSky.FEATURES`의 좌표·이음선을 재사용해 생성합니다. 좌표를 복제하거나 문서 페이지에서 3D 렌더러를 실행하지 않습니다. 카탈로그 변경 후 그림을 갱신하며, 검증은 대상 누락과 오래된 그림을 검사합니다.

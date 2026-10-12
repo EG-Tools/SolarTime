@@ -126,7 +126,7 @@ test('solar clearance changes only shared draw weights, not orbit buffers',()=>{
  for(const zoom of [.1,.5,1,64]){
   frame(r,zoom,1,0);assert.equal(r.orbitModel(path),before);
   const weights=r.solarOrbitMorph();assert.ok(weights[0]>=1);close(weights[0],weights[2]);
-  const world=r.displaySolarPoint(path.points[0],body);close(Math.hypot(world.x,world.y,world.z),r.overviewSolarRadius(body.base[0],body)*weights[0]);
+  const world=r.displaySolarPoint(path.points[0],body);close(Math.hypot(world.x,world.y,world.z),(r.overviewSolarRadius(body.base[0],body)+r.solarOrbitOffset())*weights[0]);
  }
  assert.equal(r.stats.orbitBufferBuilds,builds);
 });

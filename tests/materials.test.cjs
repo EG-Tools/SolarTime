@@ -40,10 +40,13 @@ test('Viewing mode exposes the both viewport toolbars only while awake',()=>{
  assert.ok(css.includes('body.zen button'));
  assert.ok(css.includes('body.zen.pointer-awake .view-controls button'));
  assert.ok(css.includes('body.zen dialog[open] :is(button,input,select,a)'));
+ assert.ok(css.includes('body.zen #body-panel :is(button,input,select,a)'));
  assert.ok(!css.includes('#view-controls>:not(#fit-view):not(#show-ui)'));
  const html=fs.readFileSync(require.resolve('../index.html'),'utf8'),app=fs.readFileSync(require.resolve('../src/app.js'),'utf8');
  assert.ok(!html.includes('id="focus-reset"'));assert.ok(!app.includes("$('focus-reset')"));
  assert.equal((html.match(/id="fit-view"/g)||[]).length,1);
  assert.equal((html.match(/id="zen-toggle"/g)||[]).length,1);
  assert.ok(app.includes('group.inert=zen&&!awake'));
+ assert.doesNotMatch(app,/region=zen\|\|ring\?null:earthRegionAt/);
+ assert.doesNotMatch(app,/const region=zen\?null:earthRegionAt/);
 });

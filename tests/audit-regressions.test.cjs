@@ -20,7 +20,7 @@ test('satellite orbit geometry is normalized and zoom is a draw transform',()=>{
   assert.match(renderer,/satelliteOrbitPoints\(body,ms\)/);
   assert.match(renderer,/A\.satelliteOrbit\(body,ms,1,90\)/);
   assert.doesNotMatch(renderer,/const key=Number\(radius\)/);
-  assert.match(renderer,/solarMorph:satellite\.orbitShape,orbitPlane:0/);
+  assert.match(renderer,/solarMorph:satellite\.orbitShape,solarOffset:0,orbitPlane:0/);
   assert.match(surface,/vec3 p=\(normalPoint\*orbitMorph\.x\+a\.xyz\*a\.w\*orbitMorph\.y\)\*localScale\+worldOffset-anchor/);
   assert.match(surface,/vec3 dp=\(normalPoint\*orbitMorph\.z\+a\.xyz\*a\.w\*orbitMorph\.w\)\*depthLocalScale\+depthOffset-depthAnchor/);
   assert.match(surface,/const morph=components===4\?camera\.solarMorph:null/);

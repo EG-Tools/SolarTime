@@ -5,6 +5,7 @@ const window={SolarAstro:A};vm.runInNewContext(fs.readFileSync(path.join(__dirna
 const paths=A.BODIES.map(body=>({body,points:A.orbitAt(body,ms,360)}));
 const close=(a,b,e=1e-6)=>assert.ok(Math.abs(a-b)<e,`${a} != ${b}`);
 const displayedRadius=(r,distance)=>r.displayPhysicalPoint({x:distance,y:0,z:0},{}).x;
+const ordinaryRadius=(r,distance,body=null)=>r.overviewSolarRadius(distance,body)+r.solarOrbitOffset();
 function fixture(w,h,sun=1,pluto=true){
  const r=Object.create(window.SolarRenderer.prototype),camera=r.defaultCameraSnapshot();
  const mobile=w<680,compact=h<630,top=compact?100:mobile?192:190,bottom=h-(compact?105:mobile?195:190),baseY=(top+bottom)/2+h*.05;
@@ -16,19 +17,20 @@ function gpuPoint(r,model,i,body){
  const m=r.gpuOrbitCamera().solarMorph,ratio=model[i*4+3],out={},inclined=body?.id==='pluto';
  const flatten=inclined?1:Math.hypot(model[i*4],model[i*4+1],model[i*4+2])/Math.max(1e-12,Math.hypot(model[i*4],model[i*4+1]));
  for(const [j,k] of ['x','y','z'].entries()){
+  const offset=1+r.solarOrbitOffset()/Math.hypot(model[i*4],model[i*4+1],model[i*4+2]);
   const ordinary=k==='z'&&!inclined?0:flatten;
-  out[k]=model[i*4+j]*(ordinary*m[0]+ratio*m[1]);
-  out['depth'+k.toUpperCase()]=model[i*4+j]*(ordinary*m[2]+ratio*m[3]);
+  out[k]=model[i*4+j]*(ordinary*offset*m[0]+ratio*m[1]);
+  out['depth'+k.toUpperCase()]=model[i*4+j]*(ordinary*offset*m[2]+ratio*m[3]);
  }
  return out;
 }
 
-test('ordinary planets have equal 150%-scaled spacing, centered circles and only Pluto inclined',()=>{
+test('ordinary spacing includes the Sun-to-Mercury interval, centered circles and only Pluto inclined',()=>{
  for(const gap of [50,86,100,173,300,400]){
   const {r}=fixture(1280,800);r.actualScaleMix=0;r.options.overviewOrbitGap=gap;
   let previous=0;
   for(const [index,path] of r.paths.entries()){
-   const expected=A.OVERVIEW_ORBIT.start+gap*1.5*index;let maxZ=0;
+   const expected=ordinaryRadius(r,path.body.base[0],path.body);let maxZ=0;
    if(index)close(expected-previous,gap*1.5);previous=expected;
    for(const point of path.points){
     const world=r.displaySolarPoint(point,path.body);close(Math.hypot(world.x,world.y,world.z),expected);
@@ -41,6 +43,48 @@ test('ordinary planets have equal 150%-scaled spacing, centered circles and only
     const opposite=r.displayPhysicalPoint({x:-physical.x,y:-physical.y,z:-physical.z},{},path.body);
     for(const key of ['x','y','z'])close(world[key]+opposite[key],0);
    }
+  }
+ }
+});
+
+test('orbit-gap changes move Mercury by the same delta as every neighboring orbit',()=>{
+ const {r}=fixture(1280,800);r.actualScaleMix=0;
+ const radii=gap=>{r.options.overviewOrbitGap=gap;return r.paths.map(path=>{const p=r.displaySolarPoint(path.points[0],path.body);return Math.hypot(p.x,p.y,p.z);});};
+ const low=radii(100),high=radii(173),delta=(173-100)*1.5;
+ for(let i=0;i<high.length;i++)close(high[i]-low[i],delta*(i+1));
+});
+
+test('local solar spacing preserves every neighboring gap and shared GPU buffers',()=>{
+ for(const sun of [1,3])for(const gap of [50,100,400]){
+  const {r}=fixture(1280,800,sun);r.actualScaleMix=0;r.options.overviewOrbitGap=gap;
+  r.fitScale=r.overviewFitScale;r.scale=r.fitScale*r.camera.zoom*r.camera.dolly;
+  const buffers=r.paths.map(path=>r.orbitModel(path));let first=null,last=null;
+  for(const value of [.01,.25,.5,1]){
+   r.satelliteOrbitScales.sun=value;
+   const radii=r.paths.map((path,i)=>{
+    assert.equal(r.orbitModel(path),buffers[i]);
+    const world=r.displaySolarPoint(path.points[0],path.body);
+    const gpu=gpuPoint(r,buffers[i],0,path.body);
+    for(const key of ['x','y','z'])close(world[key],gpu[key],.002);
+    return Math.hypot(world.x,world.y,world.z);
+   });
+   for(let i=1;i<radii.length;i++)close(radii[i]-radii[i-1],gap*1.5);
+   assert.ok(radii[0]*r.scale>=r.ordinaryOrbitClearance(A.SUN,A.BODIES[0])-1e-6);
+   if(first===null)first=radii[0];last=radii[0];
+  }
+  assert.ok(last>=first,'minimum clearance must never reverse the slider');
+  if(sun===1&&gap===100)assert.ok(last>first,'100% Sun still permits local orbit adjustment');
+ }
+});
+
+test('global solar spacing never changes local Moon or Europa radii',()=>{
+ const {r}=fixture(1280,800);r.actualScaleMix=0;r.fitScale=r.overviewFitScale;r.scale=r.fitScale*r.camera.zoom*r.camera.dolly;
+ for(const satellite of A.SATELLITES){
+  const parent=A.BODIES.find(body=>body.id===satellite.parent);
+  for(const value of [.01,.5,1]){
+   r.satelliteOrbitScales[parent.id]=value;
+   const baseline=r.satelliteOrbitRadius(satellite,parent);
+   for(const gap of [50,100,400]){r.options.overviewOrbitGap=gap;close(r.satelliteOrbitRadius(satellite,parent),baseline);}
   }
  }
 });
@@ -101,7 +145,7 @@ test('100% actual distances retain a visible Sun and put the outer planets beyon
 test('actual-scale orbits expand monotonically instead of overshooting during the mode transition',()=>{
  const {r}=fixture(1280,800),normal=r.overviewFitScale,actual=r.actualFitScale;
  for(const au of [.3,1,5,30,50]){
-  const start=A.displayDistance(au,0,86,1.5)*normal,end=au*A.TRUE_SCALE_UNITS_PER_AU*actual;
+  const start=ordinaryRadius(r,au)*normal,end=au*A.TRUE_SCALE_UNITS_PER_AU*actual;
   let previous=start;
   for(let i=0;i<=100;i++){
    const p=i/100;r.actualScaleMix=p;r.fitScale=normal+(actual-normal)*p;
@@ -124,7 +168,7 @@ test('actual-scale body positions and GPU orbit buffers share one physical dista
  const before=r.orbitModel(r.paths[0]);r.camera.zoom=250;r.fitScale=r.actualFitScale=r.actualScaleFit();
  assert.equal(r.orbitModel(r.paths[0]),before,'lens changes scale, not physical orbit buffers');
  r.actualScaleMix=0;
- for(const au of [.3,1,5,30,50])close(displayedRadius(r,au),A.displayDistance(au,0,86,1.5)*r.solarOrbitHierarchyScale());
+ for(const au of [.3,1,5,30,50])close(displayedRadius(r,au),ordinaryRadius(r,au));
 });
 
 test('0–10% blends normal orbits, and 10–100% remaps the former 1–100% without changing body sizes',()=>{
@@ -136,7 +180,7 @@ test('0–10% blends normal orbits, and 10–100% remaps the former 1–100% wit
   r.fitScale=r.overviewFitScale+(r.actualFitScale-r.overviewFitScale)*weight;r.scale=r.fitScale*r.camera.zoom*r.camera.dolly;
   close(r.actualOrbitSpacing(),amount);close(r.orbitScaleMix(),weight);
   for(const au of [.3,1,5,30,50]){
-   const ordinary=A.displayDistance(au,0,86,1.5)*r.overviewFitScale,actual=au*A.TRUE_SCALE_UNITS_PER_AU*r.actualFitScale;
+   const ordinary=ordinaryRadius(r,au)*r.overviewFitScale,actual=au*A.TRUE_SCALE_UNITS_PER_AU*r.actualFitScale;
    close(displayedRadius(r,au)*r.fitScale,ordinary+(actual-ordinary)*weight);
   }
   close(r.bodyRadiusAtZoom(A.SUN),sun);close(r.bodyRadiusAtZoom(earth),earthRadius);
@@ -218,7 +262,7 @@ test('61-frame scale transitions and camera changes reuse every solar endpoint b
 
 test('endpoint buffers invalidate only for source or layout changes, not scale-mode toggles',()=>{
  const {r}=fixture(1280,800),path=r.paths[0];let before=r.orbitModel(path);
- for(const update of [()=>r.setOption('overviewOrbitGap',173),()=>{r.bodyScales.sun=3;},()=>{r.satelliteOrbitScales.sun=.3;}]){
+ for(const update of [()=>r.setOption('overviewOrbitGap',173)]){
   update();const after=r.orbitModel(path);assert.notEqual(after,before);assert.equal(r.orbitModel(path),after);before=after;
  }
  const changed={...path,points:path.points.slice()},first=r.orbitModel(changed);changed.points=changed.points.slice();
@@ -249,9 +293,9 @@ test('GPU endpoint interpolation matches tracked CPU projection across spacing a
 test('normal and actual orbit spacing retain separate values when switching modes',()=>{
  const {r}=fixture(1280,800);r.setOption('overviewOrbitGap',173);r.setOption('actualOrbitSpacing',.37);
  for(let i=0;i<4;i++){
-  r.setOption('actualScale',false,false);r.fitScale=r.overviewFitScale;close(displayedRadius(r,1),A.displayDistance(1,0,173,1.5)*r.solarOrbitHierarchyScale());
+  r.setOption('actualScale',false,false);r.fitScale=r.overviewFitScale;close(displayedRadius(r,1),ordinaryRadius(r,1));
   r.setOption('actualScale',true,false);r.fitScale=r.overviewFitScale+(r.actualFitScale-r.overviewFitScale)*.307;
-  close(displayedRadius(r,1)*r.fitScale,A.displayDistance(1,0,173,1.5)*r.overviewFitScale*.693+20*r.actualFitScale*.307);
+  close(displayedRadius(r,1)*r.fitScale,ordinaryRadius(r,1)*r.overviewFitScale*.693+20*r.actualFitScale*.307);
   assert.equal(r.options.overviewOrbitGap,173);close(r.options.actualOrbitSpacing,.37);
  }
 });

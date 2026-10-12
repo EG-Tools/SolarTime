@@ -57,6 +57,8 @@ module.exports=async({evaluate,send,session,until,mouse})=>{
  await mouse('mousePressed',bodyPoint.x,bodyPoint.y,'left',1);await mouse('mouseReleased',bodyPoint.x,bodyPoint.y,'left',0);
  await until('!document.getElementById("body-panel").hidden');
  assert.equal(await evaluate('document.getElementById("body-panel").classList.contains("sky-feature")'),false);
+ const zenOption=await evaluate(`(()=>{const r=SolarTime.renderer,s=document.getElementById('body-size-slider'),id=r.selected,before=r.bodySizeScale(id),target=Number(s.value)===Number(s.max)?Number(s.min):Number(s.max);s.value=String(target);s.dispatchEvent(new Event('input',{bubbles:true}));const after=r.bodySizeScale(id),visible=getComputedStyle(s).visibility;s.value=String(before*100);s.dispatchEvent(new Event('input',{bubbles:true}));return {visible,disabled:s.disabled,changed:after!==before};})()`);
+ assert.deepEqual(zenOption,{visible:'visible',disabled:false,changed:true});
  await evaluate('document.getElementById("body-close").click()');
  await evaluate('(()=>{const r=SolarTime.renderer;r.animateCamera({...r.camera,...r.sky.featureCameraPose("big-dipper",.5,.5)},performance.now(),100);r.setSkyFeatureDisplay("big-dipper",true);})()');
  await until('!SolarTime.renderer.cameraTween');await until('SolarTime.renderer.sky.featureLineVisual("big-dipper").trace===1');

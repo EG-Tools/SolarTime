@@ -50,7 +50,7 @@
       layout.orbitRadius=r.satelliteOrbitRadius(satellite,parent,layout);
       const points=r.satelliteOrbitPoints(satellite,ms).points,views=points.map(point=>r.projectView(r.displaySatellitePoint(point,layout,origin)));
       const extent=Math.max(...views.flatMap(point=>[Math.abs(point.x),Math.abs(point.y)])),scale=115/extent;
-      gpu.begin();gpu.orbit('moon:'+satellite.id,r.satelliteOrbitModel(satellite,ms),origin,{...r.gpuOrbitCamera(),solarMorph:layout.orbitShape,orbitPlane:0},scale,128,128,[.5,.6,.7],.7,1,1,4);
+      gpu.begin();gpu.orbit('moon:'+satellite.id,r.satelliteOrbitModel(satellite,ms),origin,{...r.gpuOrbitCamera(),solarMorph:layout.orbitShape,solarOffset:0,orbitPlane:0},scale,128,128,[.5,.6,.7],.7,1,1,4);
       const actual=read(),reference=new Float32Array(views.length*3);
       for(const [i,point] of views.entries()){reference[i*3]=point.x*scale;reference[i*3+1]=-point.y*scale;}
       gpu.begin();gpu.orbit('moon-reference',reference,origin,referenceCamera,1,128,128,[.5,.6,.7],.7);

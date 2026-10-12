@@ -277,7 +277,7 @@
         const saved=Preferences.read(STORAGE_KEY);
         if(saved&&typeof saved==='object') {
           renderer.restoreSkyFeatureDisplay(saved.skyFeatureDisplay??Object.keys(SKY_FEATURE_CATALOG),saved.skyFeatureDisplayMaster===true);
-          renderer.setSkySolarDisplay(saved.skySolarDisplay!==false);
+          renderer.setSkySolarDisplay(saved.skySolarDisplay===true);
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
           if(Number.isFinite(saved.earthCloudAmount))renderer.options.earthCloudAmount=A.clamp(saved.earthCloudAmount,0,1);
           else if(Number.isFinite(saved.earthCloudOpacity))renderer.options.earthCloudAmount=A.clamp(saved.earthCloudOpacity,0,1);
@@ -1019,7 +1019,7 @@
         const mono=performance.now();closeResetDefaults(false);renderer.cancelCameraMotion(mono);renderer.stopAutoRotate(mono);
         for(const [key,value] of Object.entries(FACTORY_OPTIONS))renderer.setOption(key,value,false);
         renderer.restoreSkyFeatureDisplay(Object.keys(SKY_FEATURE_CATALOG),false);syncConstellationToggle();
-        renderer.setSkySolarDisplay(true);
+        renderer.setSkySolarDisplay(false);
         renderer.setOption('earthCloudSeed',randomCloudSeed(renderer.options.earthCloudSeed),false);
         renderer.manualBackgroundStars=null;window.SolarVisualEffects?.regenerateStars?.(renderer.sky);
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
@@ -1442,7 +1442,7 @@
       canvas.addEventListener('pointermove',event=>{
         const p=pointerPosition(event);
         if(!pointers.has(event.pointerId)) {
-          const ring=renderer.ringTourHit(p.x,p.y),region=zen||ring?null:earthRegionAt(p),hover=ring?null:renderer.hit(p.x,p.y),solar=ring||region||hover?false:renderer.skySolarHit(p.x,p.y),skyFeature=ring||region||hover||solar?null:renderer.skyFeatureHit(p.x,p.y);
+          const ring=renderer.ringTourHit(p.x,p.y),region=ring?null:earthRegionAt(p),hover=ring?null:renderer.hit(p.x,p.y),solar=ring||region||hover?false:renderer.skySolarHit(p.x,p.y),skyFeature=ring||region||hover||solar?null:renderer.skyFeatureHit(p.x,p.y);
           if(region&&!renderer.countryBorders)loadCountryBorders().catch(()=>{});
           renderer.setEarthRegionHover(region);
           renderer.setSkyFeatureHover(skyFeature);
@@ -1482,9 +1482,9 @@
           const ringTarget=renderer.ringTourHit(p.x,p.y);
           if(ringTarget)startRingTravel(ringTarget);
           else if(!renderer.ringTour){
-            const region=zen?null:earthRegionAt(p);
+            const region=earthRegionAt(p);
             const body=renderer.hit(p.x,p.y),solar=region||body?false:renderer.skySolarHit(p.x,p.y),skyFeature=region||body||solar?null:renderer.skyFeatureHit(p.x,p.y);
-            if(region)setTemporaryRegion(region.id);else if(body)selectBody(body);else if(skyFeature)selectSkyFeature(skyFeature);else if(!solar&&!zen)selectBody(null);
+            if(region)setTemporaryRegion(region.id);else if(body)selectBody(body);else if(skyFeature)selectSkyFeature(skyFeature);else if(!solar)selectBody(null);
             settings(false);
           }
         }
@@ -1742,7 +1742,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){firstHelpPending=helpReminder.visit();renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive&&!openingDeparture&&!clock.paused)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.77',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.77',revision:'r2',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);if(openingRunMode!=='none')renderer.startOpeningPointReveal(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

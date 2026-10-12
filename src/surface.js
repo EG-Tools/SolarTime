@@ -793,13 +793,14 @@ const DIRECT_CORONA_FRAGMENT=`precision highp float;
 // point again on the CPU.
 const DIRECT_LINE_VERTEX=`attribute vec4 a;
   uniform vec2 center,viewport,roll;uniform vec3 worldOffset,anchor,depthOffset,depthAnchor;
-  uniform vec4 camera,orbitMorph;uniform float lens,travel,scale,localScale,depthLocalScale,orbitPlane;
+  uniform vec4 camera,orbitMorph;uniform float lens,travel,scale,localScale,depthLocalScale,orbitPlane,solarOffset;
   varying vec2 orbitDirection;
   void main(){
     orbitDirection=a.xy;
     // Ordinary circles share the solar plane except for Pluto. The physical
     // endpoint retains the original inclination and eccentricity in a.xyz*a.w.
     vec3 normalPoint=orbitPlane>.5?a.xyz:vec3(a.xy*(length(a.xyz)/max(length(a.xy),.000000000001)),0.);
+    normalPoint*=1.+solarOffset/max(length(normalPoint),.000000000001);
     vec3 p=(normalPoint*orbitMorph.x+a.xyz*a.w*orbitMorph.y)*localScale+worldOffset-anchor;
     vec3 dp=(normalPoint*orbitMorph.z+a.xyz*a.w*orbitMorph.w)*depthLocalScale+depthOffset-depthAnchor;
     float x=p.x*camera.x-p.y*camera.y;
@@ -944,7 +945,7 @@ class DirectRenderer{
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
     this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','previousColorMap','colorLodMix','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread']);
     this.coronaProgram=directProgram(g,DIRECT_CORONA_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
-    this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','roll','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','color','ink','inkWeight']);
+    this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','roll','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','solarOffset','color','ink','inkWeight']);
     this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel','light']);
     this.quad=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.quad);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
     this.black=g.createTexture();g.bindTexture(g.TEXTURE_2D,this.black);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,1,1,0,g.RGBA,g.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
@@ -1268,6 +1269,7 @@ class DirectRenderer{
     g.uniform3f(p.u.worldOffset,offset.x,offset.y,offset.z);g.uniform1f(p.u.localScale,localScale);g.uniform4f(p.u.color,color[0],color[1],color[2],alpha);
     g.uniform3f(p.u.depthOffset,offset.depthX??offset.x,offset.depthY??offset.y,offset.depthZ??offset.z);g.uniform1f(p.u.depthLocalScale,depthLocalScale);
     const morph=components===4?camera.solarMorph:null;
+    g.uniform1f(p.u.solarOffset,components===4?(camera.solarOffset??0):0);
     g.uniform1f(p.u.orbitPlane,components===4?(camera.orbitPlane??0):1);
     g.uniform4f(p.u.orbitMorph,morph?.[0]??1,morph?.[1]??0,morph?.[2]??1,morph?.[3]??0);
     g.uniform3f(p.u.ink,ink?.progress??1,ink?.phase??0,ink?.direction??1);g.uniform1f(p.u.inkWeight,1);
