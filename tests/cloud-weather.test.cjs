@@ -303,7 +303,7 @@ test('fractal boundary breakup is localized, continuous and monotone in both dir
 
 test('A tiles twice per axis with one fetch while B and fractal gradients are preserved',()=>{
   const shader=context().shaderSources.planet;
-  const cloudShader=shader.slice(shader.indexOf('uniform sampler2D cloudWeatherMap'),shader.indexOf('void main()')).replace(/vec4 venusCloudLayer\([\s\S]*?(?=float atmosphericCloudCoverage)/,'');
+  const cloudShader=shader.slice(shader.indexOf('uniform sampler2D cloudWeatherMap'),shader.indexOf('void main()')).replace(/vec4 venusCloudLayer\([\s\S]*?(?=float atmosphericCloudCoverage)/,'').replace(/lod_(cloudsMap|cloudAltMap)\(/g,(_,map)=>'texture2D('+map+',');
   assert.equal((cloudShader.match(/texture2D\(/g)||[]).length,4,'two source samples and two cached weather samples; seams need no extra fetch');
   assert.ok(cloudShader.includes('envelope=atmosphericCloudEdge(envelope,fine)'));
   assert.ok(cloudShader.includes('return activation*atmosphericCloudEdge(reveal,detail)'));

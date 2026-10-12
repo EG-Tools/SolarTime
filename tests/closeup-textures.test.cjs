@@ -36,14 +36,24 @@ test('cold detail publishes baseline, then 1024 preview, then original 4096; no 
  const f=fixture();await full(f);assert.deepEqual(f.requests.map(r=>r.width),[256,1024,4096]);assert.deepEqual(f.uploads,[256,1024,4096]);f.r.dispose();
 });
 
+test('opening requests all body previews at arrival size, bounded to 1024 instead of a tiny baseline',async()=>{
+ const names=['sun','mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','moon','europa','pluto'];
+ for(const name of names)for(const target of [256,512,1024,4096]){
+  const f=fixture();f.window.SolarAssets.materials[name]=f.window.SolarAssets.materials.earth;
+  f.r.openingPreview=true;f.focus(name,target);f.r.textureFor(name,target);await turn();
+  assert.deepEqual(f.requests.map(row=>row.width),[Math.min(1024,target)],name);
+  assert.equal(f.r.textures.get(name).width,Math.min(1024,target));f.r.dispose();
+ }
+});
+
 test('completed texture swaps blend through the existing recent cache, including baseline',async()=>{
  const f=fixture();f.focus('earth');f.r.textureFor('earth',4096);await turn();
  const baseline=f.r.textures.get('earth').texture;
  f.r.textureFor('earth',4096);await turn();const record=f.r.textures.get('earth');
  assert.equal(f.r.colorLod(record,0).texture,baseline);assert.equal(f.r.colorLod(record,0).mix,0);
- assert.equal(f.r.colorLod(record,175).mix,.5);assert.equal(f.r.hasLodTransition(175),true);
- assert.equal(f.r.colorLod(record,350),null);assert.equal(f.r.hasLodTransition(350),false);
- f.time(400);f.r.prefetchBody('earth');await turn();assert.equal(f.r.textures.get('earth').width,4096,'repeated destination intent prepares final detail');
+ assert.equal(f.r.colorLod(record,350).mix,.5);assert.equal(f.r.hasLodTransition(350),true);
+ assert.equal(f.r.colorLod(record,700),null);assert.equal(f.r.hasLodTransition(700),false);
+ f.time(800);f.r.prefetchBody('earth');await turn();assert.equal(f.r.textures.get('earth').width,4096,'repeated destination intent prepares final detail');
  const high=f.r.textures.get('earth');f.r.discardRecent(high.previousLod);assert.equal(f.r.colorLod(high,450),null,'evicted textures are never sampled');
  f.r.dispose();
 });
@@ -58,6 +68,38 @@ test('staged 4K upload keeps the complete preview resident until the final strip
   const callbacks=[...f.uploadFrames.values()];f.uploadFrames.clear();callbacks.forEach(fn=>fn());await turn();assert.ok(++frames<20);
  }
  assert.equal(f.strips.length,16);assert.equal(f.r.textures.get('earth').width,4096);assert.notEqual(f.r.textures.get('earth').texture,preview);assert.equal(f.r.pendingCount,0);f.r.dispose();
+});
+
+test('day, cloud and night LOD share one sampler and never replace a queued layer early',async()=>{
+ const f=fixture(),r=f.r,bound=new Map();r.black={id:'black'};r.planetProgram={u:{}};
+ r.gl.uniform1f=()=>{};r.gl.uniform2f=()=>{};r.bindTextureUnit=(slot,texture)=>bound.set(slot,texture);
+ const records=['earth','clouds','earth-night'].map((name,i)=>{
+  const previous={texture:{id:'old'+i},width:256,height:128},record={texture:{id:'new'+i},previousLod:name,sampled:true,lodStarted:0};
+  r.recentTextures.set(name,previous);return record;
+ });
+ const [day,cloud,night]=records,maps=[day,null,cloud,night];
+ assert.equal(r.mapLod(maps,5000).layer,0,'fade starts on presentation, even after loading long ago');
+ assert.equal(bound.get(2).id,'old1');assert.equal(bound.get(3).id,'old2');
+ assert.equal(r.mapLod(maps,5350).mix,.5);
+ assert.equal(r.mapLod(maps,5700).layer,2);assert.equal(bound.get(0).id,'new0');assert.equal(bound.get(3).id,'old2');
+ assert.equal(r.mapLod(maps,6400).layer,3);
+ assert.equal(r.mapLod(maps,7100).layer,-1);assert.equal(bound.get(3).id,'new2');
+ // Venus samples the same cloud deck as both its base and cloud layer.
+ day.previousLod='earth';day.lodVisibleStarted=null;
+ assert.equal(r.mapLod([day,null,day],7200).layer,0);assert.equal(bound.get(0),bound.get(2));
+ f.r.dispose();
+});
+
+test('initial optional maps fade from black and an active tier cannot be replaced midway',async()=>{
+ const f=fixture(),r=f.r;r.black={id:'black'};r.planetProgram={u:{}};r.gl.uniform1f=()=>{};r.gl.uniform2f=()=>{};r.bindTextureUnit=()=>{};
+ f.focus('earth');r.textureFor('earth',4096);await turn();
+ const day=r.textures.get('earth');r.mapLod([day],0);
+ r.textureFor('earth',4096);await turn();const preview=r.textures.get('earth');r.mapLod([preview],10);
+ f.time(200);assert.equal(r.textureFor('earth',4096).width,1024);assert.equal(f.requests.length,2);
+ r.mapLod([preview],710);f.time(710);r.textureFor('earth',4096);await turn();assert.equal(f.requests.length,3);
+ const cloud={texture:{id:'cloud'}};assert.equal(r.mapLod([null,null,cloud],800).mix,0);
+ assert.equal(r.mapLod([null,null,cloud],1150).mix,.5);assert.equal(r.mapLod([null,null,cloud],1500).layer,-1);
+ f.r.dispose();
 });
 test('4K cannot occupy a slot until the preview has been published',async()=>{
  const f=fixture({hold:true});f.focus('earth');f.r.textureFor('earth',4096);f.requests[0].finish();await turn();

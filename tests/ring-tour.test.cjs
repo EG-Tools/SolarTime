@@ -222,6 +222,56 @@ test('takeoff differentiates matching control samples without inventing pan velo
  vectorNear(tour.pose.eye,shown);assert.ok(Number.isFinite(start.from.bankRate));
 });
 
+test('warp inherits entry and return projection velocity as well as eye velocity',()=>{
+ for(const age of [.05,1,3,7.9,11.9,18])for(const returning of [false,true]){
+  const tour=create();tour.age=age;tour.state=age<12?'entering':'cruising';tour.pose=tour.cameraPose();
+  if(returning){tour.stop();tour.returnAge=tour.returnDuration*.4;tour.pose=tour.cameraPose();}
+  const current=tour.cameraPose(),before=tour.cameraPose(age-.001,Math.max(0,(tour.returnAge||0)-.001)),initial=tour.takeoffStart();
+  const ring=window.SolarRingTour.planWarp(initial.from,initial.velocity,[],4.3,()=>.5);
+  tour.startTakeoff(0,Infinity,0,[0,1,0],null,[],ring);
+  const h=.00001,next=tour.takeoffPose(h),start=tour.takeoffPose(0);
+  for(const key of ['perspective','orthoScale','fov'])near((next[key]-start[key])/h,(current[key]-before[key])/.001,.01);
+  for(let i=0;i<2;i++)near((next.offset[i]-start.offset[i])/h,(current.offset[i]-before.offset[i])/.001,.01);
+  vectorNear(next.eye.map((v,i)=>(v-start.eye[i])/h),initial.velocity,.02);
+ }
+});
+
+test('warp planning continues the incoming visible turn instead of choosing its opposite',()=>{
+ const T=window.SolarRingTour,dot=(a,b)=>a.reduce((sum,v,i)=>sum+v*b[i],0);
+ for(const age of [.5,3,7.9,11.9,18])for(const seed of [123,456]){
+  const tour=create(seed);tour.age=age;tour.state=age<12?'entering':'cruising';tour.pose=tour.cameraPose();
+  const {from,velocity}=tour.takeoffStart();
+  const ring=T.planWarp(from,velocity,[],4.3,()=>.5);assert.ok(ring);
+  if(Math.hypot(...from.turnVelocity)>.01)assert.ok(dot(ring.viewTurnUp,from.turnVelocity)*ring.side>=-.05*Math.hypot(...from.turnVelocity));
+  tour.startTakeoff(0,Infinity,0,[0,1,0],null,[],ring);
+  const direction=ring.viewTurnUp.map(v=>v*ring.side);let previous=tour.takeoffPose(.5);
+  for(let time=.55;time<=4.3;time+=.05){const pose=tour.takeoffPose(time);assert.ok(dot(pose.forward.map((v,i)=>v-previous.forward[i]),direction)>-.0001,'turn reverses at '+age+'/'+time);previous=pose;}
+ }
+});
+
+test('nearby left-hand planet takes priority over inherited left turn and random preference',()=>{
+ const T=window.SolarRingTour;
+ const from={eye:[0,0,0],forward:[0,0,1],up:[0,1,0],right:[1,0,0],turnVelocity:[-.8,0,0],cruiseDeparture:true};
+ for(const center of [[-2,0,3],[-3,0,2]])for(let wanted=0;wanted<8;wanted++){
+  let sample=0;const velocity=[0,0,1],body={center,radius:1.5};
+  const ring=T.planWarp(from,velocity,[body],4.3,()=>sample++===wanted?0:1);
+  assert.ok(ring);assert.ok(ring.viewTurnUp[0]*ring.side>=-1e-8,'must not steer into the large left disc');
+  const path=T.warpPath(from,velocity,ring);vectorNear(T.warpPosition(path,0),from.eye);
+  for(let t=.05;t<=10;t+=.05)assert.ok(Math.hypot(...T.warpPosition(path,t).map((v,i)=>v-center[i]))>body.radius);
+ }
+});
+
+test('fast incoming yaw decays without steering back toward its departure heading',()=>{
+ const T=window.SolarRingTour;
+ for(const rate of [.3,.8]){
+  const from={eye:[0,0,0],forward:[0,0,1],up:[0,1,0],right:[1,0,0],turnVelocity:[rate,0,0],cruiseDeparture:true};
+  const ring=T.planWarp(from,[0,0,1],[],4.3,()=>.5,[2]),path=T.warpPath(from,[0,0,1],ring);
+  path.previous={...from,forward:[-Math.sin(rate*.001),0,Math.cos(rate*.001)],right:[Math.cos(rate*.001),0,Math.sin(rate*.001)]};
+  let previous=0;
+  for(let i=1;i<=240;i++){const p=T.jumpPose(path,i/60),yaw=Math.atan2(p.forward[0],p.forward[2]);assert.ok(yaw>=previous-1e-6,'yaw reverses at '+i/60);previous=yaw;}
+ }
+});
+
 test('warp shares the polar boarding curve and joins a moving ring with continuous velocity',()=>{
  const T=window.SolarRingTour;
  for(const radius of [2,20,2000])for(const sign of [-1,1]){
@@ -840,10 +890,10 @@ test('home at five seconds backs out directly to a distinct home pose without a 
  const r=Object.create(R);Object.assign(r,{ringTour:t,gpu:{resetBindings(){},gl:{isContextLost:()=>false}},invalidatePresentation(){},camera:r.defaultCameraSnapshot(),cameraTween:null,options:{dollyZoom:true}});
  assert.equal(r.animateHome(5000,1100),true);assert.equal(t.state,'returning');vectorNear(t.pose.eye,pose.eye);assert.equal(r.cameraTween,null);
  t.advance(5100);const returnAge=t.returnAge;r.animateHome(5100,1100);near(t.returnAge,returnAge);
- step(t,5116,7500);assert.equal(t.state,'returning');const before=t.pose;
+ step(t,5116,5300);assert.equal(t.state,'returning');const before=t.pose;
  const home=window.SolarRingTour.viewPose({frame,radius:12,width:1280,height:800,screen:{x:820,y:510}});
  t.setReturnView(home);t.returnTargetApplied=true;vectorNear(t.pose.eye,before.eye);vectorNear(t.pose.forward,before.forward);
- assert.ok(t.returnDuration>=5);t.returnAge=t.returnDuration-.01;t.advance(7516);
+ assert.ok(t.returnDuration>=1&&t.returnDuration<=2);t.returnAge=t.returnDuration-.01;t.advance(5316);
  assert.equal(t.state,'complete');vectorNear(t.pose.eye,home.eye);vectorNear(t.pose.offset,home.offset);near(t.pose.orthoScale,home.orthoScale);
  assert.equal(r.drawRingTour(0,0,12500),false);assert.equal(r.ringTour,null);assert.equal(r.cameraTween,null);
  assert.equal(r.drawRingTour(0,0,12516),false);assert.equal(r.cameraTween,null);
@@ -915,6 +965,22 @@ test('saved-view commands share Home exit policy without disposing the tour or s
  }
 });
 
+test('entry Home cancellation returns in one to two seconds through rewind and late boarding',()=>{
+ for(const age of [.05,3,7,9.99])for(const distance of [0,3,12,24,1000]){
+  const t=create();t.age=age;t.pose=t.cameraPose();const from=t.pose;
+  assert.equal(t.requestEntryHomeReturn(),true);
+  const target={...t.startPose,eye:[from.eye[0],from.eye[1]+distance,from.eye[2]]};
+  t.stop();t.setReturnView(target);
+  assert.ok(t.returnDuration>=1&&t.returnDuration<=2);
+  if(distance===0)near(t.returnDuration,1);if(distance>=24)near(t.returnDuration,2);
+  vectorNear(t.returnPose(0).eye,from.eye,.001);
+  vectorNear(t.returnPose(t.returnDuration).eye,target.eye,.001);
+  const duration=t.returnDuration;t.returnAge=.1;t.pose=t.returnPose(.1);
+  assert.equal(t.requestEntryHomeReturn(),false);assert.equal(t.stop(),false);near(t.returnDuration,duration);
+ }
+ const cruise=create();cruise.age=12;cruise.state='cruising';cruise.pose=cruise.cameraPose();assert.equal(cruise.requestEntryHomeReturn(),false);cruise.stop();assert.ok(cruise.returnDuration>2);
+});
+
 test('tracking requested during planet travel returns Home at double speed, then starts only the latest focus',()=>{
  const rendererWith=(t,age=12)=>{
   t.age=age;t.pose=t.cameraPose();
@@ -922,7 +988,7 @@ test('tracking requested during planet travel returns Home at double speed, then
   return r;
  };
  for(const age of [3,12]){
-  const normal=rendererWith(create(),age);assert.ok(normal.animateHome(1000,1100));
+  const normal=rendererWith(create(),age);normal.pendingTravelFocus={id:'earth'};assert.ok(normal.animateHome(1000,1100));
   const accelerated=rendererWith(create(),age);assert.ok(accelerated.requestFocus('earth',1000,1100));
   near(accelerated.ringTour.returnDuration,normal.ringTour.returnDuration/2,.0001);
  }
@@ -2169,21 +2235,30 @@ test('paused Saturn travel keeps path time fixed while free look remains availab
  t.advance(19050);assert.ok(t.age>age);t.dispose();
 });
 
-test('visible ring scene carries cruise velocity through the eight jump directions',()=>{
+test('warp scene clearance adds translation without replacing live flight orientation or projection',()=>{
+ const t=create();t.age=4;t.pose=t.cameraPose();const initial=t.takeoffStart(),ring=window.SolarRingTour.planWarp(initial.from,initial.velocity,[],4.3,()=>.5);
+ t.startTakeoff(0,Infinity,0,[0,1,0],null,[],ring);
+ for(const time of [0,.1,.5,1,2,4]){
+  t.pose=t.takeoffPose(time);const pose=t.pose,shown=R.replayRingScenePose.call({h:800},t,{x:time*100,y:time*-60});
+  for(const key of ['eye','forward','up','right'])vectorNear(shown[key],pose[key]);
+  for(const key of ['fov','perspective','orthoScale'])near(shown[key],pose[key]);
+  assert.ok(shown.offset[0]>=pose.offset[0]);assert.ok(shown.offset[1]>=pose.offset[1]);assert.equal(t.pose,pose);
+ }
+});
+
+test('visible ring scene carries cruise velocity through allowed jump directions',()=>{
  const T=window.SolarRingTour;
  for(const age of [.5,6,22])for(let direction=0;direction<8;direction++){
   const tour=create(123);tour.age=age;tour.state=age<10?'entering':'cruising';tour.pose=tour.cameraPose();
   const {from,velocity}=tour.takeoffStart();
-  const ring=T.planWarp({...from,cruiseDeparture:true},velocity,[],4.3,()=>.5,[direction]);assert.ok(ring);
+  const ring=T.planWarp({...from,cruiseDeparture:true},velocity,[],4.3,()=>.5,[direction]);if(!ring)continue;
   tour.startTakeoff(0,Infinity,0,[0,1,0],null,[],ring);
-  const render=t=>{tour.pose=tour.takeoffPose(t);return R.replayRingScenePose.call({h:800},tour,{x:0,y:0});};
+  const render=t=>tour.pose=tour.takeoffPose(t);
   const first=render(0),next=render(.00001);
   vectorNear(first.eye,from.eye);
   vectorNear(next.eye.map((x,i)=>(x-first.eye[i])/.00001),velocity,.003);
   const later=render(.5);assert.ok(Math.hypot(...later.eye.map((x,i)=>x-first.eye[i]))>0);
   vectorNear(later.eye,tour.pose.eye);
-  const shifted=R.replayRingScenePose.call({h:800},tour,{x:90,y:-60});
-  vectorNear(shifted.eye,later.eye);assert.ok(shifted.offset[0]>later.offset[0]);assert.ok(shifted.offset[1]>later.offset[1]);
  }
 });
 

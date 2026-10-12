@@ -71,8 +71,8 @@ test('Escape cancels flight first, then exits fullscreen without restarting or c
 test('Escape during an opening or departure cancels pending resume and restores its destination',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function handleEscape\(\) \{[\s\S]*?\n      \}/)[0];
  for(const departing of [false,true]){
-  const calls=[],context={openingReplayLocked:false,openingActive:true,openingDeparture:departing,resumeTravel:true,
-   clock:{paused:false},pause(){throw new Error('an active clock must not toggle');},openingCameraTarget:{zoom:.1,dolly:.002,panX:.2},renderer:{animateCamera(target){assert.equal(target,context.openingCameraTarget);calls.push('return');}},finishOpening(){calls.push('unlock');context.openingActive=false;}};
+  const calls=[],context={performance:{now:()=>123},openingReplayLocked:false,openingActive:true,openingDeparture:departing,resumeTravel:true,
+   clock:{paused:false},pause(){throw new Error('an active clock must not toggle');},openingCameraTarget:{zoom:.1,dolly:.002,panX:.2},renderer:{animationMono:t=>t,scheduleOpeningAnnotations(mono,delay){assert.equal(mono,123);assert.equal(delay,0);},animateCamera(target){assert.equal(target,context.openingCameraTarget);calls.push('return');}},finishOpening(){calls.push('unlock');context.openingActive=false;}};
   vm.runInNewContext('('+body+')',context)();
   assert.equal(context.openingActive,false);assert.equal(context.openingDeparture,false);assert.equal(context.resumeTravel,false);
   assert.deepEqual(calls,['unlock','return']);

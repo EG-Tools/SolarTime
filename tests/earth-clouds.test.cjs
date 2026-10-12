@@ -15,7 +15,7 @@ test('Earth card places one persisted cloud amount slider above night lights',()
   assert.match(app,/cloudValue=Math\.round\(A\.clamp\(Number\(renderer\.options\.earthCloudAmount\) \|\| 0,0,1\)\*100\)/);
   assert.match(app,/setOption\('earthCloudAmount',value\/100,false\)/);
   assert.match(app,/if\(value>0&&previous<=0\)renderer\.setOption\('earthCloudSeed',randomCloudSeed\(renderer\.options\.earthCloudSeed\)\)/);
-  assert.match(renderer,/screenDiameter=Math\.max\(32,r\*2\*this\.dpr\),apparentDiameter=Math\.max\(16,r\*2\)/);
+  assert.match(renderer,/screenDiameter=Math\.max\(32,textureRadius\*2\*this\.dpr\),apparentDiameter=Math\.max\(16,r\*2\)/);
   assert.match(renderer,/const cloudVisibilityRaw=clamp\(\(apparentDiameter-16\)\/80,0,1\)/);
   assert.match(renderer,/const cloudVisibility=\.16\+\.84\*\(cloudVisibilityRaw\*cloudVisibilityRaw\*\(3-2\*cloudVisibilityRaw\)\)/);
   assert.match(renderer,/job\.cloudAmount=body\.id==='earth'\?clamp\(Number\(this\.options\.earthCloudAmount\),0,1\)\*cloudVisibility:0/);

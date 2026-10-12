@@ -390,7 +390,7 @@ test('warp preserves displayed guides and their existing trace clock',()=>{
  assert.ok(sky.updateSkyFeatures().length);assert.equal(sky.featureLineVisual('big-dipper',5000).opacity,1);assert.equal(sky.featureLineVisual('big-dipper',5000).trace,1);
  sky.setFeatureCamera({hideFeatureLines:false,replaySky:{reveal:1}},6000);assert.equal(sky.featurePinnedTransitions.get('big-dipper').start,0);
  sky.setFeatureCamera({hideFeatureLines:false},7000);assert.equal(sky.featureLineVisual('big-dipper',7000).trace,1);
- const app=read('src/app.js');assert.ok(app.includes("setOpeningPresentation(true,'warp')"));
+ const app=read('src/app.js');assert.ok(app.includes("setOpeningPresentation(true,'warp',openingCameraTarget)"));
 });
 
  test('pin changes blend size without resetting the animation phase',()=>{

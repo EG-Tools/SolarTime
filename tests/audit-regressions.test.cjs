@@ -79,7 +79,7 @@ test('a fully paused stable scene skips foreground draws but invalidations rende
   renderer.invalidatePresentation();assert.equal(renderer.needsDraw(1000),true);
   renderer.presentationDirty=false;renderer.presentedResources='old';assert.equal(renderer.needsDraw(1000),true);
   assert.match(app,/const renderScene=!resizeFrame&&\(!clock\.paused\|\|activeMotion\|\|renderer\.needsDraw\(mono\)\)/);
-  assert.match(app,/if\(renderScene\)\{\s*const renderStarted=/);
+  assert.match(app,/if\(renderScene\)\{\s*const wasCoasting=!!renderer\.pointerCoast;\s*const renderStarted=/);
 });
 
 test('one simulation timestamp reuses planetary and satellite precision vectors',()=>{

@@ -6,6 +6,7 @@
   const ACTUAL_ORBIT_SPACING=Object.freeze({normalBlendEnd:.1,minimumMix:.01});
   const ACTUAL_SCALE_TRANSITION=Object.freeze({duration:2000,homeDuration:1100});
   const SKY_SOLAR_SCALE=.05;
+  const POINTER_COAST=Object.freeze({decay:180,sample:40,stale:100,maxSpeed:.006,duration:900});
   const SKY_SOLAR_TARGET_RADIUS=Object.freeze({min:13,max:42});
   const OVERVIEW_GAP_MULTIPLIER=1.5;
   const DEFAULT_OVERVIEW_GAP=100;
@@ -261,7 +262,7 @@
       if(duration>0&&Number.isFinite(mono))this.presentationUntil=Math.max(this.presentationUntil,mono+duration);
     }
     needsDraw(mono=performance.now()){
-      return !!this.preparedRingTour?.needsWarmup()||!!this.gpu?.hasLodTransition?.(mono)||
+      return !!this.pointerCoast||!!this.preparedRingTour?.needsWarmup()||!!this.gpu?.hasLodTransition?.(mono)||
         this.dirty||this.presentationDirty||this.resourceSignature()!==this.presentedResources||
         (!this.animationPaused&&(!!this.ringTour||!!this.cameraTween||!!this.skySolarTween||!!this.bankRelease||this.particleLifecycle().size>0||!!this.autoRotation||this.orbitRevealAlpha(mono)<.9999||mono<this.presentationUntil))||!!this.actualScaleTween||!!this.orbitSpacingTween||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
     }
@@ -455,6 +456,45 @@
       this.cancelCameraMotion(mono);
       this.setOrbitView(this.camera.azimuth+azimuthDelta,this.camera.elevation+elevationDelta,mono);
       return true;
+    }
+    beginPointerRotation(mono=performance.now()) {
+      this.stopPointerRotation();
+      this.pointerRotation={mono,vx:0,vy:0,tour:this.ringTour||null};
+    }
+    rotatePointerBy(x,y,mono=performance.now()) {
+      const gesture=this.pointerRotation;
+      if(!gesture||![x,y,mono].every(Number.isFinite))return;
+      if(gesture.tour!== (this.ringTour||null)){this.stopPointerRotation();return;}
+      if(gesture.tour)gesture.tour.look(-x,y);else this.rotateViewBy(x,y,mono);
+      const dt=mono-gesture.mono;
+      if(dt>0){
+        const weight=1-Math.exp(-dt/POINTER_COAST.sample),limit=POINTER_COAST.maxSpeed;
+        if(dt>POINTER_COAST.stale)gesture.vx=gesture.vy=0;
+        gesture.vx+=(clamp(x/Math.max(8,dt),-limit,limit)-gesture.vx)*weight;
+        gesture.vy+=(clamp(y/Math.max(8,dt),-limit,limit)-gesture.vy)*weight;
+      }
+      gesture.mono=mono;
+    }
+    endPointerRotation(mono=performance.now(),cancel=false) {
+      const gesture=this.pointerRotation;this.pointerRotation=null;
+      if(cancel||!gesture||mono-gesture.mono>POINTER_COAST.stale)return;
+      if(Math.hypot(gesture.vx,gesture.vy)<.00002)return;
+      this.pointerCoast={...gesture,start:mono,last:mono};
+    }
+    stopPointerRotation() {this.pointerRotation=null;this.pointerCoast=null;}
+    advancePointerRotation(mono=performance.now()) {
+      const motion=this.pointerCoast;if(!motion)return false;
+      if(motion.tour!==(this.ringTour||null)||this.cameraTween||motion.tour?.replayBridge){this.pointerCoast=null;return false;}
+      const age=Math.min(POINTER_COAST.duration,Math.max(0,mono-motion.start));
+      const previous=Math.max(0,motion.last-motion.start),tau=POINTER_COAST.decay;
+      const travel=tau*(Math.exp(-previous/tau)-Math.exp(-age/tau));
+      if(travel>0){
+        if(motion.tour)motion.tour.look(-motion.vx*travel,motion.vy*travel);
+        else {this.camera.azimuth=A.wrap(this.camera.azimuth+motion.vx*travel);this.camera.elevation=normalizeElevation(this.camera.elevation+motion.vy*travel);}
+        this.cameraChangeAt=this.animationMono(mono);this.dirty=true;
+      }
+      motion.last=mono;if(age>=POINTER_COAST.duration)this.pointerCoast=null;
+      return travel>0;
     }
     setPanY(value) {
       if(!Number.isFinite(value))return;
@@ -1052,7 +1092,7 @@
     get skyFeatureShortcutId(){return this.skyFeatureShortcutMode?this.skyFeatureTrack.id:null;}
     get earthRegionNavigationActive(){return !!this.earthRegionNavigation;}
     setEarthRegionNavigation(active){this.earthRegionNavigation=!!active;return this.earthRegionNavigation;}
-    setOpeningPresentation(active,kind='opening'){this.openingPresentation=active?kind:null;this.invalidatePresentation();}
+    setOpeningPresentation(active,kind='opening',target=null){this.openingPresentation=active?kind:null;this.openingSurfaceTarget=active&&target?{...target}:null;this.invalidatePresentation();}
     skyFeatureDisplay(id){return !!this.sky?.isFeaturePinned?.(id);}
     skyFeatureDisplayPreferences(){return this.sky?.featureDisplayPreferences?.()||[];}
     skyFeatureDisplayMaster(){return this.sky?.featureDisplayMaster!==false;}
@@ -1285,7 +1325,7 @@
       if(tour?.projection){
         const {axes,saturn,units}=tour.projection;
         const {from,velocity}=tour.takeoffStart(),worldVelocity=frameVectorToWorld(axes,velocity);for(let i=0;i<3;i++)worldVelocity[i]*=units;
-        return {from:{eye:framePointToWorld(axes,saturn,units,from.eye),forward:frameVectorToWorld(axes,from.forward),up:frameVectorToWorld(axes,from.up),right:frameVectorToWorld(axes,from.right),bankRate:from.bankRate,cruiseDeparture:true},velocity:worldVelocity};
+        return {from:{eye:framePointToWorld(axes,saturn,units,from.eye),forward:frameVectorToWorld(axes,from.forward),up:frameVectorToWorld(axes,from.up),right:frameVectorToWorld(axes,from.right),turnVelocity:frameVectorToWorld(axes,from.turnVelocity),bankRate:from.bankRate,cruiseDeparture:true},velocity:worldVelocity};
       }
       return this.cameraTransitionPose(mono,anchor);
     }
@@ -1325,7 +1365,7 @@
         clearance=Math.max(clearance,distance*(p.r/(Math.min(this.w,this.h)*.25)-1));
       }
       const from=clearance>0?{...departure.from,retreat:departure.from.forward.map(value=>-value*clearance)}:departure.from;
-      return window.SolarRingTour.planWarp(from,departure.velocity,obstacles,REPLAY_TRANSITION.departure/1000,Math.random,this.warpExitDirections(departure));
+      return window.SolarRingTour.planWarp(from,departure.velocity,obstacles,REPLAY_TRANSITION.departure/1000,Math.random,this.ringTour?null:this.warpExitDirections(departure));
     }
     animateOpeningReplay(state,departure,mono=performance.now(),duration=this.openingCameraDuration(state)) {
       mono=this.animationMono(mono);
@@ -2588,6 +2628,7 @@
       return state;
     }
     animateHome(mono=performance.now(),duration=1100) {
+      if(!this.pendingTravelFocus)this.ringTour?.requestEntryHomeReturn?.();
       const hadTween=!!this.cameraTween,hadSkyTrack=!!this.skyFeatureTrack;
       this.earthRegionNavigation=false;this.setSkyFeatureTrack(null);
       // Home resets framing, distance and vertical tilt, while retaining the
@@ -2694,6 +2735,7 @@
       this.cameraChangeAt=mono;this.dirty=true;return true;
     }
     cancelCameraTween(mono=performance.now(),preserveParticles=false) {
+      this.pointerCoast=null;
       mono=this.animationMono(mono);
       if(this.cameraTween?.replay||this.cameraTween?.timing==='opening')this.setReplaySolarOpacity(1);
       // Every visible takeover uses the shared flight-particle fade. The old
@@ -2791,6 +2833,7 @@
       else if(direction)this.beginAutoRotation(direction,mono,generation);
     }
     resetCamera() {
+      this.stopPointerRotation();
       const mono=performance.now(),direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
       this.cameraTween=null;this.flightBank=Number.isFinite(this.flightBank)?this.flightBank:0;this.bankRelease=null;this.autoRotation=null;this.pendingAutoRotation=null;this.camera=this.defaultCameraSnapshot();this.trackingAnchor=null;
       if(direction)this.beginAutoRotation(direction,mono,generation);
@@ -2940,7 +2983,9 @@
     // All bodies submit to the same bounded surface owner; no CPU pixel loop here.
     surfaceJob(body,physical,r,ms,seconds,direct=false,target=null,mono=performance.now()) {
       const focused=body.id===this.camera.focus,selected=body.id===this.selected,priority=focused||selected;
-      const screenDiameter=Math.max(32,r*2*this.dpr),apparentDiameter=Math.max(16,r*2);
+      const arrival=this.openingPresentation&&this.openingSurfaceTarget;
+      const textureRadius=arrival?Math.max(r,this.bodyRadiusForState(body,arrival)):r;
+      const screenDiameter=Math.max(32,textureRadius*2*this.dpr),apparentDiameter=Math.max(16,r*2);
       const nativeWidth=window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth;
       const detailFloor=focused?SURFACE.detailWidth:selected?2048:0;
       const textureDemand=Math.max(screenDiameter*4,detailFloor);
@@ -2962,7 +3007,7 @@
       const vectors=this.bodyFrame(body),frame=vectors.gpu||(vectors.gpu=Object.fromEntries(Object.entries(vectors).filter(([k])=>k!=='gpu').map(([k,v])=>[k,new Float32Array([v.x,v.y,v.z])])));
       const lightVector=this.viewDirection({x:-physical.x,y:-physical.y,z:-physical.z}),len=Math.hypot(lightVector.x,lightVector.y,lightVector.z)||1;
       const activity=body.id==='sun'&&this.options.activity,spin=A.rotationAt(body,ms),job=direct&&target?target:{};
-      job.id=body.id;job.textureWidth=textureWidth;job.frame=frame;job.phase=spin/TAU;job.activity=activity;job.seconds=activity?seconds:0;job.nightLights=body.id==='earth'&&this.options.earthNightLights!==false;job.nightTextureWidth=job.nightLights?Math.min(SURFACE.detailWidth,nightTextureWidth):0;job.cloudAmount=body.id==='earth'?clamp(Number(this.options.earthCloudAmount),0,1)*cloudVisibility:0;job.cloudTextureWidth=job.cloudAmount>0?Math.min(SURFACE.detailWidth,cloudTextureWidth):0;job.cloudSeed=body.id==='earth'?this.options.earthCloudSeed:0;job.weatherDay=body.id==='earth'?ms/86400000:0;
+      job.id=body.id;job.openingPreview=!!arrival;job.textureWidth=textureWidth;job.frame=frame;job.phase=spin/TAU;job.activity=activity;job.seconds=activity?seconds:0;job.nightLights=body.id==='earth'&&this.options.earthNightLights!==false;job.nightTextureWidth=job.nightLights?Math.min(SURFACE.detailWidth,nightTextureWidth):0;job.cloudAmount=body.id==='earth'?clamp(Number(this.options.earthCloudAmount),0,1)*cloudVisibility:0;job.cloudTextureWidth=job.cloudAmount>0?Math.min(SURFACE.detailWidth,cloudTextureWidth):0;job.cloudSeed=body.id==='earth'?this.options.earthCloudSeed:0;job.weatherDay=body.id==='earth'?ms/86400000:0;
       job.cloudSpinDays=body.id==='earth'?body.spinSeconds/86400:1;
       const detail=clamp((apparentDiameter-48)/144,0,1);
       job.cloudDetail=body.id==='earth'?detail*detail*(3-2*detail):1;
@@ -3008,6 +3053,7 @@
     }
     invalidateSurfaces() {this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate();}
     suspend() {
+      this.stopPointerRotation();
       if(this.ringTour)this.ringTour.lastMono=null;
       const mono=performance.now();if(!this.animationPaused)this.cancelCameraTween(mono);this.advanceAutoRotate(mono);
       this.cancelCoronaBuild();this.physicsSamples?.clear();this.physicsMs=NaN;this.solarComposite=null;
@@ -3516,7 +3562,7 @@
       try{
       if(gpu.begin()){
         gpu.externalTextureBytes=(this.sky?.memoryUsage?.().textures||0)+tour.memoryUsage();
-        try{if(solar>0)this.drawRingTourBodies(tour,axes,slide?tour.skyCamera(axes,this.camera).viewAxes:camera.viewAxes,ms,seconds,mono);}catch(error){this.ringTourError=error.message;this.endRingTour();return false;}
+        try{if(solar>0)this.drawRingTourBodies(tour,axes,camera.viewAxes,ms,seconds,mono);}catch(error){this.ringTourError=error.message;this.endRingTour();return false;}
         gpu.end();
       }
       // Keep the ordinary sky decorations alive through travel. Their 2D
@@ -3534,11 +3580,10 @@
       this.presentationDirty=false;this.presentedResources=this.resourceSignature();return true;
     }
     replayRingScenePose(tour,slide) {
-      const from=tour.replayBridge.takeoff.from,focal=this.h/(2*Math.tan(from.fov*Math.PI/360));
-      // Keep the existing opposite screen slide, but inherit the live flight eye.
-      // Freezing the entire departure pose erased cruise translation from both
-      // ring geometry and nearby grains even though the flight kept advancing.
-      return {...from,eye:tour.pose.eye,offset:[from.offset[0]+slide.x/focal,from.offset[1]-slide.y/focal]};
+      const pose=tour.pose,focal=this.h/(2*Math.tan(pose.fov*Math.PI/360));
+      // Only scene translation is added. Retain the LIVE attitude, eye and
+      // projection so inherited turning never snaps back to the departure pose.
+      return {...pose,offset:[pose.offset[0]+slide.x/focal,pose.offset[1]-slide.y/focal]};
     }
     drawRingTourBodies(tour,axes,view,ms,seconds,mono) {
       // Reuse the normal ephemeris, size rules, material jobs and GPU planet renderer.
@@ -3810,6 +3855,29 @@
       const target=this.updateSkySolarTarget(appearance);this.drawSkySolarGuide(out,target,mono);
       this.drawOpeningParticles(out,mono,this.replayPresentation(mono));
     }
+    prepareReplaySurfaces(bodies,ms,seconds,mono,presentation){
+      const path=this.cameraTween?.replay;
+      if(!path||presentation.solar>0||!presentation.reveal)return;
+      // The final hidden part of warp is the arrival preparation window.
+      // Keep baseline maps wanted, and warm at most ONE material per frame.
+      const warm=path.surfaceWarmup||(path.surfaceWarmup={jobs:[],byId:new Map(),done:new Set(),cursor:0});
+      warm.jobs.length=0;
+      for(const item of bodies){
+        const job=this.surfaceJob(item.body,item.physical,16,ms,seconds,true,warm.byId.get(item.body.id),mono);
+        warm.byId.set(item.body.id,job);
+        job.textureWidth=Math.min(256,job.textureWidth);
+        if(job.nightTextureWidth)job.nightTextureWidth=Math.min(256,job.nightTextureWidth);
+        if(job.cloudTextureWidth)job.cloudTextureWidth=Math.min(256,job.cloudTextureWidth);
+        warm.jobs.push(job);
+      }
+      this.gpu.prepare(warm.jobs);
+      for(let i=0;i<bodies.length;i++){
+        const index=warm.cursor++%bodies.length,item=bodies[index];
+        if(warm.done.has(item.body.id))continue;
+        if(this.gpu.warmPlanet(warm.jobs[index],item.body,seconds,this.options.activity))warm.done.add(item.body.id);
+        break;
+      }
+    }
     paintSolarScene(ms,seconds,mono,particles=true){
       const c=this.ctx,presentation=this.replayPresentation(mono),solar=presentation.solar,pointSolar=this.openingPointOpacity(mono,solar);this.setReplaySolarOpacity(solar);c.save();c.globalAlpha=solar;
       const {bodies,satelliteLayouts}=this.updateFrameBodies(ms);
@@ -3872,6 +3940,7 @@
         for(const p of surfaceBodies){this.surfaceJob(p.body,p.physical,p.r,ms,seconds,true,p.directJob,mono);p.directReady=true;jobs.push(p.directJob);}
         this.gpu.externalTextureBytes=this.sky?.memoryUsage?.().textures||0;
         if(solar>0)this.gpu.prepare(jobs);
+        else this.prepareReplaySurfaces(bodies,ms,seconds,mono,presentation);
         const sun=this.currentFrameItem('sun');
         if(solar>0&&sun&&this.options.activity&&this.visible(sun.screen,sun.r*5.1+16))this.gpu.corona(this.coronaSource(sun.r),sun.screen,sun.r,seconds);
         for(const p of bodies){const extent=this.bodyVisibleRadius(p.body,p.r);if(solar<=0||!this.visible(p.screen,extent))continue;
@@ -3908,6 +3977,7 @@
       this.presentationDirty=false;this.presentedResources=this.resourceSignature();
     }
     draw(ms,seconds,mono=performance.now()) {
+      this.advancePointerRotation(mono);
       mono=this.animationMono(mono);
       this.updateTravelParticleBudget(mono);
       const prepared=this.preparedRingTour;

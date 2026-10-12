@@ -21,6 +21,7 @@
   const BANK_MAX=45*Math.PI/180;
   const BANK_HANDOFF=2;
   const OPENING_CARRY=Object.freeze({decay:2,settleStart:2.5,settleEnd:4});
+  const ENTRY_HOME_RETURN=Object.freeze({min:1,max:2,farDistance:24});
   const LANDING_BANK_SETTLE=3.5;
   const ENTRY_BANK_BLEND=4.2;
   const MIN_LENS_SCALE=.8;
@@ -170,15 +171,15 @@
     }
     scale=Math.max(scale,speed*duration,1e-6);
     const accelerationDuration=mix(7.5,5,clamp(speed*duration/scale,0,1));
+    const clearance=obstacles.map(body=>({center:body.center,radius2:Math.min(body.radius*1.18,Math.hypot(...from.eye.map((x,i)=>x-body.center[i]))*.99)**2}));
     const clear=path=>{
       let before=from.eye;
       for(let t=.05;t<=20.0001;t+=.05){
-        const after=warpPosition(path,t),segment=after.map((x,i)=>x-before[i]),length2=dot(segment,segment);
-        for(const body of obstacles){
-          const startDistance=Math.hypot(...from.eye.map((x,i)=>x-body.center[i]));
-          const radius=Math.min(body.radius*1.18,startDistance*.99);
-          const q=clamp(dot(body.center.map((x,i)=>x-before[i]),segment)/Math.max(length2,1e-20),0,1);
-          if(Math.hypot(...before.map((x,i)=>x+segment[i]*q-body.center[i]))<radius)return false;
+        const after=warpPosition(path,t),dx=after[0]-before[0],dy=after[1]-before[1],dz=after[2]-before[2],length2=Math.max(dx*dx+dy*dy+dz*dz,1e-20);
+        for(const body of clearance){
+          const x=body.center[0]-before[0],y=body.center[1]-before[1],z=body.center[2]-before[2];
+          const q=clamp((x*dx+y*dy+z*dz)/length2,0,1);
+          if((x-dx*q)**2+(y-dy*q)**2+(z-dz*q)**2<body.radius2)return false;
         }
         before=after;
       }
@@ -199,25 +200,37 @@
         const steering=planeUp.map(v=>v*side),radius=Math.max(scale*reach,speed*duration*1.25/angle),center=from.eye.map((x,i)=>x+steering[i]*radius);
         const viewRight=unit(cross(from.up,from.forward));
         const viewTurnUp=from.up.map((v,i)=>v*Math.cos(heading)+viewRight[i]*Math.sin(heading));
+        // Preserve the visible turn's handedness instead of inheriting its
+        // momentum and then steering back against it.
+        const turnSpeed=from.turnVelocity?Math.hypot(...from.turnVelocity):0;
+        const turnAlignment=turnSpeed>.01?side*dot(viewTurnUp,from.turnVelocity)/turnSpeed:0;
         const ring={virtual:true,orbit:'virtual',cruiseDeparture:!!from.cruiseDeparture,retreat:from.retreat,center,normal,u:forward,entryForward:forward,entryUp:planeUp,viewUp:up,direction,turnAngle:angle,viewTurnAngle:Math.PI/3,viewTurnUp,side,bankSide:Math.abs(bankIntent)>1e-4?Math.sign(bankIntent):side,radius,speed:speed||radius*.08,duration,accelerationDuration};
         if(!from.retreat&&obstacles.some(b=>{const d=b.center.map((x,i)=>x-center[i]),height=dot(d,normal),radial=Math.sqrt(Math.max(0,dot(d,d)-height*height));return Math.hypot(radial-radius,height)<b.radius*1.18;}))continue;
         const path=warpPath(from,velocity,ring,duration);
-        let crowding=0;
+        let crowding=0,nearCrowding=0;
         for(const body of obstacles){
           const d=body.center.map((x,i)=>x-from.eye[i]),distance=Math.hypot(...d),apparent=body.radius/Math.max(distance,1e-9);
           if(dot(d,from.forward)>0&&apparent>.0001){
             const lateral=d.map((v,i)=>v-forward[i]*dot(d,forward)),length=Math.hypot(...lateral);
             const alignment=length>1e-9?dot(lateral,steering)/length:0;
             crowding+=(.2+Math.min(1,apparent*20))*((1+clamp(alignment,-1,1))/2)**4;
+            // A large nearby disc is a steering constraint, not a random
+            // preference. Judge it in the visible camera frame, independently
+            // of the inherited flight tangent (which may point sideways).
+            if(apparent>.12){
+              const viewLateral=d.map((v,i)=>v-from.forward[i]*dot(d,from.forward)),viewLength=Math.hypot(...viewLateral);
+              const toward=viewLength>1e-9?side*dot(viewLateral,viewTurnUp)/viewLength:0;
+              nearCrowding+=apparent*Math.max(0,toward)**2;
+            }
           }
         }
         const early=warpArcMotion(path,duration*.35).angle,earlyForward=forward.map((x,i)=>x*Math.cos(early)+planeUp[i]*Math.sin(early));
         // Prefer less crowded bearings without excluding the other directions.
         // Actual collisions still reject a candidate in the swept-path check.
-        const score=1.5*crowding/(1+crowding)+6*(1-dot(from.forward,earlyForward))+Math.log(reach)+jitter[direction];
-        candidates.push({ring,path,score});
+        const score=1.5*crowding/(1+crowding)+6*(1-dot(from.forward,earlyForward))+Math.log(reach)+jitter[direction]-4*turnAlignment;
+        candidates.push({ring,path,score,nearCrowding,reverse:turnSpeed>.01&&turnAlignment<-.05?1:0});
       }
-      candidates.sort((a,b)=>a.score-b.score);
+      candidates.sort((a,b)=>a.nearCrowding-b.nearCrowding||a.reverse-b.reverse||a.score-b.score);
       for(const candidate of candidates)if(clear(candidate.path))return candidate.ring;
     }
     return null;
@@ -701,15 +714,27 @@
     }
     setReturnSpeed(multiplier=1){this.returnSpeedMultiplier=clamp(Number.isFinite(multiplier)?multiplier:1,.25,4);return this.returnSpeedMultiplier;}
     returnTime(seconds){return seconds/this.returnSpeedMultiplier;}
+    requestEntryHomeReturn(){
+      if(this.state!=='entering'||this.age>=SETTINGS.entry||this.replayBridge)return false;
+      this.entryHomeReturnEye=[...this.pose.eye];return true;
+    }
+    entryHomeReturnTime(view){
+      if(!this.entryHomeReturnEye)return null;
+      const distance=Math.hypot(...view.eye.map((v,i)=>v-this.entryHomeReturnEye[i]));
+      return mix(ENTRY_HOME_RETURN.min,ENTRY_HOME_RETURN.max,smooth(distance/ENTRY_HOME_RETURN.farDistance));
+    }
     stop(){if(!['entering','cruising'].includes(this.state))return false;this.setReturnView(this.startPose);return true;}
     takeoffStart(){
       const dt=.001,current=withoutDrift(this.cameraPose()),before=withoutDrift(this.cameraPose(Math.max(0,this.age-dt),Math.max(0,(this.returnAge||0)-dt)));
-      const from={...withoutDrift(this.pose),bankRate:Math.atan2(-dot(before.up,current.right),dot(before.up,current.up))/dt};
+      const from={...withoutDrift(this.pose),bankRate:Math.atan2(-dot(before.up,current.right),dot(before.up,current.up))/dt,
+        turnVelocity:current.forward.map((v,i)=>(v-before.forward[i])/dt)};
       // Differentiate two samples with identical controls, not a stale drawn
       // pose versus a newly panned/FOV-adjusted synthetic frame.
       const velocity=current.eye.map((v,i)=>(v-before.eye[i])/dt);
       const prior=axes(before.forward,before.up),now=axes(current.forward,current.up),shown=axes(from.forward,from.up);
       const previous={...from,eye:from.eye.map((v,i)=>v-velocity[i]*dt)};
+      for(const key of ['perspective','orthoScale','fov'])previous[key]=from[key]-(current[key]-before[key]);
+      previous.offset=from.offset.map((v,i)=>v-(current.offset[i]-before.offset[i]));
       for(const key of ['forward','up','right'])previous[key]=prior.right.map((_,i)=>dot(shown[key],now.right)*prior.right[i]+dot(shown[key],now.up)*prior.up[i]+dot(shown[key],now.forward)*prior.forward[i]);
       return {from,previous,velocity,dt};
     }
@@ -742,7 +767,15 @@
       const look=path.warp?transition(t,0,Math.min(2.5,path.duration)):pose.look;
       const frame=path.warp?pose:orientation(orientation(previous,from,1+carry/dt),heading,look);
       const weight=path.warp?entryWeight(clamp(t/path.duration,0,1)*SETTINGS.entry):0;
-      return {...from,...frame,eye:path.warp?warpSceneEye(path,t):pose.eye,perspective:mix(from.perspective,1,weight),offset:blend(from.offset,[0,0],weight)};
+      const projection={perspective:mix(from.perspective,1,weight),orthoScale:from.orthoScale,fov:from.fov,offset:blend(from.offset,[0,0],weight)};
+      // Eye velocity alone is insufficient during boarding: its changing
+      // projection also contributes to the motion the user actually sees.
+      for(const key of ['perspective','orthoScale','fov'])projection[key]+=(from[key]-previous[key])/dt*carry;
+      projection.perspective=clamp(projection.perspective,0,1);
+      projection.orthoScale=Math.max(.0001,projection.orthoScale);
+      projection.fov=clamp(projection.fov,1,179);
+      projection.offset=projection.offset.map((v,i)=>v+(from.offset[i]-previous.offset[i])/dt*carry);
+      return {...from,...frame,...projection,eye:path.warp?warpSceneEye(path,t):pose.eye};
     }
     returnProgress(start=0){return transition(this.returnAge||0,start,this.returnDuration);}
     ringDetailState(viewEye=projectionEye(this.pose)){
@@ -765,7 +798,9 @@
         this.returnDetail=this.ringDetailState();this.returnDetailStart=this.returnAge;
         this.returnNormalStart=this.returnAge;
         this.returnRedirect={at:this.returnAge,view};this.returnTo=view;
-        this.returnDuration=Math.max(this.returnAge+.001,Math.min(this.returnTime(SETTINGS.returnMax),Math.max(this.returnDuration,this.returnAge+this.returnTime(SETTINGS.returnFar))));
+        const entryTime=this.entryHomeReturnTime(view);
+        this.returnDuration=entryTime??Math.max(this.returnAge+.001,Math.min(this.returnTime(SETTINGS.returnMax),Math.max(this.returnDuration,this.returnAge+this.returnTime(SETTINGS.returnFar))));
+        if(entryTime!==null){this.returnMotion.duration=entryTime;this.returnMotion.rotationTime=entryTime;}
         return;
       }
       const exiting=this.state==='returning',retargetStart=exiting&&this.returnAge===0,from=withoutDrift(this.pose);
@@ -781,7 +816,7 @@
       const noiseAge=exiting&&this.returnNoise?this.returnNoise.age+(this.returnAge||0):this.age;
       this.returnNoise={strength,age:noiseAge};
       if(!exiting&&!this.replayBridge&&this.entryMotion(this.age).weight<SETTINGS.spiralThreshold){
-        this.returnDuration=Math.max(baseline,Math.min(this.returnTime(5),this.returnTime(this.age*.6)));
+        this.returnDuration=this.entryHomeReturnTime(view)??Math.max(baseline,Math.min(this.returnTime(5),this.returnTime(this.age*.6)));
         this.returnMotion={rewind:true,age:this.age,duration:this.returnDuration,angularVelocity,rotationTime:this.returnDuration,dt,previous};
         this.returnFrom=from;this.returnTo=view;this.returnAge=0;this.state='returning';
         this.returnControls={yaw:this.yaw,pitch:this.pitch,pan:[...this.pan],fov:this.fov};
@@ -797,7 +832,7 @@
       const angularSpeed=Math.abs(angularVelocity);
       const naturalTime=angularSpeed>1e-6&&Math.abs(turn)>1e-6?2*Math.abs(turn)/(angularSpeed*SETTINGS.returnSpeed*this.returnSpeedMultiplier):baseline/SETTINGS.returnSpeed;
       const desiredTime=Math.min(this.returnTime(SETTINGS.returnMax),naturalTime);
-      this.returnDuration=Math.min(this.returnTime(SETTINGS.returnMax),Math.max(baseline/SETTINGS.returnSpeed,desiredTime));
+      this.returnDuration=this.entryHomeReturnTime(view)??Math.min(this.returnTime(SETTINGS.returnMax),Math.max(baseline/SETTINGS.returnSpeed,desiredTime));
       const rotationTime=this.returnDuration;
       this.returnMotion={a,b,turn,rotationTime,angularVelocity,dt,previous,
         radiusVelocity:dt>0?Math.log(a.radius/old.radius)/dt:0,elevationVelocity:dt>0?(a.elevation-old.elevation)/dt:0};

@@ -89,9 +89,9 @@ test('a pointified opening begins transparent and reaches full alpha over 1.5 se
 });
 test('boot arms point opacity before both the warm-up and visible opening frames',()=>{
  const source=fs.readFileSync(require.resolve('../src/app.js'),'utf8');
- assert.match(source,/renderer\.sky\?\.ready&&\(openingRunMode!==['"]none['"]\|\|surfacesReady\)/,'point openings must not wait for unused planet textures');
+ assert.match(source,/renderer\.sky\?\.ready&&surfacesReady/,'opening prepares bounded arrival maps before bodies become resolved');
  assert.match(source,/bootMono=performance\.now\(\),bootMs=clock\.value\(bootMono\);if\(openingRunMode!==['"]none['"]\)renderer\.startOpeningPointReveal\(bootMono\);renderer\.draw/);
- assert.match(source,/revealMono=performance\.now\(\);if\(openingRunMode!==['"]none['"]\)renderer\.startOpeningPointReveal\(revealMono\);renderer\.startOrbitReveal/);
+ assert.match(source,/if\(openingActive\)\{\s*if\(openingRunMode!==['"]none['"]\)renderer\.startOpeningPointReveal\(revealMono\);\s*renderer\.startOrbitReveal/);
 });
 test('overlapping foreground discs clip independently; background discs do not hide points',()=>{
  const {r,c,calls}=fixture(),p=item(),front=item('saturn',20,1),second=item('jupiter',30,2),back=item('sun',40,-1);

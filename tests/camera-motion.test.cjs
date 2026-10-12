@@ -20,6 +20,23 @@ function renderer(seed=.127694){
  return {r,R,sandbox,now:value=>{now=value;}};
 }
 const ms=Date.parse('2026-09-19T12:00:00Z');
+test('pointer rotation coasts independently of frame rate and simulation pause',()=>{
+ const run=step=>{const {r}=renderer();r.beginPointerRotation(0);for(let t=16;t<=160;t+=16)r.rotatePointerBy(.024,-.008,t);r.endPointerRotation(160);const from={...r.camera};r.setAnimationPaused(true,160);for(let t=160+step;t<1060;t+=step)r.advancePointerRotation(t);r.advancePointerRotation(1060);assert.equal(r.pointerCoast,null);assert.ok(r.camera.azimuth>from.azimuth);assert.ok(r.camera.elevation<from.elevation);return r.camera;};
+ const a=run(1000/60),b=run(1000/30);close(a.azimuth,b.azimuth);close(a.elevation,b.elevation);
+});
+test('pointer coast stops on held release, cancellation and camera takeover without disabling auto rotation',()=>{
+ const {r}=renderer();r.setAutoRotate(1,0);r.beginPointerRotation(0);r.rotatePointerBy(.03,.01,16);r.endPointerRotation(200);assert.ok(!r.pointerCoast);
+ r.beginPointerRotation(210);r.rotatePointerBy(.03,.01,226);r.endPointerRotation(230,true);assert.ok(!r.pointerCoast);
+ r.beginPointerRotation(240);r.rotatePointerBy(.03,.01,256);r.endPointerRotation(260);assert.ok(r.pointerCoast);assert.equal(r.rotationIntent,1);
+ r.setPan(0,0);assert.ok(!r.pointerCoast);assert.equal(r.rotationIntent,1);
+ r.beginPointerRotation(300);r.rotatePointerBy(.03,.01,316);r.endPointerRotation(320);r.animateCamera({...r.camera,azimuth:1},321,500);assert.ok(!r.pointerCoast);
+});
+test('pointer rotation during a ring tour coasts the tour look only',()=>{
+ const {r}=renderer(),deltas=[];r.ringTour={look:(x,y)=>deltas.push([x,y])};const initial={...r.camera};
+ r.beginPointerRotation(0);r.rotatePointerBy(.03,.01,16);r.endPointerRotation(17);r.advancePointerRotation(100);
+ assert.equal(deltas.length,2);assert.ok(deltas.every(([x,y])=>x<0&&y>0));assert.deepEqual(plain(r.camera),initial);
+ r.ringTour.replayBridge={};r.advancePointerRotation(200);assert.equal(r.pointerCoast,null);
+});
 test('constellation departure metadata follows the shared camera clock and survives interruption',()=>{
  const {r}=renderer();r.skySolarMix=0;
  r.animateCamera({...r.camera,azimuth:1},100,1600);
@@ -1825,7 +1842,7 @@ test('invalid relative input cannot advance the camera or alter the active rotat
 });
 test('pointer input uses current deltas rather than saved start angles; small clicks still have a dead zone',()=>{
  const app=read('src/app.js');assert.doesNotMatch(app,/startAzimuth|startElevation/);
- assert.match(app,/renderer\.rotateViewBy\(\(wasMoved\?dx:p\.x-drag\.startX\)/);
+ assert.match(app,/renderer\.rotatePointerBy\(\(wasMoved\?dx:p\.x-drag\.startX\)/);
  assert.match(app,/Math\.hypot\(p\.x-drag\.startX,p\.y-drag\.startY\)>4/);
 });
 

@@ -345,7 +345,7 @@
       renderer.restoreCamera(openingRunMode==='none'?openingCameraTarget:renderer.openingCameraSnapshot(openingCameraTarget));
       const loading=$('loading'),OPENING_UNLOCK_BEFORE_END=1000,SATURN_OPENING_HANDOFF_LEAD=renderer.saturnOpeningHandoffLead;
       let openingActive=true,openingControlsLocked=true,openingStartedAt=null,openingDuration=0,openingDeparture=false,openingReplayLocked=false;
-      renderer.setOpeningPresentation(true);
+      renderer.setOpeningPresentation(true,'opening',openingCameraTarget);
       const helpReminder=Preferences.createHelpReminder();
       let firstHelpPending=helpReminder.visit(),lastTravelControlLock=null;
       function travelSettingsLocked(){return openingActive||!!renderer.ringTour;}
@@ -368,7 +368,7 @@
       loading.addEventListener('contextmenu',event=>{if(openingControlsLocked)event.preventDefault();});
       function finishOpening(){
         if(!openingActive)return;
-        openingActive=false;openingReplayLocked=false;openingStartedAt=null;renderer.setOpeningPresentation(false);renderer.prepareRingTourResources();unlockOpeningControls();cameraUi(true);
+        openingActive=false;openingReplayLocked=false;openingStartedAt=null;renderer.setOpeningPresentation(false);renderer.prepareRingTourResources();unlockOpeningControls();syncTravelControlLock();cameraUi(true);
       }
       function beginOpening(mono=performance.now()){
         if(openingRunMode==='none'){renderer.restoreCamera(openingCameraTarget);renderer.scheduleOpeningAnnotations(mono,0);finishOpening();return false;}
@@ -392,7 +392,7 @@
         resumeTravel=openingRunMode==='saturn';
         openingCameraTarget={...returnView};
         if(resumeTravel){renderer.prepareCloseup('saturn');renderer.prepareRingTourResources();}
-        openingActive=true;openingReplayLocked=true;openingStartedAt=null;openingDuration=0;renderer.setOpeningPresentation(true,'warp');
+        openingActive=true;openingReplayLocked=true;openingStartedAt=null;openingDuration=0;renderer.setOpeningPresentation(true,'warp',openingCameraTarget);
         openingDeparture=true;lockOpeningControls();loading.classList.add('done');
         // Warp returns to the requested solar-system view before the existing
         // S curve begins; never pre-enlarge Saturn with a second camera owner.
@@ -1177,12 +1177,15 @@
         if(clock.paused)pause();
         if(openingReplayLocked)return;
         if(openingActive){
+          const mono=performance.now();
           openingDeparture=false;resumeTravel=false;finishOpening();
-          renderer.animateCamera(openingCameraTarget);return;
+          renderer.animateCamera(openingCameraTarget,mono);
+          renderer.scheduleOpeningAnnotations(renderer.animationMono(mono),0);return;
         }
         if(renderer.skyFeatureInputLocked){reset();return;}
         // One press starts the smooth return. A SECOND press may leave
         // fullscreen even while returning; it must not restart/cut the flight.
+        renderer.ringTour?.requestEntryHomeReturn?.();
         if(renderer.ringTour?.openingResume&&['entering','cruising'].includes(renderer.ringTour.state)){
           renderer.animateCamera(renderer.ringTour.returnTarget||openingCameraTarget);return;
         }
@@ -1430,11 +1433,13 @@
         if(renderer.skyFeatureInputLocked&&((event.pointerType==='mouse'&&event.button!==0)||(event.pointerType!=='mouse'&&pointers.size>0))){event.preventDefault();return;}
         if(!claimOpeningControl()){event.preventDefault();return;}
         if(event.pointerType==='mouse'&&event.button!==0&&event.button!==1&&event.button!==2)return;
+        renderer.stopPointerRotation();
         // Preserve the active rotation mode. Manual deltas add to its current view.
         if(!renderer.ringTour)renderer.cancelCameraTween(performance.now());
         const pan=event.pointerType==='mouse'&&event.button===1,right=event.pointerType==='mouse'&&event.button===2;
         if(pan||right)event.preventDefault();
         const p=pointerPosition(event);pointers.set(event.pointerId,p);canvas.setPointerCapture(event.pointerId);
+        if(pointers.size===1&&!pan&&!right)renderer.beginPointerRotation();
         if(pointers.size===1){drag={x:p.x,y:p.y,startX:p.x,startY:p.y,startPanY:renderer.camera.panY,startPanX:renderer.camera.panX,startZoom:renderer.camera.zoom,startTourFov:renderer.ringTour?.fov,mode:pan?'pan':right?'zoom':'orbit',moved:false};pinched=false;}
         if(zen&&pointers.size===3){setZen(false);pinched=true;if(drag)drag.moved=true;return;}
         if(pointers.size===2){clickGestures=0;const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);pinchLevel=renderer.camera.dolly??1;pinchOrigin={x:(a.x+b.x)/2,y:(a.y+b.y)/2,panX:renderer.camera.panX,panY:renderer.camera.panY};pinched=true;}
@@ -1463,17 +1468,18 @@
             const tour=renderer.ringTour;
             if(drag.mode==='pan')tour.move(-dx/renderer.w,dy/renderer.h);
             else if(drag.mode==='zoom')tour.zoom(Math.exp(-dy*.006));
-            else tour.look(-dx*.004,dy*.003);
+            else renderer.rotatePointerBy(dx*.004,dy*.003);
           }
           else if(drag.mode==='pan')renderer.setPan(drag.startPanX+(p.x-drag.startX)/renderer.w,drag.startPanY+(p.y-drag.startY)/renderer.h);
           else if(drag.mode==='zoom')renderer.setZoom(drag.startZoom*Math.exp((drag.startY-p.y)*.006));
-          else renderer.rotateViewBy((wasMoved?dx:p.x-drag.startX)*.004,(wasMoved?dy:p.y-drag.startY)*.003,performance.now());
+          else renderer.rotatePointerBy((wasMoved?dx:p.x-drag.startX)*.004,(wasMoved?dy:p.y-drag.startY)*.003,performance.now());
           cameraUi();canvas.classList.add('dragging');canvas.style.cursor=drag.mode==='pan'?'move':drag.mode==='zoom'?'ns-resize':'grabbing';
         }
         drag.x=p.x;drag.y=p.y;
       });
       function endPointer(event,cancel=false) {
         if(!pointers.has(event.pointerId))return;const p=pointerPosition(event);pointers.delete(event.pointerId);
+        renderer.endPointerRotation(performance.now(),cancel||pinched||!drag?.moved);
         const clicked=!cancel&&!pinched&&drag&&drag.mode==='orbit'&&!drag.moved&&pointers.size===0;
         // Pointer capture can still produce a native dblclick after a short drag.
         // Tracking is intentional only when BOTH completed gestures were clicks.
@@ -1496,9 +1502,9 @@
       for(const type of ['mousedown','auxclick'])canvas.addEventListener(type,event=>{if(event.button===1||event.button===2)event.preventDefault();});
       canvas.addEventListener('contextmenu',event=>event.preventDefault());
       canvas.addEventListener('pointerup',event=>endPointer(event));canvas.addEventListener('pointercancel',event=>endPointer(event,true));
-      canvas.addEventListener('lostpointercapture',event=>{pointers.delete(event.pointerId);if(!pointers.size){drag=null;canvas.classList.remove('dragging');wakePointer();}});
+      canvas.addEventListener('lostpointercapture',event=>{if(pointers.delete(event.pointerId))renderer.stopPointerRotation();if(!pointers.size){drag=null;canvas.classList.remove('dragging');wakePointer();}});
       canvas.addEventListener('pointerleave',()=>{if(!pointers.size){renderer.setEarthRegionHover(null);renderer.setSkyFeatureHover(null);renderer.setSkySolarHover(false);if(renderer.hover!==null||renderer.ringTourHover){renderer.hover=null;renderer.ringTourHover=false;renderer.invalidatePresentation();}}});
-      canvas.addEventListener('wheel',event=>{event.preventDefault();zoom(renderer.wheelTravelFactor(event.deltaY));},{passive:false});
+      canvas.addEventListener('wheel',event=>{event.preventDefault();renderer.stopPointerRotation();zoom(renderer.wheelTravelFactor(event.deltaY));},{passive:false});
       canvas.addEventListener('dblclick',event=>{
         if(openingControlsLocked||event.button!==0||clickGestures<2)return;
         if(openingActive)finishOpening();clickGestures=0;
@@ -1539,6 +1545,15 @@
           if(!editing&&!UI.topDialog()){event.preventDefault();event.stopImmediatePropagation();if(!event.repeat)pause();}
           return;
         }
+        // UI visibility and fullscreen do not take ownership of the camera.
+        // Match their toolbar actions without finishing an active opening.
+        if(key==='f'||key==='h'){
+          if(!editing){
+            event.preventDefault();event.stopPropagation();
+            if(!event.repeat){if(key==='f')fullscreen();else setZen(!zen);}
+          }
+          return;
+        }
         if(openingControlsLocked){
           // Native menu/dialog controls remain usable while scene input is locked.
           if(event.key==='Tab'||UI.topDialog()||editing||
@@ -1562,10 +1577,9 @@
           return;
         }
         if(event.repeat)return;
-        if(key==='f'||key==='h'||key==='0'){
+        if(key==='0'){
           event.preventDefault();event.stopPropagation();
-          if(key==='0')event.target.closest?.('button,a')?.blur();
-          if(key==='f')fullscreen();else if(key==='h')setZen(!zen);else reset();return;
+          event.target.closest?.('button,a')?.blur();reset();return;
         }
         if(UI.topDialog())return;
         if(key==='*'||physical==='NumpadMultiply'){
@@ -1596,16 +1610,14 @@
       // gesture ends; blur/visibility/pagehide also cover a missing keyup.
       window.addEventListener('keyup',event=>{const key=event.key.toLowerCase();if((key==='arrowup'||key==='arrowdown')&&heldZoomKeys.delete(key)&&!heldZoomKeys.size)persist();},{capture:true});
       window.addEventListener('blur',clearKeyboardZoom,{passive:true});
-      // A distant opening renders bodies as points, so it only needs the small
-      // sky before it can start. Baseline planet maps continue loading during
-      // the 6.5-second approach. A disabled opening still waits for every
-      // visible baseline map because it reveals full planet discs immediately.
+      // Prepare bounded arrival-sized previews before the first approach.
+      // The existing timeout and Esc cancellation also cover slow networks.
       async function warmInitialScene(maxMs=8000) {
         const started=performance.now();
-        while(performance.now()-started<maxMs){
+        while(openingActive&&!disposed&&performance.now()-started<maxMs){
           const surface=renderer.surface;
-          const surfacesReady=surface?.visibleTexturesReady?.()||(surface?.stats?.accepted>0&&!surface.inflight);
-          if(renderer.sky?.ready&&(openingRunMode!=='none'||surfacesReady))return true;
+          const surfacesReady=typeof surface?.visibleTexturesReady==='function'?surface.visibleTexturesReady():(surface?.stats?.accepted>0&&!surface.inflight);
+          if(renderer.sky?.ready&&surfacesReady)return true;
           await new Promise(resolve=>setTimeout(resolve,16));
         }
         return false;
@@ -1679,7 +1691,7 @@
         if(openingActive&&!openingReplayLocked&&openingControlsLocked&&openingStartedAt!==null&&motionMono-openingStartedAt>=openingDuration-OPENING_UNLOCK_BEFORE_END)unlockOpeningControls();
         updateTravelCursor(mono);
         const heldZoom=keyboardZoomDirection();
-        const activeMotion=!!drag||pointers.size>0||(!clock.paused&&(!!renderer.ringTour||!!renderer.cameraTween||!!renderer.autoRotation))||
+        const activeMotion=!!drag||pointers.size>0||!!renderer.pointerCoast||(!clock.paused&&(!!renderer.ringTour||!!renderer.cameraTween||!!renderer.autoRotation))||
           heldZoom!==0||mono-(renderer.cameraChangeAt??-Infinity)<180||(!clock.live&&!clock.paused);
         const frameInterval=window.SolarPerformance?.frameInterval(window.innerWidth,window.innerHeight,activeMotion)??(1000/(activeMotion&&window.innerWidth>=680?60:30));
         const frameDelta=lastFrame?Math.max(0,mono-lastFrame):frameInterval;
@@ -1696,7 +1708,9 @@
           // F11/rotation never submit the same scene twice in one frame.
           const renderScene=!resizeFrame&&(!clock.paused||activeMotion||renderer.needsDraw(mono)),wasTransitioning=!!renderer.cameraTween||!!renderer.ringTour?.returnTarget;
           if(renderScene){
+            const wasCoasting=!!renderer.pointerCoast;
             const renderStarted=performance.now();renderer.draw(ms,effectTime,mono);
+            if(wasCoasting&&!renderer.pointerCoast)persist();
             window.SolarPerformance?.reportRenderCost(performance.now()-renderStarted);
             if(openingDeparture&&!renderer.cameraTween&&!renderer.ringTour){
               openingDeparture=false;renderer.startOrbitReveal(mono);
@@ -1742,11 +1756,21 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){firstHelpPending=helpReminder.visit();renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive&&!openingDeparture&&!clock.paused)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.77',revision:'r3',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.77',revision:'r4',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);if(openingRunMode!=='none')renderer.startOpeningPointReveal(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();
-      if(!disposed){const revealMono=performance.now();if(openingRunMode!=='none')renderer.startOpeningPointReveal(revealMono);renderer.startOrbitReveal(revealMono);renderer.draw(clock.value(revealMono),0,revealMono);const animated=beginOpening(revealMono);if(!animated){renderer.restoreCamera(openingCameraTarget);finishOpening();}renderer.sky?.startDetailUpgrade?.();scheduleMaterialRefresh();}
+      if(!disposed){
+        const revealMono=performance.now();
+        // Esc may finish the opening while initial assets are still warming.
+        // A late load must not restart the camera, reveal timers or input lock.
+        if(openingActive){
+          if(openingRunMode!=='none')renderer.startOpeningPointReveal(revealMono);
+          renderer.startOrbitReveal(revealMono);renderer.draw(clock.value(revealMono),0,revealMono);
+          const animated=beginOpening(revealMono);if(!animated){renderer.restoreCamera(openingCameraTarget);finishOpening();}
+        }else renderer.draw(clock.value(revealMono),0,revealMono);
+        renderer.sky?.startDetailUpgrade?.();scheduleMaterialRefresh();
+      }
       if(!document.hidden&&!disposed)raf=requestAnimationFrame(frame);
     } catch(error){cleanup();fatal(error);}
   }
