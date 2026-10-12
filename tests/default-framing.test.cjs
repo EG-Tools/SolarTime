@@ -31,6 +31,22 @@ test('home uses body hierarchy and camera bank, without changing the live projec
  r.camera=home;r.flightLook=null;r.cameraTween=null;r.trackingAnchor=null;
  const actual=measure(r);close(actual.width,.65);close(actual.sun,.57);
 });
+
+test('300% Sun and 400% spacing remain framed and shrink monotonically during retreat',()=>{
+ for(const [w,h] of [[1280,800],[390,844],[3802,1669]]){
+  const r=fixture(w,h);r.bodyScales={sun:3};r.options.overviewOrbitGap=400;
+  r.camera=r.defaultCameraSnapshot(ms);close(measure(r).width,.65);
+  const start=r.camera.dolly;let previous=Infinity;
+  for(const factor of [1,.8,.5,.2,.05,.01]){
+   r.camera.dolly=Math.max(.001,start*factor);r.rebuild(ms);
+   const result=measure(r);assert.ok(result.width<previous);previous=result.width;
+   for(const path of r.paths)for(const point of path.points){
+    const projected=r.project(r.displaySolarPoint(point,path.body));
+    assert.ok(!projected.behind&&Number.isFinite(projected.x));
+   }
+  }
+ }
+});
 test('home recalculates after resize and spacing changes instead of reusing stale geometry',()=>{
  const r=fixture();r.rebuild(ms);const first=r.defaultCameraSnapshot(ms);
  r.w=420;r.h=700;r.options.overviewOrbitGap=250;

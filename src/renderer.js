@@ -390,13 +390,20 @@
       const x=(p.depthX??p.x)-(anchor.depthX??anchor.x),y=(p.depthY??p.y)-(anchor.depthY??anchor.y),z=(p.depthZ??p.z)-(anchor.depthZ??anchor.z);
       return -(x*sa+y*ca)*ce+z*se;
     }
+    dollyDistance() {
+      // Keep the full ordinary layout inside the retreat projection volume.
+      // A fixed 5000-unit horizon clips large orbits even while moving away.
+      const outer=A.BODIES[A.BODIES.length-1];
+      const radius=this.overviewSolarRadius(outer.base[0],outer)+this.solarOrbitOffset();
+      return Math.max(DOLLY.baseDistance,radius*2);
+    }
     projectView(p,homogeneous=false) {
       if(this.flightLook){
         // Reorient the existing homogeneous projection about the eye. This is
         // a view change, not a second camera/planet renderer or a zoom trick.
         const anchor=this.projectionAnchor||{x:0,y:0,z:0},travel=(this.camera.dolly??1)-1;
         const v=this.viewDirection({x:p.x-anchor.x,y:p.y-anchor.y,z:p.z-anchor.z},true);
-        const w=1-this.viewDepth(p,anchor)*travel/DOLLY.baseDistance,f=this.h/(2*Math.tan(36*DEG));
+        const w=1-this.viewDepth(p,anchor)*travel/this.dollyDistance(),f=this.h/(2*Math.tan(36*DEG));
         const ox=(this.cx-this.w/2)/f,oy=(this.h/2-this.cy)/f;
         const ray=[v.x*this.scale/f+ox*w,-v.y*this.scale/f+oy*w,w],look=this.flightLook;
         const denominator=flightDot(ray,look.forward),x=(flightDot(ray,look.right)-ox*denominator)*f/this.scale,y=(-flightDot(ray,look.up)+oy*denominator)*f/this.scale;
@@ -412,7 +419,7 @@
       v.z=this.viewDepth(p,anchor);
       // Switching modes changes no lens or projection state. Perspective appears
       // only after real forward/backward travel, and is exactly 1 at dolly=1.
-      const distance=DOLLY.baseDistance,denominator=distance-v.z*travel;
+      const distance=this.dollyDistance(),denominator=distance-v.z*travel;
       const near=Math.max(.02,distance*DOLLY.nearRatio);
       // Camera transitions interpolate undivided coordinates, even behind the
       // camera. Dividing/clipping first can teleport a planet across the screen.
@@ -718,7 +725,7 @@
     overviewSolarRadius(distance,body=null) {
       // Apply the same slider delta to the Sun–Mercury interval and every
       // neighboring orbit. Keep 100% byte-identical to the established view.
-      const gap=this.options.overviewOrbitGap??DEFAULT_OVERVIEW_GAP;
+      const gap=this.options?.overviewOrbitGap??DEFAULT_OVERVIEW_GAP;
       const firstIntervalShift=(gap-DEFAULT_OVERVIEW_GAP)*OVERVIEW_GAP_MULTIPLIER;
       return A.displayDistance(body?.base?.[0]??distance,0,gap,OVERVIEW_GAP_MULTIPLIER)+firstIntervalShift;
     }
@@ -1253,7 +1260,7 @@
       return animated;
     }
     cameraTransitionPose(mono=performance.now(),anchor=this.trackingAnchor||this.currentFrameItem(this.camera.focus)?.world||{x:0,y:0,z:0}){
-      const state=this.camera,eye=flightEye(state).map((v,i)=>v*DOLLY.baseDistance+anchor[['x','y','z'][i]]);
+      const state=this.camera,eye=flightEye(state).map((v,i)=>v*this.dollyDistance()+anchor[['x','y','z'][i]]);
       const frame=cameraFrame(state,this.flightBank||0),view=this.bankedSkyCamera().viewAxes;
       const from={eye,
         forward:view?view.forward.map(v=>-v):frame.forward,
@@ -1261,12 +1268,12 @@
         up:view?view.down.map(v=>-v):frame.up,
         bank:this.flightBank||0,look:this.flightLook||null};
       const rates=this.autoRotation?this.rotationRates(this.autoRotation.direction,this.autoRotation.generation):{yawRate:0,pitchRate:0};
-      const ca=state.azimuth,ce=state.elevation,d=DOLLY.baseDistance/(state.dolly??1);
+      const ca=state.azimuth,ce=state.elevation,d=this.dollyDistance()/(state.dolly??1);
       let velocity=[d*(-Math.cos(ca)*Math.cos(ce)*rates.yawRate+Math.sin(ca)*Math.sin(ce)*rates.pitchRate),d*(Math.sin(ca)*Math.cos(ce)*rates.yawRate+Math.cos(ca)*Math.sin(ce)*rates.pitchRate),d*Math.cos(ce)*rates.pitchRate];
       const move=this.cameraTween;
       if(move&&mono>move.start&&mono<move.start+move.duration){
         const previous=this.cameraTweenState(move,clamp((mono-move.start-1)/move.duration,0,1)).state,now=flightEye(state),before=flightEye(previous);
-        velocity=now.map((v,i)=>(v-before[i])*DOLLY.baseDistance/.001);
+        velocity=now.map((v,i)=>(v-before[i])*this.dollyDistance()/.001);
       }
       return {from,velocity};
     }
@@ -1335,8 +1342,8 @@
       // Rebase only position. Orientation is the exact displayed departure
       // frame, including inherited bank; never rebuild it from Euler angles.
       const view={...departurePose.from,eye:start};
-      const velocity=departurePose.velocity.map(v=>v/DOLLY.baseDistance);
-      const path=window.SolarRingTour.warpPath(view,velocity,{...ring,retreat:ring.retreat?.map(value=>value/DOLLY.baseDistance),duration:REPLAY_TRANSITION.departure/1000,center:ring.center.map((v,i)=>(v-anchor[['x','y','z'][i]])/DOLLY.baseDistance),radius:ring.radius/DOLLY.baseDistance,speed:ring.speed/DOLLY.baseDistance});
+      const velocity=departurePose.velocity.map(v=>v/this.dollyDistance());
+      const path=window.SolarRingTour.warpPath(view,velocity,{...ring,retreat:ring.retreat?.map(value=>value/this.dollyDistance()),duration:REPLAY_TRANSITION.departure/1000,center:ring.center.map((v,i)=>(v-anchor[['x','y','z'][i]])/this.dollyDistance()),radius:ring.radius/this.dollyDistance(),speed:ring.speed/this.dollyDistance()});
       move.fromAnchor={...anchor};
       move.replay={path,ring,departureAnnotations,departure:{...departure},outbound,resetAt:Infinity,brakeAt:Infinity,particleAt:Infinity,clearSince:null,turn,inbound:duration};
       const steering=ring.viewTurnUp.map(v=>v*ring.side),screenRight=tour?departurePose.from.right:departurePose.from.right.map(v=>-v);
@@ -2851,7 +2858,7 @@
     }
     gpuOrbitCamera() {
       const {ca,sa,ce,se,cr,sr}=this.cameraBasis(),active=Math.abs((this.camera.dolly??1)-1)>1e-8;
-      return {ca,sa,ce,se,cr,sr,lens:1,travel:active?(this.camera.dolly??1)-1:0,anchor:active?(this.projectionAnchor||{x:0,y:0,z:0}):{x:0,y:0,z:0},solarMorph:this.solarOrbitMorph(),solarOffset:this.solarOrbitOffset()};
+      return {ca,sa,ce,se,cr,sr,lens:1,travel:active?((this.camera.dolly??1)-1)*DOLLY.baseDistance/this.dollyDistance():0,anchor:active?(this.projectionAnchor||{x:0,y:0,z:0}):{x:0,y:0,z:0},solarMorph:this.solarOrbitMorph(),solarOffset:this.solarOrbitOffset()};
     }
     orbitInk(id,progress,origin=null) {
       if(progress>=1||(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches))return null;
@@ -3179,7 +3186,7 @@
       // Include depth in that weighting so perspective cannot bend the final
       // approach. CPU planets and GPU orbits consume this one resolved anchor.
       const startScale=move.from.zoom*(move.from.dolly??1),scale=this.camera.zoom*(this.camera.dolly??1),remainingScale=(1-p)*startScale;
-      const depth=this.viewDepth(b,a)/DOLLY.baseDistance;
+      const depth=this.viewDepth(b,a)/this.dollyDistance();
       const fromDenominator=1-depth*((move.from.dolly??1)-1);
       const denominator=scale*fromDenominator+remainingScale*depth*((this.camera.dolly??1)-1);
       let remaining=clamp(fromDenominator>DOLLY.nearRatio&&denominator>0?remainingScale/denominator:remainingScale/scale,0,1);
