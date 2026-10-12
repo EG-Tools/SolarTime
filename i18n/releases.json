@@ -4,124 +4,124 @@
     "date": "2026.10.12",
     "localized": {
       "kor": [
-        "별자리 탐색 추가 — 22개 별자리·별무리·항성 대상, 이음선 표시와 추적 모드 지원.",
-        "행성 표시 개선 — 입자 전환·가림·텍스처 LOD를 부드럽게 보정하고, 달·유로파의 옅은 그림자와 토성 고리 그림자 강도를 개선.",
-        "조작·카드 UI 정리 — 별자리/태양계 모드 버튼, 회전 확장 메뉴, 제목·정렬·간격 및 번역 개선.",
-        "배경음악 추가 — Maryan Dembitskyi의 Deep Space Journey.",
-        "성능·로딩 최적화 — 배경·태양 광채·별자리 처리 개선, 파티클 중복 계산 정리, 텍스처 빌드 캐시 적용.",
-        "가이드 보강 — 별자리 사용법과 해설 페이지 추가, 도움말·단축키 안내 정리."
+        "22개 별자리·별무리·항성에 이음선 표시와 추적 기능을 추가했습니다.",
+        "입자·가림·텍스처 전환을 부드럽게 하고 위성과 토성 고리의 그림자를 개선했습니다.",
+        "별자리 조작, 회전 메뉴, 카드 구성과 번역을 정리했습니다.",
+        "Maryan Dembitskyi의 Deep Space Journey를 배경음악에 추가했습니다.",
+        "배경, 태양 광채, 별자리와 텍스처의 렌더링·로딩 성능을 개선했습니다.",
+        "별자리 사용법과 그림 가이드를 추가하고 단축키 안내를 정리했습니다."
       ],
       "en": [
-        "Constellation exploration — 22 constellations, asterisms and stars with connecting lines and tracking.",
-        "Planet rendering — smoother particle, occlusion and texture LOD transitions; soft Moon and Europa shadows and lighter Saturn ring shadows.",
-        "Controls and cards — solar system/constellation modes, an expandable rotation menu, cleaner layout and translations.",
-        "New background music — Deep Space Journey by Maryan Dembitskyi.",
-        "Performance and loading — improved backgrounds, solar glow and constellations; shared particle calculations and cached texture builds.",
-        "Expanded guides — constellation instructions and an illustrated guide, plus clearer help and keyboard shortcuts."
+        "Added connecting lines and tracking for 22 constellations, asterisms and stars.",
+        "Smoothed particle, occlusion and texture transitions, and refined satellite and Saturn ring shadows.",
+        "Improved constellation controls, the rotation menu, card layout and translations.",
+        "Added Deep Space Journey by Maryan Dembitskyi to the background music.",
+        "Reduced rendering and loading costs for backgrounds, solar glow, constellations and textures.",
+        "Added constellation instructions, an illustrated guide and clearer shortcut help."
       ],
       "chn": [
-        "新增星座探索 — 支持22个星座、星群及恒星目标，提供连线与追踪模式。",
-        "优化行星显示 — 平滑粒子、遮挡与纹理LOD切换；添加月球和木卫二的柔和阴影，减淡土星环阴影。",
-        "整理操作与卡片 — 太阳系/星座模式、可展开的旋转菜单，并优化布局与翻译。",
-        "新增背景音乐 — Maryan Dembitskyi创作的Deep Space Journey。",
-        "性能与加载优化 — 改善背景、太阳光晕与星座处理，复用粒子计算并缓存纹理构建结果。",
-        "完善指南 — 新增星座操作说明与图解页面，整理帮助与快捷键提示。"
+        "为22个星座、星群和恒星加入了连线与追踪功能。",
+        "平滑了粒子、遮挡和纹理切换，并优化了卫星与土星环的阴影。",
+        "改进了星座操作、旋转菜单、卡片布局和翻译。",
+        "将Maryan Dembitskyi的Deep Space Journey加入背景音乐。",
+        "优化了背景、太阳光晕、星座和纹理的渲染与加载。",
+        "新增星座说明、图解指南和更清晰的快捷键提示。"
       ],
       "zht": [
-        "新增星座探索 — 支援22個星座、星群及恆星目標，提供連線與追蹤模式。",
-        "優化行星顯示 — 平滑粒子、遮擋與紋理LOD切換；加入月球和木衛二的柔和陰影，減淡土星環陰影。",
-        "整理操作與卡片 — 太陽系/星座模式、可展開的旋轉選單，並優化版面與翻譯。",
-        "新增背景音樂 — Maryan Dembitskyi創作的Deep Space Journey。",
-        "效能與載入優化 — 改善背景、太陽光暈與星座處理，重用粒子計算並快取紋理建置結果。",
-        "完善指南 — 新增星座操作說明與圖解頁面，整理說明與快捷鍵提示。"
+        "為22個星座、星群和恆星加入連線與追蹤功能。",
+        "平滑了粒子、遮擋和紋理切換，並改善衛星與土星環的陰影。",
+        "改進了星座操作、旋轉選單、卡片版面和翻譯。",
+        "將Maryan Dembitskyi的Deep Space Journey加入背景音樂。",
+        "優化了背景、太陽光暈、星座和紋理的渲染與載入。",
+        "新增星座說明、圖解指南和更清楚的快捷鍵提示。"
       ],
       "jpn": [
-        "星座探索を追加 — 22の星座・星の並び・恒星で結線表示と追跡に対応。",
-        "天体表示を改善 — 粒子・遮蔽・テクスチャLODの切り替えを滑らかに。月とエウロパの柔らかな影を追加し、土星の環の影を軽減。",
-        "操作とカードを整理 — 太陽系/星座モード、展開式回転メニュー、配置と翻訳を改善。",
-        "BGMを追加 — Maryan DembitskyiのDeep Space Journey。",
-        "性能と読み込みを最適化 — 背景・太陽光・星座の処理を改善し、粒子計算の共通化とテクスチャビルドのキャッシュを導入。",
-        "ガイドを拡充 — 星座の操作説明と図解ページを追加し、ヘルプとショートカットを整理。"
+        "22の星座・星の並び・恒星に結線表示と追跡機能を追加しました。",
+        "粒子・遮蔽・テクスチャの切り替えを滑らかにし、衛星と土星の環の影を改善しました。",
+        "星座操作、回転メニュー、カード配置と翻訳を改善しました。",
+        "Maryan DembitskyiのDeep Space JourneyをBGMに追加しました。",
+        "背景、太陽光、星座、テクスチャの描画と読み込みを最適化しました。",
+        "星座の説明、図解ガイド、わかりやすいショートカット案内を追加しました。"
       ],
       "hi": [
-        "तारामंडल खोज — 22 तारामंडल, तारासमूह और तारे; जोड़ने वाली रेखाएँ और ट्रैकिंग मोड।",
-        "ग्रह प्रदर्शन — कणों, ओट और टेक्सचर LOD का सहज बदलाव; चंद्रमा और यूरोपा की नरम छाया तथा शनि के छल्लों की हल्की छाया।",
-        "नियंत्रण और कार्ड — सौरमंडल/तारामंडल मोड, विस्तार योग्य घुमाव मेन्यू, बेहतर लेआउट और अनुवाद।",
-        "नया पृष्ठभूमि संगीत — Maryan Dembitskyi का Deep Space Journey।",
-        "प्रदर्शन और लोडिंग — बेहतर पृष्ठभूमि, सूर्य की चमक और तारामंडल प्रसंस्करण; साझा कण गणना और टेक्सचर बिल्ड कैश।",
-        "विस्तृत गाइड — तारामंडल निर्देश और चित्रयुक्त गाइड, साथ में स्पष्ट सहायता और कीबोर्ड शॉर्टकट।"
+        "22 तारामंडलों, तारासमूहों और तारों में जोड़ने वाली रेखाएँ और ट्रैकिंग जोड़ी गई।",
+        "कण, ओट और टेक्सचर बदलाव को सहज बनाया तथा उपग्रह और शनि के छल्लों की छाया सुधारी।",
+        "तारामंडल नियंत्रण, घुमाव मेन्यू, कार्ड लेआउट और अनुवाद सुधारे गए।",
+        "Maryan Dembitskyi का Deep Space Journey पृष्ठभूमि संगीत में जोड़ा गया।",
+        "पृष्ठभूमि, सूर्य की चमक, तारामंडल और टेक्सचर का रेंडर व लोड बेहतर किया गया।",
+        "तारामंडल निर्देश, चित्रयुक्त गाइड और स्पष्ट शॉर्टकट सहायता जोड़ी गई।"
       ],
       "es": [
-        "Exploración de constelaciones — 22 constelaciones, asterismos y estrellas con líneas y seguimiento.",
-        "Planetas — transiciones de partículas, oclusión y LOD más suaves; sombras tenues de la Luna y Europa y anillos de Saturno menos oscuros.",
-        "Controles y tarjetas — modos sistema solar/constelaciones, menú de rotación desplegable, diseño y traducciones mejorados.",
-        "Nueva música de fondo — Deep Space Journey de Maryan Dembitskyi.",
-        "Rendimiento y carga — fondos, brillo solar y constelaciones optimizados; cálculos de partículas compartidos y caché de compilación de texturas.",
-        "Guías ampliadas — instrucciones y guía ilustrada de constelaciones, ayuda y atajos más claros."
+        "Añadimos líneas y seguimiento para 22 constelaciones, asterismos y estrellas.",
+        "Suavizamos las transiciones de partículas, oclusión y texturas, y mejoramos las sombras de satélites y anillos de Saturno.",
+        "Mejoramos los controles de constelaciones, el menú de rotación, las tarjetas y las traducciones.",
+        "Añadimos Deep Space Journey de Maryan Dembitskyi a la música de fondo.",
+        "Optimizamos el renderizado y la carga de fondos, brillo solar, constelaciones y texturas.",
+        "Añadimos instrucciones, una guía ilustrada y ayuda de atajos más clara."
       ],
       "de": [
-        "Sternbilder erkunden — 22 Sternbilder, Sternmuster und Sterne mit Verbindungslinien und Verfolgung.",
-        "Planetendarstellung — sanftere Partikel-, Verdeckungs- und Textur-LOD-Übergänge; weiche Mond- und Europaschatten sowie hellere Saturnringschatten.",
-        "Bedienung und Karten — Sonnensystem-/Sternbildmodus, ausklappbares Rotationsmenü, verbessertes Layout und Übersetzungen.",
-        "Neue Hintergrundmusik — Deep Space Journey von Maryan Dembitskyi.",
-        "Leistung und Laden — optimierte Hintergründe, Sonnenlicht- und Sternbildberechnung; gemeinsame Partikelberechnungen und Textur-Build-Cache.",
-        "Erweiterte Anleitungen — Sternbildbedienung und bebilderter Leitfaden, klarere Hilfe und Tastenkürzel."
+        "Verbindungslinien und Verfolgung für 22 Sternbilder, Sternmuster und Sterne wurden ergänzt.",
+        "Partikel-, Verdeckungs- und Texturübergänge sowie Satelliten- und Saturnringschatten wurden verbessert.",
+        "Sternbildsteuerung, Rotationsmenü, Kartenlayout und Übersetzungen wurden überarbeitet.",
+        "Deep Space Journey von Maryan Dembitskyi wurde zur Hintergrundmusik hinzugefügt.",
+        "Darstellung und Laden von Hintergrund, Sonnenglühen, Sternbildern und Texturen wurden optimiert.",
+        "Sternbildanleitungen, ein bebilderter Leitfaden und klarere Tastenkürzel wurden ergänzt."
       ],
       "fr": [
-        "Exploration des constellations — 22 constellations, astérismes et étoiles avec lignes et suivi.",
-        "Rendu des planètes — transitions de particules, d’occultation et de LOD plus douces ; ombres légères de la Lune et d’Europe, anneaux de Saturne moins sombres.",
-        "Commandes et cartes — modes système solaire/constellations, menu de rotation dépliable, présentation et traductions améliorées.",
-        "Nouvelle musique — Deep Space Journey de Maryan Dembitskyi.",
-        "Performances et chargement — fonds, éclat solaire et constellations optimisés ; calculs de particules partagés et cache de génération des textures.",
-        "Guides enrichis — instructions et guide illustré des constellations, aide et raccourcis clarifiés."
+        "Ajout des lignes et du suivi pour 22 constellations, astérismes et étoiles.",
+        "Transitions de particules, d’occultation et de textures adoucies, avec de meilleures ombres de satellites et des anneaux de Saturne.",
+        "Amélioration des commandes de constellations, du menu de rotation, des cartes et des traductions.",
+        "Ajout de Deep Space Journey de Maryan Dembitskyi à la musique de fond.",
+        "Optimisation du rendu et du chargement des fonds, de l’éclat solaire, des constellations et des textures.",
+        "Ajout d’instructions, d’un guide illustré et d’une aide aux raccourcis plus claire."
       ],
       "pt": [
-        "Exploração de constelações — 22 constelações, asterismos e estrelas com linhas e acompanhamento.",
-        "Planetas — transições de partículas, oclusão e LOD mais suaves; sombras suaves da Lua e de Europa e sombras mais claras nos anéis de Saturno.",
-        "Controles e cartões — modos sistema solar/constelações, menu de rotação expansível, layout e traduções aprimorados.",
-        "Nova música de fundo — Deep Space Journey, de Maryan Dembitskyi.",
-        "Desempenho e carregamento — fundos, brilho solar e constelações otimizados; cálculos de partículas compartilhados e cache de geração de texturas.",
-        "Guias ampliados — instruções e guia ilustrado de constelações, ajuda e atalhos mais claros."
+        "Adicionámos linhas e acompanhamento a 22 constelações, asterismos e estrelas.",
+        "Suavizámos as transições de partículas, oclusão e texturas e melhorámos as sombras de satélites e dos anéis de Saturno.",
+        "Melhorámos os controlos de constelações, o menu de rotação, os cartões e as traduções.",
+        "Adicionámos Deep Space Journey, de Maryan Dembitskyi, à música de fundo.",
+        "Otimizámos o carregamento e a apresentação de fundos, brilho solar, constelações e texturas.",
+        "Adicionámos instruções, um guia ilustrado e ajuda de atalhos mais clara."
       ],
       "it": [
-        "Esplorazione delle costellazioni — 22 costellazioni, asterismi e stelle con collegamenti e inseguimento.",
-        "Pianeti — transizioni di particelle, occlusione e LOD più fluide; ombre morbide di Luna ed Europa e ombre più leggere sugli anelli di Saturno.",
-        "Controlli e schede — modalità sistema solare/costellazioni, menu di rotazione espandibile, impaginazione e traduzioni migliorate.",
-        "Nuova musica — Deep Space Journey di Maryan Dembitskyi.",
-        "Prestazioni e caricamento — sfondi, luce solare e costellazioni ottimizzati; calcoli delle particelle condivisi e cache di generazione delle texture.",
-        "Guide ampliate — istruzioni e guida illustrata alle costellazioni, aiuto e scorciatoie più chiari."
+        "Aggiunte linee e inseguimento per 22 costellazioni, asterismi e stelle.",
+        "Rese più fluide le transizioni di particelle, occlusione e texture e migliorate le ombre di satelliti e anelli di Saturno.",
+        "Migliorati i controlli delle costellazioni, il menu di rotazione, le schede e le traduzioni.",
+        "Aggiunto Deep Space Journey di Maryan Dembitskyi alla musica di sottofondo.",
+        "Ottimizzati rendering e caricamento di sfondi, luce solare, costellazioni e texture.",
+        "Aggiunte istruzioni, una guida illustrata e indicazioni più chiare per le scorciatoie."
       ],
       "id": [
-        "Jelajah rasi — 22 rasi, asterisme, dan bintang dengan garis penghubung serta pelacakan.",
-        "Tampilan planet — transisi partikel, oklusi, dan LOD lebih halus; bayangan lembut Bulan dan Europa serta bayangan cincin Saturnus yang lebih ringan.",
-        "Kontrol dan kartu — mode tata surya/rasi, menu rotasi yang dapat diperluas, tata letak dan terjemahan diperbaiki.",
-        "Musik latar baru — Deep Space Journey oleh Maryan Dembitskyi.",
-        "Performa dan pemuatan — latar, cahaya Matahari, dan rasi dioptimalkan; perhitungan partikel bersama serta cache pembuatan tekstur.",
-        "Panduan diperluas — petunjuk dan panduan rasi bergambar, bantuan dan pintasan yang lebih jelas."
+        "Menambahkan garis penghubung dan pelacakan untuk 22 rasi, asterisme, dan bintang.",
+        "Menghaluskan transisi partikel, oklusi, dan tekstur serta memperbaiki bayangan satelit dan cincin Saturnus.",
+        "Memperbaiki kontrol rasi, menu rotasi, tata letak kartu, dan terjemahan.",
+        "Menambahkan Deep Space Journey oleh Maryan Dembitskyi ke musik latar.",
+        "Mengoptimalkan render dan pemuatan latar, cahaya Matahari, rasi, dan tekstur.",
+        "Menambahkan petunjuk rasi, panduan bergambar, dan bantuan pintasan yang lebih jelas."
       ],
       "nl": [
-        "Sterrenbeelden verkennen — 22 sterrenbeelden, sterpatronen en sterren met verbindingslijnen en volgen.",
-        "Planeten — vloeiendere deeltjes-, bedekkings- en LOD-overgangen; zachte schaduwen van Maan en Europa en lichtere Saturnusringschaduwen.",
-        "Bediening en kaarten — zonnestelsel-/sterrenbeeldmodus, uitklapbaar rotatiemenu, betere indeling en vertalingen.",
-        "Nieuwe achtergrondmuziek — Deep Space Journey van Maryan Dembitskyi.",
-        "Prestaties en laden — verbeterde achtergronden, zonnegloed en sterrenbeelden; gedeelde deeltjesberekeningen en cache voor textuurbouw.",
-        "Uitgebreide gidsen — instructies en geïllustreerde sterrenbeeldgids, duidelijkere hulp en sneltoetsen."
+        "Verbindingslijnen en volgen toegevoegd voor 22 sterrenbeelden, sterpatronen en sterren.",
+        "Deeltjes-, bedekkings- en textuurovergangen en schaduwen van satellieten en Saturnusringen verbeterd.",
+        "Bediening van sterrenbeelden, rotatiemenu, kaartindeling en vertalingen verbeterd.",
+        "Deep Space Journey van Maryan Dembitskyi toegevoegd aan de achtergrondmuziek.",
+        "Rendering en laden van achtergronden, zonnegloed, sterrenbeelden en texturen geoptimaliseerd.",
+        "Instructies, een geïllustreerde gids en duidelijkere hulp voor sneltoetsen toegevoegd."
       ],
       "ru": [
-        "Изучение созвездий — 22 созвездия, астеризма и звезды с линиями и режимом слежения.",
-        "Отображение планет — плавнее переходы частиц, перекрытий и LOD; мягкие тени Луны и Европы и более светлые тени колец Сатурна.",
-        "Управление и карточки — режимы Солнечной системы/созвездий, раскрываемое меню вращения, улучшенные оформление и переводы.",
-        "Новая фоновая музыка — Deep Space Journey от Maryan Dembitskyi.",
-        "Производительность и загрузка — оптимизированы фон, солнечное сияние и созвездия; общие расчёты частиц и кэш сборки текстур.",
-        "Дополненные руководства — инструкции и иллюстрированный путеводитель по созвездиям, уточнённые справка и сочетания клавиш."
+        "Добавлены линии и слежение для 22 созвездий, астеризмов и звёзд.",
+        "Улучшены переходы частиц, перекрытий и текстур, а также тени спутников и колец Сатурна.",
+        "Улучшены управление созвездиями, меню вращения, карточки и переводы.",
+        "Deep Space Journey от Maryan Dembitskyi добавлена в фоновую музыку.",
+        "Оптимизированы отрисовка и загрузка фона, солнечного сияния, созвездий и текстур.",
+        "Добавлены инструкции, иллюстрированный путеводитель и более понятная справка по клавишам."
       ],
       "uk": [
-        "Дослідження сузір’їв — 22 сузір’я, астеризми й зорі з лініями та режимом стеження.",
-        "Відображення планет — плавніші переходи частинок, перекриттів і LOD; м’які тіні Місяця та Європи й світліші тіні кілець Сатурна.",
-        "Керування й картки — режими Сонячної системи/сузір’їв, розгортане меню обертання, поліпшені компонування та переклади.",
-        "Нова фонова музика — Deep Space Journey від Maryan Dembitskyi.",
-        "Продуктивність і завантаження — оптимізовано тло, сонячне сяйво й сузір’я; спільні розрахунки частинок і кеш побудови текстур.",
-        "Доповнені посібники — інструкції та ілюстрований путівник сузір’ями, уточнені довідка й клавіші швидкого доступу."
+        "Додано лінії та стеження для 22 сузір’їв, астеризмів і зір.",
+        "Поліпшено переходи частинок, перекриттів і текстур, а також тіні супутників і кілець Сатурна.",
+        "Поліпшено керування сузір’ями, меню обертання, картки та переклади.",
+        "Deep Space Journey від Maryan Dembitskyi додано до фонової музики.",
+        "Оптимізовано відтворення й завантаження тла, сонячного сяйва, сузір’їв і текстур.",
+        "Додано інструкції, ілюстрований путівник і зрозумілішу довідку про клавіші."
       ]
     }
   },

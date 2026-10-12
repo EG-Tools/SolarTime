@@ -4,12 +4,12 @@ Current and past Solar Time updates, listed from newest to oldest.
 
 ## v0.77 · 2026.10.12
 
-- Constellation exploration — 22 constellations, asterisms and stars with connecting lines and tracking.
-- Planet rendering — smoother particle, occlusion and texture LOD transitions; soft Moon and Europa shadows and lighter Saturn ring shadows.
-- Controls and cards — solar system/constellation modes, an expandable rotation menu, cleaner layout and translations.
-- New background music — Deep Space Journey by Maryan Dembitskyi.
-- Performance and loading — improved backgrounds, solar glow and constellations; shared particle calculations and cached texture builds.
-- Expanded guides — constellation instructions and an illustrated guide, plus clearer help and keyboard shortcuts.
+- Added connecting lines and tracking for 22 constellations, asterisms and stars.
+- Smoothed particle, occlusion and texture transitions, and refined satellite and Saturn ring shadows.
+- Improved constellation controls, the rotation menu, card layout and translations.
+- Added Deep Space Journey by Maryan Dembitskyi to the background music.
+- Reduced rendering and loading costs for backgrounds, solar glow, constellations and textures.
+- Added constellation instructions, an illustrated guide and clearer shortcut help.
 
 ## v0.76 · 2026.10.09
 
