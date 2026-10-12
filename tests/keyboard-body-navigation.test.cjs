@@ -9,7 +9,7 @@ test('left and right arrows follow the visible footer body order with wraparound
   assert.match(app,/key==='arrowleft'\|\|key==='arrowright'/);
   assert.match(app,/const direction=key==='arrowright'\?1:-1/);
   assert.match(app,/if\(renderer\.skyFeatureShortcutMode\|\|selectedSkyFeature\)navigateSkyFeature\(direction\)/);
-  assert.match(app,/else if\(renderer\.earthRegionNavigationActive\)navigateRegion\(direction\)/);
+  assert.match(app,/else if\(renderer\.earthRegionNavigationActive&&\(!renderer\.selected\|\|renderer\.selected==='earth'\)\)navigateRegion\(direction\)/);
   assert.match(app,/else navigateBody\(direction\)/);
 });
 

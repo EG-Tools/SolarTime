@@ -1575,7 +1575,7 @@
         if(key==='arrowleft'||key==='arrowright'){
           event.preventDefault();event.stopPropagation();const direction=key==='arrowright'?1:-1;
           if(renderer.skyFeatureShortcutMode||selectedSkyFeature)navigateSkyFeature(direction);
-          else if(renderer.earthRegionNavigationActive)navigateRegion(direction);
+          else if(renderer.earthRegionNavigationActive&&(!renderer.selected||renderer.selected==='earth'))navigateRegion(direction);
           else navigateBody(direction);return;
         }
         if(key==='+'||key==='='||physical==='NumpadAdd'){
