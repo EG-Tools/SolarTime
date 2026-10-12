@@ -2472,6 +2472,9 @@
     }
     smoothDolly(value,focusId=null,mono=performance.now()) {
       if(!Number.isFinite(value))return false;
+      // Pausing freezes the shared cinematic clock. Manual wheel travel must
+      // still work, so commit it through the existing direct camera owner.
+      if(this.animationPaused){this.setDolly(value,focusId);return true;}
       const to=this.cameraInputState(mono);to.dolly=clamp(value,VIEW.minDolly,VIEW.maxDolly);
       const validTarget=focusId&&this.sceneBodies().some(b=>b.id===focusId);
       const anchored=validTarget&&to.focus!==focusId?this.screenAnchoredPan(focusId,to):null;

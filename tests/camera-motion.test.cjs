@@ -147,6 +147,13 @@ test('wheel background parallax follows each eased camera frame, not the target 
  r.animateCamera({...r.cameraSnapshot(),dolly:from*2},300,150);r.advanceCamera(450);
  close(r.manualBackgroundStars.offset[2],0);
 });
+test('paused simulation still accepts wheel travel without advancing the animation clock',()=>{
+ const {r}=renderer(),before=r.camera.dolly;
+ r.setAnimationPaused(true,100);
+ assert.equal(r.smoothDolly(before*1.5,null,200),true);
+ close(r.camera.dolly,before*1.5);assert.equal(r.cameraTween,null);
+ r.advanceCamera(1000);close(r.camera.dolly,before*1.5);
+});
 
 test('opening and warp arrival reveal the whole solar system on their camera clock',()=>{
  const {r}=renderer(),target=r.cameraSnapshot();
