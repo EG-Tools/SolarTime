@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "revision": "assetpack-20260930-r1",
-  "generatedAt": "2026-10-11T23:43:19.801Z",
+  "generatedAt": "2026-10-12T22:20:20.515Z",
   "materials": {
     "clouds-alt": {
       "remoteOnly": true,
@@ -817,9 +817,9 @@
     },
     "08 - Deep Space Journey.mp3": {
       "source": "music/08 - Deep Space Journey.mp3",
-      "path": "releases/content/music/08 - Deep Space Journey.f9b2691de45beb9f.mp3",
-      "bytes": 3045992,
-      "sha256": "f9b2691de45beb9f5f8b617ea2facc36187a4e013ee1ff3c1f46ad3eed655817"
+      "path": "releases/content/music/08 - Deep Space Journey.65d33e959349a4d2.mp3",
+      "bytes": 3066728,
+      "sha256": "65d33e959349a4d2fe7bc2a1f48d70969c554b44e9048c490126d2d164aa6863"
     }
   }
 }
