@@ -55,6 +55,14 @@ def verify_cloud_weather(browser, root, check, diagnostics=None):
             while(direct.cloudWeather.pending){if(performance.now()>weatherDeadline)throw Error('Weather preparation timeout');await new Promise(resolve=>setTimeout(resolve,5));}
             direct.cloudWeather.readyAt=-Infinity; // Compare completed detailed frames after cooperative preparation.
             direct.begin();direct.planet(job,{id:'earth'},{x:64,y:64},64,0,false);
+            // Compare completed material layers, not the newly added initial
+            // cloud-map fade. Keep rendering so every queued layer can settle.
+            const lodDeadline=performance.now()+5000;
+            while(direct.lodState?.layer>=0){
+              if(performance.now()>lodDeadline)throw Error('Cloud material fade did not settle');
+              await new Promise(requestAnimationFrame);
+              direct.begin();direct.planet(job,{id:'earth'},{x:64,y:64},64,0,false);
+            }
             const directPixels=new Uint8Array(128*128*4);gl.readPixels(0,0,128,128,gl.RGBA,gl.UNSIGNED_BYTE,directPixels);
             await gpu.render(job);const gpuPixels=new Uint8Array(128*128*4);
             gpu.gl.readPixels(0,0,128,128,gpu.gl.RGBA,gpu.gl.UNSIGNED_BYTE,gpuPixels);
