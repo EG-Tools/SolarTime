@@ -52,6 +52,7 @@
     "no": "No",
     "bodyNames": "Nomi dei corpi",
     "avoidLabels": "Evita sovrapposizione delle etichette",
+    "showClock": "Mostra orologio",
     "showSeconds": "Mostra i secondi",
     "hourCycle": "Formato 24 ore",
     "hourCycleAria": "Formato 24 ore. Attivo: 24 ore; disattivo: 12 ore.",

@@ -105,8 +105,12 @@ def suite(browser,root,size,installed):
  check(not page.locator('#timer-panel').is_visible(),tag+' settings closes timer')
  settings_surface=surface(page,'#settings-panel')
  check(page.locator('#hour-cycle').count()==0,tag+' duplicate 24-hour setting removed')
- order=page.locator('#settings-scroll').evaluate("e=>['star-density','clock-size','clock-font','show-seconds','show-labels','avoid-labels','show-moon','show-pluto','show-comets'].map(id=>[...e.querySelectorAll('[id]')].findIndex(n=>n.id===id))")
+ order=page.locator('#settings-scroll').evaluate("e=>['star-density','clock-size','clock-font','show-clock','show-seconds','show-labels','avoid-labels','show-moon','show-pluto','show-comets'].map(id=>[...e.querySelectorAll('[id]')].findIndex(n=>n.id===id))")
  check(all(order[i]<order[i+1] for i in range(len(order)-1)),tag+' requested setting order')
+ page.locator('#show-clock').uncheck();page.wait_for_timeout(30)
+ check(page.locator('#clock-face').evaluate('e=>e.hidden') and page.evaluate("JSON.parse(localStorage.getItem('eg.solar-time.v0.01')).clockVisible") is False,tag+' complete clock block hides and persists')
+ page.locator('#show-clock').check();page.wait_for_timeout(30)
+ check(not page.locator('#clock-face').evaluate('e=>e.hidden') and page.evaluate("JSON.parse(localStorage.getItem('eg.solar-time.v0.01')).clockVisible") is True,tag+' clock block restores')
  status_y_100=box(page,'.scene-status')['y']
  page.locator('#clock-size').evaluate("e=>{e.value='200';e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));}")
  check(page.locator('#clock-size-output').inner_text()=='200%' and page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--clock-scale').trim()==='2'"),tag+' clock size reaches 200 percent')

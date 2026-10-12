@@ -51,6 +51,17 @@ test('constellation solar display keeps a coherent five-percent scene and OFF re
  assert.equal(r.setSkySolarDisplay(false),true);assert.equal(r.solarSceneHidden(100),true);close(r.solarSceneAppearance().scale,.05);close(r.solarSceneAppearance().alpha,0);
  assert.equal(r.setSkySolarDisplay(true),true);assert.equal(r.solarSceneHidden(100),false);
 });
+test('compact solar selection ignores close-up bodies clipped outside the viewport',()=>{
+ const {r}=renderer();r.skySolarMix=1;r.skyFeatureTrack={id:'polaris'};
+ r.frameBodies=[
+  {body:{id:'sun'},screen:{x:640,y:400,behind:false},r:20},
+  {body:{id:'earth'},screen:{x:1e6,y:0,behind:false},r:100}
+ ];
+ const target=r.updateSkySolarTarget({x:640,y:400,scale:.05});
+ assert.deepEqual(plain(target),{x:640,y:400,r:13});
+ r.frameBodies.push({body:{id:'earth'},screen:{x:640,y:400,behind:false},r:1e4});
+ assert.deepEqual(plain(r.updateSkySolarTarget({x:640,y:400,scale:.05})),{x:640,y:400,r:42});
+});
 
 test('star tracking wheel travel retains lateral distance through tween, save and return',()=>{
  const {r,R}=renderer();r.camera={...r.camera,panX:.1,panY:.7,dolly:.4,panDolly:.4};

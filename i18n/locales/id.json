@@ -52,6 +52,7 @@
     "no": "Tidak",
     "bodyNames": "Nama benda langit",
     "avoidLabels": "Cegah tumpang tindih nama",
+    "showClock": "Tampilkan jam",
     "showSeconds": "Tampilkan detik",
     "hourCycle": "Format 24 jam",
     "hourCycleAria": "Format 24 jam. Aktif berarti 24 jam, nonaktif berarti 12 jam.",

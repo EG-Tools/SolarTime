@@ -52,6 +52,7 @@
     "no": "Non",
     "bodyNames": "Noms des astres",
     "avoidLabels": "Éviter le chevauchement des noms",
+    "showClock": "Afficher l’horloge",
     "showSeconds": "Afficher les secondes",
     "hourCycle": "Format 24 heures",
     "hourCycleAria": "Format 24 heures. Activé : 24 heures, désactivé : 12 heures",

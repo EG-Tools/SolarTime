@@ -49,6 +49,24 @@ module.exports=async({evaluate,send,session,until,mouse})=>{
   await evaluate('SolarTime.renderer.setSkyFeatureDisplay("polaris",false)');
  }
  const ids=await evaluate('Object.keys(SolarSky.FEATURES)');assert.equal(ids.length,22);
+ // Viewing mode hides the surrounding interface but keeps intentional scene cards.
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'h',code:'KeyH'},session);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'h',code:'KeyH'},session);
+ await until('document.body.classList.contains("zen")');await until('SolarTime.renderer.hitTargets.length>0');
+ const bodyPoint=await evaluate(`(()=>{const r=SolarTime.renderer;return r.hitTargets.find(p=>p.x>20&&p.x<r.w-20&&p.y>20&&p.y<r.h-20&&r.hit(p.x,p.y)===p.id);})()`);
+ assert.ok(bodyPoint,'viewing mode needs a visible planet target');
+ await mouse('mousePressed',bodyPoint.x,bodyPoint.y,'left',1);await mouse('mouseReleased',bodyPoint.x,bodyPoint.y,'left',0);
+ await until('!document.getElementById("body-panel").hidden');
+ assert.equal(await evaluate('document.getElementById("body-panel").classList.contains("sky-feature")'),false);
+ await evaluate('document.getElementById("body-close").click()');
+ await evaluate('(()=>{const r=SolarTime.renderer;r.animateCamera({...r.camera,...r.sky.featureCameraPose("big-dipper",.5,.5)},performance.now(),100);r.setSkyFeatureDisplay("big-dipper",true);})()');
+ await until('!SolarTime.renderer.cameraTween');await until('SolarTime.renderer.sky.featureLineVisual("big-dipper").trace===1');
+ const zenFeaturePoint=await evaluate(`(()=>{const r=SolarTime.renderer,e=r.sky.updateSkyFeatures().find(e=>e.feature.id==='big-dipper');return e.feature.edges.map(([a,b])=>e.points[a]&&e.points[b]?{x:(e.points[a].x+e.points[b].x)/2,y:(e.points[a].y+e.points[b].y)/2}:null).find(p=>p&&p.x>20&&p.x<r.w-20&&p.y>20&&p.y<r.h-20&&r.skyFeatureHit(p.x,p.y)==='big-dipper');})()`);
+ assert.ok(zenFeaturePoint,'viewing mode needs a visible constellation target');
+ await mouse('mousePressed',zenFeaturePoint.x,zenFeaturePoint.y,'left',1);await mouse('mouseReleased',zenFeaturePoint.x,zenFeaturePoint.y,'left',0);
+ await until('document.getElementById("body-panel").classList.contains("sky-feature")');
+ await evaluate('document.getElementById("body-close").click()');
+ await send('Input.dispatchKeyEvent',{type:'keyDown',key:'h',code:'KeyH'},session);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'h',code:'KeyH'},session);
+ await until('!document.body.classList.contains("zen")');
  const beforeToggle=await evaluate('SolarTime.renderer.cameraSnapshot()');
  await evaluate('SolarTime.renderer.setSkyFeatureDisplay("big-dipper",true)');
  for(const expected of [22,0]){

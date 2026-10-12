@@ -6,6 +6,7 @@
   const ACTUAL_ORBIT_SPACING=Object.freeze({normalBlendEnd:.1,minimumMix:.01});
   const ACTUAL_SCALE_TRANSITION=Object.freeze({duration:2000,homeDuration:1100});
   const SKY_SOLAR_SCALE=.05;
+  const SKY_SOLAR_TARGET_RADIUS=Object.freeze({min:13,max:42});
   const OVERVIEW_GAP_MULTIPLIER=1.5;
   // The radial map includes transparent inner padding: visible ink starts
   // near 1.35 Saturn radii, not the texture quad's 1.28 boundary.
@@ -3762,9 +3763,13 @@
       for(const item of this.frameBodies||[]){
         const screen=item.screen;if(!screen||screen.behind||!Number.isFinite(screen.x+screen.y+item.r))continue;
         const x=appearance.x+(screen.x-appearance.x)*appearance.scale,y=appearance.y+(screen.y-appearance.y)*appearance.scale;
-        radius=Math.max(radius,Math.hypot(x-appearance.x,y-appearance.y)+this.bodyVisibleRadius(item.body,item.r)*appearance.scale);found=true;
+        const visibleRadius=this.bodyVisibleRadius(item.body,item.r)*appearance.scale;
+        // A close-up camera can leave other planets many viewports away. They
+        // are clipped from the compact composite and must not enlarge its hit ring.
+        if(!this.visible({x,y,behind:false},visibleRadius))continue;
+        radius=Math.max(radius,Math.hypot(x-appearance.x,y-appearance.y)+visibleRadius);found=true;
       }
-      const target=found&&this.visible({x:appearance.x,y:appearance.y,behind:false},radius)?{x:appearance.x,y:appearance.y,r:Math.max(13,radius)}:null;
+      const target=found&&this.visible({x:appearance.x,y:appearance.y,behind:false},radius)?{x:appearance.x,y:appearance.y,r:clamp(radius,SKY_SOLAR_TARGET_RADIUS.min,SKY_SOLAR_TARGET_RADIUS.max)}:null;
       this.skySolarTarget=target;return target;
     }
     drawSkySolarGuide(c,target,mono){

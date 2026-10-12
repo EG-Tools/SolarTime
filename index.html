@@ -24,7 +24,7 @@
   <script src="src/usage-analytics.js?v=889c5a4755d5"></script>
   <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
   <script src="src/page-runtime.js?v=839041070d8d"></script>
-  <link rel="stylesheet" href="styles.css?v=cee3eebaa092">
+  <link rel="stylesheet" href="styles.css?v=abe48f608c5e">
   <link rel="stylesheet" href="src/runtime-optimizations.css?v=597524e1efde">
 </head>
 <body>
@@ -95,7 +95,7 @@
   </header>
   <audio id="background-music" preload="none" hidden></audio>
 
-  <main class="clock-face">
+  <main id="clock-face" class="clock-face">
     <p class="eyebrow">EVERY MOMENT, IN ORBIT</p>
     <time id="wall-clock" class="wall-clock" aria-label="현재 기기 시각" title="시계 숫자 폰트" data-i18n-title="clockFont"><span id="hours">00</span><span class="colon">:</span><span id="minutes">00</span><span id="seconds-group" hidden><span class="colon">:</span><span id="seconds">00</span></span><span id="ampm" class="ampm" role="button" tabindex="0" aria-label="24시간 표기. 켜면 24시간, 끄면 12시간" data-i18n-aria="hourCycleAria">PM</span></time>
     <div class="date-line"><span id="wall-date">시간을 불러오는 중</span><span class="date-divider"></span><span id="timezone-button" class="timezone-readout">LOCAL</span><button id="timezone-reset" class="range-reset timezone-reset" type="button" aria-label="기본 국가로 초기화" data-i18n-aria="resetDefaults" disabled></button></div>
@@ -120,6 +120,7 @@
       <option value="arial">Arial</option><option value="georgia">Georgia</option><option value="times">Times New Roman</option>
       <option value="cascadia">Cascadia Mono</option><option value="consolas">Consolas</option><option value="lucida">Lucida Console</option>
     </select></div>
+    <div class="setting-row"><label for="show-clock" data-i18n="showClock">시계 표시</label><input id="show-clock" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-seconds" data-i18n="showSeconds">시계 초 표시</label><input id="show-seconds" type="checkbox" role="switch"></div>
     <div class="setting-row"><label for="show-labels" data-i18n="bodyNames">천체 이름</label><input id="show-labels" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="avoid-labels" data-i18n="avoidLabels">이름 겹침 자동 정리</label><input id="avoid-labels" type="checkbox" role="switch"></div>
@@ -492,9 +493,9 @@ Adjusted size and distance scale</span></span>
   <script defer src="src/sky.js?v=e1c5e4b97048"></script>
   <script defer src="src/visual-effects.js?v=c1dee6764ab0"></script>
   <script defer src="src/ring-tour.js?v=4c86fac930ba"></script>
-  <script defer src="src/renderer.js?v=b6faab041577"></script>
+  <script defer src="src/renderer.js?v=7b25ee476df3"></script>
   <script defer src="src/performance.js?v=4ac7ad7ac498"></script>
-  <script defer src="src/language-data.js?v=3c100a471f09"></script>
+  <script defer src="src/language-data.js?v=c7d6b5cf644e"></script>
   <script defer src="src/localization.js?v=2805a44f18ff"></script>
   <script defer src="src/preferences.js?v=292d73007ea4"></script>
   <script defer src="src/ui-runtime.js?v=e29bec08c929"></script>
@@ -505,7 +506,7 @@ Adjusted size and distance scale</span></span>
   <script defer src="src/music-player.js?v=59c6928f8573"></script>
   <script defer src="src/adsense.js?v=b76b7bd64d36"></script>
   <script defer src="src/cookie-consent.js?v=1494a5b88bc9"></script>
-  <script defer src="src/app.js?v=242df94bdbf5"></script>
+  <script defer src="src/app.js?v=ab064bc20f3e"></script>
   <!-- Cloudflare Web Analytics -->
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}'></script>
   <!-- End Cloudflare Web Analytics -->

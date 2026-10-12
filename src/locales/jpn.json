@@ -52,6 +52,7 @@
     "no": "いいえ",
     "bodyNames": "天体名",
     "avoidLabels": "ラベルの重なりを自動調整",
+    "showClock": "時計を表示",
     "showSeconds": "時計に秒を表示",
     "hourCycle": "24時間表示",
     "hourCycleAria": "24時間表示。オンは24時間、オフは12時間",

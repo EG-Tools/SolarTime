@@ -52,6 +52,7 @@
     "no": "否",
     "bodyNames": "天體名稱",
     "avoidLabels": "自動避免名稱重疊",
+    "showClock": "顯示時鐘",
     "showSeconds": "顯示時鐘秒數",
     "hourCycle": "24小時制",
     "hourCycleAria": "24小時制。開啟為24小時，關閉為12小時",

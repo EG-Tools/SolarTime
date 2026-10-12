@@ -52,6 +52,7 @@
     "no": "Nee",
     "bodyNames": "Namen van hemellichamen",
     "avoidLabels": "Overlappende labels voorkomen",
+    "showClock": "Klok tonen",
     "showSeconds": "Seconden op de klok tonen",
     "hourCycle": "24-uursklok",
     "hourCycleAria": "24-uursklok. Aan voor 24 uur, uit voor 12 uur",

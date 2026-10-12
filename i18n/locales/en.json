@@ -52,6 +52,7 @@
     "no": "No",
     "bodyNames": "Body names",
     "avoidLabels": "Prevent label overlap",
+    "showClock": "Show clock",
     "showSeconds": "Show clock seconds",
     "hourCycle": "24-hour clock",
     "hourCycleAria": "24-hour clock. On is 24-hour, off is 12-hour",

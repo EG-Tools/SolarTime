@@ -52,6 +52,7 @@
     "no": "No",
     "bodyNames": "Nombres de los cuerpos",
     "avoidLabels": "Evitar nombres superpuestos",
+    "showClock": "Mostrar reloj",
     "showSeconds": "Mostrar segundos",
     "hourCycle": "Formato de 24 horas",
     "hourCycleAria": "Formato de 24 horas. Activado: 24 horas; desactivado: 12 horas",

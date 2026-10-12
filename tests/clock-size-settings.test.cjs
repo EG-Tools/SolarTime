@@ -3,11 +3,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..'),read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
 test('clock size uses the shared slider and the requested settings order',()=>{
- const html=read('index.html'),ids=['star-density','clock-size','clock-font','show-seconds','show-labels','avoid-labels','show-moon','show-pluto','show-comets'];
+ const html=read('index.html'),ids=['star-density','clock-size','clock-font','show-clock','show-seconds','show-labels','avoid-labels','show-moon','show-pluto','show-comets'];
  let previous=-1;for(const id of ids){const index=html.indexOf('id="'+id+'"');assert.ok(index>previous,id);previous=index;}
  assert.match(html,/id="clock-size" class="solar-range" type="range" min="50" max="200" step="5" value="100"/);
  assert.doesNotMatch(html,/id="hour-cycle"/);
- assert.match(html,/<main class="clock-face">[\s\S]*class="date-line"[\s\S]*class="scene-status ui"[\s\S]*<\/main>/);
+ assert.match(html,/<main id="clock-face" class="clock-face">[\s\S]*class="date-line"[\s\S]*class="scene-status ui"[\s\S]*<\/main>/);
 });
 
 test('clock size is restored, persisted, reset and applied through one CSS scale',()=>{

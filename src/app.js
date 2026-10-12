@@ -168,7 +168,7 @@
       let countryBordersPromise=null;
       const loadCountryBorders=()=>countryBordersPromise||(countryBordersPromise=UI.loadScript(COUNTRY_BORDERS_SOURCE,'SolarCountryBorders').then(data=>{if(!disposed)renderer.setCountryBorders(data);return data;}).catch(error=>{countryBordersPromise=null;throw error;}));
       const clock=new A.SimulationClock(Date.now(),performance.now());
-      let timezone='local',showSeconds=false,hourCycle='12',clockSize=1,language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),temporaryRegionId=null,zen=false,raf=0,clockFitFrame=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
+      let timezone='local',clockVisible=true,showSeconds=false,hourCycle='12',clockSize=1,language=detectedLanguage(),languageMode='auto',activeCopyCode=detectedCopyLanguage(),autoTimeZone=detectedTimeZone(),temporaryRegionId=null,zen=false,raf=0,clockFitFrame=0,lastFrame=0,effectTime=0,lastWallKey='',lastUi=0,disposed=false;
       cleanups.push(()=>{disposed=true;cancelAnimationFrame(raf);cancelAnimationFrame(clockFitFrame);});
       let speedMode='hour',speedValues={hour:1,day:1,year:1},timerController=null;
       const activeRegionId=()=>REGIONS[language]?language:'kor';
@@ -292,6 +292,7 @@
           if(Number.isFinite(saved.actualOrbitSpacing))renderer.options.actualOrbitSpacing=A.clamp(saved.actualOrbitSpacing,0,1);
           if(saved.languageMode==='auto'){languageMode='auto';language=detectedLanguage();}
           else if(LANG_ORDER.includes(saved.language)){language=saved.language;languageMode='manual';}
+          if(typeof saved.clockVisible==='boolean')clockVisible=saved.clockVisible;
           if(typeof saved.showSeconds==='boolean')showSeconds=saved.showSeconds;
           if(saved.hourCycle==='12'||saved.hourCycle==='24')hourCycle=saved.hourCycle;
           if(Number.isFinite(saved.clockSize))clockSize=A.clamp(saved.clockSize,.5,2);
@@ -420,6 +421,7 @@
       translateStatic();
       renderer.resize();
       for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
+      $('show-clock').checked=clockVisible;$('clock-face').hidden=!clockVisible;
       $('show-seconds').checked=showSeconds;$('seconds-group').hidden=!showSeconds;
       $('ampm').hidden=false;syncHourCycleUi();
       $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
@@ -495,7 +497,7 @@
         // every in-flight frame are temporary, not the user's last viewpoint.
         const camera=openingActive?{...openingCameraTarget}:renderer.ringTour?{...(renderer.ringTour.returnTarget||renderer.cameraSnapshot())}:renderer.cameraTween?{...renderer.cameraTween.to}:renderer.cameraSnapshot(),rotationMode=renderer.randomRotateEnabled?'random':renderer.autoRotateDirection;
         if(camera.focus===null)overviewCamera={...camera,focus:null};
-        Preferences.write(STORAGE_KEY,{...renderer.options,skyFeatureDisplay:renderer.skyFeatureDisplayPreferences(),skyFeatureDisplayMaster:renderer.skyFeatureDisplayMaster(),skySolarDisplay:renderer.skySolarDisplay(),bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),rotationMode,autoRotateDirection:renderer.autoRotateDirection,timezone,showSeconds,hourCycle,clockSize,clockFont,speedMode,speedValues,language,languageMode,camera,overviewCamera,cameraControlVersion:4,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});
+        Preferences.write(STORAGE_KEY,{...renderer.options,skyFeatureDisplay:renderer.skyFeatureDisplayPreferences(),skyFeatureDisplayMaster:renderer.skyFeatureDisplayMaster(),skySolarDisplay:renderer.skySolarDisplay(),bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),rotationMode,autoRotateDirection:renderer.autoRotateDirection,timezone,clockVisible,showSeconds,hourCycle,clockSize,clockFont,speedMode,speedValues,language,languageMode,camera,overviewCamera,cameraControlVersion:4,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});
       }
       let cameraUiSignature='';
       function cameraUi(force=false) {
@@ -997,6 +999,7 @@
       $('clock-size').addEventListener('input',()=>{clockSize=Number($('clock-size').value)/100;syncClockSizeControl();});
       $('clock-size').addEventListener('change',persist);
       $('clock-size-reset').addEventListener('click',()=>{clockSize=1;syncClockSizeControl();persist();});
+      $('show-clock').addEventListener('change',()=>{clockVisible=$('show-clock').checked;$('clock-face').hidden=!clockVisible;if(clockVisible)scheduleClockFit();persist();});
       $('show-seconds').addEventListener('change',()=>{showSeconds=$('show-seconds').checked;$('seconds-group').hidden=!showSeconds;lastWallKey='';scheduleClockFit();uiNow();persist();});
       function setHourCycle(next){hourCycle=next==='24'?'24':'12';$('ampm').hidden=false;syncHourCycleUi();lastWallKey='';uiNow();persist();}
       const toggleHourCycle=()=>setHourCycle(hourCycle==='12'?'24':'12');
@@ -1022,9 +1025,9 @@
         renderer.setBodyScales(FACTORY_BODY_SCALES);renderer.setSatelliteOrbitScales(FACTORY_ORBIT_SCALES);
         renderer.restoreCamera(renderer.defaultCameraSnapshot());renderer.setAutoRotate(FACTORY_AUTO_ROTATE,mono);overviewCamera=renderer.defaultCameraSnapshot();keyboardTrackingReturn=null;
         A.calibrateAt(Date.now());clock.now(mono);eclipseTargets.clear();alignmentTarget=null;renderer.setAlignmentGuide(null);renderer.invalidateSurfaces();
-        timezone='local';showSeconds=false;hourCycle='12';clockSize=1;clockFont='georgia';speedMode='hour';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;temporaryRegionId=null;
+        timezone='local';clockVisible=true;showSeconds=false;hourCycle='12';clockSize=1;clockFont='georgia';speedMode='hour';speedValues={hour:1,day:1,year:1};language=nextLanguage;languageMode='auto';activeCopyCode=nextCopy;autoTimeZone=nextTimeZone;temporaryRegionId=null;
         renderer.setSite(localizedSite(activeRegion()));for(const [key,id] of Object.entries(validKeys))$(id).checked=renderer.options[key];
-        $('show-seconds').checked=showSeconds;$('seconds-group').hidden=true;$('ampm').hidden=false;syncHourCycleUi();
+        $('show-clock').checked=clockVisible;$('clock-face').hidden=false;$('show-seconds').checked=showSeconds;$('seconds-group').hidden=true;$('ampm').hidden=false;syncHourCycleUi();
         $('clock-font').value=clockFont;document.documentElement.style.setProperty('--clock-font',CLOCK_FONTS[clockFont]);
         translateStatic();refreshTimeFormats();refreshNavLabels();syncOrbitSpacingControl();syncOrbitBrightnessControl();syncStarDensityControl();syncClockSizeControl();syncSpeedUi();cameraUi();navVisibility();closeBody();lastWallKey='';uiNow();persist();toast(t('resetComplete'));
       }
@@ -1248,7 +1251,8 @@
         $('zen-toggle').setAttribute('aria-pressed',String(zen));$('zen-toggle').setAttribute('aria-label',t(zen?'zenOff':'zenOn'));$('zen-toggle').title=t(zen?'normalMode':'zenMode')+' · H';
         // Keep the complete clock/date/timezone block pixel-identical in zen mode.
         // One timezone element is shared by both modes, so SEOUL/UTC never swaps or disappears.
-        for(const el of document.querySelectorAll('.ui,#timezone-button'))el.inert=zen;
+        for(const el of document.querySelectorAll('.ui:not(#body-panel),#timezone-button'))el.inert=zen;
+        $('body-panel').inert=false;
         renderer.hover=null;
         if(zen){$('universe').focus({preventScroll:true});wakePointer();}
         else {$('zen-toggle').focus({preventScroll:true});for(const group of viewControlGroups){group.inert=false;group.setAttribute('aria-hidden','false');}}
@@ -1438,7 +1442,7 @@
       canvas.addEventListener('pointermove',event=>{
         const p=pointerPosition(event);
         if(!pointers.has(event.pointerId)) {
-          const ring=renderer.ringTourHit(p.x,p.y),region=zen||ring?null:earthRegionAt(p),hover=zen||ring?null:renderer.hit(p.x,p.y),solar=zen||ring||region||hover?false:renderer.skySolarHit(p.x,p.y),skyFeature=zen||ring||region||hover||solar?null:renderer.skyFeatureHit(p.x,p.y);
+          const ring=renderer.ringTourHit(p.x,p.y),region=zen||ring?null:earthRegionAt(p),hover=ring?null:renderer.hit(p.x,p.y),solar=ring||region||hover?false:renderer.skySolarHit(p.x,p.y),skyFeature=ring||region||hover||solar?null:renderer.skyFeatureHit(p.x,p.y);
           if(region&&!renderer.countryBorders)loadCountryBorders().catch(()=>{});
           renderer.setEarthRegionHover(region);
           renderer.setSkyFeatureHover(skyFeature);
@@ -1479,8 +1483,8 @@
           if(ringTarget)startRingTravel(ringTarget);
           else if(!renderer.ringTour){
             const region=zen?null:earthRegionAt(p);
-            const body=zen?null:renderer.hit(p.x,p.y),solar=zen||region||body?false:renderer.skySolarHit(p.x,p.y),skyFeature=zen||region||body||solar?null:renderer.skyFeatureHit(p.x,p.y);
-            if(region)setTemporaryRegion(region.id);else if(skyFeature)selectSkyFeature(skyFeature);else if(!solar&&!zen)selectBody(body);
+            const body=renderer.hit(p.x,p.y),solar=region||body?false:renderer.skySolarHit(p.x,p.y),skyFeature=region||body||solar?null:renderer.skyFeatureHit(p.x,p.y);
+            if(region)setTemporaryRegion(region.id);else if(body)selectBody(body);else if(skyFeature)selectSkyFeature(skyFeature);else if(!solar&&!zen)selectBody(null);
             settings(false);
           }
         }
@@ -1738,7 +1742,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){firstHelpPending=helpReminder.visit();renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive&&!openingDeparture&&!clock.paused)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.77',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.77',revision:'r1',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);if(openingRunMode!=='none')renderer.startOpeningPointReveal(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

@@ -52,6 +52,7 @@
     "no": "아니오",
     "bodyNames": "천체 이름",
     "avoidLabels": "이름 겹침 자동 정리",
+    "showClock": "시계 표시",
     "showSeconds": "시계 초 표시",
     "hourCycle": "24시간 표기",
     "hourCycleAria": "24시간 표기. 켜면 24시간, 끄면 12시간",

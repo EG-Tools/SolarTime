@@ -52,6 +52,7 @@
     "no": "Nein",
     "bodyNames": "Himmelskörpernamen",
     "avoidLabels": "Überlappende Namen vermeiden",
+    "showClock": "Uhr anzeigen",
     "showSeconds": "Sekunden anzeigen",
     "hourCycle": "24-Stunden-Anzeige",
     "hourCycleAria": "24-Stunden-Anzeige. Ein: 24 Stunden, aus: 12 Stunden",
