@@ -196,7 +196,7 @@ test('opening and warp arrival reveal the whole solar system on their camera clo
  close(r.replayPresentation(7100).solar,0);
  for(const [age,alpha] of [[0,0],[1000,.5],[2000,1]])close(r.replayPresentation(arrival+age).solar,alpha);
  r.gpu={canvas:{style:{opacity:'',transition:'opacity .2s'}}};
- r.setReplaySolarOpacity(.5);assert.equal(r.gpu.canvas.style.opacity,'1');assert.equal(r.gpu.canvas.style.visibility,undefined);
+ r.setReplaySolarOpacity(.5);assert.equal(r.gpu.canvas.style.opacity,'0.5');assert.equal(r.gpu.canvas.style.visibility,undefined);
  r.cancelCameraTween(arrival+1000);assert.equal(r.gpu.canvas.style.opacity,'');
  close(r.replayPresentation(arrival+1000).solar,1);
 });
@@ -980,11 +980,11 @@ test('Space resume shifts sky sampling clocks so a paused handoff cannot catch u
 
 
 
-test('T keeps planet surfaces opaque, hides them as a binary layer and restores the prior style',()=>{
+test('T fades planet surfaces with the scene and restores the prior style',()=>{
  const {r}=renderer(),style={opacity:'.8',transition:'opacity .4s'},sizes=JSON.stringify(r.bodyScales);
  r.gpu={canvas:{style}};
  r.setReplaySolarOpacity(.4);r.setReplaySolarOpacity(0);
- assert.equal(style.opacity,'1');assert.equal(style.visibility,'hidden');assert.equal(style.transition,'none');
+ assert.equal(style.opacity,'0');assert.equal(style.visibility,'hidden');assert.equal(style.transition,'none');
  r.setReplaySolarOpacity(1);
  assert.deepEqual(style,{opacity:'.8',transition:'opacity .4s'});assert.equal(r.replayLayerStyle,null);
  const target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,5000);

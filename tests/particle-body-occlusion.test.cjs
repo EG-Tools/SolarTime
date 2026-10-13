@@ -44,13 +44,16 @@ test('opening, Saturn entry and ring-flight particles all share the body clippin
  assert.equal(drawn,true);assert.deepEqual(c.calls.map(row=>row[0]),['save','restore']);
 });
 
-test('planet layer visibility is binary and previous styles are restored',()=>{
+test('planet layer follows the continuous scene envelope and restores styles',()=>{
  const style={opacity:'.8',transition:'opacity .4s',visibility:''},r=Object.assign(Object.create(R),{gpu:{canvas:{style}}});
- r.setReplaySolarOpacity(.4);assert.deepEqual(style,{opacity:'1',transition:'none',visibility:''});
- r.setReplaySolarOpacity(0);assert.deepEqual(style,{opacity:'1',transition:'none',visibility:'hidden'});
+ for(let step=0;step<100;step++){const alpha=step/100;r.setReplaySolarOpacity(alpha);assert.ok(Math.abs(Number(style.opacity)-alpha*.8)<1e-12);assert.equal(style.visibility,step?'':'hidden');assert.equal(style.transition,'none');}
  r.setReplaySolarOpacity(1);assert.deepEqual(style,{opacity:'.8',transition:'opacity .4s',visibility:''});
- const source=fs.readFileSync(require.resolve('../src/renderer.js'),'utf8');
- assert.match(source,/c\.globalAlpha=1;\s*bodies\.sort/,'solid body rendering resets the orbit reveal alpha');
- assert.doesNotMatch(source,/this\.ctx\.globalAlpha=solar/);
- assert.doesNotMatch(source,/style\.opacity=String\(alpha\)/);
+ for(let step=100;step>=0;step--){r.setReplaySolarOpacity(step/100);assert.ok(Math.abs(Number(style.opacity)-step/100*.8)<1e-12);}
+ r.setReplaySolarOpacity(1);assert.equal(style.opacity,'.8');
+});
+
+test('GPU surface masks share scene opacity without abruptly erasing point cores',()=>{
+ const r=Object.assign(Object.create(R),{dpr:2}),values=[];const c={globalAlpha:1,save(){this.before=this.globalAlpha;},restore(){this.globalAlpha=this.before;},beginPath(){},arc(){},fill(){values.push(this.globalAlpha);}};
+ for(const a of [0,.01,.25,.5,.75,1])r.occludeDirectBodies(c,[{screen:{x:10,y:10},r:4}],a);
+ assert.deepEqual(values,[0,.01,.25,.5,.75,1]);assert.equal(c.globalAlpha,1);
 });

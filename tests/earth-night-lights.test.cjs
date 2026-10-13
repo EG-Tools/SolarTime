@@ -38,7 +38,7 @@ test('night radiance is sampled only on Earth darkness and partially veiled by c
   assert.equal((surface.match(/smoothstep\(\.035,\.18,n\.z\)/g)||[]).length,2);
   assert.match(surface,/job\.id==='earth'&&job\.nightLights\?this\.texture\('earth-night',Math\.min\(4096,job\.nightTextureWidth\|\|job\.textureWidth\)\):null/);
   assert.match(surface,/cloudVeiledNight\(uv,n\.z,cloud\)\*nightSide\*1\.05\*nightLimb/);
-  assert.match(surface,/uniform1f\(p\.u\.nightTexel,1\/\(night\?\.width\|\|color\.width\)\)/);
+  assert.match(surface,/uniform1f\(p\.u\.nightTexel,lod\.nightTexel\)/);
   assert.match(surface,/shade=1-cover\*\.42/);
   assert.match(performance,/name==='earth-night'&&desired\?\.get\('earth'\)\?\.nightLights/);
   assert.match(performance,/Math\.min\(4096,job\.nightTextureWidth\|\|job\.textureWidth\)/);

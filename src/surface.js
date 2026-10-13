@@ -872,12 +872,8 @@ const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,ax
      float aa=max(pixel/span,1.15/(max(radius*length(screenRadial),1.)*span));
      float edge=max(pixel,aa*span),alpha=smoothstep(inner,inner+edge,r)*(1.-smoothstep(outer-edge,outer,r));
      float shadow=saturn>.5?ringShadow(vec3(local.x,0.,local.y),light):1.;
-     if(saturn>.5&&hasRingMap>.5){
-       // Radial (not longitude) sampling: no repeated inner/outer seam. Filter
-       // unresolved bands in premultiplied space to keep transparent gaps dark.
-       vec4 band=ringFiltered(f,aa);
-       gl_FragColor=vec4(band.rgb*shadow,alpha*band.a);return;
-     }
+     if(saturn>.5&&hasRingMap>=1.){vec4 band=ringFiltered(f,aa);gl_FragColor=vec4(band.rgb*shadow,alpha*band.a);return;}
+     float edgeAlpha=alpha;
      if(saturn>.5){
        float gap=smoothstep(.56-aa*1.5,.56+aa*1.5,f)*(1.-smoothstep(.62-aa*1.5,.62+aa*1.5,f));
        float cyclePixels=3.14159265/(75.*aa),detail=smoothstep(2.,5.,cyclePixels);
@@ -896,7 +892,13 @@ const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,ax
       float unresolved=.035+.025*smoothstep(.70,1.,f);
       alpha*=mix(unresolved,min(lines*coverage,.68),detail);
     }
-    gl_FragColor=vec4(ringColor*shadow,alpha);}`;
+    vec4 result=vec4(ringColor*shadow,alpha);
+    if(saturn>.5&&hasRingMap>0.){
+      vec4 band=ringFiltered(f,aa);band=vec4(band.rgb*shadow,edgeAlpha*band.a);
+      float a=mix(result.a,band.a,hasRingMap);
+      result=vec4(mix(result.rgb*result.a,band.rgb*band.a,hasRingMap)/max(a,.00001),a);
+    }
+    gl_FragColor=result;}`;
 function directCompile(gl,type,source){
   const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
   if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){const message=gl.getShaderInfoLog(shader)||'GPU shader compilation failed';gl.deleteShader(shader);throw Error(message);}
@@ -1276,7 +1278,7 @@ class DirectRenderer{
     if(retryReady&&(changed||resize)&&(!record?.pending||record.pendingTarget!==target||changed)){
       this.cancelTexture(name);
       const old=record?.texture||null,token=++this.textureToken,generation=this.generation;
-      record={asset,source,residentAsset:record?.residentAsset||record?.asset,residentSource:record?.residentSource||record?.source,texture:old,width:record?.width||0,height:record?.height||0,pixels:record?.pixels,mipmapped:record?.mipmapped,previousLod:record?.previousLod,lodStarted:record?.lodStarted,sampled:record?.sampled,lodVisibleStarted:record?.lodVisibleStarted,lodQueued:record?.lodQueued,pending:true,pendingTarget:target,token};
+      record={asset,source,residentAsset:record?.residentAsset||record?.asset,residentSource:record?.residentSource||record?.source,texture:old,width:record?.width||0,height:record?.height||0,pixels:record?.pixels,mipmapped:record?.mipmapped,previousLod:record?.previousLod,lodStarted:record?.lodStarted,sampled:record?.sampled,ringVisibleStarted:record?.ringVisibleStarted,lodVisibleStarted:record?.lodVisibleStarted,lodQueued:record?.lodQueued,pending:true,pendingTarget:target,token};
       this.textures.set(name,record);this.queueTexture({name,source,target,token,generation});
     }
     return record?.texture?record:null;
@@ -1288,6 +1290,7 @@ class DirectRenderer{
   }
   hasLodTransition(now=performance.now()){
     for(const record of this.textures.values())if((record.revealPending||record.previousLod&&this.recentTextures?.has(record.previousLod))&&((record.lodQueued&&now-(record.lodSeenAt||0)<1000)||now-record.lodStarted<MAP_LOD_MS))return true;
+    for(const record of this.textures.values())if(record.ringVisibleStarted!=null&&now-record.ringVisibleStarted<MAP_LOD_MS)return true;
     return false;
   }
   mapLod(records,now=performance.now(),diameter=Infinity){
@@ -1298,7 +1301,7 @@ class DirectRenderer{
     const unique=this.lodUnique||(this.lodUnique=[]);unique.length=0;
     for(let slot=0;slot<records.length;slot++){
       const record=records[slot];if(!record||unique.includes(record))continue;unique.push(record);
-      if(!record.sampled){record.sampled=true;record.revealPending=slot!==0;}
+      if(!record.sampled){record.sampled=true;record.revealPending=true;}
       if(record.lodVisibleStarted!=null&&now-record.lodVisibleStarted>=MAP_LOD_MS){record.previousLod=null;record.revealPending=false;record.lodVisibleStarted=null;}
       record.lodQueued=!!previous(record);record.lodSeenAt=now;
     }
@@ -1318,7 +1321,9 @@ class DirectRenderer{
     const g=this.gl,u=this.planetProgram.u;
     if(this.explicitMipLod){levels[6]=mip(active?previous(active):null);g.uniform1fv(u.materialMip,levels);}
     g.uniform1f(u.colorLodMix,t*t*(3-2*t));g.uniform2f(u.lodLayers,slots[0]??-1,slots[1]??-1);
-    const state=this.lodState||(this.lodState={});state.layer=slots[0]??-1;state.mix=t*t*(3-2*t);return state;
+    const state=this.lodState||(this.lodState={});state.layer=slots[0]??-1;state.mix=t*t*(3-2*t);
+    const texel=slot=>{const record=records[slot],current=1/(record?.width||1);if(!record?.lodQueued)return current;const old=1/(previous(record)?.width||record.width||1);return record===active?old+(current-old)*state.mix:old;};
+    state.texel=texel(1);state.nightTexel=texel(3);return state;
   }
   prepareOrbit(key,xyz,components=3){
     if(!key||!xyz?.length||this.disposed||this.contextLost)return null;
@@ -1410,7 +1415,8 @@ class DirectRenderer{
     // Same view-space sunlight as the planet, expressed in its ring frame.
     const lx=light?.[0]||0,ly=light?.[1]||0,lz=light?.[2]||0,{u,v,pole}=frame;
     g.uniform3f(p.u.light,u[0]*lx+u[1]*ly+u[2]*lz,pole?pole[0]*lx+pole[1]*ly+pole[2]*lz:0,v[0]*lx+v[1]*ly+v[2]*lz);
-    this.bindTextureUnit(0,ready?map.texture:this.black);g.uniform1f(p.u.hasRingMap,ready?1:0);g.uniform1f(p.u.ringTexel,1/(ready?map.width:1));
+    let ringMix=0;if(ready){map.ringVisibleStarted??=performance.now();const t=Math.max(0,Math.min(1,(performance.now()-map.ringVisibleStarted)/MAP_LOD_MS));ringMix=t*t*(3-2*t);}
+    this.bindTextureUnit(0,ready?map.texture:this.black);g.uniform1f(p.u.hasRingMap,ringMix);g.uniform1f(p.u.ringTexel,1/(ready?map.width:1));
     g.uniform1f(p.u.radius,radius);g.uniform1f(p.u.inner,inner);g.uniform1f(p.u.outer,outer);g.uniform1f(p.u.front,front?1:0);g.uniform1f(p.u.saturn,saturn?1:0);g.uniform1f(p.u.pixel,1/Math.max(radius,1));
     g.uniform3f(p.u.ringColor,saturn?.88:.62,saturn?.75:.78,saturn?.55:.80);g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
   }
@@ -1463,7 +1469,7 @@ class DirectRenderer{
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,ringFrame,screen,radius,false,job.light);
     const g=this.gl,p=this.planetProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius);g.uniform3fv(p.u.axisU,frame.u);g.uniform3fv(p.u.axisV,frame.v);g.uniform3fv(p.u.pole,frame.pole);g.uniform3fv(p.u.light,job.light);
     g.uniform4fv(p.u.shadowCaster,job.shadowCaster||[0,0,0,0]);g.uniform1f(p.u.shadowSpread,job.shadowSpread||0);
-    g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='venus'?5:job.id==='uranus'?4:['jupiter','saturn','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.texel,1/color.width);g.uniform1f(p.u.nightTexel,1/(night?.width||color.width));g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);g.uniform1f(p.u.cloudAmount,clouds?cloudAmount:0);
+    g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='venus'?5:job.id==='uranus'?4:['jupiter','saturn','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);g.uniform1f(p.u.cloudAmount,clouds?cloudAmount:0);
     g.uniform1f(p.u.cloudAltMix,altMix);
     g.uniform1f(p.u.cloudDetail,cloudDetail);g.uniform1f(p.u.cloudReveal,Number.isFinite(job.cloudReveal)?job.cloudReveal:1);
     if(!cloudState)g.uniform2f(p.u.cloudDrift,0,0);
@@ -1472,7 +1478,7 @@ class DirectRenderer{
     this.bindTextureUnit(4,weather?.texture||this.black);
     this.bindTextureUnit(5,cloudsAlt?.texture||this.black);
     const maps=this.lodMaps||(this.lodMaps=new Array(6));
-    maps[0]=color;maps[1]=bump;maps[2]=clouds;maps[3]=night;maps[4]=null;maps[5]=cloudsAlt;this.mapLod(maps,performance.now(),radius*2*this.dpr);
+    maps[0]=color;maps[1]=bump;maps[2]=clouds;maps[3]=night;maps[4]=null;maps[5]=cloudsAlt;const lod=this.mapLod(maps,performance.now(),radius*2*this.dpr);g.uniform1f(p.u.texel,lod.texel);g.uniform1f(p.u.nightTexel,lod.nightTexel);
     g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,ringFrame,screen,radius,true,job.light);
     let frameRecord=this.frames.get(job.id);if(!frameRecord){frameRecord={job:null,image:{width:0,height:0,gpu:true}};this.frames.set(job.id,frameRecord);}

@@ -95,10 +95,10 @@ test('day, cloud and night LOD share one sampler and never replace a queued laye
 test('initial optional maps fade from black and an active tier cannot be replaced midway',async()=>{
  const f=fixture(),r=f.r;r.black={id:'black'};r.planetProgram={u:{}};r.gl.uniform1f=()=>{};r.gl.uniform2f=()=>{};r.bindTextureUnit=()=>{};
  f.focus('earth');r.textureFor('earth',4096);await turn();
- const day=r.textures.get('earth');r.mapLod([day],0);
- r.textureFor('earth',4096);await turn();const preview=r.textures.get('earth');r.mapLod([preview],10);
- f.time(200);assert.equal(r.textureFor('earth',4096).width,1024);assert.equal(f.requests.length,2);
- r.mapLod([preview],710);f.time(710);r.textureFor('earth',4096);await turn();assert.equal(f.requests.length,3);
+ const day=r.textures.get('earth');assert.equal(r.mapLod([day],0).mix,0);assert.equal(r.mapLod([day],350).mix,.5);r.mapLod([day],700);f.time(700);
+ r.textureFor('earth',4096);await turn();const preview=r.textures.get('earth');r.mapLod([preview],710);
+ f.time(900);assert.equal(r.textureFor('earth',4096).width,1024);assert.equal(f.requests.length,2);
+ r.mapLod([preview],1410);f.time(1410);r.textureFor('earth',4096);await turn();assert.equal(f.requests.length,3);
  const cloud={texture:{id:'cloud'}};assert.equal(r.mapLod([null,null,cloud],800).mix,0);
  assert.equal(r.mapLod([null,null,cloud],1150).mix,.5);assert.equal(r.mapLod([null,null,cloud],1500).layer,-1);
  f.r.dispose();
@@ -254,4 +254,35 @@ test('cloud opacity changes reuse the texture plan, topology changes invalidate 
  job.cloudAmount=.2;job.cloudDetail=.01;r.prepare([job]);assert.equal(plans,3);
  const small=base.planTextures([job],f.window.SolarAssets.materials,4096,0,true);
  assert.ok(small.bytes>base.planTextures([job],f.window.SolarAssets.materials).bytes);
+});
+
+test('every first planet map fades on its first visible draw, including late arrivals',()=>{
+ for(const id of ['sun','mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','moon','europa','pluto']){
+  const f=fixture(),r=f.r;r.black={id:'black'};r.planetProgram={u:{}};r.gl.uniform1f=()=>{};r.gl.uniform2f=()=>{};r.bindTextureUnit=()=>{};
+  const record={texture:{id},lodStarted:0};r.textures.set(id,record);
+  assert.equal(r.mapLod([record],9000).mix,0,id);
+  assert.equal(r.mapLod([record],9350).mix,.5,id);assert.equal(r.hasLodTransition(9350),true);
+  assert.equal(r.mapLod([record],9700).mix,1,id);assert.equal(r.hasLodTransition(9700),false);
+  r.dispose();
+ }
+});
+
+test('a late Saturn ring texture blends from the procedural fallback and is not restarted',()=>{
+ const f=fixture(),r=f.r,values=[];r.ring={u:{hasRingMap:'ringMix'}};r.black={};r.bind=()=>{};r.viewport=()=>{};r.bindTextureUnit=()=>{};
+ for(const n of ['uniform2f','uniform3f','drawArrays'])r.gl[n]=()=>{};
+ r.gl.uniform1f=(u,v)=>{if(u==='ringMix')values.push(v);};
+ const frame={u:[1,0,0],v:[0,1,0],pole:[0,0,1]},draw=()=>r.rings({id:'saturn'},frame,{x:10,y:10},20,true,[1,0,0]);
+ draw();r.textures.set('saturn-ring',{texture:{},width:256});f.time(5000);draw();f.time(5350);draw();assert.equal(r.hasLodTransition(5350),true);f.time(5700);draw();f.time(9000);draw();
+ assert.deepEqual(values,[0,0,.5,1,1]);r.dispose();
+});
+
+test('relief and night filter spacing follows each sampled map through queued LOD changes',()=>{
+ const f=fixture(),r=f.r;r.black={};r.planetProgram={u:{}};r.gl.uniform1f=()=>{};r.gl.uniform2f=()=>{};r.bindTextureUnit=()=>{};
+ const maps=[{texture:{},width:4096,sampled:true},{texture:{},width:1024,sampled:true,previousLod:'bump'},{texture:{},width:256,sampled:true},{texture:{},width:2048,sampled:true,previousLod:'night'}];
+ r.recentTextures.set('bump',{texture:{},width:256});r.recentTextures.set('night',{texture:{},width:512});
+ let state=r.mapLod(maps,0);assert.equal(state.texel,1/256);assert.equal(state.nightTexel,1/512);
+ state=r.mapLod(maps,350);assert.equal(state.texel,(1/256+1/1024)/2);assert.equal(state.nightTexel,1/512);
+ state=r.mapLod(maps,700);assert.equal(state.texel,1/1024);assert.equal(state.nightTexel,1/512);
+ state=r.mapLod(maps,1050);assert.equal(state.nightTexel,(1/512+1/2048)/2);
+ state=r.mapLod(maps,1400);assert.equal(state.nightTexel,1/2048);r.dispose();
 });

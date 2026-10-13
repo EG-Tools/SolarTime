@@ -1662,12 +1662,12 @@
     }
     setReplaySolarOpacity(alpha){
       const style=this.gpu?.canvas?.style;if(!style)return;
-      // Planet surfaces stay fully opaque. During the particle-only part of a
-      // replay, hide the layer as a binary scene state instead of fading the
-      // entire WebGL canvas (which also made every planet translucent).
+      // The shared scene envelope fades surfaces, rings and corona together.
+      // Binary visibility made the first nonzero frame fully bright.
+      alpha=clamp(Number(alpha)||0,0,1);
       if(alpha<1){
         this.replayLayerStyle||={opacity:style.opacity,transition:style.transition,visibility:style.visibility};
-        style.transition='none';style.opacity='1';
+        style.transition='none';style.opacity=String(alpha*(this.replayLayerStyle.opacity===''||this.replayLayerStyle.opacity==null?1:Number(this.replayLayerStyle.opacity)));
         style.visibility=alpha>0?this.replayLayerStyle.visibility:'hidden';
       }else if(this.replayLayerStyle){
         const saved=this.replayLayerStyle;for(const key of ['opacity','transition','visibility']){
@@ -3381,7 +3381,7 @@
         c.strokeStyle=this.selected===b.id?'rgba(225,203,155,.7)':'rgba(210,226,244,.4)';c.lineWidth=.8;c.beginPath();c.arc(screen.x,screen.y,r+5,0,TAU);c.stroke();
       }
     }
-    occludeDirectBodies(c,bodies) {
+    occludeDirectBodies(c,bodies,opacity=1) {
       if(!bodies.length)return;
       // Stars, twinkles and comets live on the transparent 2D canvas above the
       // direct WebGL planet canvas. Remove only those background pixels where an
@@ -3389,7 +3389,7 @@
       // Match the shader's half-device-pixel antialiased limb so no clear halo is
       // introduced around a planet.
       const inset=.5/(this.dpr||1);
-      c.save();c.globalCompositeOperation='destination-out';c.fillStyle='#000';
+      c.save();c.globalAlpha*=opacity;c.globalCompositeOperation='destination-out';c.fillStyle='#000';
       for(const {screen,r} of bodies){const radius=Math.max(0,r-inset);if(!radius)continue;c.beginPath();c.arc(screen.x,screen.y,radius,0,TAU);c.fill();}
       c.restore();
     }
@@ -4055,7 +4055,7 @@
       c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,width,height);c.setTransform(width/this.w,0,0,height/this.h,0,0);
       const scene=layer.scene;Object.assign(scene,this);scene.ctx=c;scene.dpr=renderDpr;
       scene.paintSolarScene(ms,seconds,mono,false);this.adoptReplayScene(scene);
-      if(this.gpu){c.save();c.globalCompositeOperation='destination-over';c.drawImage(this.gpu.canvas,0,0,this.w,this.h);c.restore();this.setReplaySolarOpacity(0);}
+      if(this.gpu){c.save();c.globalCompositeOperation='destination-over';c.globalAlpha=this.replayPresentation(mono).solar;c.drawImage(this.gpu.canvas,0,0,this.w,this.h);c.restore();this.setReplaySolarOpacity(0);}
       const out=this.ctx;out.save();out.globalAlpha=appearance.alpha;out.translate(appearance.x,appearance.y);out.scale(appearance.scale,appearance.scale);out.translate(-appearance.x,-appearance.y);out.drawImage(layer.canvas,0,0,this.w,this.h);out.restore();
       this.hitTargets.length=0;
       const target=this.updateSkySolarTarget(appearance);this.drawSkySolarGuide(out,target,mono);
@@ -4169,13 +4169,13 @@
       // it grows while retaining the outside halo and the distant size floor.
       if(direct){
         for(const p of bodies)this.drawBodyPoint(c,p,directBodies,pointSolar);
-        this.occludeDirectBodies(c,directBodies);
+        this.occludeDirectBodies(c,directBodies,solar);
       }
       for(const p of bodies) {
         const extent=this.bodyVisibleRadius(p.body,p.r);
         if(solar<=0||!this.visible(p.screen,extent))continue;
         if(this.gpu)this.drawBodyOverlay(c,p.body,p.screen,p.r);
-        else this.drawBody(c,p.body,p.world,p.screen,p.r,ms,seconds);
+        else {c.save();c.globalAlpha*=solar;this.drawBody(c,p.body,p.world,p.screen,p.r,ms,seconds);c.restore();}
         if(!direct)this.drawBodyPoint(c,p,bodies,pointSolar);
         this.hitTargets.push({id:p.body.id,x:p.screen.x,y:p.screen.y,r:Math.max(p.r+6,11),z:p.screen.z});
       }
