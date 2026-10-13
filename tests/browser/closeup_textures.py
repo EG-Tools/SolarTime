@@ -24,19 +24,23 @@ def verify_closeup_textures(browser, root, check, diagnostics):
       window.textureJob={id:'moon',textureWidth:4096,priority:2,frame:{u:[1,0,0],v:[0,1,0],pole:[0,0,1]},phase:0,light:[0,0,1],nightLights:false};
       window.drawTexture=()=>{testGPU.begin();testGPU.planet(textureJob,{id:'moon'},{x:256,y:256},220,0,false);
         const pixel=new Uint8Array(4);testGPU.gl.readPixels(256,256,1,1,testGPU.gl.RGBA,testGPU.gl.UNSIGNED_BYTE,pixel);return Array.from(pixel);};
+      window.settleTexture=async()=>{const rows=[],deadline=performance.now()+3000;
+        do{const pixel=drawTexture(),mix=testGPU.lodState?.mix??1;rows.push({mix,pixel});if(mix>=1)return rows;await new Promise(requestAnimationFrame);}while(performance.now()<deadline);
+        throw Error('Visible texture blend did not finish');};
       testGPU.desired.set('moon',textureJob);testGPU.textureFor('moon',4096);
     }""")
     page.wait_for_function("testGPU.textures.get('moon')?.width===256")
     page.evaluate("testGPU.textureFor('moon',4096)")
     page.wait_for_function("testGPU.textures.get('moon')?.width===1024")
     check(page.evaluate('textureRequests')==[256,1024],'real decode publishes medium before requesting 4K')
-    page.wait_for_function("!testGPU.colorLod(testGPU.textures.get('moon'))")
-    pixel=page.evaluate('drawTexture()')
+    first_samples=page.evaluate('settleTexture()')
+    check(any(0<row['mix']<1 for row in first_samples),'first preview includes intermediate brightness instead of switching on')
+    pixel=first_samples[-1]['pixel']
     check(pixel[0]>pixel[2]*2 and pixel[3]>240,'1024 preview is visibly rendered while original 4K is pending')
     page.wait_for_function('!!release4K')
     check(page.evaluate("testGPU.textures.get('moon').width") ==1024,'delayed high-resolution network does not blank the preview')
     page.evaluate('release4K()');page.wait_for_function("testGPU.textures.get('moon')?.width===4096")
-    samples=page.evaluate("""async()=>{const rows=[];for(let i=0;i<28;i++){rows.push({mix:testGPU.colorLod(testGPU.textures.get('moon'))?.mix??1,pixel:drawTexture()});await new Promise(requestAnimationFrame);}return rows;}""")
+    samples=page.evaluate('settleTexture()')
     check(any(0<row['mix']<1 for row in samples),'4K reveal includes blended frames')
     page.wait_for_function("!testGPU.colorLod(testGPU.textures.get('moon'))")
     pixel=page.evaluate('drawTexture()')
