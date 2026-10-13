@@ -1045,9 +1045,9 @@ test('wheel retreat from the portrait true-scale home never jumps forward to the
 test('opening accelerates more gently over 40% and decelerates over 60% into the saved camera',()=>{
  const {r}=renderer(),target={...r.defaultCameraSnapshot(),azimuth:2.4,elevation:.31,zoom:7,dolly:1.6,panX:.2,panY:-.1};
  const values=[.25,.75,.5,.75,.75],opening=r.openingCameraSnapshot(target,()=>values.shift());
- close(opening.openingAxes.turn,-Math.PI*.875);close(opening.openingAxes.bank,Math.PI*.375);
- close(opening.azimuth,A.wrap(target.azimuth-opening.openingAxes.turn));close(opening.elevation,Math.PI*.4375);assert.equal(opening.zoom,target.zoom);assert.equal(opening.dolly,.001);
- assert.equal(opening.focus,null);assert.equal(opening.panX,0);close(opening.panY,2/3-r.viewportLayout().baseY/r.h);assert.equal(opening.mode,target.mode);
+ close(opening.openingAxes.turn,-Math.PI*.4375);close(opening.openingAxes.bank,Math.PI*.1875);
+ close(opening.azimuth,A.wrap(target.azimuth-opening.openingAxes.turn));close(opening.elevation,Math.PI*.21875);assert.equal(opening.zoom,target.zoom);assert.ok(opening.dolly>0&&opening.dolly<=.001);
+ assert.equal(opening.focus,null);assert.equal(opening.panX,0);close(opening.panY,.5-r.viewportLayout().baseY/r.h);assert.equal(opening.mode,target.mode);
  r.restoreCamera(opening);assert.ok(r.animateOpeningCamera(target,0,3000));assert.equal(r.cameraTween.timing,'opening');
  assert.ok(r.cameraTween.openingPath.arc.amplitude>=.06&&r.cameraTween.openingPath.arc.amplitude<=.11);
  r.orbitRevealStart=NaN;
@@ -1061,24 +1061,20 @@ test('opening accelerates more gently over 40% and decelerates over 60% into the
  r.advanceCamera(2800);const late=(target.dolly-r.camera.dolly)/(target.dolly-opening.dolly);assert.ok(late<.02,'arrival stops gently');
  r.advanceCamera(3000);for(const key of ['azimuth','elevation','zoom','dolly','panX','panY'])close(r.camera[key],target[key]);assert.equal(r.cameraTween,null);
 });
-test('opening departures use all six viewport grid points and rotate the layout in portrait',()=>{
- const verify=(w,h,expected)=>{
-  const {r}=renderer();r.w=w;r.h=h;const target=r.cameraSnapshot();
-  for(let i=0;i<6;i++){
-   const values=[.25,.5,.5,.5,(i+.1)/6],opening=r.openingCameraSnapshot(target,()=>values.shift()),grid=plain(opening.openingAxes.grid);
-   assert.deepEqual(grid,expected[i]);
-   close((.5+opening.panX)*w,grid.x*w);close((r.viewportLayout().baseY/r.h+opening.panY)*h,grid.y*h);
-  }
- };
- verify(1200,800,[{x:.25,y:1/3},{x:.5,y:1/3},{x:.75,y:1/3},{x:.25,y:2/3},{x:.5,y:2/3},{x:.75,y:2/3}]);
- verify(400,850,[{x:1/3,y:.25},{x:2/3,y:.25},{x:1/3,y:.5},{x:2/3,y:.5},{x:1/3,y:.75},{x:2/3,y:.75}]);
+test('opening starts at the viewport centre without grid departure points',()=>{
+ for(const [w,h] of [[1200,800],[400,850]])for(const actual of [0,1]){
+  const {r,R}=renderer();r.w=w;r.h=h;r.actualScaleMix=actual;const target=r.cameraSnapshot(),o=r.openingCameraSnapshot(target);
+  close(o.panX,0);close(r.viewportLayout().baseY+o.panY*h,h/2);assert.equal(o.openingAxes.grid,undefined);assert.ok(R.validCamera(o));
+  const home=r.defaultCameraSnapshot();assert.ok(o.dolly/home.dolly*o.zoom/home.zoom*.65*w<=1.0001);
+ }
 });
-test('boot and warp arrivals make a random 90-180 degree turn before settling at the saved bearing',()=>{
+
+test('boot and warp arrivals make a random 45-90 degree turn before settling at the saved bearing',()=>{
  const difference=(a,b)=>A.wrap(a-b+Math.PI)-Math.PI,ease=t=>t*t*t*(t*(t*6-15)+10);
  const sequence=[.25,.5,.4,.6,.1],{r}=renderer(),target={...r.cameraSnapshot(),azimuth:2.4,elevation:.31},opening=r.openingCameraSnapshot(target,()=>sequence.shift());
  r.restoreCamera(opening);assert.ok(r.animateOpeningCamera(target,0,6500));
- const move=r.cameraTween;close(move.openingTurn,-Math.PI*.75);close(move.openingBank,Math.PI*.35);
- assert.ok(Math.abs(move.openingTurn)>=Math.PI/2&&Math.abs(move.openingTurn)<=Math.PI);
+ const move=r.cameraTween;close(move.openingTurn,-Math.PI*.375);close(move.openingBank,Math.PI*.175);
+ assert.ok(Math.abs(move.openingTurn)>=Math.PI/4&&Math.abs(move.openingTurn)<=Math.PI/2);
  let previous=move.from.azimuth,travel=0;
  for(let i=1;i<=120;i++){const current=r.cameraTweenState(move,i/120).state.azimuth;travel+=difference(current,previous);previous=current;}
  close(travel,move.openingTurn,1e-6);
@@ -1114,6 +1110,25 @@ test('opening ramps saved left/right/random rotation into arrival without an ang
   r.advanceAutoRotate(5001);
   for(const key of ['azimuth','elevation'])close(difference(at[key],before[key])*1000,difference(r.camera[key],at[key])*1000,1e-6);
   if(mode==='random')assert.equal(r.randomRotation,path,'random heading survives the hand-off');
+ }
+});
+
+test('opening keeps angular velocity continuous after auto-rotation during asset warming',()=>{
+ const difference=(a,b)=>A.wrap(a-b+Math.PI)-Math.PI;
+ for(const mode of [-1,1,'random'])for(const wait of [1200,8000]){
+  const {r}=renderer(),target=r.cameraSnapshot();
+  r.restoreCamera(r.openingCameraSnapshot(target,()=>.6));
+  if(mode==='random')r.setRandomRotate(true,0);else r.setAutoRotate(mode,0);
+  for(let ms=16;ms<wait;ms+=16)r.advanceAutoRotate(ms);
+  r.animateOpeningCamera(target,wait,6500);
+  const rates=r.rotationRates(r.pendingAutoRotation.direction,r.pendingAutoRotation.generation);
+  r.advanceCamera(wait+6499);const before=plain(r.camera);
+  r.advanceCamera(wait+6500);const at=plain(r.camera);
+  r.advanceAutoRotate(wait+6501);const after=plain(r.camera);
+  for(const [key,rate] of [['azimuth',rates.yawRate],['elevation',rates.pitchRate]]){
+   close(difference(at[key],before[key])*1000,rate,1e-5);
+   close(difference(after[key],at[key])*1000,rate,1e-5);
+  }
  }
 });
 
@@ -1166,10 +1181,10 @@ test('orbit spacing eases within 0–10% for 100ms and follows other changes in 
 test('opening uses a different random departure without changing its destination',()=>{
  const {r}=renderer(),target=r.defaultCameraSnapshot(),a=r.openingCameraSnapshot(target,()=>.1),b=r.openingCameraSnapshot(target,()=>.9);
  assert.notEqual(a.azimuth,b.azimuth);assert.notEqual(a.elevation,b.elevation);
- for(const state of [a,b]){assert.equal(state.zoom,target.zoom);assert.equal(state.dolly,.001);assert.equal(state.focus,null);}
+ for(const state of [a,b]){assert.equal(state.zoom,target.zoom);assert.ok(state.dolly>0&&state.dolly<=.001);assert.equal(state.focus,null);}
  assert.deepEqual(plain(target),plain(r.defaultCameraSnapshot()));
 });
-test('ordinary and travel openings use a random 0-90 degree bank and restore the inherited bank',()=>{
+test('ordinary and travel openings use a random 22.5-45 degree bank and restore the inherited bank',()=>{
  for(const seed of [.1,.9])for(const flyThrough of [false,true])for(const focus of [null,'earth']){
   const {r}=renderer(seed),bank=.2,target={...r.cameraSnapshot(),focus};
   r.flightBank=bank;r.restoreCamera(r.openingCameraSnapshot(target));close(r.flightBank,bank);
@@ -2118,8 +2133,8 @@ test('opening angles stay in the requested ranges and use either X direction',()
  for(const direction of [.1,.9])for(const amount of [0,.5,.999999]){
   const values=[direction,amount,amount,amount,.5],o=r.openingCameraSnapshot(target,()=>values.shift());
   assert.equal(Math.sign(o.openingAxes.turn),direction<.5?-1:1);
-  assert.ok(Math.abs(o.openingAxes.turn)>=Math.PI/2&&Math.abs(o.openingAxes.turn)<=Math.PI);
-  for(const value of [o.elevation,o.openingAxes.bank])assert.ok(value>=Math.PI/4&&value<=Math.PI/2);
+  assert.ok(Math.abs(o.openingAxes.turn)>=Math.PI/4&&Math.abs(o.openingAxes.turn)<=Math.PI/2);
+  for(const value of [o.elevation,o.openingAxes.bank])assert.ok(value>=Math.PI/8&&value<=Math.PI/4);
  }
 });
 

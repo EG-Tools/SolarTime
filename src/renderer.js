@@ -120,10 +120,10 @@
     if(seconds<=brake)return seconds;
     const duration=REPLAY_TRANSITION.fadeOut/1000,u=clamp((seconds-brake)/duration,0,1);return brake+duration*(u-easeIntegral(u));
   };
-  const flightEye=s=>{const d=1/Math.max(.00001,s.dolly??1),c=Math.cos(s.elevation);return [-Math.sin(s.azimuth)*c*d,-Math.cos(s.azimuth)*c*d,Math.sin(s.elevation)*d];};
+  const flightEye=s=>{const d=1/Math.max(OPENING_TIMING.minDolly,s.dolly??1),c=Math.cos(s.elevation);return [-Math.sin(s.azimuth)*c*d,-Math.cos(s.azimuth)*c*d,Math.sin(s.elevation)*d];};
   // One timing source: camera/particles share duration; annotations are always
   // relative to arrival, never a separately maintained absolute timestamp.
-  const OPENING_TIMING=Object.freeze({duration:6500,closeupExtra:2000,orbitBeforeEnd:2000,annotationFade:1500,departureDolly:.001,turnMin:Math.PI/2,turnMax:Math.PI,axisMin:Math.PI/4,axisMax:Math.PI/2,accel:.4,cruise:0,decel:.6});
+  const OPENING_TIMING=Object.freeze({duration:6500,closeupExtra:2000,orbitBeforeEnd:2000,annotationFade:1500,departureDolly:.001,minDolly:1e-9,turnMin:Math.PI/4,turnMax:Math.PI/2,axisMin:Math.PI/8,axisMax:Math.PI/4,accel:.4,cruise:0,decel:.6});
   const OPENING_ANNOTATION_FADE=OPENING_TIMING.annotationFade;
   const openingFlyThrough=t=>{
     t=clamp(t,0,1);const a=OPENING_TIMING.accel,v=1/(1-a/2);
@@ -1305,19 +1305,15 @@
       const sample=()=>clamp(Number(randomSource?.())||0,0,1-Number.EPSILON);
       const direction=sample()<.5?-1:1,turn=direction*mix(OPENING_TIMING.turnMin,OPENING_TIMING.turnMax,sample());
       const openingAxes={turn,bank:mix(OPENING_TIMING.axisMin,OPENING_TIMING.axisMax,sample())};
-      const elevation=mix(OPENING_TIMING.axisMin,OPENING_TIMING.axisMax,sample()),portrait=this.h>this.w;
-      const xs=portrait?[1/3,2/3]:[.25,.5,.75],ys=portrait?[.25,.5,.75]:[1/3,2/3],points=[];
-      for(const y of ys)for(const x of xs)points.push({x,y});
-      const grid=points[Math.min(points.length-1,Math.floor(sample()*points.length))],baseY=this.viewportLayout().baseY/Math.max(1,this.h);
-      openingAxes.grid={...grid};
-      // Keep the destination lens unchanged and begin only with physical camera
-      // travel from the distant opening pose, using the same tracked-camera
-      // projection model as ordinary controls. X travels a random 90-180
-      // degrees in either direction. The solar system begins at one of the six
-      // established viewport grid points (rotated to 2x3 in portrait).
-      return {...destination,azimuth:A.wrap(destination.azimuth-turn),elevation,zoom:destination.zoom,dolly:OPENING_TIMING.departureDolly,focus:null,
-        panX:grid.x-.5,panY:grid.y-baseY,openingAxes};
+      const elevation=mix(OPENING_TIMING.axisMin,OPENING_TIMING.axisMax,sample());
+      // Start at the viewport centre as one distant point, without grid offsets.
+      // Reuse the home fit so wide true-scale orbits and saved lenses also fit.
+      const home=this.defaultCameraSnapshot(),dolly=clamp(Math.min(OPENING_TIMING.departureDolly,destination.dolly??1,
+        home.dolly*home.zoom/destination.zoom/(DEFAULT_FRAME.widthRatio*Math.max(1,this.w))),OPENING_TIMING.minDolly,OPENING_TIMING.departureDolly);
+      return {...destination,azimuth:A.wrap(destination.azimuth-turn),elevation,zoom:destination.zoom,dolly,focus:null,
+        panX:0,panY:.5-this.viewportLayout().baseY/Math.max(1,this.h),openingAxes};
     }
+
     openingCameraArc(randomSource=Math.random) {
       const sample=()=>clamp(Number(randomSource?.())||0,0,1-Number.EPSILON),angle=sample()*TAU,amplitude=mix(.06,.11,sample());
       return {x:Math.cos(angle)*amplitude,y:Math.sin(angle)*amplitude*.7,amplitude};
@@ -1336,7 +1332,7 @@
       const dolly=state.dolly??1;if(!Number.isFinite(dolly))return false;
       if(state.panDolly!==undefined&&(!Number.isFinite(state.panDolly)||state.panDolly<=0))return false;
       if(state.azimuth<0||state.azimuth>=TAU||state.elevation<VIEW.minElevation||state.elevation>=VIEW.maxElevation||
-        state.zoom<VIEW.minZoom||state.zoom>VIEW.maxZoom||dolly<Math.min(VIEW.minDolly,OPENING_TIMING.departureDolly)||dolly>VIEW.maxDolly||state.panX<VIEW.minPanX||state.panX>VIEW.maxPanX||
+        state.zoom<VIEW.minZoom||state.zoom>VIEW.maxZoom||dolly<Math.min(VIEW.minDolly,OPENING_TIMING.minDolly)||dolly>VIEW.maxDolly||state.panX<VIEW.minPanX||state.panX>VIEW.maxPanX||
         state.panY<VIEW.minPanY||state.panY>VIEW.maxPanY)return false;
       if(state.mode!==undefined&&!['zoom','move'].includes(state.mode))return false;
       const validFocus=state.focus===null||[A.SUN,...A.BODIES,...SATELLITES].some(b=>b.id===state.focus);
@@ -1428,7 +1424,14 @@
     }
     animateOpeningCamera(state,mono=performance.now(),duration=this.openingCameraDuration(state)) {
       const animated=this.animateCamera(state,mono,duration,false,'opening');
-      if(animated){this.scheduleOpeningAnnotations(mono,duration);if(this.cameraTween)this.startOpeningParticles(mono,duration);}
+      if(animated){
+        // Asset warming may advance saved auto-rotation after the departure
+        // snapshot was created. Use the actual start angle, otherwise the
+        // stale opening turn misses its destination and snaps on the last frame.
+        const move=this.cameraTween;
+        if(move)move.openingTurn=A.wrap(move.to.azimuth-move.from.azimuth+Math.PI)-Math.PI;
+        this.scheduleOpeningAnnotations(mono,duration);if(move)this.startOpeningParticles(mono,duration);
+      }
       return animated;
     }
     cameraTransitionPose(mono=performance.now(),anchor=this.trackingAnchor||this.currentFrameItem(this.camera.focus)?.world||{x:0,y:0,z:0}){
@@ -1681,7 +1684,7 @@
       const a=s.azimuth,e=s.elevation;
       const right=[Math.cos(a),-Math.sin(a),0],up=[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)];
       const forward=[Math.sin(a)*Math.cos(e),Math.cos(a)*Math.cos(e),-Math.sin(e)];
-      const eye=flightEye(s).map((value,i)=>value+(-right[i]*s.panX+up[i]*s.panY)/Math.max(.00001,s.panDolly??s.dolly));
+      const eye=flightEye(s).map((value,i)=>value+(-right[i]*s.panX+up[i]*s.panY)/Math.max(OPENING_TIMING.minDolly,s.panDolly??s.dolly));
       return {eye,right,up,forward};
     }
     replayDustSample(path,elapsed,field){
@@ -2808,7 +2811,7 @@
       if(move.replay)return this.openingReplayPose(move,t*move.duration);
       const p=move.timing==='opening'?(move.flyThrough?openingFlyThrough(t):openingEase(t)):ease(t)+(move.inputSlope||0)*t*(1-t)*(1-t),{from,to}=move;
       const delta=A.wrap(to.azimuth-from.azimuth+Math.PI)-Math.PI,elevationDelta=A.wrap(to.elevation-from.elevation+Math.PI)-Math.PI;
-      // Keep the randomized X travel explicit so 0-180 degrees follows its
+      // Keep the randomized X travel explicit so 45-90 degrees follows its
       // visible turn instead of collapsing to the shortest path. Saturn
       // completes all three opening axes before the boarding handoff.
       const spinEnd=move.flyThrough&&Number.isFinite(move.duration)?Math.max(.5,1-this.saturnOpeningHandoffLead/move.duration):1;
@@ -2836,7 +2839,7 @@
         const s=this.cameraTweenState(move,clamp(u,0,1)).state,a=s.azimuth,e=s.elevation;
         const right=[Math.cos(a),-Math.sin(a),0],up=[Math.sin(a)*Math.sin(e),Math.cos(a)*Math.sin(e),Math.cos(e)];
         const eye=[-Math.sin(a)*Math.cos(e),-Math.cos(a)*Math.cos(e),Math.sin(e)];
-        return {right,eye:eye.map((v,i)=>v/Math.max(.00001,s.dolly)+(-right[i]*s.panX+up[i]*s.panY)/Math.max(.00001,s.panDolly??s.dolly))};
+        return {right,eye:eye.map((v,i)=>v/Math.max(OPENING_TIMING.minDolly,s.dolly)+(-right[i]*s.panX+up[i]*s.panY)/Math.max(OPENING_TIMING.minDolly,s.panDolly??s.dolly))};
       };
       // Curvature only selects the following S bend; it never rolls the opening.
       return window.SolarRingTour.smoothBank(seconds=>sample(seconds/duration).eye,t*duration,sample(t).right);

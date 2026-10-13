@@ -82,7 +82,7 @@ module.exports=async({root,evaluate,send,session})=>{
     await waitFor('SolarTime.renderer.cameraTween?.timing==="opening"','Opening camera tween did not start');
     const first=await openingSnapshot();
     assert.equal(first.opening,true);assert.equal(first.openingLocked,true);assert.equal(first.loadingHidden,false);assert.equal(first.busy,'true');
-    close(first.from.zoom,target.zoom);close(first.from.dolly,.001);assert.equal(first.from.focus,null);close(first.from.panX,0);close(first.from.panY,0);assert.equal(first.to.focus,'earth');
+    close(first.from.zoom,target.zoom);assert.ok(first.from.dolly>0&&first.from.dolly<=.001);assert.equal(first.from.focus,null);close(first.from.panX,0);assert.ok(Number.isFinite(first.from.panY));assert.equal(first.to.focus,'earth');
     assert.ok(first.tweenDuration>=6500&&first.tweenDuration<=8500);close(first.annotationStart-first.tweenStart,first.tweenDuration-1000);
 
     // F5 focuses the page and refreshes automatic language preferences while
@@ -123,7 +123,7 @@ module.exports=async({root,evaluate,send,session})=>{
     await waitFor('location.pathname==="/"&&!!window.SolarTime','Reloaded opening app did not start');
     await waitFor('SolarTime.renderer.cameraTween?.timing==="opening"','Reloaded opening camera tween did not start');
     const second=await openingSnapshot();
-    assert.equal(second.opening,true);close(second.from.zoom,target.zoom);close(second.from.dolly,.001);
+    assert.equal(second.opening,true);close(second.from.zoom,target.zoom);assert.ok(second.from.dolly>0&&second.from.dolly<=.001);
     assert.ok(Math.abs(second.from.azimuth-first.from.azimuth)>1e-6||Math.abs(second.from.elevation-first.from.elevation)>1e-6,'departure orientation should be randomized on reload');
     await waitForOpeningEnd();const secondQa=await evaluate('window.__openingCameraQa');
     assert.ok(secondQa.claim,'control was not claimed during the final second');assert.equal(secondQa.claim.state.opening,false);
