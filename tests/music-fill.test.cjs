@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function harness(){
- const tasks=[],pending=[],context={Response,Request,Headers,URL,console:{warn(){}},Date};
+ const tasks=[],pending=[],context={Response,Request,Headers,URL,console:{warn(){},info(){}},Date};
  vm.runInNewContext(fs.readFileSync(require.resolve('../cloudflare/worker.js'),'utf8').replace('export default','globalThis.worker ='),context);
  let gets=0,puts=0,fail=false;
  const cache={match:async()=>undefined,put:async(_key,response)=>{puts++;await response.text();}},env={SOLAR_TIME_MEDIA:{get:async()=>{gets++;await new Promise((resolve,reject)=>pending.push(()=>fail?reject(Error('R2 unavailable')):resolve()));return {body:'music',size:5,httpEtag:'"music"',writeHttpMetadata(){}};}}},ctx={waitUntil:p=>tasks.push(p)};

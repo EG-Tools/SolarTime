@@ -504,14 +504,30 @@ class Sky{
    }).catch(error=>{if(!this.disposed)this.stats.galaxyAtlasError=String(error.message||error);return null;});
    return this.galaxyAtlasPromise;
   }
- uploadSkyImage(image){
+ async uploadSkyImage(image){
   const g=this.gl;if(!g||g.isContextLost()||!image)return false;
   const max=g.getParameter(g.MAX_TEXTURE_SIZE),width=2**Math.floor(Math.log2(Math.min(image.width,max))),height=width/2;
   let upload=image;
   if(image.width!==width||image.height!==height){upload=document.createElement('canvas');upload.width=width;upload.height=height;upload.getContext('2d').drawImage(image,0,0,width,height);}
-  const texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);
+  const texture=g.createTexture(),ticket=this.initTicket;
+  const valid=()=>!this.disposed&&ticket===this.initTicket&&!g.isContextLost();
+  const bind=()=>{g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);};
+  const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
   try{
-   g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,upload);
+   if(width*height>=512*1024&&typeof createImageBitmap==='function'&&typeof requestAnimationFrame==='function'){
+    await frame();if(!valid()){g.deleteTexture(texture);return false;}
+    bind();g.texImage2D(g.TEXTURE_2D,0,g.RGBA,width,height,0,g.RGBA,g.UNSIGNED_BYTE,null);
+    const rows=Math.max(1,Math.floor(256*1024/width));
+    for(let y=0;y<height;y+=rows){
+     const strip=await createImageBitmap(upload,0,y,width,Math.min(rows,height-y),{premultiplyAlpha:'none',colorSpaceConversion:'none'});
+     try{
+      await frame();if(!valid()){g.deleteTexture(texture);return false;}
+      bind();g.texSubImage2D(g.TEXTURE_2D,0,0,y,g.RGBA,g.UNSIGNED_BYTE,strip);
+     }finally{strip.close();}
+    }
+    await frame();if(!valid()){g.deleteTexture(texture);return false;}
+   }else{bind();g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,upload);}
+   bind();
    g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
    g.generateMipmap(g.TEXTURE_2D);
    g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR_MIPMAP_LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
@@ -530,7 +546,7 @@ class Sky{
     if(this.disposed||ticket!==this.initTicket)return;
     const image=await loadSkyImage(asset,width,this.abort.signal);
     if(this.disposed||ticket!==this.initTicket)return;
-    if(image.width>(this.image?.width||0))this.uploadSkyImage(image);
+    if(image.width>(this.image?.width||0))await this.uploadSkyImage(image);
    }
   })().catch(error=>{if(!this.disposed&&ticket===this.initTicket)this.stats.detailError=String(error.message||error);})
     .finally(()=>{if(ticket===this.initTicket)this.detailPromise=null;});
@@ -581,7 +597,8 @@ class Sky{
    // Cache all locations once. Never query driver state in the drawing loop.
    this.attribute=g.getAttribLocation(program,'a');g.enableVertexAttribArray(this.attribute);g.vertexAttribPointer(this.attribute,2,g.FLOAT,false,0,0);
    this.u=Object.fromEntries(['right','down','forward','size','fov','sky','quietMask','edgeShade','fixedGalaxy'].map(k=>[k,g.getUniformLocation(program,k)]));
-   this.uploadSkyImage(this.image);
+   await this.uploadSkyImage(this.image);
+   if(this.disposed||ticket!==this.initTicket)return;
    const maskWork=this.buildFeatureQuietMask();let maskStep;
    do{
     maskStep=maskWork.next();
@@ -842,6 +859,22 @@ class Sky{
   const horizontal=Math.cos(elevation)-qy*Math.sin(elevation);
   return {azimuth:(Math.atan2(direction.x,direction.y)-Math.atan2(qx,horizontal)+TAU)%TAU,elevation,bank};
  }
+ featureGridPose(id,camera){
+  const center=this.featureCameraPose(id);if(!center)return null;
+  const forward=this.axes(center).forward,direction={x:-forward[0],y:-forward[1],z:-forward[2]};
+  const portrait=this.h>this.w,xs=portrait?[1/3,2/3]:[.25,.75],ys=portrait?[.25,.75]:[1/3,2/3];
+  const delta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));let best=null,score=Infinity;
+  // Evaluate only on a navigation command. Reuse the celestial pose solver,
+  // permitting the previously approved +/-45 degree roll at polar targets.
+  for(const x of xs)for(const y of ys)for(let degrees=-45;degrees<=45;degrees+=5){
+   const pose=this.featureCameraPose(id,x,y,degrees*Math.PI/180),point=pose&&this.project(direction,this.axes(pose));if(!point)continue;
+   const error=Math.hypot(point.x/this.w-x,point.y/this.h-y);
+   const travel=delta(pose.azimuth,camera.azimuth)**2+delta(pose.elevation,camera.elevation)**2+delta(pose.bank,camera.bank||0)**2;
+   const cost=(error>1e-6?1000+error*1000:0)+travel;
+   if(cost<score){score=cost;best=pose;}
+  }
+  return best;
+ }
  updateSkyFeatures(){
   const visible=!this.camera?.hideStars&&this.axesNow&&this.w&&this.h;
   if(!visible){this.featureProjectionKey=null;this.skyFeatures=[];return this.skyFeatures;}
@@ -1019,7 +1052,7 @@ class Sky{
  }
  featureSparkle(seed,seconds){
   const p=FEATURE_SPARKLE,offset=seededUnit(seed+3.17),period=p.period+seededUnit(seed+11.91)*p.variation*2,phase=((seconds/period+offset)%1+1)%1;
-  const smooth=x=>x*x*(3-2*x),pulse=phase<p.rise?smooth(phase/p.rise):phase<p.rise+p.fall?1-smooth((phase-p.rise)/p.fall):0;
+  let progress,pulse=0;if(phase<p.rise){progress=phase/p.rise;pulse=progress*progress*(3-2*progress);}else if(phase<p.rise+p.fall){progress=(phase-p.rise)/p.fall;pulse=1-progress*progress*(3-2*progress);}
   return {pulse,alpha:p.base+p.peak*pulse,angle:offset*TAU+p.rotation*Math.sin(phase*TAU)};
  }
  featureRenderOwners(entries,now){

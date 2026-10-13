@@ -36,8 +36,8 @@ test('a failed rate-limit backend does not prevent native cancellation confirmat
 test('bounded cleanup resumes its cursor next time and never enumerates media prefixes',async()=>{
  const f=fixture(),requests=[],prefix='releases/runtime/windows-helper-v2/';f.bucket.list=async({prefix:p,cursor})=>{requests.push([p,cursor]);if(p!==prefix)return {objects:[],truncated:false};const page=Number(cursor||0);return {objects:[],truncated:page<11,cursor:String(page+1)};};
  await f.worker.scheduled({},f.env,f.ctx);await f.settle();
- const report=JSON.parse(f.values.get('releases/runtime/windows-helper-cleanup.json').body);assert.equal(report.cursors[prefix],'10');
- await f.worker.scheduled({},f.env,f.ctx);await f.settle();const second=JSON.parse(f.values.get('releases/runtime/windows-helper-cleanup.json').body);assert.equal(second.complete,true);assert.ok(requests.some(([p,c])=>p===prefix&&c==='10'));assert.ok(requests.every(([p])=>p.startsWith('releases/runtime/windows-helper')));
+ const report=JSON.parse(f.values.get('releases/runtime/windows-helper-cleanup.json').body);assert.equal(report.cursors[prefix],'10');assert.equal(report.incompleteRuns,1);assert.equal(report.backlogSince,report.at);
+ await f.worker.scheduled({},f.env,f.ctx);await f.settle();const second=JSON.parse(f.values.get('releases/runtime/windows-helper-cleanup.json').body);assert.equal(second.complete,true);assert.equal(second.incompleteRuns,0);assert.equal(second.backlogSince,null);assert.ok(requests.some(([p,c])=>p===prefix&&c==='10'));assert.ok(requests.every(([p])=>p.startsWith('releases/runtime/windows-helper')));
 });
 test('cleanup storage failures propagate rather than producing a success record',async()=>{
  const f=fixture();f.bucket.list=async()=>{throw Error('R2 unavailable');};await f.worker.scheduled({},f.env,f.ctx);await assert.rejects(f.settle(),/R2 unavailable/);assert.equal(f.values.has('releases/runtime/windows-helper-cleanup.json'),false);

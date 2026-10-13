@@ -36,8 +36,10 @@ async function cleanupHelperReceipts(env){
    }
    if(cursor){report.cursors[prefix]=cursor;report.complete=false;}
   }
+  report.incompleteRuns=report.complete?0:(Number(previous?.incompleteRuns)||0)+1;
+  report.backlogSince=report.complete?null:(previous?.backlogSince||report.at);
   await env.SOLAR_TIME_MEDIA.put(CLEANUP_STATE_KEY,JSON.stringify(report),{httpMetadata:{contentType:'application/json',cacheControl:'no-store'}});
-  console.info(JSON.stringify({message:'helper receipt cleanup',scanned:report.scanned,deleted:report.deleted,complete:report.complete}));
+  console.info(JSON.stringify({message:'helper receipt cleanup',scanned:report.scanned,deleted:report.deleted,complete:report.complete,incompleteRuns:report.incompleteRuns,backlogSince:report.backlogSince}));
   return report;
  }catch(error){console.error(JSON.stringify({message:'helper receipt cleanup failed',scanned:report.scanned,deleted:report.deleted}));throw error;}
 }
@@ -131,6 +133,20 @@ const mutableUI=key=>/(?:^|\/)content\/ui\//.test(key);
 const mediaCacheControl=key=>mutableUI(key)?'public, max-age=3600, must-revalidate':'public, max-age=31536000, immutable';
 const comparableEtag=value=>String(value||'').trim().replace(/^W\//i,'');
 const etagMatches=(header,etag)=>String(header||'').split(',').some(value=>value.trim()==='*'||comparableEtag(value)===comparableEtag(etag));
+const mediaLastModified=object=>{const date=new Date(object?.uploaded||0);return Number.isFinite(date.getTime())&&date.getTime()>0?date.toUTCString():'';};
+function ifRangeMatches(value,object){
+ const validator=String(value||'').trim();if(!validator)return true;
+ // If-Range requires a strong entity tag. Weak tags must fall back to the
+ // complete representation even when their opaque value looks identical.
+ if(validator.startsWith('"')||/^W\//i.test(validator))return !/^W\//i.test(validator)&&validator===String(object?.httpEtag||'').trim();
+ const expected=mediaLastModified(object),date=Date.parse(validator);
+ return !!expected&&Number.isFinite(date)&&date===Date.parse(expected);
+}
+function validByteRange(value,size){
+ const match=/^bytes=(\d*)-(\d*)$/.exec(String(value||'').trim());if(!match||(!match[1]&&!match[2])||!Number.isSafeInteger(size)||size<1)return false;
+ if(match[1]){const start=Number(match[1]),end=match[2]?Number(match[2]):size-1;return Number.isSafeInteger(start)&&Number.isSafeInteger(end)&&start<size&&end>=start;}
+ const suffix=Number(match[2]);return Number.isSafeInteger(suffix)&&suffix>0;
+}
 function mediaCacheRequest(request,withHeaders=false){
  const url=new URL(request.url);url.search='';
  return new Request(url.toString(),withHeaders?{headers:request.headers}:undefined);
@@ -140,6 +156,7 @@ function mediaHeaders(object,status,key){
  const headers=new Headers();object.writeHttpMetadata(headers);
  const type=mediaType(key);if(type)headers.set('content-type',type);
  headers.set('etag',object.httpEtag);headers.set('accept-ranges','bytes');
+ const lastModified=mediaLastModified(object);if(lastModified)headers.set('last-modified',lastModified);
  headers.set('access-control-allow-origin','*');headers.set('cross-origin-resource-policy','cross-origin');
  headers.set('cache-control',mediaCacheControl(key));
  if(/\.cmd$/i.test(key)){
@@ -160,9 +177,16 @@ function mediaDelivery(response,cacheStatus){
  const headers=new Headers(response.headers);
  headers.set('x-solar-media-cache',cacheStatus);
  headers.set('timing-allow-origin','*');
- headers.set('access-control-expose-headers','Content-Length, ETag, Age, CF-Cache-Status, X-Solar-Media-Cache');
+ headers.set('access-control-expose-headers','Content-Length, Content-Range, ETag, Last-Modified, Age, CF-Cache-Status, X-Solar-Media-Cache, X-Solar-Media-Error');
  headers.set('server-timing','solar-cache;desc="'+cacheStatus+'"');
  return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+}
+
+function mediaError(status,message,code,cacheStatus='BYPASS',extra){
+ const headers=new Headers(extra);headers.set('content-type','text/plain; charset=utf-8');headers.set('cache-control','no-store');
+ headers.set('access-control-allow-origin','*');headers.set('cross-origin-resource-policy','cross-origin');headers.set('x-content-type-options','nosniff');
+ headers.set('x-solar-media-error',code);
+ return mediaDelivery(new Response(message,{status,headers}),cacheStatus);
 }
 
 // Only scalar ownership markers are shared. Streams and promises stay with
@@ -170,28 +194,52 @@ function mediaDelivery(response,cacheStatus){
 const musicFills=new Map(),MAX_MUSIC_FILLS=8;
 function fillMusic(cache,cacheKey,env,ctx,key){
   const now=Date.now();for(const [id,entry] of musicFills)if(entry.expires<=now)musicFills.delete(id);
-  const id=cacheKey.url;if(musicFills.has(id)||musicFills.size>=MAX_MUSIC_FILLS)return;
+  const id=cacheKey.url;if(musicFills.has(id)||musicFills.size>=MAX_MUSIC_FILLS){console.info(JSON.stringify({message:'music cache fill',result:musicFills.has(id)?'coalesced':'capacity',bytes:0}));return;}
   const entry={expires:now+60000};musicFills.set(id,entry);
   ctx.waitUntil((async()=>{
+    let result='missing',bytes=0;
     try{
-      const cached=await cache.match(cacheKey);if(cached){await cached.body?.cancel();return;}
+      const cached=await cache.match(cacheKey);if(cached){result='already-cached';await cached.body?.cancel();return;}
       const full=await env.SOLAR_TIME_MEDIA.get(key);
-      if(full)await cache.put(cacheKey,new Response(full.body,{headers:mediaHeaders(full,200,key)}));
-    }catch(error){console.warn('Music cache fill failed',String(error));}
-    finally{if(musicFills.get(id)===entry)musicFills.delete(id);}
+      if(full){bytes=full.size;await cache.put(cacheKey,new Response(full.body,{headers:mediaHeaders(full,200,key)}));result='stored';}
+    }catch(error){result='failed';console.warn('Music cache fill failed',String(error));}
+    finally{if(musicFills.get(id)===entry)musicFills.delete(id);console.info(JSON.stringify({message:'music cache fill',result,bytes,durationMs:Date.now()-now}));}
   })());
 }
 async function mediaResponse(request,env,ctx,key){
-  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET, HEAD, OPTIONS','access-control-allow-headers':'Range','access-control-max-age':'86400'}});
-  if(request.method!=='GET'&&request.method!=='HEAD')return new Response('Method Not Allowed',{status:405,headers:{allow:'GET, HEAD, OPTIONS'}});
-  const head=request.method==='HEAD',range=head?null:request.headers.get('range'),cache=mutableUI(key)?null:caches.default;
+  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET, HEAD, OPTIONS','access-control-allow-headers':'Range, If-Range, If-None-Match','access-control-max-age':'86400'}});
+  if(request.method!=='GET'&&request.method!=='HEAD')return mediaError(405,'Method Not Allowed','method-not-allowed','BYPASS',{allow:'GET, HEAD, OPTIONS'});
+  const head=request.method==='HEAD',range=head?null:request.headers.get('range'),ifRange=range?request.headers.get('if-range'):null,cache=mutableUI(key)?null:caches.default;
   const lookup=mediaCacheRequest(request,true);if(head)lookup.headers.delete('range');
   if(cache){
-    let cached;try{cached=await cache.match(lookup);}catch(_){console.warn('Media cache read unavailable; serving R2');}
-    if(cached){if(head){if(cached.body)ctx.waitUntil(cached.body.cancel());cached=new Response(null,{status:cached.status,headers:cached.headers});}return mediaDelivery(cached,'HIT');}
+    let cached;try{
+      if(ifRange){
+        const wholeRequest=mediaCacheRequest(request,true);wholeRequest.headers.delete('range');wholeRequest.headers.delete('if-range');
+        const whole=await cache.match(wholeRequest);
+        if(whole?.status===304)cached=whole;
+        else if(whole){
+          const metadata={httpEtag:whole.headers.get('etag'),uploaded:whole.headers.get('last-modified')};
+          if(ifRangeMatches(ifRange,metadata)){await whole.body?.cancel();const ranged=new Request(lookup);ranged.headers.delete('if-range');cached=await cache.match(ranged);}
+          else cached=whole;
+        }
+      }else cached=await cache.match(lookup);
+    }catch(_){console.warn('Media cache read unavailable; serving R2');}
+    if(cached){
+      if(cached.status===416){if(cached.body)ctx.waitUntil(cached.body.cancel());return mediaError(416,'Range Not Satisfiable','range-not-satisfiable','HIT',{'accept-ranges':'bytes','content-range':cached.headers.get('content-range')||'*'});}
+      if(head){if(cached.body)ctx.waitUntil(cached.body.cancel());cached=new Response(null,{status:cached.status,headers:cached.headers});}
+      return mediaDelivery(cached,'HIT');
+    }
   }
-  const object=head?await env.SOLAR_TIME_MEDIA.head(key):await env.SOLAR_TIME_MEDIA.get(key,{range:request.headers});
-  if(!object)return new Response('Not Found',{status:404});
+  let object,rangeAllowed=!!range;
+  if(head)object=await env.SOLAR_TIME_MEDIA.head(key);
+  else if(ifRange){
+    const metadata=await env.SOLAR_TIME_MEDIA.head(key);
+    if(!metadata)return mediaError(404,'Not Found','not-found',cache?'MISS':'BYPASS');
+    rangeAllowed=ifRangeMatches(ifRange,metadata);
+    object=await env.SOLAR_TIME_MEDIA.get(key,rangeAllowed?{range:new Headers({range})}:undefined);
+  }else object=await env.SOLAR_TIME_MEDIA.get(key,range?{range:new Headers({range})}:undefined);
+  if(!object)return mediaError(404,'Not Found','not-found',cache?'MISS':'BYPASS');
+  if(rangeAllowed&&!validByteRange(range,object.size)){if(object.body)ctx.waitUntil(object.body.cancel());return mediaError(416,'Range Not Satisfiable','range-not-satisfiable',cache?'MISS':'BYPASS',{'accept-ranges':'bytes','content-range':`bytes */${object.size}`});}
   if(etagMatches(request.headers.get('if-none-match'),object.httpEtag)){if(object.body)ctx.waitUntil(object.body.cancel());return mediaDelivery(new Response(null,{status:304,headers:mediaHeaders(object,304,key)}),cache?'MISS':'BYPASS');}
   const partial=!!range&&!!object.range,status=partial?206:200,headers=mediaHeaders(object,status,key);
   if(head)return mediaDelivery(new Response(null,{status,headers}),cache?'MISS':'BYPASS');
@@ -216,15 +264,19 @@ export default {
   try{
    if(url.pathname.startsWith(HELPER_API_PREFIX))return await helperApiResponse(request,env,ctx,url);
    if(url.pathname.startsWith(MEDIA_PREFIX)){
-    let key;try{key=decodeURIComponent(url.pathname.slice(MEDIA_PREFIX.length));}catch(_){return new Response('Bad Request',{status:400});}
-    if(key.startsWith('releases/runtime/'))return new Response('Not Found',{status:404});
-    if(!key||key.includes('..'))return new Response('Bad Request',{status:400});
-    return await mediaResponse(request,env,ctx,key);
+    let key;try{key=decodeURIComponent(url.pathname.slice(MEDIA_PREFIX.length));}catch(_){return mediaError(400,'Bad Request','bad-path');}
+    if(key.startsWith('releases/runtime/'))return mediaError(404,'Not Found','not-found');
+    if(!key||key.includes('..'))return mediaError(400,'Bad Request','bad-path');
+    const started=Date.now(),response=await mediaResponse(request,env,ctx,key);
+    // Existing Workers log sampling bounds telemetry cost. No body reads or
+    // user identifiers: record regional response setup, not download duration.
+    console.info(JSON.stringify({message:'media delivery',kind:key.split('.').pop()?.toLowerCase(),colo:request.cf?.colo||null,country:request.cf?.country||null,status:response.status,cache:response.headers.get('x-solar-media-cache'),range:request.headers.has('range'),bytes:Number(response.headers.get('content-length'))||0,responseMs:Date.now()-started}));
+    return response;
    }
    return await env.ASSETS.fetch(request);
   }catch(error){
    console.error(JSON.stringify({message:'request failed',path:url.pathname,error:error instanceof Error?error.message:String(error)}));
-   return new Response('Internal Server Error',{status:500});
+   return url.pathname.startsWith(MEDIA_PREFIX)?mediaError(500,'Internal Server Error','internal'):new Response('Internal Server Error',{status:500});
   }
  }
 };

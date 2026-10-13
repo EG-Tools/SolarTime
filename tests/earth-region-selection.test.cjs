@@ -79,7 +79,7 @@ test('temporary Earth region changes are isolated from the persistent language r
   assert.match(app,/if\(copyLanguage\(\)==='kor'&&code==='KR'\)return '한국'/);
   assert.match(app,/const centeredRegion=.*renderer\.countryRegionCenter/);
   assert.match(app,/if\(userInitiated\)clearTemporaryRegion\(\)/);
-  assert.match(app,/temporaryRegionId&&trackedBodyId\(\)!=='earth'/);
+  assert.doesNotMatch(app,/temporaryRegionId&&trackedBodyId\(\)!=='earth'/);
   assert.match(app,/renderer\.earthRegionHit\(point\.x,point\.y,REGION_CATALOG/);
   assert.match(app,/renderer\.earthRegionInteractionReady\(\)/);
   assert.match(app,/renderer\.setEarthRegionHover\(region\)/);
@@ -98,7 +98,8 @@ test('wheel travel preserves temporary country inspection until an explicit rese
   assert.match(app,/const activeRegionId=\(\)=>REGIONS\[language\]\?language:'kor'/);
   assert.match(app,/temporaryRegionId=id===activeRegionId\(\)\?null:id/);
   assert.doesNotMatch(app,/activeRegion\(\)\.id/,'region values do not own their catalog ids');
-  assert.match(app,/\$\('timezone-reset'\)\.addEventListener\('click',[\s\S]*clearTemporaryRegion\(\);viewEarthRegion\(region\)/);
+  const reset=app.slice(app.indexOf("$('timezone-reset').addEventListener('click'"),app.indexOf("const rotationControl="));
+  assert.match(reset,/clearTemporaryRegion\(\)/);assert.doesNotMatch(reset,/viewEarthRegion|restoreCamera|animate/);
   assert.match(read('index.html'),/id="timezone-reset" class="range-reset timezone-reset"[^>]+disabled/);
 });
 

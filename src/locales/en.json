@@ -308,7 +308,9 @@
     "shutdownFailed": "Windows command failed (code {code}).",
     "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
     "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close.",
+    "removeFile": "Remove",
+    "alarmSoundRemoveFailed": "Could not remove the saved sound. Please try again."
   },
   "bodies": {
     "polaris": [

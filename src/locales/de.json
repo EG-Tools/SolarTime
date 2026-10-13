@@ -308,7 +308,9 @@
     "shutdownFailed": "Windows-Befehl fehlgeschlagen (Code {code}).",
     "shutdownNotLaunched": "Der Helfer wurde nicht geöffnet. Betätige den Schalter erneut und bestätige die Browserabfrage.",
     "helperVerifyFailed": "Helferprüfung fehlgeschlagen. Führe das neueste Installationsprogramm aus und erlaube das Öffnen des Helfers.",
-    "shutdownDataWarning": "Speichere deine Arbeit: Zeitgesteuertes Herunterfahren kann Anwendungen zwangsweise schließen."
+    "shutdownDataWarning": "Speichere deine Arbeit: Zeitgesteuertes Herunterfahren kann Anwendungen zwangsweise schließen.",
+    "removeFile": "Entfernen",
+    "alarmSoundRemoveFailed": "Der gespeicherte Ton konnte nicht entfernt werden. Bitte erneut versuchen."
   },
   "bodies": {
     "polaris": [

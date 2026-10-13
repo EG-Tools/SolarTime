@@ -21,7 +21,7 @@ function fixture({preferences,locks,saved={},record=null,prepare,hidden=false,in
  class AudioContext{constructor(){counts.contexts++;this.currentTime=0;this.destination={};}resume(){return Promise.resolve();}suspend(){return Promise.resolve();}close(){return Promise.resolve();}decodeAudioData(bytes){counts.decodes++;return decode?decode(bytes):Promise.resolve({length:48000,numberOfChannels:2,duration:1});}createBufferSource(){return node('buffer');}createGain(){return node('gain');}createOscillator(){return node('oscillator');}}
  window.AudioContext=AudioContext;
  const req=(value,tx)=>{const r={};Promise.resolve(value).then(v=>{r.result=v;r.onsuccess?.();if(tx)queueMicrotask(()=>tx.oncomplete?.());},e=>{r.error=e;r.onerror?.();});return r;};
- const db={transaction:()=>{const tx={};tx.objectStore=()=>({get:()=>{counts.reads++;return req(getRecord?getRecord():stored);},put:value=>{counts.puts++;return req(Promise.resolve(putRecord?putRecord(value):null).then(()=>{stored=value;writes.push(value.name);return undefined;}),tx);},delete:()=>req(null,tx)});return tx;}};
+ const db={transaction:()=>{const tx={};tx.objectStore=()=>({get:()=>{counts.reads++;return req(getRecord?getRecord():stored);},put:value=>{counts.puts++;return req(Promise.resolve(putRecord?putRecord(value):null).then(()=>{stored=value;writes.push(value.name);return undefined;}),tx);},delete:()=>{stored=null;return req(null,tx);}});return tx;}};
  window.indexedDB={open:()=>{counts.opens++;return req(db);}};
  window.fetch=fetchFn||(async()=>({ok:true,blob:async()=>require('./audio-fixture.cjs').wav()}));
  class Clock extends Date{constructor(...args){super(...(args.length?args:[clock]));}static now(){return clock;}}

@@ -1,12 +1,12 @@
 'use strict';
-const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'..'),text=fs.readFileSync(path.join(root,'cloudflare/worker.js'),'utf8');
-function worker({failCacheRead=false}={}){
+function worker({failCacheRead=false,failR2Read=false}={}){
  const store=new Map(),wait=[],body='public texture data';let reads=0;
  const cache={match:async req=>{if(failCacheRead)throw Error('cache unavailable');return store.get(req.url)?.clone();},put:async(req,res)=>store.set(req.url,res)};
  const context={URL,Request,Response,Headers,console:{warn(){},info(){},error(){}},caches:{default:cache}};
  vm.createContext(context);vm.runInContext(text.replace('export default {','globalThis.worker = {'),context);
- const env={SOLAR_TIME_MEDIA:{get:async()=>{reads++;return {body,size:body.length,httpEtag:'"content-hash"',writeHttpMetadata:h=>h.set('content-type','image/webp')};}}},ctx={waitUntil:p=>wait.push(p)};
+ const env={SOLAR_TIME_MEDIA:{get:async()=>{reads++;if(failR2Read)throw Error('R2 unavailable');return {body,size:body.length,httpEtag:'"content-hash"',writeHttpMetadata:h=>h.set('content-type','image/webp')};}}},ctx={waitUntil:p=>wait.push(p)};
  return {get:url=>context.worker.fetch(new Request(url),env,ctx),wait,reads:()=>reads,body};
 }
 test('media HIT/MISS is explicit and browser timing is exposed on cold and previously cached objects',async()=>{
@@ -18,6 +18,9 @@ test('media HIT/MISS is explicit and browser timing is exposed on cold and previ
 test('cache read errors fall through to R2 without removing the preview-capable media response',async()=>{
  const f=worker({failCacheRead:true}),r=await f.get('https://solar.test/media/releases/content/textures/test.webp');assert.equal(r.status,200);assert.equal(await r.text(),f.body);assert.equal(r.headers.get('x-solar-media-cache'),'MISS');await Promise.all(f.wait);
 });
+test('public media failures retain observable no-store CORS headers',async()=>{
+ const r=await worker({failR2Read:true}).get('https://solar.test/media/releases/content/textures/test.webp');assert.equal(r.status,500);assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(r.headers.get('access-control-allow-origin'),'*');assert.equal(r.headers.get('x-solar-media-error'),'internal');assert.equal(r.headers.get('x-solar-media-cache'),'BYPASS');assert.match(r.headers.get('server-timing'),/BYPASS/);
+});
 test('helper API and private runtime records never inherit public media caching',async()=>{
  const f=worker();let r=await f.get('https://solar.test/api/windows-helper/health');assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(r.headers.get('x-solar-media-cache'),null);
  r=await f.get('https://solar.test/media/releases/runtime/windows-helper-v2/operation/00000000000000000000000000000000');assert.equal(r.status,404);assert.equal(f.reads(),0);
@@ -26,4 +29,22 @@ test('helper API and private runtime records never inherit public media caching'
 test('verified production deployment includes bounded original texture delivery checks',()=>{
  const source=fs.readFileSync(path.join(root,'tools/deployment.cjs'),'utf8');assert.match(source,/tools\/verify-textures\.cjs/);
  const script=fs.readFileSync(path.join(root,'tools/verify-textures.cjs'),'utf8');assert.doesNotMatch(script,/method:\s*['"](?:POST|PUT|DELETE)/);assert.match(script,/sha256/);assert.match(script,/cacheHitObserved/);
+});
+test('deployment verifies the visual baseline and every changed texture, sky and music URL',()=>{
+ const {parseRuntimeManifest,verificationPlan}=require('../tools/verify-textures.cjs'),manifest=JSON.parse(fs.readFileSync(path.join(root,'assets/manifest.json'),'utf8'));
+ const previous=parseRuntimeManifest(fs.readFileSync(path.join(root,'src/assets.js'),'utf8'));
+ previous.materials.venus.tiers=previous.materials.venus.tiers.filter(tier=>tier.width!==512);
+ previous.sky.tiers=previous.sky.tiers.filter(tier=>tier.width!==2048);previous.sky.galaxyAtlas.path='releases/content/backgrounds/galaxy-atlas.old.webp';
+ delete previous.music['08 - Deep Space Journey.mp3'];
+ const plan=verificationPlan(manifest,previous),changed=plan.filter(row=>row.reasons.includes('changed'));
+ assert.ok(changed.some(row=>row.kind==='texture'&&row.id==='venus'&&row.width===512));assert.ok(changed.some(row=>row.kind==='background'&&row.id==='sky'&&row.width===2048));
+ assert.ok(changed.some(row=>row.id==='galaxy-atlas'));assert.ok(changed.some(row=>row.kind==='music'&&row.id==='08 - Deep Space Journey.mp3'));
+ assert.equal(plan.filter(row=>row.reasons.includes('baseline')).length,4);assert.equal(new Set(plan.map(row=>row.path)).size,plan.length);
+});
+test('media verification downloads full bytes once, then uses HEAD and validates music ranges',async()=>{
+ const {verifyEntry}=require('../tools/verify-textures.cjs'),bytes=Buffer.from('verified media bytes'),hash=crypto.createHash('sha256').update(bytes).digest('hex'),common={'cache-control':'public, max-age=31536000, immutable','access-control-allow-origin':'*','timing-allow-origin':'*',etag:'"media"'};
+ const methods=[],textureRequest=async(_url,options={})=>{const method=options.method||'GET';methods.push(method);return method==='GET'?new Response(bytes,{status:200,headers:{...common,'x-solar-media-cache':'MISS'}}):new Response(null,{status:200,headers:{...common,'x-solar-media-cache':'HIT'}});};
+ const texture=await verifyEntry({kind:'texture',id:'earth',width:1024,path:'release.webp',bytes:bytes.length,sha256:hash,reasons:['baseline']},new URL('https://example.test/media/'),{request:textureRequest,delay:async()=>{}});assert.deepEqual(methods,['GET','HEAD']);assert.equal(texture.cacheHitObserved,true);
+ const musicMethods=[],musicRequest=async(_url,options={})=>{const range=options.headers?.range;musicMethods.push(range?'RANGE':options.method||'GET');return range?new Response(bytes.subarray(0,Math.min(1024,bytes.length)),{status:206,headers:{...common,'content-range':`bytes 0-${bytes.length-1}/${bytes.length}`,'x-solar-media-cache':'HIT'}}):new Response(bytes,{status:200,headers:{...common,'x-solar-media-cache':'MISS'}});};
+ const music=await verifyEntry({kind:'music',id:'track.mp3',path:'track.mp3',bytes:bytes.length,sha256:hash,reasons:['changed']},new URL('https://example.test/media/'),{request:musicRequest,delay:async()=>{}});assert.deepEqual(musicMethods,['GET','RANGE']);assert.equal(music.rangeVerified,true);
 });

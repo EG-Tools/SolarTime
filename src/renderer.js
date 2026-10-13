@@ -6,6 +6,7 @@
   const ACTUAL_ORBIT_SPACING=Object.freeze({normalBlendEnd:.1,minimumMix:.01});
   const ACTUAL_SCALE_TRANSITION=Object.freeze({duration:2000,homeDuration:1100});
   const SKY_SOLAR_SCALE=.05;
+  const SOLAR_COMPOSITE_RATIOS=Object.freeze([.25,.5,.75,1]);
   const POINTER_COAST=Object.freeze({decay:180,sample:40,stale:100,maxSpeed:.006,duration:900});
   const SKY_SOLAR_TARGET_RADIUS=Object.freeze({min:13,max:42});
   const OVERVIEW_GAP_MULTIPLIER=1.5;
@@ -20,6 +21,14 @@
   const WARP_PARTICLES=Object.freeze({peakAt:7000,entryDelay:1000,entrySpread:1200,entryFade:450,exitLead:300,openingAppear:1200,openingTail:.175,appear:700,speed:1.44,arrivalSpeed:.3,arrivalDrift:.06,tail:.8,edgeTail:.5,arrivalTail:.25,alpha:.64,speedAlpha:.7,arrivalAlpha:1.2,arrivalHold:.25,afterglow:2000,loopSpread:1200,loopFade:800,blend:450});
   const SATURN_APPEAR=Object.freeze({delay:300,duration:1000,linger:500,glowScale:.7,alpha:.9,extraCohorts:2});
   const PARTICLE_TRANSITION=Object.freeze({finalFade:1200,boardingHold:250});
+  // A render-only scene may calculate presentation output, but it never owns
+  // the live camera or transition objects. Keep this boundary in one registry
+  // so compact and replay scenes cannot silently drop a newly added output.
+  const RENDER_SCENE_OUTPUTS=Object.freeze([
+    'frameSerial','projected','presentationDirty','presentedResources','replayLayerStyle','solarComposite',
+    'openingPointReveal','openingParticles','openingOrbitStart','openingAnnotationStart','openingOrbitDelays','openingOrbitStyles',
+    'lastLabelMono','lastSurfaceSubmit','lastSurfaceSimMs','lastSurfaceMono','coronaTexture','coronaBuild','coronaBuildKey'
+  ]);
   // Absolute presentation timestamps only. Particle ages, simulation dates and
   // wall-clock time never belong to this registry. Aliases are shifted once.
   const ANIMATION_TIMESTAMPS=[
@@ -114,7 +123,7 @@
   const flightEye=s=>{const d=1/Math.max(.00001,s.dolly??1),c=Math.cos(s.elevation);return [-Math.sin(s.azimuth)*c*d,-Math.cos(s.azimuth)*c*d,Math.sin(s.elevation)*d];};
   // One timing source: camera/particles share duration; annotations are always
   // relative to arrival, never a separately maintained absolute timestamp.
-  const OPENING_TIMING=Object.freeze({duration:6500,closeupExtra:2000,orbitBeforeEnd:2000,annotationFade:1500,departureDolly:.001,accel:.4,cruise:0,decel:.6});
+  const OPENING_TIMING=Object.freeze({duration:6500,closeupExtra:2000,orbitBeforeEnd:2000,annotationFade:1500,departureDolly:.001,turnMin:Math.PI/2,turnMax:Math.PI,axisMin:Math.PI/4,axisMax:Math.PI/2,accel:.4,cruise:0,decel:.6});
   const OPENING_ANNOTATION_FADE=OPENING_TIMING.annotationFade;
   const openingFlyThrough=t=>{
     t=clamp(t,0,1);const a=OPENING_TIMING.accel,v=1/(1-a/2);
@@ -143,10 +152,22 @@
   // Region picking deliberately uses small representative-city safe zones.
   // It does not infer national borders, islands or disputed territory.
   // Screen-space appearance only: never change physical size, lens or camera pose.
-  // A projected DIAMETER of 2px is the smallest textured disc. It blends to the
-  // shared point sprite only between 2px and 1px, then remains a point at 1px.
-  // Renderer radii are CSS pixels, so those diameter thresholds are 1 and .5.
-  const BODY_POINT=Object.freeze({pointRadius:.5,textureRadius:1,size:2.2,sizeCurve:.25});
+  // The point sprite settles smoothly at each body class's readable floor.
+  // The resolved surface covers the marker before its halo fades.
+  const BODY_POINT_LEVEL=Object.freeze({satellite:.85,rocky:1.05,giant:1.3,sun:2.8});
+  const BODY_POINT=Object.freeze({
+    pointRadius:.5,sizeGrowth:.35,haloExtent:1.8,haloGain:.9,coreGrowth:.8,coreFloorScale:.23,phaseStart:.05,phaseEnd:.5,nightFloor:.12,
+    // Screen-space floors stay readable at any distance; other body classes
+    // retain their smaller approved minimums.
+    minimumSize:Object.freeze({sun:BODY_POINT_LEVEL.sun,
+      jupiter:BODY_POINT_LEVEL.giant,saturn:BODY_POINT_LEVEL.giant,uranus:BODY_POINT_LEVEL.giant,neptune:BODY_POINT_LEVEL.giant,
+      earth:BODY_POINT_LEVEL.rocky,venus:BODY_POINT_LEVEL.rocky,mars:BODY_POINT_LEVEL.rocky,mercury:BODY_POINT_LEVEL.rocky,
+      moon:BODY_POINT_LEVEL.satellite,europa:BODY_POINT_LEVEL.satellite,pluto:BODY_POINT_LEVEL.satellite}),
+    resolvedProfile:Object.freeze({moon:Object.freeze({fadeSpan:.12,brightness:.8}),europa:Object.freeze({fadeSpan:.12,brightness:.8}),pluto:Object.freeze({fadeSpan:.12,brightness:.8})}),
+    // The unresolved Sun keeps its body colour through the core instead of
+    // sharing the cool-white centre used by planets and moons.
+    spriteTone:Object.freeze({sun:Object.freeze({emissive:true,center:'255,226,150',inner:'255,190,83',midAlpha:.35})})
+  });
   const STAR_GLOW_EXTENT=6;
   const OPENING_POINT_REVEAL=1500;
   const POINT_TOUR_CAMERA_HANDOFF=1.2;
@@ -159,6 +180,10 @@
   const DISPLAY_SAFETY=Object.freeze({satelliteShell:.60,localGap:.8});
   const SATELLITE_ORBIT_PARENTS=new Set(SATELLITES.map(body=>body.parent));
   const ECLIPSE_CASTERS=Object.freeze({earth:'moon',jupiter:'europa'});
+  // Preserve the physical umbra at the centre, but make the faint outer
+  // footprint legible at ordinary planet-card scale. The surface owner treats
+  // half of this presentation radius as the physical caster radius.
+  const ECLIPSE_FOOTPRINT_SCALE=2;
   const ORBIT_HIERARCHY_PARENTS=new Set(['sun',...SATELLITE_ORBIT_PARENTS]);
   const normalizeElevation=value=>A.wrap(value+Math.PI)-Math.PI;
   function noise(x,y) {
@@ -180,7 +205,7 @@
     set openingParticles(value){this.particleLifecycle().activate(value);}
     get transitionMode(){return this.transitionManager().mode;}
     constructor(background,canvas) {
-      this.bg=background;this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:true});
+      this.canvas=canvas;this.ctx=canvas.getContext('2d',{alpha:true});
       if(!this.ctx)throw new Error('Canvas 2D is unavailable.');
       this.gpu=null;this.gpuError=null;
       const gpuCanvas=typeof document==='object'&&typeof document.getElementById==='function'?document.getElementById('planet-layer'):null;
@@ -199,7 +224,7 @@
       this.stats={orbitProjections:0,orbitBufferBuilds:0,orbitPaths:0,starSprites:0};this.boundStarGlow=this.starGlow.bind(this);this.boundStarGlow.extent=STAR_GLOW_EXTENT;
       this.selected=null;this.hover=null;this.earthRegionHover=null;this.earthRegionNavigation=false;this.countryBorders=null;this.alignmentGuide=null;this.lastPathMs=NaN;this.dirty=true;this.presentationDirty=true;this.presentationUntil=0;this.presentedResources='';this.frameCount=0;
       this.orbitRevealStart=performance.now();this.openingAnnotationStart=NaN;this.openingOrbitStart=NaN;this.openingPointReveal=null;
-      this._flightParticles=new FlightParticleLifecycle();this.openingParticleSprite=null;this.ringTour=null;this.pendingTravelFocus=null;this.skyFeatureTrack=null;this.skySolarMix=0;this.skySolarVisible=false;this.skySolarTarget=null;this.skySolarHover=false;this.skySolarHoverTween=null;this.openingPresentation=false;
+      this._flightParticles=new FlightParticleLifecycle();this.openingParticleSprite=null;this.ringTour=null;this.pendingTravelFocus=null;this.skyFeatureTrack=null;this.skyFeatureGridId=null;this.skyFeatureGridBanked=false;this.skySolarMix=0;this.skySolarVisible=false;this.skySolarTarget=null;this.skySolarHover=false;this.skySolarHoverTween=null;this.solarRenderRatio=1;this.openingPresentation=false;
       this.lastSurfaceSubmit=-Infinity;this.lastSurfaceSimMs=NaN;this.lastSurfaceMono=NaN;
       this.sky=new window.SolarSky(background);
       this.resize();
@@ -208,12 +233,13 @@
     resize() {
       const box=this.canvas.getBoundingClientRect(),w=Math.max(1,box.width),h=Math.max(1,box.height);
       const dpr=window.SolarPerformance?.pixelRatio(w,h,this.options.quality)??Math.min(window.devicePixelRatio||1,this.options.quality==='low'?1:2);
-      if(w===this.w&&h===this.h&&Math.abs(dpr-this.dpr)<.001)return;
-      this.w=w;this.h=h;this.dpr=dpr;this.starSprites?.clear();this.labelWidths?.clear();
+      const sceneDpr=window.SolarPerformance?.scenePixelRatio?.(w,h,this.options.quality)??dpr;
+      if(w===this.w&&h===this.h&&Math.abs(dpr-this.dpr)<.001&&Math.abs(sceneDpr-(this.sceneDpr??this.dpr))<.001)return;
+      this.w=w;this.h=h;this.dpr=dpr;this.sceneDpr=sceneDpr;this.starSprites?.clear();this.labelWidths?.clear();
       this.canvas.width=Math.round(this.w*this.dpr);this.canvas.height=Math.round(this.h*this.dpr);
       this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
-      this.stats.adaptiveDpr=this.dpr;this.gpu?.resize(this.w,this.h,this.dpr);
-      this.sky.resize(this.w,this.h,this.dpr);this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate(false);this.clearLabels();
+      this.stats.adaptiveDpr=this.dpr;this.stats.sceneDpr=this.sceneDpr;this.gpu?.resize(this.w,this.h,this.sceneDpr);this.solarRenderRatio=1;
+      this.sky.resize(this.w,this.h,this.sceneDpr);this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.surface?.invalidate(false);this.clearLabels();
     }
     startOrbitReveal(mono=performance.now()) {
       this.orbitRevealStart=Number.isFinite(mono)?mono:performance.now();
@@ -252,10 +278,14 @@
     }
     memoryUsage(){
       const surface=this.gpu?.memoryUsage?.(),sky=this.sky?.memoryUsage?.();
-      const ringTour=this.ringTour?.memoryUsage()||0,sprite=this.openingParticleSprite;
+      const activeTour=this.ringTour,ringTour=activeTour?.memoryUsage()||0;
+      const preparedRingTour=this.preparedRingTour&&this.preparedRingTour!==activeTour?this.preparedRingTour.memoryUsage?.()||0:0,sprite=this.openingParticleSprite;
       const flightAtlas=(sprite?.naturalWidth||sprite?.width||0)*(sprite?.naturalHeight||sprite?.height||0)*4;
-      const knownBytes=(surface?.knownBytes||0)+(sky?.knownBytes||0)+ringTour+flightAtlas,framebufferEstimate=(surface?.framebufferEstimate||0)+(sky?.framebufferEstimate||0);
-      return {estimated:true,scope:'WebGL textures, geometry, flight sprite and estimated color buffers; excludes browser/driver overhead',surface,sky,ringTour,flightAtlas,knownBytes,framebufferEstimate,totalEstimate:knownBytes+framebufferEstimate};
+      const main=this.canvas,main2D=main?Math.max(0,main.width||0)*Math.max(0,main.height||0)*4:0;
+      const composite=this.solarComposite?.canvas,composite2D=composite?Math.max(0,composite.width||0)*Math.max(0,composite.height||0)*4:0;
+      const canvas2D=main2D+composite2D;
+      const knownBytes=(surface?.knownBytes||0)+(sky?.knownBytes||0)+ringTour+preparedRingTour+flightAtlas+canvas2D,framebufferEstimate=(surface?.framebufferEstimate||0)+(sky?.framebufferEstimate||0);
+      return {estimated:true,scope:'WebGL textures, geometry, active/prepared ring resources, flight sprite, 2D canvases and estimated color buffers; excludes browser/driver overhead',surface,sky,ringTour,preparedRingTour,flightAtlas,main2D,composite2D,canvas2D,knownBytes,framebufferEstimate,totalEstimate:knownBytes+framebufferEstimate};
     }
     invalidatePresentation(duration=0,mono=performance.now()){
       this.presentationDirty=true;
@@ -287,30 +317,46 @@
     }
     bodyPointLod(body,radius) {
       if(!Number.isFinite(radius)||radius<=0)return {size:0,alpha:0};
-      // Keep every body's point representation on one screen-space curve.
-      // The shallow power keeps sub-pixel bodies visible without replacing
-      // their projected size relationship with planet-class ranks.
-      const normalized=clamp(radius/BODY_POINT.pointRadius,0,1);
-      const growth=ease(normalized),blend=1-ease(clamp((radius-BODY_POINT.pointRadius)/(BODY_POINT.textureRadius-BODY_POINT.pointRadius),0,1));
-      // Enter at a small sprite footprint, then reach the established point
-      // size only as the textured disc reaches 1px. This removes the apparent
-      // size pop caused by fading a full-size halo over a 2px texture.
-      const entryScale=mix(.35,1,blend);
-      return {size:BODY_POINT.size*Math.pow(normalized,BODY_POINT.sizeCurve)*entryScale,
-        alpha:blend*mix(.58,1,growth)};
+      const minimum=BODY_POINT.minimumSize[body.id]||BODY_POINT_LEVEL.satellite;
+      const size=Math.hypot(minimum,radius*BODY_POINT.sizeGrowth);
+      // One smooth lower bound for every body. The surface must cover the
+      // growing halo before it fades, otherwise zooming in makes a small dip.
+      const covered=minimum*BODY_POINT.haloExtent/Math.sqrt(1-Math.pow(BODY_POINT.sizeGrowth*BODY_POINT.haloExtent,2));
+      const blend=1-ease(clamp((radius-covered)/(covered*(BODY_POINT.resolvedProfile[body.id]?.fadeSpan||1)),0,1));
+      const coreFloor=clamp(minimum*BODY_POINT.coreFloorScale,.04,BODY_POINT.pointRadius);
+      const coreRadius=Math.hypot(coreFloor,radius*BODY_POINT.coreGrowth);
+      return {size,coreRadius,alpha:blend};
+    }
+    bodyPointSeparation(item,others) {
+      if(BODY_POINT.spriteTone[item.body.id]?.emissive)return 1;
+      let alpha=1;
+      for(const other of others){
+        if(!BODY_POINT.spriteTone[other.body.id]?.emissive||other.screen?.behind)continue;
+        // Only unresolved points merge. Resolved surfaces keep physical depth masks.
+        const source=this.bodyPointLod(other.body,other.r);
+        if(source.alpha<=0)continue;
+        const reach=source.size*BODY_POINT.haloExtent;
+        const distance=Math.hypot(item.screen.x-other.screen.x,item.screen.y-other.screen.y);
+        const merge=1-ease(clamp((distance-reach*.35)/(reach*.65),0,1));
+        const unresolved=1-ease(clamp(item.r/BODY_POINT.pointRadius,0,1));
+        alpha*=1-merge*source.alpha*unresolved;
+      }
+      return alpha;
     }
     drawBodyPoint(c,item,occluders=[],reveal=1) {
-      const {screen,body,r}=item,point=this.bodyPointLod(body,r),extent=point.size*1.8;
+      const {screen,body,r}=item,point=this.bodyPointLod(body,r),extent=Math.max(point.size*BODY_POINT.haloExtent,point.coreRadius);
       reveal=clamp(Number(reveal)||0,0,1);
       if(point.alpha<=0||reveal<=0||!Number.isFinite(screen?.x)||!Number.isFinite(screen?.y)||!this.visible(screen,extent))return false;
+      reveal*=this.bodyPointSeparation(item,occluders);if(reveal<=0)return false;
       this.starSprites ||= new Map();
       const color=/^#[0-9a-f]{6}$/i.test(body.color)?body.color:'#cfe2ff';
-      const key='body:'+color;let sprite=this.starSprites.get(key);
+      const tone=BODY_POINT.spriteTone[body.id],key='body:'+color+':'+(tone?'gold':'neutral');let sprite=this.starSprites.get(key);
       if(!sprite){
         const canvas=document.createElement('canvas');canvas.width=canvas.height=64;
         const g=canvas.getContext('2d'),rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16)).join(','),halo=g.createRadialGradient(32,32,0,32,32,32);
-        halo.addColorStop(0,'rgba(255,255,255,.95)');halo.addColorStop(.12,'rgba(255,255,255,.9)');
-        halo.addColorStop(.4,`rgba(${rgb},.85)`);halo.addColorStop(.55,`rgba(${rgb},.16)`);halo.addColorStop(1,`rgba(${rgb},0)`);
+        halo.addColorStop(0,tone?`rgba(${tone.center},.98)`:'rgba(255,255,255,.95)');
+        halo.addColorStop(.12,tone?`rgba(${tone.inner},.95)`:'rgba(255,255,255,.9)');
+        halo.addColorStop(.4,`rgba(${rgb},${tone?.midAlpha??.85})`);halo.addColorStop(.55,`rgba(${rgb},.16)`);halo.addColorStop(1,`rgba(${rgb},0)`);
         g.fillStyle=halo;g.fillRect(0,0,64,64);sprite=canvas;this.starSprites.set(key,sprite);
       }
       c.save();
@@ -338,16 +384,32 @@
         c.beginPath();c.rect(0,0,this.w,this.h);
         c.moveTo(other.screen.x+other.r,other.screen.y);c.arc(other.screen.x,other.screen.y,other.r,0,TAU);c.clip('evenodd');
       }
-      const parentAlpha=c.globalAlpha,pointAlpha=parentAlpha*point.alpha*reveal;
-      // Preserve the unresolved disc light budget as the halo footprint grows.
-      // A wider sprite must not brighten a shrinking planet.
-      const haloGain=Math.min(1,Math.pow(BODY_POINT.pointRadius/point.size,2));
-      c.globalAlpha=pointAlpha*haloGain;
+      let lighting=1;
+      if(!tone?.emissive){
+        let light=item.directJob?.light;
+        if(!(light&&Math.hypot(...light)>0)&&item.physical){
+          const v=this.viewDirection({x:-item.physical.x,y:-item.physical.y,z:-item.physical.z});light=[v.x,v.y,v.z];
+        }
+        const length=light?Math.hypot(...light):0;
+        if(length>0){
+          const cosine=clamp(light[2]/length,-1,1),angle=Math.acos(cosine);
+          const phase=(Math.sin(angle)+(Math.PI-angle)*cosine)/Math.PI;
+          const minimum=BODY_POINT.minimumSize[body.id]||BODY_POINT_LEVEL.satellite;
+          // Apply reflected light before the disc becomes resolved; a long unlit
+          // marker phase made opening approaches look as if lighting switched on.
+          const near=ease(clamp((r/minimum-BODY_POINT.phaseStart)/(BODY_POINT.phaseEnd-BODY_POINT.phaseStart),0,1));
+          lighting=mix(1,mix(BODY_POINT.nightFloor,1,phase),near);
+        }
+      }
+      const parentAlpha=c.globalAlpha,pointAlpha=parentAlpha*point.alpha*reveal*lighting*(BODY_POINT.resolvedProfile[body.id]?.brightness??1);
+      // Readable markers share a distance-independent light floor in both
+      // scale modes. Inverse-area dimming made the non-solar floors invisible.
+      c.globalAlpha=pointAlpha*BODY_POINT.haloGain;
       c.drawImage(sprite,screen.x-extent,screen.y-extent,extent*2,extent*2);
-      // The core uses the same continuous LOD weight as the halo; never add an
-      // opaque core abruptly at the 1px boundary.
+      // Match the resolved disc during handoff; only the distant core has a floor.
+      // A fixed half-pixel core makes the textured disc appear to collapse.
       c.globalAlpha=pointAlpha;c.fillStyle=color;c.beginPath();
-      c.arc(screen.x,screen.y,clamp(point.size*.23,.04,BODY_POINT.pointRadius),0,TAU);c.fill();
+      c.arc(screen.x,screen.y,point.coreRadius,0,TAU);c.fill();
       c.restore();return true;
     }
     bodyDepthOrder(a,b) {
@@ -506,7 +568,7 @@
       if(!Number.isFinite(x)||!Number.isFinite(y))return;
       this.cancelCameraMotion();this.camera.panX=clamp(x,VIEW.minPanX,VIEW.maxPanX);this.setPanY(y);
     }
-    allBodies() {return [A.SUN,...A.BODIES,...SATELLITES];}
+    allBodies() {return this.bodyCatalog||(this.bodyCatalog=Object.freeze([A.SUN,...A.BODIES,...SATELLITES]));}
     sceneBodies() {return [A.SUN,...this.getBodies(),...(this.options.moon?SATELLITES:[])];}
     bodySizeScale(bodyOrId) {
       const id=typeof bodyOrId==='string'?bodyOrId:bodyOrId?.id;
@@ -534,12 +596,14 @@
       // One parent-first transaction for live sliders, loading and reset. A
       // smaller Sun/planet also clamps existing children; JSON key order cannot
       // change the result. Keep 0.1% precision so the 12.5% giant floor is exact.
+      let changed=false;
       for(const body of this.allBodies()){
         const id=body.id,value=Number.isFinite(values[id])?values[id]:this.bodySizeScale(body);
         const limits=this.bodyScaleLimits(body),next=clamp(Math.round(value*1000)/1000,limits.min,limits.max);
+        if(next!==this.bodySizeScale(body))changed=true;
         if(Math.abs(next-1)<1e-6)delete this.bodyScales[id];else this.bodyScales[id]=next;
       }
-      this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.clearLabels();
+      if(changed){this.dirty=true;this.lastSurfaceSubmit=-Infinity;this.clearLabels();}
     }
     resetBodyScale(id) {return this.setBodyScale(id,1);}
     getBodyScales() {return Object.fromEntries(this.allBodies().map(body=>[body.id,this.bodySizeScale(body)]));}
@@ -558,11 +622,13 @@
     setSatelliteOrbitScales(values) {
       if(!values||typeof values!=='object')return;
       this.satelliteOrbitScales||(this.satelliteOrbitScales=Object.create(null));
+      let changed=false;
       for(const id of ORBIT_HIERARCHY_PARENTS){const value=values[id];if(!Number.isFinite(value))continue;
         const limits=this.satelliteOrbitScaleLimits(id),next=clamp(Math.round(value*100)/100,limits.min,limits.max);
+        if(next!==this.satelliteOrbitScale(id))changed=true;
         if(Math.abs(next-1)<1e-6)delete this.satelliteOrbitScales[id];else this.satelliteOrbitScales[id]=next;
       }
-      this.dirty=true;this.clearLabels();
+      if(changed){this.dirty=true;this.clearLabels();}
     }
     resetSatelliteOrbitScale(id) {return this.setSatelliteOrbitScale(id,1);}
     getSatelliteOrbitScales() {return Object.fromEntries([...ORBIT_HIERARCHY_PARENTS].map(id=>[id,this.satelliteOrbitScale(id)]));}
@@ -946,7 +1012,7 @@
         this.centerX=mix(this.w*.5,this.centerX,arrival);
         this.centerY=mix(this.h*.5,this.centerY,arrival);
       }
-      this.cx=this.centerX;this.homeCx=this.centerX;this.homeCy=this.centerY;this.cy=this.homeCy;
+      this.cx=this.centerX;this.cy=this.centerY;
       this.bodyScale=this.bodyScaleAtZoom();this.lastPathMs=ms;this.pathYear=A.modelYear(ms);this.dirty=false;
     }
     advanceActualScale(mono=performance.now()){
@@ -1046,12 +1112,30 @@
       if(this.camera.zoom<=1&&(this.camera.dolly??1)===1)this.camera.focus=null;
       this.dirty=true;
     }
+    dollyFocusPan(state,focusId,next) {
+      if(!focusId||!this.sceneBodies().some(b=>b.id===focusId))return null;
+      // Preserve the takeover position, then converge towards the tracking
+      // centre with forward travel. Retreat never pushes the body sideways.
+      const changing=state.focus!==focusId,pan=changing?(this.screenAnchoredPan(focusId,this.camera)||state):state;
+      const factor=next/(state.dolly??1),target=changing?this.projected?.find(item=>item.body.id===focusId):null;
+      // A close-up dolly belongs to its old anchor. Rebase to the incoming
+      // body's current apparent distance before applying this wheel step.
+      const perspective=target?.screen?.perspective;
+      if(changing&&target?.world){
+        const anchor=this.trackingAnchorForFrame(),distance=this.dollyDistance(),eye=flightEye(this.camera);
+        const separation=Math.hypot(...['x','y','z'].map((key,i)=>eye[i]*distance+(anchor[key]||0)-target.world[key]));
+        const radial=distance/Math.max(1e-9,separation);
+        const apparent=!target.screen?.behind&&Number.isFinite(perspective)&&perspective>0?(this.camera.dolly??1)*perspective:Infinity;
+        next=clamp(Math.min(radial,apparent)*factor,VIEW.minDolly,VIEW.maxDolly);
+      }
+      const gain=Math.min(1,Math.pow(1/factor,3));
+      return {focus:focusId,dolly:next,panX:pan.panX*gain,panY:pan.panY*gain};
+    }
     setDolly(value,focusId=null) {
       if(!Number.isFinite(value))return;
-      const next=clamp(value,VIEW.minDolly,VIEW.maxDolly),validTarget=focusId&&this.sceneBodies().some(b=>b.id===focusId);
-      const anchored=validTarget&&this.camera.focus!==focusId?this.screenAnchoredPan(focusId):null;
+      const next=clamp(value,VIEW.minDolly,VIEW.maxDolly),focus=this.dollyFocusPan(this.camera,focusId,next);
       this.cancelCameraMotion();this.shiftBackgroundForManualDolly(this.camera.dolly??1,next);this.camera.dolly=next;
-      if(validTarget){this.camera.focus=focusId;if(anchored)Object.assign(this.camera,anchored);}
+      if(focus)Object.assign(this.camera,focus);
       this.cameraChangeAt=performance.now();this.dirty=true;
     }
     wheelTravelFactor(deltaY){return Math.exp(-clamp(deltaY,-120,120)*.0017);}
@@ -1081,15 +1165,32 @@
     visible(p,r=0) {return !p.behind&&p.x+r>=0&&p.x-r<=this.w&&p.y+r>=0&&p.y-r<=this.h;}
     skyFeatureHit(x,y){return this.sky?.featureHit?.(x,y)||null;}
     setSkyFeatureHover(id){if(this.sky?.setFeatureHover?.(id))this.invalidatePresentation(Math.max(1300,this.sky.featureHoverTransitionDuration?.()||0));}
-    setSkyFeatureSelected(id){if(this.sky?.setFeatureSelected?.(id))this.invalidatePresentation(this.sky.featureRelationTransitionDuration?.()||0);}
+    setSkyFeatureSelected(id){
+      id=id||null;
+      // A manually selected card starts in information-only mode. Preserve the
+      // grid-navigation session only while the selected card matches the view
+      // that was explicitly placed with its name button.
+      if(!id||id!==this.skyFeatureGridId)this.skyFeatureGridId=null;
+      if(this.sky?.setFeatureSelected?.(id))this.invalidatePresentation(this.sky.featureRelationTransitionDuration?.()||0);
+    }
     setSkyFeatureTrack(track){
       this.skyFeatureTrack=track||null;
+      if(this.skyFeatureTrack)this.skyFeatureGridId=null;
       this.sky?.setFeatureTracked?.(track?.id||null);
       this.invalidatePresentation(this.sky?.featureRelationTransitionDuration?.()||0);return this.skyFeatureTrack;
     }
     get skyFeatureInputLocked(){return !!this.skyFeatureTrack;}
     get skyFeatureShortcutMode(){return this.skyFeatureTrack?2:0;}
     get skyFeatureShortcutId(){return this.skyFeatureShortcutMode?this.skyFeatureTrack.id:null;}
+    get skyFeatureGridNavigationActive(){return !!this.skyFeatureGridId||!!this.skyFeatureGridBanked;}
+    clearSkyFeatureGrid(mono=performance.now(),duration=500){
+      const active=!!this.skyFeatureGridId||!!this.skyFeatureGridBanked;
+      this.skyFeatureGridId=null;this.skyFeatureGridBanked=false;
+      if(!active)return false;
+      if(this.cameraTween){this.cameraTween.bankFrom=this.flightBank||0;this.cameraTween.bankTo=0;return true;}
+      if(Math.abs(this.flightBank||0)>1e-8){this.bankRelease={from:this.flightBank,start:mono,duration};this.invalidatePresentation(duration,mono);}
+      return true;
+    }
     get earthRegionNavigationActive(){return !!this.earthRegionNavigation;}
     setEarthRegionNavigation(active){this.earthRegionNavigation=!!active;return this.earthRegionNavigation;}
     setOpeningPresentation(active,kind='opening',target=null){this.openingPresentation=active?kind:null;this.openingSurfaceTarget=active&&target?{...target}:null;this.invalidatePresentation();}
@@ -1202,10 +1303,20 @@
     openingCameraSnapshot(target=this.defaultCameraSnapshot(),randomSource=Math.random) {
       const destination=Renderer.validCamera(target)?target:this.defaultCameraSnapshot();
       const sample=()=>clamp(Number(randomSource?.())||0,0,1-Number.EPSILON);
+      const direction=sample()<.5?-1:1,turn=direction*mix(OPENING_TIMING.turnMin,OPENING_TIMING.turnMax,sample());
+      const openingAxes={turn,bank:mix(OPENING_TIMING.axisMin,OPENING_TIMING.axisMax,sample())};
+      const elevation=mix(OPENING_TIMING.axisMin,OPENING_TIMING.axisMax,sample()),portrait=this.h>this.w;
+      const xs=portrait?[1/3,2/3]:[.25,.5,.75],ys=portrait?[.25,.5,.75]:[1/3,2/3],points=[];
+      for(const y of ys)for(const x of xs)points.push({x,y});
+      const grid=points[Math.min(points.length-1,Math.floor(sample()*points.length))],baseY=this.viewportLayout().baseY/Math.max(1,this.h);
+      openingAxes.grid={...grid};
       // Keep the destination lens unchanged and begin only with physical camera
       // travel from the distant opening pose, using the same tracked-camera
-      // projection model as ordinary controls.
-      return {...destination,azimuth:sample()*TAU,elevation:mix(-.85,.85,sample()),zoom:destination.zoom,dolly:OPENING_TIMING.departureDolly,focus:null,panX:0,panY:0};
+      // projection model as ordinary controls. X travels a random 90-180
+      // degrees in either direction. The solar system begins at one of the six
+      // established viewport grid points (rotated to 2x3 in portrait).
+      return {...destination,azimuth:A.wrap(destination.azimuth-turn),elevation,zoom:destination.zoom,dolly:OPENING_TIMING.departureDolly,focus:null,
+        panX:grid.x-.5,panY:grid.y-baseY,openingAxes};
     }
     openingCameraArc(randomSource=Math.random) {
       const sample=()=>clamp(Number(randomSource?.())||0,0,1-Number.EPSILON),angle=sample()*TAU,amplitude=mix(.06,.11,sample());
@@ -1242,6 +1353,7 @@
       // The first camera after refresh establishes it (normally zero); every
       // restore/preset/opening keeps that same roll instead of re-leveling.
       this.cameraTween=null;this.flightBank=Number.isFinite(this.flightBank)?this.flightBank:0;this.flightLook=null;this.lookRelease=null;this.bankRelease=null;this.clearOpeningParticleFields();this.autoRotation=null;this.pendingAutoRotation=null;this.trackingAnchor=null;this.earthRegionNavigation=false;this.setSkyFeatureTrack(null);if(state.mode!==undefined)this.setDollyMode(state.mode==='move',false);
+      this.pendingOpeningAxes=state.openingAxes&&Number.isFinite(state.openingAxes.turn)&&Number.isFinite(state.openingAxes.bank)?{...state.openingAxes}:null;
       // Commit one camera transaction. Time, selected body and display toggles are not preset data.
       this.camera={azimuth:state.azimuth,elevation:state.elevation,zoom:state.zoom,dolly:state.dolly??1,
         focus:state.focus,panX:state.panX,panY:state.panY};
@@ -1268,7 +1380,15 @@
         tour.stop();return true;
       }
       if(duration<=0)return this.restoreCamera(state);
-      const interruptedAnchor=this.cameraTween&&this.trackingAnchor?{...this.trackingAnchor}:null;
+      const previousMove=this.cameraTween;
+      let inputVelocity=0;
+      if(input&&previousMove?.input){
+        const t=clamp((mono-previousMove.start)/previousMove.duration,0,1),dt=.001;
+        const a=this.cameraTweenState(previousMove,Math.max(0,t-dt)).state.dolly,b=this.cameraTweenState(previousMove,Math.min(1,t+dt)).state.dolly;
+        inputVelocity=(b-a)/(previousMove.duration*(Math.min(1,t+dt)-Math.max(0,t-dt)));
+      }
+      this.advanceCamera(mono);
+      const interruptedAnchor=this.cameraTween?(input?{...this.trackingAnchorForFrame()}:this.trackingAnchor?{...this.trackingAnchor}:null):null;
       const direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
       // A camera transition may pause the physical turn, but it never changes the
       // user's rotation toggle. Keep that intent pending and resume on arrival.
@@ -1281,7 +1401,16 @@
       // make the tracked planet jump in size/position between saved views.
       const resolvedTiming=timing==='opening'?'opening':'smooth';
       const openingPath=resolvedTiming==='opening'?{from,to,arc:to.focus===null?this.openingCameraArc():null,points:[]}:null;
-      this.cameraTween={from,to,start:mono,duration,input,timing:resolvedTiming,openingPath,progress:0,fromAnchor:interruptedAnchor,bankFrom:this.flightBank||0};this.bankRelease=null;
+      let openingAxes=null;
+      if(resolvedTiming==='opening'){
+        openingAxes=this.pendingOpeningAxes;this.pendingOpeningAxes=null;
+        if(!openingAxes){
+          const delta=A.wrap(to.azimuth-from.azimuth+Math.PI)-Math.PI;
+          openingAxes={turn:delta,bank:mix(OPENING_TIMING.axisMin,OPENING_TIMING.axisMax,Math.random())};
+        }
+      }else this.pendingOpeningAxes=null;
+      const inputSlope=input&&Math.abs(to.dolly-from.dolly)>1e-12?clamp(inputVelocity*duration/(to.dolly-from.dolly),0,3):0;
+      this.cameraTween={from,to,start:mono,duration,input,inputSlope,timing:resolvedTiming,openingPath,openingTurn:openingAxes?.turn,openingBank:openingAxes?.bank,progress:0,fromAnchor:interruptedAnchor,bankFrom:this.flightBank||0};this.bankRelease=null;
       if((this.skySolarMix||0)>0)this.cameraTween.skySolar={from:this.skySolarMix,to:0};
       if(resolvedTiming==='opening')this.cameraTween.rotationBlend={seconds:0,yaw:0,pitch:0};
       if(to.focus)this.prepareCloseup(to.focus);
@@ -1377,7 +1506,8 @@
       const departureAnnotations=tour?null:{
         labels:new Map(annotationIds.map(id=>[id,this.openingLabelOpacity(mono,id)])),
         orbits:new Map(annotationIds.map(id=>[id,this.openingOrbitOpacity(mono,id)]))};
-      if(!this.animateCamera(state,mono,outbound+duration,false,'opening',!!tour))return false;
+      this.pendingOpeningAxes=departure?.openingAxes&&Number.isFinite(departure.openingAxes.turn)&&Number.isFinite(departure.openingAxes.bank)?{...departure.openingAxes}:null;
+      if(!this.animateCamera(state,mono,outbound+duration,false,'opening',!!tour)){this.pendingOpeningAxes=null;return false;}
       if(this.skyFeatureTrack&&!this.cameraTween.skySolar)this.cameraTween.skySolar={from:1,to:0};
       if(this.cameraTween.skySolar)this.cameraTween.skySolar.holdUntilArrival=true;
       this.setSkyFeatureTrack(null);
@@ -1437,12 +1567,16 @@
       scene.basis=null;scene.bankSkyBasis=null;scene.bankSkyAxes=null;
       scene.rebuild(ms);
       scene.centerX+=slide.x||0;scene.centerY+=slide.y||0;
-      scene.cx=scene.homeCx=scene.centerX;scene.cy=scene.homeCy=scene.centerY;
+      scene.cx=scene.centerX;scene.cy=scene.centerY;
       return scene;
     }
     adoptReplayScene(scene){
       if(scene===this)return;
-      for(const key of ['frameSerial','projected','presentationDirty','presentedResources','replayLayerStyle','solarComposite','openingPointReveal','openingParticles','lastLabelMono','lastSurfaceSubmit','lastSurfaceSimMs','lastSurfaceMono','coronaTexture','coronaBuild','coronaBuildKey'])this[key]=scene[key];
+      // The isolated replay scene owns the first clear frame. Its arrival clock
+      // is therefore where the orbit/name reveal gets scheduled. Hand the full
+      // schedule back with the rendered frame or the shared replay path becomes
+      // final while the live renderer remains parked at Infinity.
+      for(const key of RENDER_SCENE_OUTPUTS)if(this[key]!==scene[key])this[key]=scene[key];
     }
     replaySkyCamera(camera,mono){
       const frame=this.replayPresentation(mono),path=this.cameraTween?.replay;
@@ -1454,7 +1588,7 @@
         // The sky remap already carries the outgoing orientation and momentum.
         // Keep the opening pose still during its lead, as before: steering it
         // toward a random arrival here adds a second, potentially large turn.
-        return this.cameraTweenState({from:path.departure,to:move.to,timing:'opening',flyThrough:move.flyThrough,openingPath:move.openingPath},t);
+        return this.cameraTweenState({from:path.departure,to:move.to,timing:'opening',flyThrough:move.flyThrough,openingPath:move.openingPath,openingTurn:move.openingTurn,openingBank:move.openingBank,duration:path.inbound},t);
       }
       const path=move.replay,seconds=replayFlightTime(elapsed/1000,Math.max(path.brakeAt/1000,path.ring.accelerationDuration||0)),pose=window.SolarRingTour.jumpPose(path.path,seconds),eye=window.SolarRingTour.warpSceneEye(path.path,seconds),distance=Math.max(.00001,Math.hypot(...eye)),p=ease(clamp(elapsed/7000,0,1));
       const state={...move.from,azimuth:A.wrap(Math.atan2(-eye[0],-eye[1])),elevation:Math.asin(clamp(eye[2]/distance,-1,1)),dolly:1/distance};
@@ -1788,6 +1922,16 @@
     }
     clearOpeningParticleFields() {
       return this.particleLifecycle().clear(field=>this.clearOpeningParticleField(field));
+    }
+    prepareOpeningBoarding(returnTarget) {
+      if(!this.cameraTween)return false;
+      this.cameraTween.ringReturnTarget={...returnTarget};
+      this.cameraTween.flyThrough=true;
+      this.keepOpeningParticlesUntilBoarding();
+      this.cameraTween.rotationBlend=null;this.openingFlight=null;
+      this.openingOrbitStart=Number.MAX_SAFE_INTEGER-10000;
+      this.openingAnnotationStart=Number.MAX_SAFE_INTEGER-9000;
+      return true;
     }
     keepOpeningParticlesUntilBoarding() {
       const field=this.openingParticles;
@@ -2528,10 +2672,9 @@
       // Pausing freezes the shared cinematic clock. Manual wheel travel must
       // still work, so commit it through the existing direct camera owner.
       if(this.animationPaused){this.setDolly(value,focusId);return true;}
-      const to=this.cameraInputState(mono);to.dolly=clamp(value,VIEW.minDolly,VIEW.maxDolly);
-      const validTarget=focusId&&this.sceneBodies().some(b=>b.id===focusId);
-      const anchored=validTarget&&to.focus!==focusId?this.screenAnchoredPan(focusId,to):null;
-      if(validTarget){to.focus=focusId;if(anchored)Object.assign(to,anchored);}
+      const to=this.cameraInputState(mono),next=clamp(value,VIEW.minDolly,VIEW.maxDolly);
+      const focus=this.dollyFocusPan(to,focusId,next);
+      to.dolly=next;if(focus)Object.assign(to,focus);
       return this.smoothCamera(to,mono,150);
     }
     trackingMoveState(id,snapshot=this.cameraSnapshot(),lensZoom=snapshot?.zoom,radius=Math.min(this.w,this.h)*.25) {
@@ -2591,12 +2734,27 @@
     }
     requestSkyFeatureNavigation(id,mono=performance.now(),duration=1600){
       if(!this.sky?.featureDirection?.(id))return false;
-      // Card navigation selects information; only tracking moves the camera.
-      return this.skyFeatureTrack?this.startSkyFeatureShortcutView(id,mono,duration):true;
+      // Card navigation normally selects information only. Once the user has
+      // placed a constellation with its name button, arrows keep that solar
+      // system mode and move each neighbouring constellation to a grid point.
+      if(this.skyFeatureTrack)return this.startSkyFeatureShortcutView(id,mono,duration);
+      return this.skyFeatureGridId?this.requestSkyFeaturePlacement(id,mono,duration):true;
+    }
+    requestSkyFeaturePlacement(id,mono=performance.now(),duration=1600){
+      if(!this.sky?.featureDirection?.(id))return false;
+      if(this.skyFeatureTrack)return this.startSkyFeatureShortcutView(id,mono,duration);
+      if(this.hasActivePlanetTravel()){
+        this.pendingTravelFocus={skyPlacement:id,duration};
+        const returning=this.returnPlanetTravelHome(mono,2);if(returning)this.skyFeatureGridId=id;return returning;
+      }
+      const from=this.cameraInputState(mono),pose=this.sky.featureGridPose(id,{...from,bank:this.flightBank||0});
+      if(!pose||!this.animateCamera({...from,azimuth:pose.azimuth,elevation:pose.elevation},mono,duration))return false;
+      this.skyFeatureGridId=id;this.skyFeatureGridBanked=true;this.cameraTween.bankTo=pose.bank;this.revealSkyFeature(id,mono);return true;
     }
     resumeTravelFocus(mono=performance.now(),ms){
       if(!this.pendingTravelFocus||this.hasActivePlanetTravel()||this.cameraTween)return false;
       const request=this.pendingTravelFocus;this.pendingTravelFocus=null;
+      if(request.skyPlacement)return this.requestSkyFeaturePlacement(request.skyPlacement,mono,request.duration);
       if(request.skyFeature)return this.startSkyFeatureShortcutView(request.skyFeature,mono,request.duration);
       if(request.feature){const feature=request.feature;return this.animateFeature(request.id,feature.latitude,feature.longitude,Number.isFinite(ms)?ms:feature.ms,mono,request.duration);}
       return this.animateFocus(request.id,mono,request.duration);
@@ -2629,35 +2787,47 @@
     }
     animateHome(mono=performance.now(),duration=1100) {
       if(!this.pendingTravelFocus)this.ringTour?.requestEntryHomeReturn?.();
-      const hadTween=!!this.cameraTween,hadSkyTrack=!!this.skyFeatureTrack;
+      const hadTween=!!this.cameraTween,hadSkyTrack=!!this.skyFeatureTrack,hadSkyGrid=!!this.skyFeatureGridId||!!this.skyFeatureGridBanked;
       this.earthRegionNavigation=false;this.setSkyFeatureTrack(null);
       // Home resets framing, distance and vertical tilt, while retaining the
       // user's current left/right solar bearing and its rotation intent.
       this.advanceCamera(mono);this.advanceAutoRotate(mono);
       const target=this.defaultCameraSnapshot();target.azimuth=this.camera.azimuth;
       const current=this.cameraSnapshot(),sameNumber=(a,b)=>Math.abs((a??0)-(b??0))<1e-9;
-      const unchanged=!hadTween&&!hadSkyTrack&&!this.ringTour&&!this.flightLook&&
+      const unchanged=!hadTween&&!hadSkyTrack&&!hadSkyGrid&&!this.ringTour&&!this.flightLook&&
         ['elevation','zoom','dolly','panX','panY','panDolly'].every(key=>sameNumber(current[key],target[key]))&&
         (current.focus??null)===(target.focus??null)&&current.mode===target.mode;
       // A no-op Home must not create a tween that pauses an otherwise active
       // left/right/random rotation for the transition duration.
       if(unchanged)return false;
-      return this.animateCamera(target,mono,duration);
+      const animated=this.animateCamera(target,mono,duration);
+      if(hadSkyGrid||hadSkyTrack)this.clearSkyFeatureGrid(mono,duration);
+      return animated||hadSkyGrid;
     }
     cameraTweenState(move,t){
       if(move.replay)return this.openingReplayPose(move,t*move.duration);
-      const p=move.timing==='opening'?(move.flyThrough?openingFlyThrough(t):openingEase(t)):ease(t),{from,to}=move;
+      const p=move.timing==='opening'?(move.flyThrough?openingFlyThrough(t):openingEase(t)):ease(t)+(move.inputSlope||0)*t*(1-t)*(1-t),{from,to}=move;
       const delta=A.wrap(to.azimuth-from.azimuth+Math.PI)-Math.PI,elevationDelta=A.wrap(to.elevation-from.elevation+Math.PI)-Math.PI;
-      const arc=move.openingPath?.arc,arcWeight=arc?4*p*(1-p):0;
-      const state={azimuth:A.wrap(from.azimuth+delta*p),elevation:normalizeElevation(from.elevation+elevationDelta*p),
-        panX:clamp(mix(from.panX,to.panX,p)+(arc?.x||0)*arcWeight,VIEW.minPanX,VIEW.maxPanX),panY:clamp(mix(from.panY,to.panY,p)+(arc?.y||0)*arcWeight,VIEW.minPanY,VIEW.maxPanY),
+      // Keep the randomized X travel explicit so 0-180 degrees follows its
+      // visible turn instead of collapsing to the shortest path. Saturn
+      // completes all three opening axes before the boarding handoff.
+      const spinEnd=move.flyThrough&&Number.isFinite(move.duration)?Math.max(.5,1-this.saturnOpeningHandoffLead/move.duration):1;
+      const openingAxisProgress=ease(clamp(t/spinEnd,0,1));
+      const openingTurn=Number.isFinite(move.openingTurn)?move.openingTurn:null;
+      // Saturn takes over before the opening clock reaches 1. Settle every
+      // randomized orientation and grid-position offset on the same eased axis
+      // clock, so the handoff reaches the saved view instead of retaining a
+      // small residual turn or screen shift.
+      const settleProgress=move.flyThrough&&openingTurn!==null?openingAxisProgress:p,arc=move.openingPath?.arc,arcWeight=arc?4*settleProgress*(1-settleProgress):0;
+      const state={azimuth:A.wrap(from.azimuth+(openingTurn===null?delta*p:openingTurn*openingAxisProgress)),elevation:normalizeElevation(from.elevation+elevationDelta*settleProgress),
+        panX:clamp(mix(from.panX,to.panX,settleProgress)+(arc?.x||0)*arcWeight,VIEW.minPanX,VIEW.maxPanX),panY:clamp(mix(from.panY,to.panY,settleProgress)+(arc?.y||0)*arcWeight,VIEW.minPanY,VIEW.maxPanY),
         // The visible tracking anchor itself is cross-blended in draw(). Keep the
         // destination focus here so surface detail can prepare before arrival.
         focus:to.focus,
         zoom:mix(from.zoom,to.zoom,p),dolly:mix(from.dolly??1,to.dolly??1,p)};
       if(from.panDolly!==undefined||to.panDolly!==undefined)state.panDolly=mix(from.panDolly??from.dolly??1,to.panDolly??to.dolly??1,p);
       if(state.zoom<=1&&state.dolly===1&&to.focus===null)state.focus=null;
-      return {state,progress:p};
+      return {state,progress:p,openingAxisProgress:openingTurn===null?null:openingAxisProgress};
     }
     openingTurn(move,t){
       if(!window.SolarRingTour?.smoothBank)return 0;
@@ -2692,20 +2862,21 @@
       if(!move){
         releaseLook();
         const release=this.bankRelease;if(!release)return false;
-        const t=clamp((mono-release.start)/500,0,1);this.flightBank=release.from*(1-ease(t));
+        const t=clamp((mono-release.start)/(release.duration||500),0,1);this.flightBank=release.from*(1-ease(t));
         if(t>=1)this.bankRelease=null;this.dirty=true;return true;
       }
-      const t=clamp((mono-move.start)/move.duration,0,1),{to}=move,{state,progress,look}=this.cameraTweenState(move,t);move.progress=progress;
+      const t=clamp((mono-move.start)/move.duration,0,1),{to}=move,{state,progress,look,openingAxisProgress}=this.cameraTweenState(move,t);move.progress=progress;
       if(move.replay){
         move.replay.arrivalProgress=mono-move.start>=move.replay.resetAt?progress:null;
         this.flightLook=look||null;this.lookRelease=null;
       }
-      const bankLimit=window.SolarRingTour?.bankLimit??20*A.DEG;
+      const bankLimit=openingAxisProgress===null||openingAxisProgress===undefined?(window.SolarRingTour?.bankLimit??20*A.DEG):OPENING_TIMING.axisMax;
       // Preserve the bank established by the preceding camera. Path-specific
       // flight roll is carried by the transported frame (flightLook/RingTour),
       // not by fading this shared baseline back to zero.
-      const bankFrom=Number.isFinite(move.bankFrom)?move.bankFrom:(this.flightBank||0);
-      this.flightBank=clamp(Number.isFinite(move.bankTo)?mix(bankFrom,move.bankTo,progress):bankFrom,-bankLimit,bankLimit);
+      const bankFrom=Number.isFinite(move.bankFrom)?move.bankFrom:(this.flightBank||0),baseBank=Number.isFinite(move.bankTo)?mix(bankFrom,move.bankTo,progress):bankFrom;
+      const openingBank=Number.isFinite(move.openingBank)&&openingAxisProgress!==null&&openingAxisProgress!==undefined?mix(move.openingBank,baseBank,openingAxisProgress):baseBank;
+      this.flightBank=clamp(openingBank,-bankLimit,bankLimit);
       const beforeDolly=this.camera.dolly??1;
       this.camera=t>=1?{azimuth:to.azimuth,elevation:to.elevation,zoom:to.zoom,dolly:to.dolly??1,focus:to.focus,panX:to.panX,panY:to.panY}:state;
       if(t>=1&&to.panDolly!==undefined)this.camera.panDolly=to.panDolly;
@@ -2985,7 +3156,7 @@
       const focused=body.id===this.camera.focus,selected=body.id===this.selected,priority=focused||selected;
       const arrival=this.openingPresentation&&this.openingSurfaceTarget;
       const textureRadius=arrival?Math.max(r,this.bodyRadiusForState(body,arrival)):r;
-      const screenDiameter=Math.max(32,textureRadius*2*this.dpr),apparentDiameter=Math.max(16,r*2);
+      const screenDiameter=Math.max(32,textureRadius*2*(this.sceneDpr||this.dpr)),apparentDiameter=Math.max(16,r*2);
       const nativeWidth=window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth;
       const detailFloor=focused?SURFACE.detailWidth:selected?2048:0;
       const textureDemand=Math.max(screenDiameter*4,detailFloor);
@@ -3037,7 +3208,7 @@
         const moonRadius=A.BODY_RADIUS_KM[satellite.id]/A.BODY_RADIUS_KM[body.id];
         job.shadowSpread=A.BODY_RADIUS_KM.sun/A.AU_KM/len;
         const lateral=Math.hypot(caster[0]-along*light[0],caster[1]-along*light[1],caster[2]-along*light[2]);
-        if(along>1&&lateral<1+moonRadius+(along+1)*job.shadowSpread)caster[3]=moonRadius;
+        if(along>1&&lateral<1+moonRadius*ECLIPSE_FOOTPRINT_SCALE+(along+1)*job.shadowSpread)caster[3]=moonRadius*ECLIPSE_FOOTPRINT_SCALE;
       }
       if(direct)return job;
       const maximum=priority?SURFACE.maxRaster:384,wanted=Math.min(maximum,screenDiameter);
@@ -3086,7 +3257,7 @@
     }
     cancelCoronaBuild(){if(this.coronaTask){clearTimeout(this.coronaTask.timer);this.coronaTask.work.return();this.coronaTask=null;}}
     coronaSource(r) {
-      const detail=r*this.dpr>128&&this.options.quality!=='low'?768:384;
+      const detail=r*(this.sceneDpr||this.dpr)>128&&this.options.quality!=='low'?768:384;
       // A tiny immediate preview avoids a blank Sun. Refine the unchanged
       // filament pattern cooperatively instead of blocking the first close-up.
       if(!this.coronaTexture)this.coronaTexture=this.makeCoronaTexture(64);
@@ -3769,6 +3940,26 @@
       out.behind=visibilityW<=nearW;out.z=-depth;out.occlusionDepth=-depth;
       const safeW=Math.max(nearW,out.clipW);
       out.x=out.clipX/safeW;out.y=out.clipY/safeW;out.radius=out.clipRadius/safeW;
+      if(normal&&!saturnOrigin&&tour.state==='entering'&&tour.age<POINT_TOUR_CAMERA_HANDOFF&&!normal.behind&&tour.returnTarget?.focus&&this.currentFrameItem(tour.returnTarget.focus)?.world===world){
+        // Only a close-up foreground body needs this safety bridge. Applying
+        // it to ordinary bodies (especially Saturn) eases incoming velocity
+        // back to zero even though the ring camera already inherited it.
+        // A true-scale tracked view can map its watched planet thousands of
+        // viewports away as soon as Saturn takes camera ownership. Blend that
+        // visible body in screen space toward a bounded off-screen waypoint;
+        // after it has left the frame, the physical ring-camera projection can
+        // take over invisibly. Depth and occlusion still use the real camera.
+        const progress=ease(tour.age/POINT_TOUR_CAMERA_HANDOFF),normalRadius=radius*(normal.perspective??1),limit=Math.hypot(this.w,this.h)+Math.max(normalRadius,Math.min(Math.abs(out.radius),Math.max(this.w,this.h)));
+        let dx=out.x-normal.x,dy=out.y-normal.y,distance=Math.hypot(dx,dy);
+        if(!Number.isFinite(distance)){
+          dx=Math.sign(out.clipX-normal.x*out.clipW)||0;dy=Math.sign(out.clipY-normal.y*out.clipW)||0;distance=Math.hypot(dx,dy);
+        }
+        if(distance<1e-9){dx=1;dy=0;distance=1;}
+        const travel=Math.min(distance,limit),targetX=normal.x+dx/distance*travel,targetY=normal.y+dy/distance*travel,targetRadius=Math.min(Math.abs(out.radius),Math.max(this.w,this.h));
+        if(progress<=0){out.x=normal.x;out.y=normal.y;out.radius=normalRadius;}
+        else{out.x=mix(normal.x,targetX,progress);out.y=mix(normal.y,targetY,progress);out.radius=mix(normalRadius,targetRadius,progress);}
+        out.behind=false;
+      }
       return out;
     }
     drawRingTourAnnotations(tour,ms,mono) {
@@ -3832,22 +4023,37 @@
       c.save();c.globalAlpha=.9*alpha;c.strokeStyle='#e9bd67';c.lineWidth=1;c.shadowColor='rgba(233,189,103,.38)';c.shadowBlur=6;
       c.beginPath();c.arc(target.x,target.y,target.r+5,0,TAU);c.stroke();c.restore();
     }
+    solarCompositeRatio(scale=SKY_SOLAR_SCALE){
+      const wanted=clamp((Number.isFinite(scale)?scale:SKY_SOLAR_SCALE)*5,.25,1);
+      return SOLAR_COMPOSITE_RATIOS.find(value=>value>=wanted-.0001)||1;
+    }
+    setSolarRenderRatio(ratio=1){
+      ratio=SOLAR_COMPOSITE_RATIOS.includes(ratio)?ratio:1;
+      const sceneDpr=this.sceneDpr||this.dpr;
+      if(!this.gpu){this.solarRenderRatio=ratio;return Math.max(.25,sceneDpr*ratio);}
+      if(this.solarRenderRatio!==ratio||this.gpu.width!==this.w||this.gpu.height!==this.h){
+        this.gpu.resize(this.w,this.h,sceneDpr*ratio);this.solarRenderRatio=ratio;
+      }
+      return this.gpu.dpr;
+    }
     drawSolarScene(ms,seconds,mono){
       const amount=clamp(this.skySolarMix||0,0,1);
       if(amount<=0||this.solarSceneHidden(mono)){
+        if(amount<=0)this.setSolarRenderRatio(1);
         this.solarComposite=null;this.skySolarTarget=null;this.setSkySolarHover(false,mono);return this.paintSolarScene(ms,seconds,mono);
       }
       // Composite the whole opaque solar scene once. No body, orbit, camera or
       // depth coordinate is rescaled independently; sky and travel particles stay outside.
       const layer=this.solarComposite||(this.solarComposite=(()=>{const canvas=document.createElement('canvas');return {canvas,ctx:canvas.getContext('2d'),scene:Object.create(Renderer.prototype)};})());
-      // Only the composite backing resolution changes. World coordinates, depth
-      // and the user's camera remain untouched. At 5% display scale this still
-      // renders at ten times the final pixel density.
-      const appearance=this.solarSceneAppearance(),ratio=Math.max(.5,Math.min(1,appearance.scale));
-      const width=Math.max(1,Math.round(this.canvas.width*ratio)),height=Math.max(1,Math.round(this.canvas.height*ratio)),c=layer.ctx;
+      // Fixed backing tiers avoid reallocating the 2D and WebGL buffers on every
+      // animation frame. The 5x target keeps the compact 5% scene oversampled,
+      // while cutting the final GPU target from a full viewport to one quarter
+      // of its width and height. World coordinates and the live camera stay put.
+      const appearance=this.solarSceneAppearance(),ratio=this.solarCompositeRatio(appearance.scale),renderDpr=this.setSolarRenderRatio(ratio);
+      const width=Math.max(1,Math.round(this.w*renderDpr)),height=Math.max(1,Math.round(this.h*renderDpr)),c=layer.ctx;
       if(layer.canvas.width!==width||layer.canvas.height!==height){layer.canvas.width=width;layer.canvas.height=height;}
       c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,width,height);c.setTransform(width/this.w,0,0,height/this.h,0,0);
-      const scene=layer.scene;Object.assign(scene,this);scene.ctx=c;
+      const scene=layer.scene;Object.assign(scene,this);scene.ctx=c;scene.dpr=renderDpr;
       scene.paintSolarScene(ms,seconds,mono,false);this.adoptReplayScene(scene);
       if(this.gpu){c.save();c.globalCompositeOperation='destination-over';c.drawImage(this.gpu.canvas,0,0,this.w,this.h);c.restore();this.setReplaySolarOpacity(0);}
       const out=this.ctx;out.save();out.globalAlpha=appearance.alpha;out.translate(appearance.x,appearance.y);out.scale(appearance.scale,appearance.scale);out.translate(-appearance.x,-appearance.y);out.drawImage(layer.canvas,0,0,this.w,this.h);out.restore();
@@ -3958,13 +4164,19 @@
           this.surface.update(jobs,mono);
         }
       }
-      if(direct)this.occludeDirectBodies(c,directBodies);
+      // Markers supply the unresolved footprint, not a flat coat over a ready
+      // texture. The existing surface mask reveals the disc progressively as
+      // it grows while retaining the outside halo and the distant size floor.
+      if(direct){
+        for(const p of bodies)this.drawBodyPoint(c,p,directBodies,pointSolar);
+        this.occludeDirectBodies(c,directBodies);
+      }
       for(const p of bodies) {
         const extent=this.bodyVisibleRadius(p.body,p.r);
         if(solar<=0||!this.visible(p.screen,extent))continue;
         if(this.gpu)this.drawBodyOverlay(c,p.body,p.screen,p.r);
         else this.drawBody(c,p.body,p.world,p.screen,p.r,ms,seconds);
-        this.drawBodyPoint(c,p,direct?directBodies:bodies,pointSolar);
+        if(!direct)this.drawBodyPoint(c,p,bodies,pointSolar);
         this.hitTargets.push({id:p.body.id,x:p.screen.x,y:p.screen.y,r:Math.max(p.r+6,11),z:p.screen.z});
       }
       if(solar>0){this.drawRingTourHover(c);this.drawAlignmentGuide(c,ms);this.drawEarthRegionHover(c,earth,ms);this.drawSiteMarker(c,earth,ms,mono);}

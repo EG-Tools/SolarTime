@@ -13,7 +13,7 @@
     "it",
     "id"
   ],
-  "planetShader": "4e275df3e52c956f6e05bef28c641c9c128540174ebd22ddebb4d4f8445d6fb5",
+  "planetNight": "2fe135cd82f18a407a3f3ad89f49ef2ce2d98b1da7c4144cbc1305ce56841c7d",
   "starVertex": "2b9bc202451f4bb768707910e19de3ea031c01bafa92fcd6b8bfc9ab06a1242b",
   "starFragment": "39c06459d1b2512b342ffa1caa4cda6136c527c39ae6cd835bb16ed84034e5c4"
 }

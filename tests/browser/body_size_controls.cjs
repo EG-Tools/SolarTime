@@ -10,7 +10,7 @@ module.exports=async({evaluate,send,session,ready,waitFor})=>{
   if(${value!==null}){slider.value=${JSON.stringify(value)};slider.dispatchEvent(new Event('input',{bubbles:true}));slider.dispatchEvent(new Event('change',{bubbles:true}));}
   const input=document.getElementById('body-size-slider'),orbit=document.getElementById('satellite-orbit-slider');
   return {id,min:+input.min,max:+input.max,value:+input.value,step:+input.step,valid:input.validity.valid,
-   label:document.getElementById('body-size-output').textContent,resetDisabled:document.getElementById('body-size-reset').disabled,
+   label:document.getElementById('body-size-output').textContent,resetDisabled:document.getElementById('body-size-slider-reset').disabled,
    scale:r.bodySizeScale(id),saved:JSON.parse(localStorage.getItem('eg.solar-time.v0.01')).bodyScales,
    orbit:{min:+orbit.min,value:+orbit.value,scale:r.satelliteOrbitScale(id),disabled:orbit.disabled}};
  })()`);

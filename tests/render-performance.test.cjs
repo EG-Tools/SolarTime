@@ -9,6 +9,15 @@ function fixture(astro=A){
  const step=()=>{const [id,fn]=timers.entries().next().value||[];if(fn){timers.delete(id);fn();}return !!fn;};
  return {r,window,timers,step,drain:()=>{let n=0;while(step()){if(++n>2000)throw Error('unbounded task');}return n;}};
 }
+test('subpixel surfaces retain texture demand without shader or weather work',()=>{
+ const {window}=fixture(),direct=Object.create(window.SolarSurface.DirectRenderer.prototype),job={id:'earth',textureWidth:128};let reads=0;
+ direct.desired=new Map();direct.texture=()=>{reads++;return {texture:{}};};
+ assert.equal(direct.planet(job,{id:'earth'},{x:10,y:10},.1,0,true),true);
+ assert.equal(reads,1);assert.equal(direct.desired.get('earth'),job);assert.equal(direct.cloudWeather,undefined);
+ assert.doesNotThrow(()=>direct.corona({}, {x:10,y:10},.1,0));
+ direct.texture=()=>null;assert.equal(direct.planet(job,{id:'earth'},{x:10,y:10},.1,0,true),false,'missing maps still use the existing fallback');
+});
+
 test('two seconds at 60fps reuse ephemeris endpoints without losing visible precision',()=>{
  let bodyCalls=0,moonCalls=0;
  const {r}=fixture({...A,positionAt:(b,t)=>{bodyCalls++;return A.positionAt(b,t);},satelliteAt:(b,t,s)=>{moonCalls++;return A.satelliteAt(b,t,s);}});
@@ -57,16 +66,30 @@ test('corona immediately supplies a preview, refines identically and cancels on 
  assert.deepEqual(r.coronaTexture.image.data,r.makeCoronaTexture(384).image.data);
  r.coronaSource(200);assert.equal(r.coronaTask.detail,768);f.step();r.cancelCoronaBuild();f.drain();assert.equal(r.coronaTexture.width,384);
 });
-test('memory counts resident/cached maps, auxiliary resources and both canvases without double counting',()=>{
+test('memory counts resident/cached maps, auxiliary resources and all active canvases without double counting',()=>{
  const {r,window}=fixture(),surface=Object.create(window.SolarSurface.DirectRenderer.prototype),sky=Object.create(window.SolarSky.prototype);
  Object.assign(surface,{canvas:{width:100,height:80},stats:{texturePixels:1000},coronaTexture:{width:64,height:64},cloudWeather:{texture:{},map:{data:new Uint8Array(32768)}},orbitBufferBytes:4096,antialiasMemory:true,externalTextureBytes:8192});
  Object.assign(sky,{gl:{},ready:true,texture:{},buffer:{},starBuffer:{},starCount:100,canvas:{width:100,height:80},stats:{textureSize:[64,32]}});
- r.gpu=surface;r.sky=sky;
+ const active={memoryUsage:()=>5000},prepared={memoryUsage:()=>6000};
+ r.gpu=surface;r.sky=sky;r.canvas={width:120,height:90};r.solarComposite={canvas:{width:50,height:40}};r.ringTour=active;r.preparedRingTour=prepared;
  const usage=r.memoryUsage();assert.equal(usage.surface.textures,4000);assert.equal(usage.sky.textures,8192*4/3);
- assert.equal(usage.knownBytes,4000+64*64*4+32768+4096+48+4+8192*4/3+2400+48);
+ assert.equal(usage.main2D,120*90*4);assert.equal(usage.composite2D,50*40*4);assert.equal(usage.canvas2D,120*90*4+50*40*4);
+ assert.equal(usage.ringTour,5000);assert.equal(usage.preparedRingTour,6000);
+ assert.equal(usage.knownBytes,4000+64*64*4+32768+4096+48+4+8192*4/3+2400+48+5000+6000+120*90*4+50*40*4);
  assert.equal(usage.framebufferEstimate,100*80*4*6);assert.equal(usage.totalEstimate,usage.knownBytes+usage.framebufferEstimate);
  assert.equal(surface.auxiliaryTextureBytes(),64*64*4+32768+4+8192);
- surface.contextLost=true;sky.ready=false;assert.equal(r.memoryUsage().totalEstimate,0);
+ r.preparedRingTour=active;assert.equal(r.memoryUsage().preparedRingTour,0,'shared active/prepared resources count once');
+ surface.contextLost=true;sky.ready=false;r.canvas=null;r.solarComposite=null;r.ringTour=null;r.preparedRingTour=null;assert.equal(r.memoryUsage().totalEstimate,0);
+});
+
+test('compact solar scene uses stable oversampled tiers and restores the viewport target',()=>{
+ const {r,window}=fixture();let resizes=0;
+ const direct=Object.assign(Object.create(window.SolarSurface.DirectRenderer.prototype),{canvas:{width:1,height:1},viewportLimit:[4096,4096],stats:{},applyCanvasViewport(){}});
+ direct.resize(800,600,.25);assert.equal(direct.dpr,.25);assert.equal(direct.canvas.width,200);assert.equal(direct.canvas.height,150);
+ r.w=800;r.h=600;r.dpr=2;r.sceneDpr=2;r.solarRenderRatio=1;r.gpu={width:800,height:600,dpr:2,resize(w,h,dpr){resizes++;this.width=w;this.height=h;this.dpr=dpr;}};
+ assert.equal(r.solarCompositeRatio(.05),.25);assert.equal(r.solarCompositeRatio(.1),.5);assert.equal(r.solarCompositeRatio(.13),.75);assert.equal(r.solarCompositeRatio(.21),1);
+ assert.equal(r.setSolarRenderRatio(.25),.5);assert.equal(resizes,1);assert.equal(r.setSolarRenderRatio(.25),.5);assert.equal(resizes,1);
+ assert.equal(r.setSolarRenderRatio(1),2);assert.equal(resizes,2);
 });
 
 test('particle policy reuses sustained load with recovery hold and renderer fades without jumps',()=>{

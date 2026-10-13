@@ -1365,7 +1365,8 @@
         if(!this.resources){
           const resources=this.resources={gl:g,instances:g.getExtension('ANGLE_instanced_arrays'),parallel:{extension:g.getExtension('KHR_parallel_shader_compile'),blocking:false}};
           if(!resources.instances)throw Error('Instanced ring debris is not supported by this GPU.');
-          this.scenePreparation=programSteps(g,VERTEX,FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','planetMap','ringMap','phase','debrisReady','perspective','orthoScale','light','ringTexel','focal'],resources.parallel);
+          const fragment=gpu.explicitMipLod?'#extension GL_EXT_shader_texture_lod : enable\n'+FRAGMENT.replace('texture2D(planetMap,st)','texture2DLodEXT(planetMap,st,0.)'):FRAGMENT;
+          this.scenePreparation=programSteps(g,VERTEX,fragment,['eye','viewEye','detailEye','basis','lens','offset','planetMap','ringMap','phase','debrisReady','perspective','orthoScale','light','ringTexel','focal'],resources.parallel);
         }
         if(!this.resources.scene){
           this.resources.parallel.blocking=requireScene;
@@ -1399,7 +1400,26 @@
     }
     prepareAtlas(gpu){
       const g=gpu.gl,r=this.resources,image=this.atlasImage;
-      if(!r||r.atlas||!image?.complete||!image.naturalWidth)return;
+      if(r?.atlas){r.atlasAge??=this.visualAge||0;return;}
+      if(!r||r.atlasPending||!image?.complete||!image.naturalWidth)return;
+      if(gpu.uploadTexturePixels&&gpu.waitForTextureUpload){
+        const controller=new AbortController(),texture=g.createTexture();r.atlasAbort=controller;
+        r.atlasBytes=Math.ceil(image.naturalWidth*image.naturalHeight*4*4/3);
+        const valid=()=>!controller.signal.aborted&&!g.isContextLost();
+        r.atlasPending=(async()=>{
+          let published=false;
+          try{
+            if(!await gpu.uploadTexturePixels(texture,image,image.naturalWidth,image.naturalHeight,controller.signal,valid))return;
+            await gpu.waitForTextureUpload(controller.signal);if(!valid())return;
+            g.activeTexture(g.TEXTURE2);g.bindTexture(g.TEXTURE_2D,texture);gpu.resetTextureBindings();
+            for(const key of [g.TEXTURE_WRAP_S,g.TEXTURE_WRAP_T])g.texParameteri(g.TEXTURE_2D,key,g.CLAMP_TO_EDGE);
+            g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
+            g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR_MIPMAP_LINEAR);g.generateMipmap(g.TEXTURE_2D);
+            r.atlas=texture;r.atlasAge=null;published=true;
+          }catch(error){if(!controller.signal.aborted)r.atlasError=String(error.message||error);}
+          finally{if(!published){if(!g.isContextLost())g.deleteTexture(texture);r.atlasBytes=0;}r.atlasPending=null;r.atlasAbort=null;}
+        })();return;
+      }
       r.atlasAge=this.visualAge||0;r.atlasBytes=Math.ceil(image.naturalWidth*image.naturalHeight*4*4/3);
       r.atlas=g.createTexture();g.activeTexture(g.TEXTURE2);g.bindTexture(g.TEXTURE_2D,r.atlas);
       g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);g.pixelStorei(g.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
@@ -1515,6 +1535,7 @@
       if(this.disposed)return;this.disposed=true;
       this.preparation?.return();this.preparation=null;this.scenePreparation?.return();this.scenePreparation=null;this.gpuPreparation?.return();this.gpuPreparation=null;
       const r=this.resources;if(r){
+        r.atlasAbort?.abort();
         for(const upload of r.layerUploads?.values()||[])r.gl.deleteBuffer(upload.buffer);r.layerUploads?.clear();
         for(const key of ['scene','dust','rock'])if(r[key])r.gl.deleteProgram(r[key].program);
         for(const key of ['mesh','angularMesh','coarseMesh','angularCoarseMesh','chip'])if(r[key])r.gl.deleteBuffer(r[key]);

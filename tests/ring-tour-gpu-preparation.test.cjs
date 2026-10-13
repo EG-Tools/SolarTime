@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const window={};for(const name of ['surface-style','ring-tour'])vm.runInNewContext(fs.readFileSync('src/'+name+'.js','utf8'),{window,performance});
+const window={};for(const name of ['surface-style','ring-tour'])vm.runInNewContext(fs.readFileSync('src/'+name+'.js','utf8'),{window,performance,AbortController});
 function fixture(parallel=true){
  const stats={linked:0,deletedPrograms:0,deletedShaders:0},state={ready:false};let id=0;
  const gl={VERTEX_SHADER:1,FRAGMENT_SHADER:2,LINK_STATUS:3,ACTIVE_ATTRIBUTES:4,
@@ -24,4 +24,20 @@ test('cancelling pending compilation releases its shaders and program',()=>{
 });
 test('unsupported parallel compilation keeps the synchronous fallback usable',()=>{
  const {tour,gpu,stats}=fixture(false);assert.equal(tour.prepare(gpu),true);assert.equal(tour.resources.ready,true);assert.equal(stats.linked,3);tour.dispose();
+});
+
+test('atlas shares staged uploader and only publishes after finalization',async()=>{
+ const {tour,gpu}=fixture(),r=tour.resources={gl:gpu.gl};let finish,finalize;const texture={};
+ Object.assign(gpu.gl,{createTexture:()=>texture,activeTexture(){},bindTexture(){},texParameteri(){},generateMipmap(){}});
+ tour.atlasImage={complete:true,naturalWidth:1024,naturalHeight:512};
+ gpu.uploadTexturePixels=()=>new Promise(resolve=>finish=resolve);gpu.waitForTextureUpload=()=>new Promise(resolve=>finalize=resolve);gpu.resetTextureBindings=()=>{};
+ tour.prepareAtlas(gpu);const pending=r.atlasPending;tour.prepareAtlas(gpu);assert.equal(r.atlasPending,pending);assert.equal(r.atlas,undefined);
+ finish(true);await new Promise(resolve=>setImmediate(resolve));assert.equal(r.atlas,undefined);finalize();await pending;
+ assert.equal(r.atlas,texture);assert.equal(r.atlasPending,null);
+});
+test('disposing during atlas upload cancels work and never publishes it',async()=>{
+ const {tour,gpu}=fixture(),r=tour.resources={gl:gpu.gl};let deleted=0;
+ Object.assign(gpu.gl,{createTexture:()=>({}),deleteTexture:()=>deleted++});tour.atlasImage={complete:true,naturalWidth:1024,naturalHeight:512};
+ gpu.uploadTexturePixels=(_t,_i,_w,_h,signal)=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true}));gpu.waitForTextureUpload=()=>{};
+ tour.prepareAtlas(gpu);const pending=r.atlasPending;tour.dispose();await pending;assert.equal(deleted,1);assert.equal(r.atlas,undefined);assert.equal(r.atlasBytes,0);
 });

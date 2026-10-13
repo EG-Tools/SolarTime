@@ -309,30 +309,95 @@
     "helperRemoveTitle": "Hapus modul pematian",
     "helperRemoveDescription": "Membatalkan pematian terjadwal dan menghapus modul beserta koneksinya dari akun Windows saat ini.",
     "helperRemoveQuestion": "Hapus modul?",
-    "helperInstallTitle": "Konfirmasi pemasangan modul"
+    "helperInstallTitle": "Konfirmasi pemasangan modul",
+    "removeFile": "Hapus",
+    "alarmSoundRemoveFailed": "Suara tersimpan tidak dapat dihapus. Silakan coba lagi."
   },
   "bodies": {
-    "polaris": ["Polaris","Bintang paling terang di Ursa Minor berada dekat kutub langit utara. Tampak hampir tidak bergerak dan membantu menunjukkan arah utara."],
-    "ursa-major": ["Beruang Besar","Rasi besar di langit utara ini mencakup Biduk Besar. Garis dari biduk berlanjut membentuk tubuh dan kaki beruang."],
-    "ursa-minor": ["Beruang Kecil","Polaris berada di ujung gagang biduk kecil ini. Kochab dan Pherkad membentuk sisi luar mangkuknya."],
-    "cassiopeia": ["Cassiopeia","Lima bintang terang membentuk W atau M sesuai sudut pandang. Letaknya kira-kira berseberangan dengan Biduk Besar terhadap Polaris."],
-    "orion": ["Orion","Tiga bintang sejajar membentuk sabuknya. Betelgeuse yang merah kontras dengan Rigel yang putih kebiruan; Orion menonjol pada malam musim dingin di Korea."],
-    "scorpius": ["Scorpius","Antares yang merah diikuti tubuh panjang dan ekor melengkung. Di langit selatan pada musim panas Korea, Shaula dan Lesath menandai sengatnya."],
-    "leo": ["Leo","Kepala berbentuk sabit di dekat Regulus dan tubuh segitiga membentuk singa. Denebola menandai ekor; rasi ini menonjol pada malam musim semi di Korea."],
-    "cygnus": ["Cygnus","Leher dan sayap angsa membentuk Salib Utara. Deneb termasuk Segitiga Musim Panas, sedangkan Albireo menandai kepala."],
-    "taurus": ["Taurus","Aldebaran yang jingga, wajah berbentuk V, dan dua tanduk panjang menandai Taurus. Aldebaran berada di depan gugus Hyades, bukan bagian darinya."],
-    "aries": ["Aries","Hamal, Sheratan, dan Mesarthim membentuk lengkungan pendek. Rasi zodiak ini dahulu menjadi penanda awal musim semi."],
-    "gemini": ["Gemini","Castor dan Pollux menandai kepala si kembar. Dua rantai bintang bercabang membentuk tubuh mereka."],
-    "cancer": ["Cancer","Rasi zodiak redup berbentuk Y di sekitar Asellus Borealis dan Asellus Australis. Gugus Sarang Lebah membantu menemukannya di langit gelap."],
-    "virgo": ["Virgo","Spica yang putih kebiruan menonjol dalam rasi zodiak luas ini. Di antara Leo dan Libra, rasi ini tampak di selatan pada malam musim semi di Korea."],
-    "libra": ["Libra","Zubeneschamali dan Zubenelgenubi membentuk timbangan. Bintang-bintangnya dahulu dianggap sebagai capit Scorpius."],
-    "sagittarius": ["Sagittarius","Bintang di dekat Kaus Australis dan Nunki membentuk Teko. Pusat Bima Sakti terletak lebih jauh dalam arah rasi zodiak ini."],
-    "capricornus": ["Capricornus","Bentuk baji lebar dan rendah membentang antara Algedi dan Deneb Algedi. Rasi zodiak redup ini dikenali dari garis segitiganya."],
-    "aquarius": ["Aquarius","Aliran bintang panjang memanjang ke selatan dari Sadalsuud dan Sadalmelik. Garis penghubung membantu memperjelas rasi zodiak yang tersebar luas ini."],
-    "pisces": ["Pisces","Dua ikan dihubungkan oleh tali panjang yang bertemu di Alrescha. Garis redupnya melintasi wilayah luas dekat ekuator langit."],
-    "pegasus": ["Pegasus","Alpheratz, Algenib, Markab, dan Scheat membentuk Persegi Besar. Rantai bintang berlanjut ke leher dan kaki; menonjol pada musim gugur di Korea."],
-    "andromeda": ["Andromeda","Rantai bintang membentang dari Alpheratz melalui Mirach ke Almach. Di dekatnya terdapat Galaksi Andromeda, yang tampak dengan mata telanjang di langit gelap."],
-    "crux": ["Salib Selatan","Acrux dan Gacrux membentuk sumbu panjang; Mimosa dan Imai membentuk palang. Salib kecil ini membantu menemukan arah selatan."],
+    "polaris": [
+      "Polaris",
+      "Bintang paling terang di Ursa Minor berada dekat kutub langit utara. Tampak hampir tidak bergerak dan membantu menunjukkan arah utara."
+    ],
+    "ursa-major": [
+      "Beruang Besar",
+      "Rasi besar di langit utara ini mencakup Biduk Besar. Garis dari biduk berlanjut membentuk tubuh dan kaki beruang."
+    ],
+    "ursa-minor": [
+      "Beruang Kecil",
+      "Polaris berada di ujung gagang biduk kecil ini. Kochab dan Pherkad membentuk sisi luar mangkuknya."
+    ],
+    "cassiopeia": [
+      "Cassiopeia",
+      "Lima bintang terang membentuk W atau M sesuai sudut pandang. Letaknya kira-kira berseberangan dengan Biduk Besar terhadap Polaris."
+    ],
+    "orion": [
+      "Orion",
+      "Tiga bintang sejajar membentuk sabuknya. Betelgeuse yang merah kontras dengan Rigel yang putih kebiruan; Orion menonjol pada malam musim dingin di Korea."
+    ],
+    "scorpius": [
+      "Scorpius",
+      "Antares yang merah diikuti tubuh panjang dan ekor melengkung. Di langit selatan pada musim panas Korea, Shaula dan Lesath menandai sengatnya."
+    ],
+    "leo": [
+      "Leo",
+      "Kepala berbentuk sabit di dekat Regulus dan tubuh segitiga membentuk singa. Denebola menandai ekor; rasi ini menonjol pada malam musim semi di Korea."
+    ],
+    "cygnus": [
+      "Cygnus",
+      "Leher dan sayap angsa membentuk Salib Utara. Deneb termasuk Segitiga Musim Panas, sedangkan Albireo menandai kepala."
+    ],
+    "taurus": [
+      "Taurus",
+      "Aldebaran yang jingga, wajah berbentuk V, dan dua tanduk panjang menandai Taurus. Aldebaran berada di depan gugus Hyades, bukan bagian darinya."
+    ],
+    "aries": [
+      "Aries",
+      "Hamal, Sheratan, dan Mesarthim membentuk lengkungan pendek. Rasi zodiak ini dahulu menjadi penanda awal musim semi."
+    ],
+    "gemini": [
+      "Gemini",
+      "Castor dan Pollux menandai kepala si kembar. Dua rantai bintang bercabang membentuk tubuh mereka."
+    ],
+    "cancer": [
+      "Cancer",
+      "Rasi zodiak redup berbentuk Y di sekitar Asellus Borealis dan Asellus Australis. Gugus Sarang Lebah membantu menemukannya di langit gelap."
+    ],
+    "virgo": [
+      "Virgo",
+      "Spica yang putih kebiruan menonjol dalam rasi zodiak luas ini. Di antara Leo dan Libra, rasi ini tampak di selatan pada malam musim semi di Korea."
+    ],
+    "libra": [
+      "Libra",
+      "Zubeneschamali dan Zubenelgenubi membentuk timbangan. Bintang-bintangnya dahulu dianggap sebagai capit Scorpius."
+    ],
+    "sagittarius": [
+      "Sagittarius",
+      "Bintang di dekat Kaus Australis dan Nunki membentuk Teko. Pusat Bima Sakti terletak lebih jauh dalam arah rasi zodiak ini."
+    ],
+    "capricornus": [
+      "Capricornus",
+      "Bentuk baji lebar dan rendah membentang antara Algedi dan Deneb Algedi. Rasi zodiak redup ini dikenali dari garis segitiganya."
+    ],
+    "aquarius": [
+      "Aquarius",
+      "Aliran bintang panjang memanjang ke selatan dari Sadalsuud dan Sadalmelik. Garis penghubung membantu memperjelas rasi zodiak yang tersebar luas ini."
+    ],
+    "pisces": [
+      "Pisces",
+      "Dua ikan dihubungkan oleh tali panjang yang bertemu di Alrescha. Garis redupnya melintasi wilayah luas dekat ekuator langit."
+    ],
+    "pegasus": [
+      "Pegasus",
+      "Alpheratz, Algenib, Markab, dan Scheat membentuk Persegi Besar. Rantai bintang berlanjut ke leher dan kaki; menonjol pada musim gugur di Korea."
+    ],
+    "andromeda": [
+      "Andromeda",
+      "Rantai bintang membentang dari Alpheratz melalui Mirach ke Almach. Di dekatnya terdapat Galaksi Andromeda, yang tampak dengan mata telanjang di langit gelap."
+    ],
+    "crux": [
+      "Salib Selatan",
+      "Acrux dan Gacrux membentuk sumbu panjang; Mimosa dan Imai membentuk palang. Salib kecil ini membantu menemukan arah selatan."
+    ],
     "sun": [
       "Matahari",
       "Bintang yang terutama tersusun dari hidrogen dan helium. Fusi di intinya melepaskan energi sebagai plasma panas dan cahaya."

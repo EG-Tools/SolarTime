@@ -309,30 +309,95 @@
     "helperRemoveTitle": "Remover assistente de encerramento",
     "helperRemoveDescription": "Cancela o encerramento programado e remove o assistente e a respetiva ligação da conta Windows atual.",
     "helperRemoveQuestion": "Remover o assistente?",
-    "helperInstallTitle": "Confirmar instalação do assistente"
+    "helperInstallTitle": "Confirmar instalação do assistente",
+    "removeFile": "Remover",
+    "alarmSoundRemoveFailed": "Não foi possível remover o som guardado. Tente novamente."
   },
   "bodies": {
-    "polaris": ["Estrela Polar","A estrela mais brilhante da Ursa Menor fica perto do polo norte celeste. Parece quase imóvel e ajuda a encontrar o norte."],
-    "ursa-major": ["Ursa Maior","Esta grande constelação boreal inclui o Grande Carro. As linhas prolongam-se até o corpo e as pernas da ursa."],
-    "ursa-minor": ["Ursa Menor","A Estrela Polar marca a extremidade do pequeno carro. Kochab e Pherkad formam sua borda externa."],
-    "cassiopeia": ["Cassiopeia","Cinco estrelas brilhantes formam um W ou M, conforme a orientação. Fica aproximadamente do lado oposto ao Grande Carro em relação à Estrela Polar."],
-    "orion": ["Órion","Três estrelas alinhadas formam o cinturão. Betelgeuse, vermelha, contrasta com Rigel, azulada; Órion destaca-se nas noites de inverno da Coreia."],
-    "scorpius": ["Escorpião","A vermelha Antares acompanha um corpo longo e uma cauda curva. No céu sul do verão coreano, Shaula e Lesath marcam o ferrão."],
-    "leo": ["Leão","Uma cabeça em forma de foice perto de Regulus e um corpo triangular desenham o leão. Denebola marca a cauda; destaca-se nas noites de primavera da Coreia."],
-    "cygnus": ["Cisne","O pescoço e as asas formam a Cruz do Norte. Deneb pertence ao Triângulo de Verão, enquanto Albireo marca a cabeça."],
-    "taurus": ["Touro","Aldebaran, alaranjada, uma face em V e dois chifres longos identificam Touro. Aldebaran está à frente das Híades e não pertence ao aglomerado."],
-    "aries": ["Áries","Hamal, Sheratan e Mesarthim formam uma curva curta. Esta constelação zodiacal marcava historicamente o início da primavera."],
-    "gemini": ["Gêmeos","Castor e Pollux marcam as cabeças dos gêmeos. Duas cadeias ramificadas de estrelas desenham seus corpos."],
-    "cancer": ["Câncer","Constelação zodiacal tênue em forma de Y ao redor de Asellus Borealis e Asellus Australis. O aglomerado do Presépio ajuda a encontrá-la sob céus escuros."],
-    "virgo": ["Virgem","A azulada Spica destaca-se nesta ampla constelação zodiacal. Entre Leão e Libra, aparece ao sul nas noites de primavera da Coreia."],
-    "libra": ["Libra","Zubeneschamali e Zubenelgenubi delineiam a balança. Suas estrelas já foram consideradas as pinças de Escorpião."],
-    "sagittarius": ["Sagitário","Estrelas próximas de Kaus Australis e Nunki formam o Bule. O centro da Via Láctea fica além, nessa direção."],
-    "capricornus": ["Capricórnio","Uma cunha baixa e larga estende-se entre Algedi e Deneb Algedi. Esta constelação zodiacal tênue é reconhecida pelo contorno triangular."],
-    "aquarius": ["Aquário","Longas correntes de estrelas seguem para o sul desde Sadalsuud e Sadalmelik. As linhas ajudam a revelar esta constelação zodiacal espalhada."],
-    "pisces": ["Peixes","Dois peixes são ligados por longos cordões que se encontram em Alrescha. Seu contorno tênue ocupa uma grande área perto do equador celeste."],
-    "pegasus": ["Pégaso","Alpheratz, Algenib, Markab e Scheat formam o Grande Quadrado. Dele partem o pescoço e as pernas; destaca-se no outono coreano."],
-    "andromeda": ["Andrômeda","Uma cadeia parte de Alpheratz, passa por Mirach e chega a Almach. Perto está a galáxia de Andrômeda, visível a olho nu sob céus escuros."],
-    "crux": ["Cruzeiro do Sul","Acrux e Gacrux formam o eixo longo; Mimosa e Imai, o transversal. Esta pequena cruz ajuda a encontrar o sul."],
+    "polaris": [
+      "Estrela Polar",
+      "A estrela mais brilhante da Ursa Menor fica perto do polo norte celeste. Parece quase imóvel e ajuda a encontrar o norte."
+    ],
+    "ursa-major": [
+      "Ursa Maior",
+      "Esta grande constelação boreal inclui o Grande Carro. As linhas prolongam-se até o corpo e as pernas da ursa."
+    ],
+    "ursa-minor": [
+      "Ursa Menor",
+      "A Estrela Polar marca a extremidade do pequeno carro. Kochab e Pherkad formam sua borda externa."
+    ],
+    "cassiopeia": [
+      "Cassiopeia",
+      "Cinco estrelas brilhantes formam um W ou M, conforme a orientação. Fica aproximadamente do lado oposto ao Grande Carro em relação à Estrela Polar."
+    ],
+    "orion": [
+      "Órion",
+      "Três estrelas alinhadas formam o cinturão. Betelgeuse, vermelha, contrasta com Rigel, azulada; Órion destaca-se nas noites de inverno da Coreia."
+    ],
+    "scorpius": [
+      "Escorpião",
+      "A vermelha Antares acompanha um corpo longo e uma cauda curva. No céu sul do verão coreano, Shaula e Lesath marcam o ferrão."
+    ],
+    "leo": [
+      "Leão",
+      "Uma cabeça em forma de foice perto de Regulus e um corpo triangular desenham o leão. Denebola marca a cauda; destaca-se nas noites de primavera da Coreia."
+    ],
+    "cygnus": [
+      "Cisne",
+      "O pescoço e as asas formam a Cruz do Norte. Deneb pertence ao Triângulo de Verão, enquanto Albireo marca a cabeça."
+    ],
+    "taurus": [
+      "Touro",
+      "Aldebaran, alaranjada, uma face em V e dois chifres longos identificam Touro. Aldebaran está à frente das Híades e não pertence ao aglomerado."
+    ],
+    "aries": [
+      "Áries",
+      "Hamal, Sheratan e Mesarthim formam uma curva curta. Esta constelação zodiacal marcava historicamente o início da primavera."
+    ],
+    "gemini": [
+      "Gêmeos",
+      "Castor e Pollux marcam as cabeças dos gêmeos. Duas cadeias ramificadas de estrelas desenham seus corpos."
+    ],
+    "cancer": [
+      "Câncer",
+      "Constelação zodiacal tênue em forma de Y ao redor de Asellus Borealis e Asellus Australis. O aglomerado do Presépio ajuda a encontrá-la sob céus escuros."
+    ],
+    "virgo": [
+      "Virgem",
+      "A azulada Spica destaca-se nesta ampla constelação zodiacal. Entre Leão e Libra, aparece ao sul nas noites de primavera da Coreia."
+    ],
+    "libra": [
+      "Libra",
+      "Zubeneschamali e Zubenelgenubi delineiam a balança. Suas estrelas já foram consideradas as pinças de Escorpião."
+    ],
+    "sagittarius": [
+      "Sagitário",
+      "Estrelas próximas de Kaus Australis e Nunki formam o Bule. O centro da Via Láctea fica além, nessa direção."
+    ],
+    "capricornus": [
+      "Capricórnio",
+      "Uma cunha baixa e larga estende-se entre Algedi e Deneb Algedi. Esta constelação zodiacal tênue é reconhecida pelo contorno triangular."
+    ],
+    "aquarius": [
+      "Aquário",
+      "Longas correntes de estrelas seguem para o sul desde Sadalsuud e Sadalmelik. As linhas ajudam a revelar esta constelação zodiacal espalhada."
+    ],
+    "pisces": [
+      "Peixes",
+      "Dois peixes são ligados por longos cordões que se encontram em Alrescha. Seu contorno tênue ocupa uma grande área perto do equador celeste."
+    ],
+    "pegasus": [
+      "Pégaso",
+      "Alpheratz, Algenib, Markab e Scheat formam o Grande Quadrado. Dele partem o pescoço e as pernas; destaca-se no outono coreano."
+    ],
+    "andromeda": [
+      "Andrômeda",
+      "Uma cadeia parte de Alpheratz, passa por Mirach e chega a Almach. Perto está a galáxia de Andrômeda, visível a olho nu sob céus escuros."
+    ],
+    "crux": [
+      "Cruzeiro do Sul",
+      "Acrux e Gacrux formam o eixo longo; Mimosa e Imai, o transversal. Esta pequena cruz ajuda a encontrar o sul."
+    ],
     "sun": [
       "Sol",
       "Uma estrela composta principalmente por hidrogénio e hélio. A fusão no núcleo liberta energia sob a forma de plasma quente e luz."

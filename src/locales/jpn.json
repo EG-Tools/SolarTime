@@ -308,7 +308,9 @@
     "shutdownFailed": "Windowsコマンドが失敗しました（コード{code}）。",
     "shutdownNotLaunched": "ヘルパーが開きませんでした。スイッチをもう一度押し、ブラウザーの確認を許可してください。",
     "helperVerifyFailed": "ヘルパーの確認に失敗しました。最新のインストーラーを実行し、ヘルパーを開くことを許可してください。",
-    "shutdownDataWarning": "作業を保存してください。Windowsの予約シャットダウンはアプリを強制終了することがあります。"
+    "shutdownDataWarning": "作業を保存してください。Windowsの予約シャットダウンはアプリを強制終了することがあります。",
+    "removeFile": "削除",
+    "alarmSoundRemoveFailed": "保存した音声を削除できませんでした。もう一度お試しください。"
   },
   "bodies": {
     "polaris": [

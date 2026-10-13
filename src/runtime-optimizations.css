@@ -71,7 +71,7 @@ body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
 
 /* v0.46 r4: one phone-layout flag is shared by CSS and the sky renderer.
    Keep the approved top boundaries and the home-indicator safety inset. */
-:root{--solar-layout-revision:r4}
+:root{--solar-layout-revision:r0}
 html.solar-phone-layout .edge-shade{display:none}
 html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}
 html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 30px)}
@@ -148,7 +148,8 @@ html.solar-standalone .modal{
 .region-view-button:disabled,.region-nav-button:disabled{cursor:not-allowed;opacity:.28}
 .region-nav-button{width:23px;height:23px}
 .region-previous>span{transform:rotate(180deg)}
-.timer-sound-name{display:block;max-width:100%;margin:2px 0 0 23px;overflow:hidden;color:#697788;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.timer-sound-name{display:block;width:calc(100% - 23px);max-width:100%;margin:2px 0 0 23px;padding:0;border:0;background:transparent;text-align:left;overflow:hidden;color:#697788;font-size:10px;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.timer-sound-name:hover,.timer-sound-name:focus-visible{color:#d8c49e}
 .timer-sound-credit{display:flex;align-items:center;gap:4px;margin:-1px 0 2px 23px;color:#596778;font-size:10px;letter-spacing:.2px}
 .timer-sound-credit a{color:#788697;text-decoration:none;transition:color .18s ease}
 .timer-sound-credit a:hover,.timer-sound-credit a:focus-visible{color:#d8c49e;outline:0}

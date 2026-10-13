@@ -308,7 +308,9 @@
     "shutdownFailed": "Falló el comando de Windows (código {code}).",
     "shutdownNotLaunched": "El asistente no se abrió. Pulsa de nuevo el interruptor y acepta el aviso del navegador.",
     "helperVerifyFailed": "No se pudo verificar el asistente. Ejecuta el instalador más reciente y permite que se abra.",
-    "shutdownDataWarning": "Guarda tu trabajo: el apagado programado de Windows puede forzar el cierre de aplicaciones."
+    "shutdownDataWarning": "Guarda tu trabajo: el apagado programado de Windows puede forzar el cierre de aplicaciones.",
+    "removeFile": "Eliminar",
+    "alarmSoundRemoveFailed": "No se pudo eliminar el sonido guardado. Inténtalo de nuevo."
   },
   "bodies": {
     "polaris": [

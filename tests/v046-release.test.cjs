@@ -12,7 +12,7 @@ test('v0.46 page build stays consistent while unchanged coordinator keeps its bu
   const html=read('index.html'),version=JSON.parse(read('version.json')),app=read('src/app.js'),pkg=JSON.parse(read('package.json'));
   assert.ok(html.includes('name="solar-time-version" content="'+version.version+'"'));
   assert.ok(html.includes('name="solar-time-revision" content="'+version.revision+'"'));
-  assert.match(version.revision,/^r[1-9]\d*$/);
+  assert.match(version.revision,/^r(?:0|[1-9]\d*)$/);
   assert.equal(version.version,notesApi().RELEASES[0].version);
   assert.equal(pkg.version,'0.'+version.version);
   assert.ok(app.includes("version:'"+version.version+"',revision:'"+version.revision+"'"));

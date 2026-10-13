@@ -308,7 +308,9 @@
     "shutdownFailed": "O comando do Windows falhou (código {code}).",
     "shutdownNotLaunched": "O assistente não abriu. Clique no interruptor novamente e aceite a solicitação do navegador.",
     "helperVerifyFailed": "Falha ao verificar o assistente. Execute o instalador mais recente e permita que o assistente abra.",
-    "shutdownDataWarning": "Salve seu trabalho: o desligamento agendado do Windows pode forçar o fechamento de aplicativos."
+    "shutdownDataWarning": "Salve seu trabalho: o desligamento agendado do Windows pode forçar o fechamento de aplicativos.",
+    "removeFile": "Remover",
+    "alarmSoundRemoveFailed": "Não foi possível remover o som guardado. Tente novamente."
   },
   "bodies": {
     "polaris": [

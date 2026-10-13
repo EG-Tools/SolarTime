@@ -308,7 +308,9 @@
     "shutdownFailed": "Windows कमांड विफल हुआ (कोड {code})।",
     "shutdownNotLaunched": "सहायक नहीं खुला। स्विच फिर दबाएँ और ब्राउज़र के संकेत को अनुमति दें।",
     "helperVerifyFailed": "सहायक की जाँच विफल हुई। नवीनतम इंस्टॉलर चलाएँ, फिर सहायक को खोलने दें।",
-    "shutdownDataWarning": "अपना काम सहेजें: Windows का समयबद्ध शटडाउन ऐप जबरन बंद कर सकता है।"
+    "shutdownDataWarning": "अपना काम सहेजें: Windows का समयबद्ध शटडाउन ऐप जबरन बंद कर सकता है।",
+    "removeFile": "हटाएँ",
+    "alarmSoundRemoveFailed": "सहेजी गई ध्वनि हटाई नहीं जा सकी। कृपया फिर से कोशिश करें।"
   },
   "bodies": {
     "polaris": [

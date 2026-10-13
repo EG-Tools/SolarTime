@@ -95,7 +95,7 @@
   }
   const FACTORY_OPTIONS=Object.freeze({actualScale:false,overviewOrbitGap:100,actualOrbitSpacing:0,orbitBrightness:.5,starDensity:1,dollyZoom:true,labels:true,avoidLabels:false,twinkle:true,activity:true,alignmentGuideVisible:true,earthNightLights:true,earthCloudAmount:1,earthCloudSeed:0,venusCloudAmount:.8,pluto:true,moon:true,comets:true,quality:'auto'});
   const FACTORY_BODY_SCALES=Object.freeze(Object.fromEntries([A.SUN,...A.BODIES,...A.SATELLITES].map(body=>[body.id,1])));
-  const FACTORY_ORBIT_SCALES=Object.freeze({sun:.16,earth:.43,jupiter:1});
+  const FACTORY_ORBIT_SCALES=Object.freeze(Object.fromEntries(['sun','earth','jupiter'].map(id=>[id,1])));
   const FACTORY_AUTO_ROTATE=1;
   const MUSIC_TRACKS=Object.freeze([
     {title:'Celestial Drift',file:'01 - Celestial Drift.mp3'},
@@ -377,7 +377,7 @@
         // complete ten-second S curve from that exact view to Saturn's rings.
         const openingTarget=openingCameraTarget;
         lockOpeningControls();const animated=renderer.animateOpeningCamera(openingTarget,mono);openingStartedAt=animated?mono:null;if(animated){openingDuration=renderer.cameraTween.duration;loading.classList.add('done');
-          if(resumeTravel){renderer.cameraTween.ringReturnTarget={...openingCameraTarget};renderer.cameraTween.flyThrough=true;renderer.keepOpeningParticlesUntilBoarding();renderer.cameraTween.rotationBlend=null;renderer.openingFlight=null;renderer.openingOrbitStart=Number.MAX_SAFE_INTEGER-10000;renderer.openingAnnotationStart=Number.MAX_SAFE_INTEGER-9000;}
+          if(resumeTravel){renderer.prepareOpeningBoarding(openingCameraTarget);}
         }return animated;
       }
       function replayOpening(mono=performance.now(),{mode=openingMode,target=null}={}){
@@ -402,7 +402,7 @@
           openingDuration=renderer.openingCameraDuration(openingTarget);
           if(!renderer.animateOpeningReplay(openingTarget,departure,mono,openingDuration)){openingDeparture=false;finishOpening();return false;}
           openingDeparture=false;openingStartedAt=null;
-          if(resumeTravel){renderer.cameraTween.ringReturnTarget={...openingCameraTarget};renderer.cameraTween.flyThrough=true;renderer.keepOpeningParticlesUntilBoarding();renderer.cameraTween.rotationBlend=null;renderer.openingFlight=null;renderer.openingOrbitStart=Number.MAX_SAFE_INTEGER-10000;renderer.openingAnnotationStart=Number.MAX_SAFE_INTEGER-9000;}
+          if(resumeTravel){renderer.prepareOpeningBoarding(openingCameraTarget);}
         }else{
           renderer.setSkyFeatureTrack(null);
           renderer.animateCamera(departure,mono,7000);
@@ -561,7 +561,9 @@
         const satellite=A.SATELLITES.some(body=>body.id===value.focus);
         if(satellite&&!renderer.options.moon){renderer.setOption('moon',true);$('show-moon').checked=true;navVisibility();}
         if(value.focus==='pluto'&&!renderer.options.pluto){renderer.setOption('pluto',true);$('show-pluto').checked=true;navVisibility();}
-        if(!renderer.animateCamera(value,performance.now(),1100)){toast(t('hiddenBody'));return;}
+        const mono=performance.now();
+        if(!renderer.animateCamera(value,mono,1100)){toast(t('hiddenBody'));return;}
+        renderer.clearSkyFeatureGrid(mono,1100);
         keyboardTrackingReturn=null;
         cameraUi();
         // Persist only after the single renderer-owned transition has completed.
@@ -668,7 +670,6 @@
         temporaryRegionId=null;refreshDisplayedRegion();return true;
       }
       function syncTemporaryRegion(){
-        if(temporaryRegionId&&trackedBodyId()!=='earth')clearTemporaryRegion();
         if(trackedBodyId()==='earth'&&renderer.earthRegionInteractionReady()&&!renderer.countryBorders)loadCountryBorders().catch(()=>{});
       }
       function navigateBody(direction){
@@ -713,7 +714,7 @@
         const orbitControl=$('satellite-orbit-control'),orbitSlider=$('satellite-orbit-slider'),orbitValue=Math.round(renderer.satelliteOrbitScale(body)*100),solar=body.id==='sun';
         orbitControl.hidden=!hasOrbitControl;orbitSlider.min=Math.round(orbitLimits.min*100);orbitSlider.max=Math.round(orbitLimits.max*100);orbitSlider.value=orbitValue;$('satellite-orbit-output').textContent=orbitValue+'%';orbitSlider.disabled=orbitLocked;
         $('body-orbit-label').textContent=t(solar?'solarOrbitSpacing':'satelliteOrbitSpacing');orbitSlider.setAttribute('aria-label',t(solar?'solarOrbitSpacingAria':'satelliteOrbitSpacingAria'));
-        $('body-size-slider').disabled=locked;$('body-size-reset').disabled=locked||(value===resetValue&&(orbitLocked||!hasOrbitControl||orbitValue===100));
+        $('body-size-slider').disabled=locked;
         syncRangeReset('body-size-slider',value!==resetValue,locked);
         syncRangeReset('satellite-orbit-slider',hasOrbitControl&&orbitValue!==100,orbitLocked||!hasOrbitControl);
         $('body-size-lock').hidden=!locked||travelLocked;$('body-size-control').classList.toggle('locked',locked);
@@ -763,11 +764,6 @@
       });
       $('venus-cloud-amount-reset').addEventListener('click',()=>{
         renderer.setOption('venusCloudAmount',FACTORY_OPTIONS.venusCloudAmount);syncBodySizeControl();persist();
-      });
-      $('body-size-reset').addEventListener('click',()=>{if(travelSettingsLocked())return;
-        const body=bodies.find(value=>value.id===renderer.selected);if(!body)return;
-        const sizeReset=renderer.resetBodyScale(body.id),orbitReset=renderer.resetSatelliteOrbitScale(body.id);
-        if(sizeReset||orbitReset){syncBodySizeControl(body);persist();}
       });
       const eclipseTargets=new Map();
       function syncEclipseControl(bodyId=renderer.selected) {
@@ -829,9 +825,8 @@
         const b=bodies.find(v=>v.id===renderer.selected);if(!b)return;
         if(b.id==='saturn')$('ring-tour-button').disabled=openingActive||(!renderer.skyFeatureInputLocked&&!renderer.canStartRingTour());
         syncRegionNavigation();
-        const material=window.SolarAssets.materialInfo?.[b.id],signature=b.id+'|'+copyLanguage()+'|'+(material?.credit||'');
+        const signature=b.id+'|'+copyLanguage();
         const staticChanged=signature!==bodyInfoSignature;bodyInfoSignature=signature;
-        if(staticChanged)$('body-material').textContent=material?material.credit+' · '+t('photoMap'):b.id==='earth'?'NASA Blue Marble · '+t('builtInImage'):t('builtInMaterial')+' · '+t('publicPhotoUnavailable');
         if(b.id==='sun') {
           if(staticChanged)$('stat-label-one').textContent=t('representation');setStat('stat-value-one',t('star'),'');
           if(staticChanged)$('stat-label-two').textContent=t('systemCenter');setStat('stat-value-two','SUN','');
@@ -852,7 +847,7 @@
         if(staticChanged)$('stat-label-gravity').textContent=t('surfaceGravity');setStat('stat-value-gravity',environment.gravity.toFixed(environment.gravity<2?2:1),'m/s²');
         $('stat-gravity-ratio').textContent=t('earthGravityRatio',{value:gravityRatio.toFixed(gravityRatio>=10?1:2)});
       }
-      function anchorBodyPanel(){const panel=$('body-panel');panel.style.removeProperty('top');panel.style.removeProperty('bottom');panel.style.removeProperty('--body-panel-top');const top=Math.max(8,panel.getBoundingClientRect().top);panel.style.top=top+'px';panel.style.bottom='auto';panel.style.setProperty('--body-panel-top',top+'px');}
+      function anchorBodyPanel(){const panel=$('body-panel'),brand=document.querySelector('.brand');const top=Math.max(8,(brand?.getBoundingClientRect().bottom||75)+12);panel.style.top=top+'px';panel.style.bottom='auto';panel.style.setProperty('--body-panel-top',top+'px');}
       function clearSkyFeature(){if(!selectedSkyFeature)return;selectedSkyFeature=null;renderer.setSkyFeatureSelected(null);renderer.setSkyFeatureHover(null);bodyInfoSignature='';}
       function closeBody() {renderer.selected=null;clearSkyFeature();renderer.invalidatePresentation();hideFading($('body-panel'));for(const button of navButtons.values()){button.classList.remove('active');button.setAttribute('aria-pressed','false');}}
       function syncConstellationToggle(){
@@ -1087,7 +1082,10 @@
         cameraUi();window.SolarUsageAnalytics?.track('solar_region_view');return true;
       }
       $('feature-view').addEventListener('click',()=>{
-        if(selectedSkyFeature){focusSkyFeature(selectedSkyFeature);return;}
+        if(selectedSkyFeature){
+          if(openingActive)return;
+          cancelGesture();if(renderer.requestSkyFeaturePlacement(selectedSkyFeature)){cameraUi();updateSkyFeatureCard();}return;
+        }
         const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;
         if(id==='earth'){viewEarthRegion();return;}
         cancelGesture();renderer.animateFeature(id,-22,window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70,clock.value(performance.now()));cameraUi();window.SolarUsageAnalytics?.track('solar_body_track',{body_id:id});
@@ -1116,7 +1114,7 @@
       regionReadout.addEventListener('keydown',event=>{if(event.key!=='Enter'&&event.key!==' ')return;event.preventDefault();trackActiveRegion();});
       $('timezone-reset').addEventListener('click',()=>{
         if(openingActive||!temporaryRegionId)return;
-        const region=activeRegion();clearTemporaryRegion();viewEarthRegion(region);
+        clearTemporaryRegion();
       });
       const rotationControl=$('rotation-control'),rotationTrigger=$('rotation-mode-toggle'),rotationChoices=$('rotation-choices');
       matchMedia('(hover: none), (pointer: coarse)').addEventListener('change',()=>cameraUi(true));
@@ -1182,7 +1180,7 @@
           renderer.animateCamera(openingCameraTarget,mono);
           renderer.scheduleOpeningAnnotations(renderer.animationMono(mono),0);return;
         }
-        if(renderer.skyFeatureInputLocked){reset();return;}
+        if(renderer.skyFeatureInputLocked||renderer.skyFeatureGridNavigationActive){reset();return;}
         // One press starts the smooth return. A SECOND press may leave
         // fullscreen even while returning; it must not restart/cut the flight.
         renderer.ringTour?.requestEntryHomeReturn?.();
@@ -1281,7 +1279,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=a74c454fd65f','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=28483e5b5cce','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1410,6 +1408,7 @@
       document.addEventListener('pointerdown',event=>{if(uiElementVisible($('opening-menu'))&&!$('opening-control').contains(event.target))closeOpeningMenu();});
       const canvas=$('universe'),pointers=new Map(),heldZoomKeys=new Set();
       let drag=null,pinchDistance=0,pinchLevel=1,pinchOrigin=null,pinched=false,clickGestures=0;
+      function interactionBusy(){return !!drag||pointers.size>0||heldZoomKeys.size>0||!!renderer.pointerRotation||!!renderer.pointerCoast;}
       const keyboardZoomDirection=()=>Number(heldZoomKeys.has('arrowup'))-Number(heldZoomKeys.has('arrowdown'));
       const clearKeyboardZoom=()=>{if(!heldZoomKeys.size)return;heldZoomKeys.clear();persist();};
       function cancelGesture() {
@@ -1756,7 +1755,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){firstHelpPending=helpReminder.visit();renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive&&!openingDeparture&&!clock.paused)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.77',revision:'r4',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!interactionBusy()&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.78',revision:'r0',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);if(openingRunMode!=='none')renderer.startOpeningPointReveal(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

@@ -76,7 +76,7 @@
     }
     function syncSound(){
       $('alarm-sound-default').checked=state.soundMode!=='custom';$('alarm-sound-custom').checked=state.soundMode==='custom';
-      $('alarm-sound-name').textContent=state.soundName||t('noSoundSelected');$('alarm-sound-choose').textContent=t(state.soundName?'changeFile':'chooseFile');
+      $('alarm-sound-name').textContent=state.soundName||t('noSoundSelected');$('alarm-sound-name').setAttribute('aria-label',t('chooseFile')+(state.soundName?': '+state.soundName:''));$('alarm-sound-choose').textContent=t(state.soundName?'removeFile':'chooseFile');
       syncPreview();
     }
     function syncAvailability(){
@@ -421,7 +421,19 @@
     UI.bindDialog(removeDialog,closeRemoveConfirm);
     $('alarm-sound-default').addEventListener('change',()=>{if(!$('alarm-sound-default').checked)return;stopPreview();invalidateSound();releaseCustom();state.soundMode='default';save();syncSound();if(state.alarm.enabled)loadDefaultSound();else releaseIdleAudio();});
     $('alarm-sound-custom').addEventListener('change',async()=>{if(!$('alarm-sound-custom').checked)return;stopPreview();releasePrimedDefault();primeAudio();const generation=soundGeneration,resource=await loadStoredSound();if(disposed||generation!==soundGeneration)return;if(resource){state.soundMode='custom';save();syncSound();}else $('alarm-sound-file').click();});
-    $('alarm-sound-choose').addEventListener('click',event=>{event.preventDefault();event.stopPropagation();$('alarm-sound-file').click();});
+    $('alarm-sound-name').addEventListener('click',()=>$('alarm-sound-file').click());
+    $('alarm-sound-choose').addEventListener('click',async event=>{
+      event.preventDefault();event.stopPropagation();
+      if(!state.soundName){$('alarm-sound-file').click();return;}
+      stopPreview();invalidateSound();const generation=soundGeneration;selectionTask=generation;
+      try{
+        soundWriteTask=soundWriteTask.catch(()=>{}).then(()=>sounds.remove());await soundWriteTask;
+        if(disposed||generation!==soundGeneration)return;
+        releaseCustom();state.soundMode='default';state.soundName='';save();syncSound();
+        if(state.alarm.enabled)loadDefaultSound();else releaseIdleAudio();
+      }catch(_){if(!disposed&&generation===soundGeneration)notify(t('alarmSoundRemoveFailed'));}
+      finally{if(selectionTask===generation)selectionTask=0;if(!UI.visible(panel))releaseIdleAudio();}
+    });
     for(const kind of ['default','custom'])$('alarm-preview-'+kind).addEventListener('click',event=>{event.preventDefault();event.stopPropagation();togglePreview(kind);});
     $('alarm-sound-file').addEventListener('change',event=>{const file=event.target.files?.[0];event.target.value='';return chooseSound(file);});
     $('alarm-snooze').addEventListener('click',()=>{closeAlarm();state.alarm.hours=0;state.alarm.minutes=5;setFields('alarm');schedule('alarm',{quiet:true,usageAction:'snooze'});notify(t('alarmSnoozed'));});

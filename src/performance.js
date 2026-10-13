@@ -12,12 +12,15 @@
   let renderCost=coarse?9:6,frameLag=0,slowUntil=0;
   const MiB=1024*1024;
   const textureBudget=()=>coarse?96*MiB:192*MiB;
-  function pixelRatio(width,height,quality='auto'){
+  function scenePixelRatio(width,height,quality='auto'){
     const native=Math.max(1,Number(root.devicePixelRatio)||1);
-    if(quality==='low')return Math.min(native,1);
-    const max=coarse?1.5:2,budget=coarse?3_200_000:8_000_000;
-    return Math.max(1,Math.min(native,max,Math.sqrt(budget/Math.max(1,width*height))));
+    const low=quality==='low',max=low?1:coarse?1.5:2,budget=coarse?3_200_000:8_000_000,floor=low?.67:.8;
+    return Math.max(floor,Math.min(native,max,Math.sqrt(budget/Math.max(1,width*height))));
   }
+  // The 2D overlay contains thin guides, labels and pointer feedback. Keep it
+  // at one physical pixel or better while the panorama/planet layers observe
+  // the scene pixel budget on unusually large desktop viewports.
+  function pixelRatio(width,height,quality='auto'){return Math.max(1,scenePixelRatio(width,height,quality));}
   function reportRenderCost(ms){
     if(!Number.isFinite(ms)||ms<0)return;
     renderCost=renderCost*.90+Math.min(ms,80)*.10;
@@ -63,7 +66,7 @@
   }
   // Allocate before uploading. Reserve room for the sky and a texture swap;
   // lower-priority visible bodies yield detail before the tracked body does.
-  function planTextures(jobs,assets,maxWidth=4096,reserveBytes=0){
+  function planTextures(jobs,assets,maxWidth=4096,reserveBytes=0,mipmapped=false){
     const entries=[];
     const add=(name,width,priority)=>{if(assets?.[name])entries.push({name,width:Math.max(128,Math.min(maxWidth,width)),priority});};
     for(const job of jobs){
@@ -78,7 +81,7 @@
       if(job.id==='earth'&&job.nightLights)add('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth),job.priority||0);
       add(job.id+'-relief',job.textureWidth,job.priority||0);
     }
-    const entryBytes=e=>e.name==='saturn-ring'?e.width*4:e.width*e.width*2;
+    const entryBytes=e=>e.name==='saturn-ring'?e.width*4:(mipmapped?Math.ceil(e.width*e.width/2*4/3)*4:e.width*e.width*2);
     const budget=Math.max(0,textureBudget()-Math.max(0,reserveBytes))*.8;let bytes=entries.reduce((sum,e)=>sum+entryBytes(e),0),constrained=bytes>budget;
     while(bytes>budget){
       const candidate=entries.filter(e=>e.width>128).sort((a,b)=>a.priority-b.priority||b.width-a.width)[0];
@@ -95,13 +98,13 @@
     const candidates=[...textures.entries()].filter(([name,record])=>record?.texture&&!record.pending&&!protectTexture(renderer,name)).sort((a,b)=>(a[1].lastUsed||0)-(b[1].lastUsed||0));
     for(const [name,record] of candidates){
       if(bytes<=budget)break;
-      const pixels=(record.width||0)*(record.height||0);renderer.gl.deleteTexture(record.texture);bytes-=pixels*4;
+      const pixels=record.pixels??((record.width||0)*(record.height||0));renderer.gl.deleteTexture(record.texture);bytes-=pixels*4;
       if(Number.isFinite(renderer.stats.texturePixels))renderer.stats.texturePixels=Math.max(0,renderer.stats.texturePixels-pixels);
-      Object.assign(record,{texture:null,width:0,height:0,lastUsed:0});renderer.stats.textureEvictions=(renderer.stats.textureEvictions||0)+1;
+      Object.assign(record,{texture:null,width:0,height:0,pixels:0,mipmapped:false,lastUsed:0});renderer.stats.textureEvictions=(renderer.stats.textureEvictions||0)+1;
     }
     renderer.stats.textureBytes=Math.max(0,bytes);
   }
   function touchTexture(renderer,name){const record=renderer.textures?.get(name);if(record)record.lastUsed=(renderer.__solarTextureUseSerial=(renderer.__solarTextureUseSerial||0)+1);}
   function enforceTextureBudget(renderer){const budget=textureBudget(),bytes=Math.max(0,(renderer.stats?.texturePixels||0)*4);renderer.stats.textureBudgetBytes=budget;renderer.stats.textureBytes=bytes;if(bytes+(renderer.auxiliaryTextureBytes?.()||0)>budget){const now=performance.now();if(now-(renderer.__solarLastTextureTrim||0)>500){renderer.__solarLastTextureTrim=now;trimTextures(renderer);}}}
-  root.SolarPerformance=Object.freeze({particleCapacity,particleBudget,pixelRatio,frameInterval,createFrameGate,reportRenderCost,reportFrameTiming,textureBudget,planTextures,protectTexture,trimTextures,touchTexture,enforceTextureBudget,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
+  root.SolarPerformance=Object.freeze({particleCapacity,particleBudget,pixelRatio,scenePixelRatio,frameInterval,createFrameGate,reportRenderCost,reportFrameTiming,textureBudget,planTextures,protectTexture,trimTextures,touchTexture,enforceTextureBudget,get renderCost(){return renderCost;},get frameLag(){return frameLag;},coarse});
 })(window);

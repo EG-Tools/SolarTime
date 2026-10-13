@@ -308,7 +308,9 @@
     "shutdownFailed": "Perintah Windows gagal (kode {code}).",
     "shutdownNotLaunched": "Asisten tidak terbuka. Klik sakelar lagi dan izinkan permintaan browser.",
     "helperVerifyFailed": "Verifikasi asisten gagal. Jalankan pemasang terbaru, lalu izinkan asisten dibuka.",
-    "shutdownDataWarning": "Simpan pekerjaan Anda: pematian terjadwal Windows dapat menutup aplikasi secara paksa."
+    "shutdownDataWarning": "Simpan pekerjaan Anda: pematian terjadwal Windows dapat menutup aplikasi secara paksa.",
+    "removeFile": "Hapus",
+    "alarmSoundRemoveFailed": "Suara tersimpan tidak dapat dihapus. Silakan coba lagi."
   },
   "bodies": {
     "polaris": [

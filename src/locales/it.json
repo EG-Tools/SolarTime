@@ -308,7 +308,9 @@
     "shutdownFailed": "Comando di Windows non riuscito (codice {code}).",
     "shutdownNotLaunched": "L’assistente non si è aperto. Premi nuovamente l’interruttore e accetta la richiesta del browser.",
     "helperVerifyFailed": "Verifica dell’assistente non riuscita. Esegui l’ultimo programma di installazione e consenti l’apertura dell’assistente.",
-    "shutdownDataWarning": "Salva il lavoro: l’arresto programmato di Windows può forzare la chiusura delle applicazioni."
+    "shutdownDataWarning": "Salva il lavoro: l’arresto programmato di Windows può forzare la chiusura delle applicazioni.",
+    "removeFile": "Rimuovi",
+    "alarmSoundRemoveFailed": "Impossibile rimuovere il suono salvato. Riprova."
   },
   "bodies": {
     "polaris": [

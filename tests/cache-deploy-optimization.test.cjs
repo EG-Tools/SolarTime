@@ -26,6 +26,19 @@ test('both deployment aliases use the one guarded implementation and dry-run nev
  assert.throws(()=>options(['--force']),/Unknown/);assert.throws(()=>options(['--phase=delete']),/Unknown/);assert.throws(()=>validateTarget(root,{CLOUDFLARE_ACCOUNT_ID:'other'}),/Wrong/);
  const ci=cp.spawnSync(process.execPath,['tools/deployment.cjs','--ci','--phase=worker','--apply'],{cwd:root,env:{...process.env,GITHUB_ACTIONS:'false'},encoding:'utf8'});assert.equal(ci.status,1);assert.match(ci.stderr,/restricted/);
 });
+test('deployment recovery captures the active pair and records a read-only manual target',async()=>{
+ const {capture,currentVersion,reportFailure}=require('../tools/deployment-recovery.cjs'),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'solar-recovery-test-')),old='a'.repeat(32),active='b'.repeat(32);
+ try{
+  assert.equal(currentVersion({versions:[{version_id:old,percentage:0},{version_id:active,percentage:100}]}),active);assert.equal(currentVersion({latest_version:old}),old);assert.throws(()=>currentVersion({versions:[]}));
+  const request=async url=>new Response(Buffer.from(url));const record=await capture(tmp,{request,status:{versions:[{version_id:active,percentage:100}]},now:()=> '2026-10-13T00:00:00.000Z'});
+  assert.equal(record.previousPair.worker.versionId,active);assert.equal(record.previousPair.pages.files.length,3);assert.match(record.manualRecovery.workerCommand,new RegExp(active));
+  fs.writeFileSync(path.join(tmp,'.cloudflare/worker-publication.json'),'{}');const failed=reportFailure(tmp,{env:{WORKER_OUTCOME:'success',PAGES_OUTCOME:'failure'},now:()=> '2026-10-13T00:01:00.000Z'});
+  assert.equal(failed.failure.workerPublished,true);assert.equal(failed.failure.pagesPublished,false);assert.match(failed.failure.recovery,/recorded Worker rollback target/);
+  const published=reportFailure(tmp,{env:{WORKER_OUTCOME:'success',PAGES_OUTCOME:'success',PAGES_VERIFY_OUTCOME:'failure'}});
+  assert.equal(published.failure.pagesPublished,true);assert.match(published.failure.recovery,/recover Worker and Pages together/);
+  const source=fs.readFileSync(path.join(root,'tools/deployment-recovery.cjs'),'utf8');assert.doesNotMatch(source,/action==='restore'|function restore/);
+ }finally{fs.rmSync(tmp,{recursive:true,force:true});}
+});
 test('shared card style keeps both specificity levels without duplicate declarations',()=>{
  const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');assert.match(css,/\.card-surface,\.toast\.card-surface\{border-color:var\(--card-border\);background:var\(--card-background\);box-shadow:var\(--card-shadow\);backdrop-filter:var\(--card-filter\);-webkit-backdrop-filter:var\(--card-filter\)\}/);
  assert.equal((css.match(/border-color:var\(--card-border\);background:var\(--card-background\);box-shadow:var\(--card-shadow\);backdrop-filter:var\(--card-filter\);-webkit-backdrop-filter:var\(--card-filter\)/g)||[]).length,1);

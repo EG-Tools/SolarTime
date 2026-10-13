@@ -308,7 +308,9 @@
     "shutdownFailed": "Windows命令失败（代码{code}）。",
     "shutdownNotLaunched": "助手未打开。请再次点击开关，并允许浏览器提示。",
     "helperVerifyFailed": "助手验证失败。请运行最新安装程序，然后允许打开助手。",
-    "shutdownDataWarning": "请保存工作：Windows定时关机可能会强制关闭应用程序。"
+    "shutdownDataWarning": "请保存工作：Windows定时关机可能会强制关闭应用程序。",
+    "removeFile": "移除",
+    "alarmSoundRemoveFailed": "无法移除已保存的音频。请重试。"
   },
   "bodies": {
     "polaris": [

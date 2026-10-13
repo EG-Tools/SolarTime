@@ -17,6 +17,7 @@ function run(root,file,args=[]){
  const result=spawnSync(process.execPath,[path.join(root,file),...args],{cwd:root,stdio:'inherit',env:{...process.env,CLOUDFLARE_ACCOUNT_ID:ACCOUNT}});
  if(result.error)throw result.error;if(result.status!==0)throw Error(file+' failed; deployment stopped.');
 }
+function markWorkerPublication(root){const file=path.join(root,'.cloudflare/worker-publication.json');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify({publishedAt:new Date().toISOString(),targetSha:process.env.TARGET_SHA||null,worker:'solar-time'},null,2)+'\n');}
 function localChecks(root){
  run(root,'tools/run-tests.cjs');
  const python=process.env.PYTHON||'python';
@@ -35,7 +36,7 @@ async function main(args=process.argv.slice(2)){
  if(!opt.apply){console.log(JSON.stringify({account:ACCOUNT,worker:'solar-time',bucket:'solar-time-media',...opt,writes:false,steps:['verify','build','skip identical helper or upload and check','Worker publish','receipt round trip','public byte verification']},null,2));console.log('No changes made. Use --apply for an explicit deployment.');return;}
  if(opt.ci){if(process.env.GITHUB_ACTIONS!=='true')throw Error('--ci is restricted to verified GitHub Actions.');run(root,'tools/ci-gate.cjs');}
  else localChecks(root);
- if(['all','build'].includes(opt.phase)){run(root,'tools/build-cloudflare.cjs');run(root,'tools/build-pages.cjs');}
+ if(['all','build'].includes(opt.phase))run(root,'tools/build-public-sites.cjs');
  if(['all','helper'].includes(opt.phase)){
   const report=await uploadWindowsHelper(root,{apply:true});console.log('Helper objects uploaded: '+report.uploaded.length+'; unchanged objects skipped: '+report.skipped.length);
   await verifyShutdown({health:false});
@@ -43,6 +44,7 @@ async function main(args=process.argv.slice(2)){
  if(['all','worker'].includes(opt.phase)){
   if(!fs.existsSync(path.join(root,'.cloudflare/site/index.html')))throw Error('Build the verified site before publishing.');
   run(root,'node_modules/wrangler/bin/wrangler.js',['deploy']);
+  markWorkerPublication(root);
   run(root,'tools/verify-shutdown.cjs',['--roundtrip']);
   run(root,'tools/verify-public-release.cjs',['--worker','--attempts=6']);
   run(root,'tools/verify-textures.cjs');
@@ -50,4 +52,4 @@ async function main(args=process.argv.slice(2)){
  if(opt.phase==='all')console.log('Cloudflare verified. Pages must publish the same commit. Reinstall the PC helper only when its installed hash differs; app-only updates do not require reinstalling.');
 }
 if(require.main===module)main().catch(e=>{console.error('DEPLOYMENT NOT COMPLETE: '+e.message);process.exitCode=1;});
-module.exports={main,options,validateTarget};
+module.exports={main,markWorkerPublication,options,validateTarget};

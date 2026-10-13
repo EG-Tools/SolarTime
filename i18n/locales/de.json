@@ -309,30 +309,95 @@
     "helperRemoveTitle": "Herunterfahrhilfe entfernen",
     "helperRemoveDescription": "Bricht das geplante Herunterfahren ab und entfernt die Hilfe samt Verknüpfung aus dem aktuellen Windows-Konto.",
     "helperRemoveQuestion": "Hilfe entfernen?",
-    "helperInstallTitle": "Installation der Hilfe bestätigen"
+    "helperInstallTitle": "Installation der Hilfe bestätigen",
+    "removeFile": "Entfernen",
+    "alarmSoundRemoveFailed": "Der gespeicherte Ton konnte nicht entfernt werden. Bitte erneut versuchen."
   },
   "bodies": {
-    "polaris": ["Polarstern","Der hellste Stern im Kleinen Bären liegt nahe dem nördlichen Himmelspol. Er scheint fast stillzustehen und dient zur Orientierung nach Norden."],
-    "ursa-major": ["Großer Bär","Dieses große nördliche Sternbild enthält den Großen Wagen. Von dessen Umriss führen Linien zum Körper und zu den Beinen des Bären."],
-    "ursa-minor": ["Kleiner Bär","Der Polarstern steht am Ende der Deichsel des Kleinen Wagens. Kochab und Pherkad bilden dessen äußeren Kastenrand."],
-    "cassiopeia": ["Kassiopeia","Fünf helle Sterne bilden je nach Blickrichtung ein W oder M. Vom Polarstern aus liegt sie ungefähr gegenüber dem Großen Wagen."],
-    "orion": ["Orion","Drei aufgereihte Gürtelsterne machen Orion unverwechselbar. Die rote Beteigeuze und der blauweiße Rigel bilden einen Kontrast; in Korea ist Orion an Winterabenden auffällig."],
-    "scorpius": ["Skorpion","Auf den roten Antares folgen ein langer Körper und ein gebogener Schwanz. Am südlichen Sommerhimmel Koreas markieren Shaula und Lesath den Stachel."],
-    "leo": ["Löwe","Ein sichelförmiger Kopf bei Regulus und ein dreieckiger Körper zeichnen den Löwen. Denebola markiert den Schwanz; in Korea ist er an Frühlingsabenden gut sichtbar."],
-    "cygnus": ["Schwan","Hals und Flügel bilden das Kreuz des Nordens. Deneb gehört zum Sommerdreieck, Albireo markiert den Kopf."],
-    "taurus": ["Stier","Der orange Aldebaran, ein V-förmiges Gesicht und zwei lange Hörner kennzeichnen den Stier. Aldebaran steht vor den Hyaden und gehört nicht zu diesem Sternhaufen."],
-    "aries": ["Widder","Hamal, Sheratan und Mesarthim bilden einen kurzen Bogen. Dieses Tierkreissternbild markierte historisch den Frühlingsbeginn."],
-    "gemini": ["Zwillinge","Castor und Pollux markieren die Köpfe der Zwillinge. Zwei verzweigte Sternketten bilden ihre Körper."],
-    "cancer": ["Krebs","Ein schwaches Y-förmiges Tierkreissternbild um Asellus Borealis und Asellus Australis. Unter dunklem Himmel hilft der Sternhaufen Praesepe beim Auffinden."],
-    "virgo": ["Jungfrau","Die blauweiße Spica fällt in diesem ausgedehnten Tierkreissternbild auf. Zwischen Löwe und Waage steht es an Frühlingsabenden in Korea am Südhimmel."],
-    "libra": ["Waage","Zubeneschamali und Zubenelgenubi umrahmen die Waage. Ihre Sterne galten früher als Scheren des Skorpions."],
-    "sagittarius": ["Schütze","Sterne bei Kaus Australis und Nunki bilden die Teekanne. In dieser Richtung liegt dahinter das Zentrum der Milchstraße."],
-    "capricornus": ["Steinbock","Zwischen Algedi und Deneb Algedi liegt ein breiter, flacher Keil. Das schwache Tierkreissternbild ist an seinem dreieckigen Umriss erkennbar."],
-    "aquarius": ["Wassermann","Von Sadalsuud und Sadalmelik ziehen lange Sternströme nach Süden. Verbindungslinien helfen, das weit verstreute Tierkreissternbild zu erkennen."],
-    "pisces": ["Fische","Zwei Fische sind durch lange Schnüre verbunden, die bei Alrescha zusammenlaufen. Ihr schwacher Umriss erstreckt sich weit entlang des Himmelsäquators."],
-    "pegasus": ["Pegasus","Alpheratz, Algenib, Markab und Scheat bilden das große Viereck. Von dort ziehen Sternketten zu Hals und Beinen; in Korea fällt es im Herbst auf."],
-    "andromeda": ["Andromeda","Eine Sternkette führt von Alpheratz über Mirach zu Almach. In der Nähe liegt die Andromedagalaxie, die unter dunklem Himmel mit bloßem Auge sichtbar ist."],
-    "crux": ["Kreuz des Südens","Acrux und Gacrux bilden die Längsachse, Mimosa und Imai den Querbalken. Das kleine Kreuz hilft bei der Orientierung nach Süden."],
+    "polaris": [
+      "Polarstern",
+      "Der hellste Stern im Kleinen Bären liegt nahe dem nördlichen Himmelspol. Er scheint fast stillzustehen und dient zur Orientierung nach Norden."
+    ],
+    "ursa-major": [
+      "Großer Bär",
+      "Dieses große nördliche Sternbild enthält den Großen Wagen. Von dessen Umriss führen Linien zum Körper und zu den Beinen des Bären."
+    ],
+    "ursa-minor": [
+      "Kleiner Bär",
+      "Der Polarstern steht am Ende der Deichsel des Kleinen Wagens. Kochab und Pherkad bilden dessen äußeren Kastenrand."
+    ],
+    "cassiopeia": [
+      "Kassiopeia",
+      "Fünf helle Sterne bilden je nach Blickrichtung ein W oder M. Vom Polarstern aus liegt sie ungefähr gegenüber dem Großen Wagen."
+    ],
+    "orion": [
+      "Orion",
+      "Drei aufgereihte Gürtelsterne machen Orion unverwechselbar. Die rote Beteigeuze und der blauweiße Rigel bilden einen Kontrast; in Korea ist Orion an Winterabenden auffällig."
+    ],
+    "scorpius": [
+      "Skorpion",
+      "Auf den roten Antares folgen ein langer Körper und ein gebogener Schwanz. Am südlichen Sommerhimmel Koreas markieren Shaula und Lesath den Stachel."
+    ],
+    "leo": [
+      "Löwe",
+      "Ein sichelförmiger Kopf bei Regulus und ein dreieckiger Körper zeichnen den Löwen. Denebola markiert den Schwanz; in Korea ist er an Frühlingsabenden gut sichtbar."
+    ],
+    "cygnus": [
+      "Schwan",
+      "Hals und Flügel bilden das Kreuz des Nordens. Deneb gehört zum Sommerdreieck, Albireo markiert den Kopf."
+    ],
+    "taurus": [
+      "Stier",
+      "Der orange Aldebaran, ein V-förmiges Gesicht und zwei lange Hörner kennzeichnen den Stier. Aldebaran steht vor den Hyaden und gehört nicht zu diesem Sternhaufen."
+    ],
+    "aries": [
+      "Widder",
+      "Hamal, Sheratan und Mesarthim bilden einen kurzen Bogen. Dieses Tierkreissternbild markierte historisch den Frühlingsbeginn."
+    ],
+    "gemini": [
+      "Zwillinge",
+      "Castor und Pollux markieren die Köpfe der Zwillinge. Zwei verzweigte Sternketten bilden ihre Körper."
+    ],
+    "cancer": [
+      "Krebs",
+      "Ein schwaches Y-förmiges Tierkreissternbild um Asellus Borealis und Asellus Australis. Unter dunklem Himmel hilft der Sternhaufen Praesepe beim Auffinden."
+    ],
+    "virgo": [
+      "Jungfrau",
+      "Die blauweiße Spica fällt in diesem ausgedehnten Tierkreissternbild auf. Zwischen Löwe und Waage steht es an Frühlingsabenden in Korea am Südhimmel."
+    ],
+    "libra": [
+      "Waage",
+      "Zubeneschamali und Zubenelgenubi umrahmen die Waage. Ihre Sterne galten früher als Scheren des Skorpions."
+    ],
+    "sagittarius": [
+      "Schütze",
+      "Sterne bei Kaus Australis und Nunki bilden die Teekanne. In dieser Richtung liegt dahinter das Zentrum der Milchstraße."
+    ],
+    "capricornus": [
+      "Steinbock",
+      "Zwischen Algedi und Deneb Algedi liegt ein breiter, flacher Keil. Das schwache Tierkreissternbild ist an seinem dreieckigen Umriss erkennbar."
+    ],
+    "aquarius": [
+      "Wassermann",
+      "Von Sadalsuud und Sadalmelik ziehen lange Sternströme nach Süden. Verbindungslinien helfen, das weit verstreute Tierkreissternbild zu erkennen."
+    ],
+    "pisces": [
+      "Fische",
+      "Zwei Fische sind durch lange Schnüre verbunden, die bei Alrescha zusammenlaufen. Ihr schwacher Umriss erstreckt sich weit entlang des Himmelsäquators."
+    ],
+    "pegasus": [
+      "Pegasus",
+      "Alpheratz, Algenib, Markab und Scheat bilden das große Viereck. Von dort ziehen Sternketten zu Hals und Beinen; in Korea fällt es im Herbst auf."
+    ],
+    "andromeda": [
+      "Andromeda",
+      "Eine Sternkette führt von Alpheratz über Mirach zu Almach. In der Nähe liegt die Andromedagalaxie, die unter dunklem Himmel mit bloßem Auge sichtbar ist."
+    ],
+    "crux": [
+      "Kreuz des Südens",
+      "Acrux und Gacrux bilden die Längsachse, Mimosa und Imai den Querbalken. Das kleine Kreuz hilft bei der Orientierung nach Süden."
+    ],
     "sun": [
       "Sonne",
       "Ein Stern, der überwiegend aus Wasserstoff und Helium besteht. Kernfusion setzt Energie als heißes Plasma und Licht frei."

@@ -2,6 +2,27 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {fixture,flush}=require('./helpers/timer-harness.cjs');
 const copy=x=>JSON.parse(JSON.stringify(x));
+test('custom alarm filename opens the picker and remove clears the stored sound',async()=>{
+ const f=fixture({prepare:async()=>({buffer:{length:48000,numberOfChannels:2,duration:1},dispose(){}})});try{
+  let picks=0;f.get('alarm-sound-file').addEventListener('click',()=>picks++);
+  await f.get('alarm-sound-name').click();assert.equal(picks,1);
+  await f.choose('custom.wav');assert.equal(f.timer.getState().soundMode,'custom');assert.match(f.get('alarm-sound-choose').textContent,/removeFile/);
+  await f.get('alarm-sound-choose').click();assert.equal(picks,1);assert.equal(f.stored(),null);
+  assert.equal(f.timer.getState().soundMode,'default');assert.equal(f.timer.getState().soundName,'');
+  await f.get('alarm-sound-choose').click();assert.equal(picks,2);
+ }finally{f.dispose();}
+});
+
+test('removal waits for an in-flight sound write before deleting it',async()=>{
+ const {deferred}=require('./helpers/timer-harness.cjs'),pending=deferred();let block=false;
+ const f=fixture({prepare:async()=>({buffer:{length:48000,numberOfChannels:2,duration:1},dispose(){}}),putRecord:()=>block?pending.promise:null});try{
+  await f.choose('first.wav');block=true;const replacing=f.choose('second.wav');
+  for(let i=0;i<5;i++)await flush();const removing=f.get('alarm-sound-choose').click();
+  pending.resolve();await replacing;await removing;
+  assert.equal(f.stored(),null);assert.equal(f.timer.getState().soundMode,'default');assert.equal(f.timer.getState().soundName,'');
+ }finally{f.dispose();}
+});
+
 function shared({fallback=false}={}){
  let saved={helperEnabled:true,helperConfirmed:true,helperProgress:100,helperRevision:"A".repeat(64)},held=false;const tabs=[];
  const locks={request(_name,_options,fn){if(held)return Promise.resolve(fn(null));held=true;return Promise.resolve(fn({})).finally(()=>{held=false;});}};

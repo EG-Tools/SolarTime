@@ -308,7 +308,9 @@
     "shutdownFailed": "Échec de la commande Windows (code {code}).",
     "shutdownNotLaunched": "L’assistant ne s’est pas ouvert. Cliquez à nouveau sur l’interrupteur et acceptez la demande du navigateur.",
     "helperVerifyFailed": "Échec de la vérification. Exécutez le dernier programme d’installation, puis autorisez l’ouverture de l’assistant.",
-    "shutdownDataWarning": "Enregistrez votre travail : l’arrêt programmé de Windows peut forcer la fermeture des applications."
+    "shutdownDataWarning": "Enregistrez votre travail : l’arrêt programmé de Windows peut forcer la fermeture des applications.",
+    "removeFile": "Supprimer",
+    "alarmSoundRemoveFailed": "Impossible de supprimer le son enregistré. Veuillez réessayer."
   },
   "bodies": {
     "polaris": [

@@ -309,30 +309,95 @@
     "helperRemoveTitle": "Supprimer l’assistant d’arrêt",
     "helperRemoveDescription": "Annule l’arrêt programmé et supprime l’assistant ainsi que son association du compte Windows actuel.",
     "helperRemoveQuestion": "Supprimer l’assistant ?",
-    "helperInstallTitle": "Confirmer l’installation de l’assistant"
+    "helperInstallTitle": "Confirmer l’installation de l’assistant",
+    "removeFile": "Supprimer",
+    "alarmSoundRemoveFailed": "Impossible de supprimer le son enregistré. Veuillez réessayer."
   },
   "bodies": {
-    "polaris": ["Étoile Polaire","L’étoile la plus brillante de la Petite Ourse se trouve près du pôle nord céleste. Presque immobile en apparence, elle permet de repérer le nord."],
-    "ursa-major": ["Grande Ourse","Cette vaste constellation boréale comprend la Grande Casserole. Les lignes se prolongent vers le corps et les pattes de l’ourse."],
-    "ursa-minor": ["Petite Ourse","L’étoile Polaire marque le bout du manche de la petite casserole. Kochab et Pherkad forment le bord extérieur du récipient."],
-    "cassiopeia": ["Cassiopée","Cinq étoiles brillantes dessinent un W ou un M selon l’orientation. Elle se trouve à peu près à l’opposé de la Grande Casserole par rapport à la Polaire."],
-    "orion": ["Orion","Trois étoiles alignées forment sa ceinture. Bételgeuse, rouge, contraste avec Rigel, bleu-blanc ; Orion domine les soirées d’hiver en Corée."],
-    "scorpius": ["Scorpion","La rouge Antarès est suivie d’un long corps et d’une queue recourbée. Dans le ciel austral de l’été coréen, Shaula et Lesath dessinent le dard."],
-    "leo": ["Lion","Une tête en faucille près de Régulus et un corps triangulaire dessinent le lion. Denebola marque la queue ; il est bien visible au printemps en Corée."],
-    "cygnus": ["Cygne","Le cou et les ailes forment la Croix du Nord. Deneb appartient au Triangle d’été, tandis qu’Albiréo marque la tête."],
-    "taurus": ["Taureau","Aldébaran, orangée, un visage en V et deux longues cornes caractérisent le Taureau. Aldébaran se trouve devant les Hyades, sans appartenir à cet amas."],
-    "aries": ["Bélier","Hamal, Sheratan et Mesarthim forment une courte courbe. Cette constellation zodiacale marquait historiquement le début du printemps."],
-    "gemini": ["Gémeaux","Castor et Pollux marquent les têtes des jumeaux. Deux chaînes ramifiées d’étoiles dessinent leurs corps."],
-    "cancer": ["Cancer","Une discrète constellation zodiacale en Y autour d’Asellus Borealis et d’Asellus Australis. L’amas de la Crèche aide à la repérer sous un ciel sombre."],
-    "virgo": ["Vierge","Spica, bleu-blanc, se distingue dans cette vaste constellation zodiacale. Entre le Lion et la Balance, elle apparaît au sud les soirs de printemps en Corée."],
-    "libra": ["Balance","Zubeneschamali et Zubenelgenubi dessinent la balance. Ces étoiles étaient autrefois considérées comme les pinces du Scorpion."],
-    "sagittarius": ["Sagittaire","Les étoiles proches de Kaus Australis et de Nunki forment la Théière. Le centre de la Voie lactée se trouve au-delà, dans cette direction."],
-    "capricornus": ["Capricorne","Une large figure en coin s’étend entre Algedi et Deneb Algedi. Cette constellation zodiacale peu lumineuse se reconnaît à son contour triangulaire."],
-    "aquarius": ["Verseau","De longs courants d’étoiles descendent vers le sud depuis Sadalsuud et Sadalmelik. Les lignes permettent de suivre cette constellation zodiacale très étendue."],
-    "pisces": ["Poissons","Deux poissons sont reliés par de longs cordons se rejoignant à Alrescha. Leur faible silhouette couvre une vaste région près de l’équateur céleste."],
-    "pegasus": ["Pégase","Alpheratz, Algenib, Markab et Scheat forment le Grand Carré. Des chaînes prolongent le cou et les pattes ; Pégase se distingue en automne en Corée."],
-    "andromeda": ["Andromède","Une chaîne relie Alpheratz à Almach en passant par Mirach. La galaxie d’Andromède, voisine, est visible à l’œil nu sous un ciel sombre."],
-    "crux": ["Croix du Sud","Acrux et Gacrux forment le grand axe ; Mimosa et Imai, la traverse. Cette petite croix aide à repérer le sud."],
+    "polaris": [
+      "Étoile Polaire",
+      "L’étoile la plus brillante de la Petite Ourse se trouve près du pôle nord céleste. Presque immobile en apparence, elle permet de repérer le nord."
+    ],
+    "ursa-major": [
+      "Grande Ourse",
+      "Cette vaste constellation boréale comprend la Grande Casserole. Les lignes se prolongent vers le corps et les pattes de l’ourse."
+    ],
+    "ursa-minor": [
+      "Petite Ourse",
+      "L’étoile Polaire marque le bout du manche de la petite casserole. Kochab et Pherkad forment le bord extérieur du récipient."
+    ],
+    "cassiopeia": [
+      "Cassiopée",
+      "Cinq étoiles brillantes dessinent un W ou un M selon l’orientation. Elle se trouve à peu près à l’opposé de la Grande Casserole par rapport à la Polaire."
+    ],
+    "orion": [
+      "Orion",
+      "Trois étoiles alignées forment sa ceinture. Bételgeuse, rouge, contraste avec Rigel, bleu-blanc ; Orion domine les soirées d’hiver en Corée."
+    ],
+    "scorpius": [
+      "Scorpion",
+      "La rouge Antarès est suivie d’un long corps et d’une queue recourbée. Dans le ciel austral de l’été coréen, Shaula et Lesath dessinent le dard."
+    ],
+    "leo": [
+      "Lion",
+      "Une tête en faucille près de Régulus et un corps triangulaire dessinent le lion. Denebola marque la queue ; il est bien visible au printemps en Corée."
+    ],
+    "cygnus": [
+      "Cygne",
+      "Le cou et les ailes forment la Croix du Nord. Deneb appartient au Triangle d’été, tandis qu’Albiréo marque la tête."
+    ],
+    "taurus": [
+      "Taureau",
+      "Aldébaran, orangée, un visage en V et deux longues cornes caractérisent le Taureau. Aldébaran se trouve devant les Hyades, sans appartenir à cet amas."
+    ],
+    "aries": [
+      "Bélier",
+      "Hamal, Sheratan et Mesarthim forment une courte courbe. Cette constellation zodiacale marquait historiquement le début du printemps."
+    ],
+    "gemini": [
+      "Gémeaux",
+      "Castor et Pollux marquent les têtes des jumeaux. Deux chaînes ramifiées d’étoiles dessinent leurs corps."
+    ],
+    "cancer": [
+      "Cancer",
+      "Une discrète constellation zodiacale en Y autour d’Asellus Borealis et d’Asellus Australis. L’amas de la Crèche aide à la repérer sous un ciel sombre."
+    ],
+    "virgo": [
+      "Vierge",
+      "Spica, bleu-blanc, se distingue dans cette vaste constellation zodiacale. Entre le Lion et la Balance, elle apparaît au sud les soirs de printemps en Corée."
+    ],
+    "libra": [
+      "Balance",
+      "Zubeneschamali et Zubenelgenubi dessinent la balance. Ces étoiles étaient autrefois considérées comme les pinces du Scorpion."
+    ],
+    "sagittarius": [
+      "Sagittaire",
+      "Les étoiles proches de Kaus Australis et de Nunki forment la Théière. Le centre de la Voie lactée se trouve au-delà, dans cette direction."
+    ],
+    "capricornus": [
+      "Capricorne",
+      "Une large figure en coin s’étend entre Algedi et Deneb Algedi. Cette constellation zodiacale peu lumineuse se reconnaît à son contour triangulaire."
+    ],
+    "aquarius": [
+      "Verseau",
+      "De longs courants d’étoiles descendent vers le sud depuis Sadalsuud et Sadalmelik. Les lignes permettent de suivre cette constellation zodiacale très étendue."
+    ],
+    "pisces": [
+      "Poissons",
+      "Deux poissons sont reliés par de longs cordons se rejoignant à Alrescha. Leur faible silhouette couvre une vaste région près de l’équateur céleste."
+    ],
+    "pegasus": [
+      "Pégase",
+      "Alpheratz, Algenib, Markab et Scheat forment le Grand Carré. Des chaînes prolongent le cou et les pattes ; Pégase se distingue en automne en Corée."
+    ],
+    "andromeda": [
+      "Andromède",
+      "Une chaîne relie Alpheratz à Almach en passant par Mirach. La galaxie d’Andromède, voisine, est visible à l’œil nu sous un ciel sombre."
+    ],
+    "crux": [
+      "Croix du Sud",
+      "Acrux et Gacrux forment le grand axe ; Mimosa et Imai, la traverse. Cette petite croix aide à repérer le sud."
+    ],
     "sun": [
       "Soleil",
       "Une étoile composée surtout d’hydrogène et d’hélium. La fusion de son cœur libère de l’énergie sous forme de plasma chaud et de lumière."

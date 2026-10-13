@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.68",
+    "date": "2026.09.29",
+    "items": [
+      "The in-app update history now keeps only the latest ten releases translated into the selected language.",
+      "After the tenth entry, a link opens Solar Time's standalone complete Korean update-history page.",
+      "The complete Korean archive is generated automatically from the translation source, substantially reducing the app's update-data payload.",
+      "The README and media credits now focus on the app's enduring purpose, features, controls and sources that are actually in use."
+    ]
+  },
+  {
     "version": "0.67",
     "date": "2026.09.29",
     "items": [

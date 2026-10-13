@@ -308,7 +308,9 @@
     "shutdownFailed": "Windows-opdracht mislukt (code {code}).",
     "shutdownNotLaunched": "De helper is niet geopend. Klik opnieuw op de schakelaar en accepteer de browsermelding.",
     "helperVerifyFailed": "Controle van de helper mislukt. Voer het nieuwste installatieprogramma uit en sta toe dat de helper wordt geopend.",
-    "shutdownDataWarning": "Sla je werk op: gepland afsluiten van Windows kan apps gedwongen sluiten."
+    "shutdownDataWarning": "Sla je werk op: gepland afsluiten van Windows kan apps gedwongen sluiten.",
+    "removeFile": "Verwijderen",
+    "alarmSoundRemoveFailed": "Het opgeslagen geluid kon niet worden verwijderd. Probeer het opnieuw."
   },
   "bodies": {
     "polaris": [

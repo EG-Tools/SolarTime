@@ -2,12 +2,12 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 const A=require('../src/astro.js');
 function fixture(){
- const window={SolarAstro:A},created=[];
- const document={createElement(){const canvas={getContext:()=>({createRadialGradient:()=>({addColorStop(){}}),fillRect(){}})};created.push(canvas);return canvas;}};
+ const window={SolarAstro:A},created=[],gradients=[];
+ const document={createElement(){const canvas={getContext:()=>({createRadialGradient:()=>{const stops=[];gradients.push(stops);return {addColorStop(offset,color){stops.push([offset,color]);}};},fillRect(){}})};created.push(canvas);return canvas;}};
  vm.runInNewContext(fs.readFileSync(require.resolve('../src/renderer.js'),'utf8'),{window,document,performance:{now:()=>0}});
  const r=Object.create(window.SolarRenderer.prototype);Object.assign(r,{w:200,h:120,dpr:1,camera:{zoom:1,dolly:.001},presentationUntil:0,presentationDirty:false,openingPointReveal:null});
  const calls=[],c={globalAlpha:.4,fillStyle:'',save(){this.saved=this.globalAlpha;},restore(){this.globalAlpha=this.saved;},beginPath(){},rect(){},moveTo(){},arc(){},fill(){calls.push(['fill',this.globalAlpha,this.fillStyle]);},clip(rule){calls.push(['clip',rule]);},drawImage(...args){calls.push(['draw',this.globalAlpha,...args.slice(1)]);}};
- return {r,c,calls,created};
+ return {r,c,calls,created,gradients};
 }
 const item=(id='earth',r=.01,z=0)=>({body:{id,color:'#4499ff'},r,screen:{x:100,y:60,z,behind:false}});
 
@@ -26,39 +26,36 @@ test('retreat and opening never reverse parent-child depth or point occlusion',(
   }
  }
 });
-test('projected diameter alone drives the 1px point to 2px textured-disc transition',()=>{
+test('all bodies approach their size floor smoothly and fade only behind a larger disc',()=>{
  const {r}=fixture();
- const ids=['sun','earth','saturn','moon','europa','pluto'];
- const radii=[.00001,.001,.01,.1,.25,.5];
- for(const radius of radii){
-  const reference=r.bodyPointLod({id:ids[0]},radius);
-  for(const id of ids.slice(1))assert.deepEqual(r.bodyPointLod({id},radius),reference,`${id} must use the same projected-radius curve`);
- }
- let previousSize=0;
- for(const radius of radii){const point=r.bodyPointLod({id:'earth'},radius);assert.ok(point.size>previousSize);previousSize=point.size;}
- for(const id of ['sun','earth','saturn','moon','europa','pluto']){
-  const body={id};let previous=r.bodyPointLod(body,.5).alpha;
-  for(let radius=.501;radius<=1.001;radius+=.001){
-   const point=r.bodyPointLod(body,radius);assert.ok(point.alpha>=0&&point.alpha<=previous+1e-10);assert.ok(previous-point.alpha<.004);previous=point.alpha;
+ for(const id of ['sun','mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','moon','europa','pluto']){
+  const body={id},floor=r.bodyPointLod(body,Number.MIN_VALUE);let previous=floor,previousDelta=0;
+  assert.ok(floor.size>0&&floor.alpha>0);
+  for(let radius=.001;radius<=20;radius+=.01){
+   const point=r.bodyPointLod(body,radius),delta=point.size-previous.size;
+   assert.ok(delta>=0,'zooming in must never shrink any body marker');
+   assert.ok(Math.abs(delta-previousDelta)<.001,'size slope must remain smooth');
+   assert.ok(point.alpha>=0&&point.alpha<=1);
+   if(point.alpha<previous.alpha-1e-10)assert.ok(radius*2>=point.size*3.6,'surface covers the entire halo before fade');
+   previous=point;previousDelta=delta;
   }
-  assert.equal(r.bodyPointLod(body,1).alpha,0,'a 2px-diameter body is texture-only');
-  const far=r.bodyPointLod(body,.00001);assert.ok(far.size>0&&far.alpha>0);assert.ok(far.size<2);
+  assert.equal(previous.alpha,0,'large resolved bodies no longer draw a point');
   for(const radius of [-1,0,NaN,Infinity])assert.equal(r.bodyPointLod(body,radius).alpha,0);
  }
- assert.equal(r.bodyPointLod({id:'earth'},1.01).alpha,0,'larger textured bodies never receive a point overlay');
- assert.equal(r.bodyPointLod({id:'earth'},.5).alpha,1,'a 1px-diameter body is fully pointified');
- assert.ok(r.bodyPointLod({id:'earth'},.99).alpha>0,'the 1px-to-2px diameter band crossfades continuously');
- const entering=r.bodyPointLod({id:'earth'},.99),middle=r.bodyPointLod({id:'earth'},.75),point=r.bodyPointLod({id:'earth'},.5);
- assert.ok(entering.size<middle.size&&middle.size<point.size,'the point halo grows continuously instead of appearing at full size');
+ for(const radius of [.0001,.1,1,5])assert.deepEqual(r.bodyPointLod({id:'moon'},radius),r.bodyPointLod({id:'europa'},radius));
  const before=r.bodyPointLod({id:'earth'},.2);r.camera={zoom:2048,dolly:1e8};r.dpr=3;
- assert.deepEqual(r.bodyPointLod({id:'earth'},.2),before);
+ assert.deepEqual(r.bodyPointLod({id:'earth'},.2),before,'appearance is in CSS pixels');
 });
-test('distant bodies preserve projected-size order instead of switching to body-class ranks',()=>{
+
+test('distant bodies settle into the approved background-star size hierarchy',()=>{
  const {r}=fixture();
- const projected={sun:.024102459,jupiter:.002401153,saturn:.002090016,neptune:.0009569,uranus:.000924};
+ const projected={sun:.00001,jupiter:.00001,saturn:.00001,neptune:.00001,uranus:.00001,earth:.00001,moon:.00001,europa:.00001,pluto:.00001};
  const point=Object.fromEntries(Object.entries(projected).map(([id,radius])=>[id,r.bodyPointLod({id},radius).size]));
- assert.ok(point.sun>point.jupiter&&point.jupiter>point.saturn&&point.saturn>point.neptune&&point.neptune>point.uranus);
- assert.ok(point.jupiter/point.saturn<1.05,'near-sized giant planets should remain near-sized as points');
+ assert.ok(point.sun>point.jupiter&&point.jupiter>point.earth&&point.earth>point.moon);
+ assert.ok(Math.abs(point.sun*3.6-10.08)<1e-10,'the far true-scale Sun retains the full established point footprint');
+ assert.ok(Math.abs(point.jupiter*3.6-4.68)<1e-10);assert.ok(Math.abs(point.earth*3.6-3.78)<1e-10);assert.ok(Math.abs(point.moon*3.6-3.06)<1e-10);
+ for(const id of ['saturn','uranus','neptune'])assert.equal(point[id],point.jupiter);
+ assert.equal(point.moon,point.europa,'major moons share the level-1 point size');assert.equal(point.pluto,point.moon,'Pluto shares level 1 with the satellites');
 });
 test('point rendering shares the projected position and parent alpha, without mutating the body',()=>{
  const {r,c,calls,created}=fixture(),p=item(),before=JSON.stringify(p);
@@ -70,6 +67,53 @@ test('point rendering shares the projected position and parent alpha, without mu
  for(let i=0;i<100;i++)r.drawBodyPoint(c,p);assert.equal(created.length,1);
  p.screen.behind=true;assert.equal(r.drawBodyPoint(c,p),false);
  p.screen.behind=false;p.screen.x=Infinity;assert.equal(r.drawBodyPoint(c,p),false);
+});
+test('the far Sun keeps the approved footprint and reads as warm gold instead of white',()=>{
+ const {r,c,gradients}=fixture(),sun=item('sun',.00001);sun.body.color=A.SUN.color;
+ assert.equal(r.drawBodyPoint(c,sun),true);
+ assert.ok(Math.abs(r.bodyPointLod(sun.body,sun.r).size*3.6-10.08)<1e-10,'the approved golden footprint stays unchanged');
+ assert.deepEqual(gradients[0].slice(0,2),[[0,'rgba(255,226,150,.98)'],[.12,'rgba(255,190,83,.95)']]);
+ assert.ok(gradients[0].every(([,color])=>!color.includes('255,255,255')),'the Sun sprite has no neutral-white centre');
+});
+test('small bodies expose their default-view textures and keep dimmer particle floors',()=>{
+ const {r,c,calls}=fixture();
+ for(const id of ['moon','europa','pluto']){
+  assert.equal(r.bodyPointLod({id},2.25).alpha,0,'default-size texture is not covered by a solid particle core');
+  calls.length=0;r.drawBodyPoint(c,item(id,.001));
+  assert.ok(Math.abs(calls.find(row=>row[0]==='fill')[1]-.4*.8)<1e-10);
+  let previous=1;for(let radius=1.9;radius<2.3;radius+=.001){const alpha=r.bodyPointLod({id},radius).alpha;assert.ok(alpha<=previous);assert.ok(previous-alpha<.02);previous=alpha;}
+ }
+});
+
+test('unresolved planets merge into gold smoothly without dimming separated or resolved bodies',()=>{
+ const {r}=fixture(),sun=item('sun',.001),planet=item('jupiter',.001);
+ assert.ok(r.bodyPointSeparation(planet,[sun])<.001);
+ assert.equal(r.bodyPointSeparation(sun,[planet]),1);
+ let previous=0;
+ for(let distance=0;distance<12;distance+=.05){planet.screen.x=sun.screen.x+distance;const alpha=r.bodyPointSeparation(planet,[sun]);assert.ok(alpha>=previous-1e-12);assert.ok(alpha-previous<.03);previous=alpha;}
+ assert.equal(previous,1);
+ planet.screen.x=sun.screen.x;planet.r=1;assert.equal(r.bodyPointSeparation(planet,[sun]),1);
+ planet.r=.001;sun.screen.behind=true;assert.equal(r.bodyPointSeparation(planet,[sun]),1);
+ sun.screen.behind=false;sun.r=30;assert.equal(r.bodyPointSeparation(planet,[sun]),1);
+});
+
+test('opening boarding owns a copied return target and preserves its live tween',()=>{
+ const {r}=fixture(),target={azimuth:1,dolly:2};assert.equal(r.prepareOpeningBoarding(target),false);
+ const tween={duration:2000,rotationBlend:{},replay:{}};r.cameraTween=tween;r.openingFlight={};r.openingParticles={replay:{},exitAt:null};
+ assert.equal(r.prepareOpeningBoarding(target),true);target.dolly=3;
+ assert.equal(r.cameraTween,tween);assert.equal(tween.duration,2000);assert.equal(tween.ringReturnTarget.dolly,2);assert.equal(tween.flyThrough,true);
+ assert.equal(r.openingParticles.awaitingSaturn,true);assert.equal(r.openingFlight,null);assert.equal(tween.rotationBlend,null);
+});
+
+test('the approved golden Sun is an absolute point floor at any retreat distance',()=>{
+ const {r,c,calls}=fixture(),body={id:'sun',color:A.SUN.color};
+ for(const radius of [1e-4,1e-8,1e-40,Number.MIN_VALUE]){
+  const point=r.bodyPointLod(body,radius);
+  assert.ok(Math.abs(point.size-2.8)<1e-9);assert.equal(point.alpha,1,'retreat cannot make the minimum footprint visually thinner');
+ }
+ const sun=item('sun',Number.MIN_VALUE);sun.body.color=A.SUN.color;r.drawBodyPoint(c,sun);
+ const draw=calls.find(call=>call[0]==='draw');
+ assert.ok(Math.abs(draw[4]-10.08)<1e-10);assert.ok(Math.abs(draw[5]-10.08)<1e-10,'the final canvas footprint stays at the captured minimum');
 });
 test('opening and warp arrival fade the distant point presentation without fading planet surfaces',()=>{
  const {r,c,calls}=fixture(),p=item();
@@ -143,7 +187,81 @@ test('point core and integrated halo light stay continuous at the 1px boundary',
   assert.ok(Math.abs(samples[i].core-samples[i-1].core)<.001);
   assert.ok(Math.abs(samples[i].light-samples[i-1].light)<.002);
  }
- const {r,c,calls}=fixture();let peak=0;
- for(let radius=.99;radius>=.1;radius-=.01){calls.length=0;r.drawBodyPoint(c,item('earth',radius));const d=calls.find(call=>call[0]==='draw');peak=Math.max(peak,d[1]*d[4]*d[5]);}
- assert.ok(peak<1.8,'halo footprint growth must not amplify the shrinking disc into a flash');
+ const {r,c,calls}=fixture();let previous=Infinity;
+ for(let radius=.99;radius>=.1;radius-=.01){
+  calls.length=0;r.drawBodyPoint(c,item('earth',radius));const d=calls.find(call=>call[0]==='draw'),light=d[1]*d[4]*d[5];
+  assert.ok(light<=previous,'retreat must not increase light into a flash');previous=light;
+ }
+});
+
+test('distant Sun retains visible halo opacity across further retreat without a handoff flash',()=>{
+ const {r,c,calls}=fixture();
+ for(const radius of [.1,.029,1e-8,Number.MIN_VALUE]){
+  calls.length=0;r.drawBodyPoint(c,item('sun',radius));
+  const draw=calls.find(call=>call[0]==='draw');
+  assert.ok(Math.abs(draw[1]-.36)<1e-10);
+  assert.ok(Math.abs(draw[4]-10.08)<.001);
+ }
+ let previous;
+ for(let radius=.501;radius>=.09;radius-=.001){
+  calls.length=0;r.drawBodyPoint(c,item('sun',radius));
+  const draw=calls.find(call=>call[0]==='draw');
+  if(previous!==undefined)assert.ok(Math.abs(draw[1]-previous)<.002);
+  previous=draw[1];
+ }
+});
+
+test('Sun smoothly approaches its floor and hands over only to a larger disc',()=>{
+ const {r,c,calls}=fixture();let previous=0,previousDelta=0;
+ for(let radius=.001;radius<=20;radius+=.01){
+  const p=r.bodyPointLod({id:'sun'},radius);
+  assert.ok(p.size>=previous,'point size must grow monotonically');
+  if(p.alpha<1)assert.ok(radius*2>=p.size*3.6,'disc covers even the growing halo before fade');
+  if(previous){const delta=p.size-previous;assert.ok(Math.abs(delta-previousDelta)<.001);previousDelta=delta;}
+  previous=p.size;
+ }
+ assert.equal(r.bodyPointLod({id:'sun'},20).alpha,0);
+});
+
+test('all body classes keep a visible light floor in normal and actual scale modes',()=>{
+ const {r,c,calls}=fixture();
+ for(const actualScale of [false,true])for(const body of [A.SUN,...A.BODIES,...A.SATELLITES]){
+  r.options={actualScale,overviewOrbitGap:100};
+  for(const radius of [Number.MIN_VALUE,.00005,.001,.03]){
+   const p={...item(body.id,radius),body};calls.length=0;
+   assert.equal(r.drawBodyPoint(c,p),true);
+   const d=calls.find(call=>call[0]==='draw');
+   const brightness=['moon','europa','pluto'].includes(body.id)?.8:1;
+   assert.ok(Math.abs(d[1]-.36*brightness)<1e-10,body.id+' retains its approved marker brightness');
+   assert.equal(r.bodyPointLod(body,radius).alpha,1);
+  }
+ }
+});
+
+test('bright point cores follow the shrinking disc instead of collapsing to a half pixel',()=>{
+ const {r,c,calls}=fixture();const arcs=[];c.arc=(x,y,radius)=>arcs.push(radius);
+ for(const id of ['sun','mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','moon','europa','pluto']){
+  let previous=Infinity;
+  for(let radius=20;radius>.001;radius-=.01){
+   const point=r.bodyPointLod({id},radius);
+   assert.ok(point.coreRadius<=previous,'core shrinks continuously with the disc');
+   if(point.alpha>0&&point.alpha<1)assert.ok(point.coreRadius>=radius*.75&&point.coreRadius<=radius,'core matches the disc throughout the crossfade');
+   previous=point.coreRadius;
+  }
+  arcs.length=0;r.drawBodyPoint(c,item(id,1));assert.ok(arcs[0]>.8,'final drawing must use the graduated core, not the old 0.5px cap');
+  assert.ok(r.bodyPointLod({id},Number.MIN_VALUE).coreRadius<=.5,'approved distant core remains small');
+ }
+});
+
+test('point lighting gradually reveals phase while distant markers and the Sun stay readable',()=>{
+ const {r,c,calls}=fixture();
+ const alpha=(id,radius,z)=>{calls.length=0;r.drawBodyPoint(c,{...item(id,radius),directJob:{light:[0,0,z]}});return calls.find(x=>x[0]==='fill')?.[1]||0;};
+ for(const id of ['mercury','venus','earth','mars','jupiter','saturn','uranus','neptune','moon','europa','pluto']){
+  assert.equal(alpha(id,.001,-1),alpha(id,.001,1));
+  let previous=alpha(id,.001,-1);
+  for(let radius=.002;radius<=2;radius+=.002){const current=alpha(id,radius,-1);assert.ok(current<=previous+1e-9);assert.ok(previous-current<.01);previous=current;}
+  assert.ok(alpha(id,.75,-1)<alpha(id,.75,1)*.2,'night-side lighting must apply before the surface resolves: '+id);
+  assert.ok(alpha(id,1.5,-1)<alpha(id,1.5,1)*.6);
+ }
+ for(const radius of [.001,1,4])assert.equal(alpha('sun',radius,-1),alpha('sun',radius,1),'emissive Sun ignores reflected-light phase');
 });

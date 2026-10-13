@@ -2,6 +2,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),{selectVerification,assertJobs,assertMain,REQUIRED}=require('../tools/ci-gate.cjs');
 const sha='a'.repeat(40),base={id:1,head_sha:sha,head_branch:'main',head_repository:{full_name:'EG-Tools/SolarTime'},event:'push',path:'.github/workflows/verify.yml',status:'completed',conclusion:'success'};
+function tree(dir,prefix=''){return fs.readdirSync(path.join(dir,prefix),{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?tree(dir,path.join(prefix,entry.name)):[path.join(prefix,entry.name).split(path.sep).join('/')]).sort();}
 test('production requires the latest successful exact-main verification, not a PR or an older pass',()=>{
  assert.equal(selectVerification([base],sha).id,1);
  for(const change of [{head_sha:'b'.repeat(40)},{head_branch:'other'},{event:'pull_request'},{head_repository:{full_name:'other/SolarTime'}},{status:'in_progress'},{conclusion:'failure'},{conclusion:'skipped'}])assert.throws(()=>selectVerification([{...base,...change}],sha));
@@ -17,12 +18,14 @@ test('all platform, browser and aggregate jobs must pass; a skipped browser neve
 test('one candidate workflow owns the full matrix, independent browser suites and Windows native checks',()=>{
  const text=fs.readFileSync(path.join(root,'.github/workflows/verify.yml'),'utf8');
  assert.match(text,/name: unit \(ubuntu-latest, 24\)/);assert.match(text,/compatibility:/);assert.match(text,/- os: ubuntu-latest\s+node: '22'/);assert.equal((text.match(/- os: windows-latest/g)||[]).length,2);assert.match(text,/needs: \[unit, compatibility, browser, recovery\]/);
+ assert.equal((text.match(/npm audit --audit-level=high/g)||[]).length,1,'the canonical unit job owns one vulnerability gate');
  assert.match(text,/suite: \[opening, features, desktop, mobile, installed, tiny-star\]/);assert.match(text,/windows-shutdown.integration.ps1/);assert.match(text,/if: always\(\)/);assert.doesNotMatch(text,/secrets\.|verify-public-release/);
  for(const file of ['alarm-music-verification.yml','shutdown-verification.yml'])assert.equal(fs.existsSync(path.join(root,'.github/workflows',file)),false);
 });
 test('manual and automatic production paths share the guard and never grant PRs cloud credentials',()=>{
  const text=fs.readFileSync(path.join(root,'.github/workflows/deploy-cloudflare.yml'),'utf8');
  assert.match(text,/run: node tools\/ci-gate.cjs/);assert.match(text,/actions\/deploy-pages@[a-f0-9]{40}/);assert.doesNotMatch(text,/pull_request_target|\n  pull_request:/);assert.match(text,/conclusion == 'success'/);
+ assert.match(text,/deployment-recovery\.cjs capture/);assert.match(text,/deployment-recovery\.cjs report/);assert.doesNotMatch(text,/deployment-recovery\.cjs restore/);
  const audit=fs.readFileSync(path.join(root,'.github/workflows/public-shutdown-delivery.yml'),'utf8');assert.doesNotMatch(audit,/\n  pull_request:|\n  push:/);
 });
 test('release browser checks read manifest and source items instead of fixed latest versions and click counts',()=>{
@@ -39,4 +42,13 @@ test('Pages package preserves the public runtime graph and excludes maintenance 
 test('Cloudflare package preserves the same public runtime graph as Pages',()=>{
  const {prepareSite}=require('../tools/cloudflare-site.cjs'),{releaseFiles}=require('../tools/release-files.cjs');
  const {site}=prepareSite(root,{cdnBase:'/media/'});for(const name of releaseFiles(root))assert.ok(fs.existsSync(path.join(site,name)),name);
+});
+test('Worker and Pages are packaged once from the identical canonical release graph',()=>{
+ const {buildPublicSites}=require('../tools/build-public-sites.cjs'),{releaseFiles}=require('../tools/release-files.cjs'),{worker,pages}=buildPublicSites(root),expected=releaseFiles(root);
+ assert.deepEqual(tree(worker).filter(file=>file!=='_headers'),expected);
+ assert.deepEqual(tree(pages).filter(file=>file!=='.nojekyll'),expected);
+ for(const file of expected.filter(file=>!['src/assets.js','src/sky-asset.js'].includes(file)))assert.deepEqual(fs.readFileSync(path.join(worker,file)),fs.readFileSync(path.join(pages,file)),file);
+ assert.match(fs.readFileSync(path.join(worker,'src/assets.js'),'utf8'),/configuredBase="\/media\/"/);
+ assert.match(fs.readFileSync(path.join(pages,'src/assets.js'),'utf8'),/configuredBase="https:\/\/solar-time\.keg0320\.workers\.dev\/media\/"/);
+ assert.match(fs.readFileSync(path.join(root,'tools/deployment.cjs'),'utf8'),/run\(root,'tools\/build-public-sites\.cjs'\)/);
 });

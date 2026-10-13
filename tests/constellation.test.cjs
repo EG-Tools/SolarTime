@@ -272,6 +272,36 @@ test('the card tracking pose still centres the Big Dipper independently of short
   const renderer=read('src/renderer.js');assert.match(renderer,/SKY_FEATURE_TRACK=Object\.freeze\(\{zoom:1\.2\}/);assert.match(renderer,/requestSkyFeature\(id/);assert.match(renderer,/startSkyFeatureTracking\(id/);assert.match(renderer,/stopSkyFeatureTracking\(mono/);assert.match(renderer,/to\.panX=from\.panX;to\.panY=from\.panY/);
 });
 
+test('card-name placement reaches a landscape or portrait grid point for every feature',()=>{
+ const sky=centeredSky();
+ for(const [w,h] of [[1200,800],[400,850]])for(const id of Object.keys(Sky.FEATURES)){
+  Object.assign(sky,{w,h});
+  const camera={azimuth:1.3,elevation:.2,bank:0},pose=sky.featureGridPose(id,camera);
+  assert.ok(pose&&Math.abs(pose.bank)<=Math.PI/4,id);
+  const point=sky.project(sky.featureDirection(id),sky.axes(pose));assert.ok(point,id);
+  const xs=h>w?[1/3,2/3]:[.25,.75],ys=h>w?[.25,.75]:[1/3,2/3];
+  assert.ok(xs.some(x=>Math.abs(point.x/w-x)<1e-6)&&ys.some(y=>Math.abs(point.y/h-y)<1e-6),id+' '+w+'x'+h);
+  assert.deepEqual(sky.featureGridPose(id,pose),pose,'an already aligned view stays in place');
+ }
+});
+
+test('card-name placement preserves solar mode and camera scale; tracked names never toggle out',()=>{
+ const source=read('src/renderer.js'),body=source.match(/    requestSkyFeaturePlacement\(id,[\s\S]*?\n    \}/)[0];
+ const method=vm.runInNewContext('(function '+body.trim()+')',{performance});
+ const sky=centeredSky(),camera={azimuth:.3,elevation:.1,zoom:.7,dolly:5,panX:.2,panY:-.1,focus:'earth'};
+ const r={sky,skyFeatureTrack:null,flightBank:0,hasActivePlanetTravel:()=>false,cameraInputState:()=>camera,animateCamera(to){this.to=to;this.cameraTween={};return true;},revealSkyFeature(id){this.revealed=id;}};
+ assert.equal(method.call(r,'big-dipper',100,1600),true);assert.equal(r.skyFeatureTrack,null);
+ for(const k of ['zoom','dolly','panX','panY','focus'])assert.equal(r.to[k],camera[k],k);
+ assert.equal(r.revealed,'big-dipper');assert.equal(r.skyFeatureGridId,'big-dipper');assert.equal(r.skyFeatureGridBanked,true);
+ r.skyFeatureTrack={id:'big-dipper'};r.startSkyFeatureShortcutView=id=>id==='big-dipper';
+ assert.equal(method.call(r,'big-dipper',100,1600),true);assert.equal(r.skyFeatureTrack.id,'big-dipper');
+ const app=read('src/app.js'),handler=app.slice(app.indexOf("$('feature-view').addEventListener"),app.indexOf('function navigateRegion'));
+ assert.match(handler,/requestSkyFeaturePlacement\(selectedSkyFeature\)/);assert.doesNotMatch(handler,/focusSkyFeature\(/);
+ const navigation=source.match(/    requestSkyFeatureNavigation\(id,[\s\S]*?\n    \}/)[0];
+ assert.match(navigation,/this\.skyFeatureGridId\?this\.requestSkyFeaturePlacement\(id,mono,duration\):true/);
+ assert.match(app,/skyFeatureGridNavigationActive/);assert.match(app,/renderer\.clearSkyFeatureGrid\(mono,1100\)/);
+});
+
 test('constellation navigation preserves left, right and random rotation intent',()=>{
  const renderer=read('src/renderer.js'),method=renderer.slice(renderer.indexOf('beginSkyFeatureTracking('),renderer.indexOf('startSkyFeatureTracking('));
  assert.doesNotMatch(method,/setAutoRotate\(0,mono\)/);

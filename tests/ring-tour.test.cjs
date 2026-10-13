@@ -1847,6 +1847,31 @@ test('rotating, stopped and opening views transfer every body into Saturn entry 
  }
 });
 
+test('true-scale tracked views keep the watched planet across the opening-to-Saturn handoff',()=>{
+ const A=window.SolarAstro,ms=Date.parse('2026-10-08T00:00:00Z');
+ for(const focus of ['mercury','venus','earth','mars','jupiter','uranus','neptune']){
+  const r=Object.create(R);Object.assign(r,{w:1280,h:800,options:{pluto:true,moon:true,overviewOrbitGap:100,actualOrbitSpacing:1},actualScaleMix:1,
+   bodyScales:{},satelliteOrbitScales:{},precisionOrbitPathCache:new Map(),frameItems:new Map(),frameBodies:[],satelliteLayouts:[],frameSerial:0,
+   physicsBodies:new Map(),physicsSatellites:new Map(),clearLabels(){},cameraTween:null,trackingAnchor:null,projectionAnchor:null,flightBank:0,
+   canStartRingTour:()=>true,prepareCloseup(){},startSaturnParticles(){},hitTargets:[]});
+  r.camera=r.defaultCameraSnapshot(ms);r.rebuild(ms);r.camera=r.trackingMoveState(focus,r.camera);
+  r.rebuild(ms);const {bodies}=r.updateFrameBodies(ms);r.updateProjectionAnchor();
+  for(const item of bodies){r.project(item.world,item.screen);item.r*=item.screen.perspective;item.directJob={};}
+  const watched=r.currentFrameItem(focus),before={screen:{...watched.screen},radius:watched.r};
+  assert.equal(before.screen.behind,false,focus);assert.ok(r.visible(before.screen,before.radius),focus);
+  r.captureOpeningFlight(0);r.startRingTour(undefined,true,0);
+  const tour=r.ringTour,saturn=r.currentFrameItem('saturn'),axes=A.bodyAxes(saturn.body),projection={tour,axes,saturn:saturn.world,saturnRadius:r.bodyRadiusAtZoom(saturn.body),units:tour.worldUnits,focal:r.h/(2*Math.tan(tour.pose.fov*Math.PI/360))};
+  for(const age of [0,.001,.016,.05,.1]){
+   tour.age=age;tour.pose=tour.cameraPose();r.prepareRingTourProjection(projection);
+   const actual=r.projectRingTourPoint(projection,watched.world,{},r.bodyRadiusAtZoom(watched.body),{});
+   assert.equal(actual.behind,false,`${focus} vanished at ${age}s`);
+   assert.ok(r.visible(actual,actual.radius),`${focus} left the viewport at ${age}s`);
+   if(age===0){near(actual.x,before.screen.x,.01);near(actual.y,before.screen.y,.01);near(actual.radius,before.radius,.01);}
+  }
+  tour.dispose();
+ }
+});
+
 test('default and distant Saturn entries keep every visible neighbour below screen-filling size',()=>{
  const A=window.SolarAstro,ms=Date.parse('2026-10-08T00:00:00Z');
  for(const distant of [false,true]){
@@ -2286,4 +2311,16 @@ test('point-like return calibration follows camera retreat instead of elapsed ti
  near(r.ringTourRetreatProgress(tour),18/19998);assert.ok(r.ringTourRetreatProgress(tour)<.001);
  tour.pose=pose(10001);near(r.ringTourRetreatProgress(tour),.5);tour.pose=pose(20000);near(r.ringTourRetreatProgress(tour),1);
  tour.pose=pose(2);near(r.ringTourRetreatProgress(tour),0);
+});
+
+test('opening handoff does not ease inherited Saturn and overview motion back to rest',()=>{
+ const r=Object.assign(Object.create(R),{w:1280,h:800,project(world,out){Object.assign(out,{x:640,y:400,perspective:1,behind:false});return out;}});
+ const pose={eye:[0,0,-100],forward:[0,0,1],right:[1,0,0],up:[0,1,0],offset:[.04,0],orthoScale:100,perspective:1};
+ const tour={pose,startPose:{orthoScale:100},state:'entering',age:.016},axes={u:{x:1,y:0,z:0},pole:{x:0,y:1,z:0},v:{x:0,y:0,z:1}};
+ const projection={tour,axes,saturn:{x:0,y:0,z:0},saturnRadius:10,units:1,focal:500,correction:{matrix:Array.from({length:3},()=>Array(7).fill(0)),radius:0}};
+ for(const world of [{x:0,y:0,z:0},{x:1,y:0,z:0}])for(const age of [.001,.016,.033,.1]){
+  tour.age=age;
+  const raw=r.projectRingTourPoint(projection,world,{},10),drawn=r.projectRingTourPoint(projection,world,{},10,{});
+  near(drawn.x,raw.x,1e-10);near(drawn.y,raw.y,1e-10);near(drawn.radius,raw.radius,1e-10);
+ }
 });

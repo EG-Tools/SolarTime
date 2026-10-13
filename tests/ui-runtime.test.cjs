@@ -93,6 +93,8 @@ test('opening selection keeps the normal rotation blend unless Saturn was select
  for(const mode of ['default','saturn']){
   const blend={seconds:0,yaw:0,pitch:0},calls=[];
   const renderer={prepareRingTourResources(){calls.push('prepare');},animateOpeningCamera(){this.cameraTween={duration:5000,rotationBlend:blend};return true;},keepOpeningParticlesUntilBoarding(){calls.push('particles');}};
+  const boarding=fs.readFileSync(path.join(__dirname,'../src/renderer.js'),'utf8').match(/    prepareOpeningBoarding\(returnTarget\) \{([\s\S]*?)\n    \}/)[1];
+  renderer.prepareOpeningBoarding=new Function('returnTarget',boarding);
   const context={openingRunMode:mode,resumeTravel:mode==='saturn',openingCameraTarget:{zoom:1,dolly:1},renderer,lockOpeningControls(){},loading:{classList:{add(){}}}};
   assert.equal(vm.runInNewContext('('+body+')',context)(100),true);
   assert.equal(context.openingStartedAt,100);
@@ -108,6 +110,13 @@ test('Escape cannot interrupt a locked T warp',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function handleEscape\(\) \{[\s\S]*?\n      \}/)[0];
  const clock={paused:true};let resumes=0;
  assert.doesNotThrow(()=>vm.runInNewContext('('+body+')',{openingReplayLocked:true,clock,pause(){resumes++;clock.paused=false;}})());assert.equal(resumes,1);
+});
+
+test('automatic updates wait until every direct camera interaction has settled',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function interactionBusy\(\)\{[^\n]+\}/)[0];
+ const busy=({drag=null,pointers=0,keys=0,pointerRotation=null,pointerCoast=null}={})=>vm.runInNewContext('('+body+')',{drag,pointers:new Set(Array.from({length:pointers},(_,i)=>i)),heldZoomKeys:new Set(Array.from({length:keys},(_,i)=>i)),renderer:{pointerRotation,pointerCoast}})();
+ assert.equal(busy(),false);assert.equal(busy({drag:{}}),true);assert.equal(busy({pointers:1}),true);assert.equal(busy({keys:1}),true);assert.equal(busy({pointerRotation:{}}),true);assert.equal(busy({pointerCoast:{}}),true);
+ assert.match(source,/canApplyUpdate:\(\)=>!disposed&&!interactionBusy\(\)/);
 });
 
 test('top dialog alone closes; a fading card consumes repeated Escape',()=>{const h=harness(false),help=new Element('dialog'),info=new Element('dialog');for(const d of [help,info]){h.ui.bindDialog(d,()=>h.ui.hide(d,()=>d.close()));h.ui.show(d,()=>d.showModal());}assert.equal(h.ui.topDialog(),info);h.ui.dismissTopDialog();assert.ok(info.open&&help.open);h.ui.dismissTopDialog();h.runTimers();assert.equal(info.open,false);assert.ok(help.open);h.ui.dismissTopDialog();h.runTimers();assert.equal(help.open,false);assert.equal(h.ui.dismissTopDialog(),false);});

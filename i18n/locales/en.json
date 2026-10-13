@@ -310,30 +310,95 @@
     "shutdownFailed": "Windows command failed (code {code}).",
     "shutdownNotLaunched": "The helper did not open. Click the switch again and allow the browser prompt.",
     "helperVerifyFailed": "Helper verification failed. Run the latest installer, then allow the helper to open.",
-    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close."
+    "shutdownDataWarning": "Save your work: Windows timed shutdown can force applications to close.",
+    "removeFile": "Remove",
+    "alarmSoundRemoveFailed": "Could not remove the saved sound. Please try again."
   },
   "bodies": {
-    "polaris": ["Polaris","The brightest star in Ursa Minor lies close to Earth's north celestial pole. It appears almost stationary and helps observers find north."],
-    "ursa-major": ["Ursa Major","This large northern constellation includes the Big Dipper. Lines extend from the dipper into the bear's body and legs."],
-    "ursa-minor": ["Ursa Minor","Polaris marks the end of this small dipper's handle. Kochab and Pherkad form its outer bowl."],
-    "cassiopeia": ["Cassiopeia","Five bright stars form a W or M, depending on the viewing angle. It lies roughly opposite the Big Dipper across Polaris."],
-    "orion": ["Orion","Three aligned belt stars make Orion easy to recognise. Red Betelgeuse contrasts with blue-white Rigel; Orion is prominent on winter evenings in Korea."],
-    "scorpius": ["Scorpius","Red Antares leads into a long body and hooked tail. Visible in Korea's southern summer sky, its sting is marked by Shaula and Lesath."],
-    "leo": ["Leo","A sickle-shaped head near Regulus and a triangular body outline the lion. Denebola marks the tail; Leo is prominent on spring evenings in Korea."],
-    "cygnus": ["Cygnus","The swan's neck and wings form the Northern Cross. Deneb belongs to the Summer Triangle, while Albireo marks the head."],
-    "taurus": ["Taurus","Orange Aldebaran, a V-shaped face and two long horns identify Taurus. Aldebaran lies in front of the Hyades cluster, rather than within it."],
-    "aries": ["Aries","Hamal, Sheratan and Mesarthim form a short curved chain. This zodiac constellation historically marked the beginning of spring."],
-    "gemini": ["Gemini","Castor and Pollux mark the twins' heads. Two branching chains of stars form their bodies in this zodiac constellation."],
-    "cancer": ["Cancer","A faint Y-shaped zodiac constellation around Asellus Borealis and Asellus Australis. The Beehive Cluster helps locate it under dark skies."],
-    "virgo": ["Virgo","Blue-white Spica anchors this broad zodiac constellation. Between Leo and Libra, it is prominent in the southern sky on spring evenings in Korea."],
-    "libra": ["Libra","Zubeneschamali and Zubenelgenubi frame the scales. Its stars were once regarded as the claws of Scorpius."],
-    "sagittarius": ["Sagittarius","Stars near Kaus Australis and Nunki form the familiar Teapot. The centre of the Milky Way lies beyond this zodiac constellation."],
-    "capricornus": ["Capricornus","A low, broad wedge extends between Algedi and Deneb Algedi. This faint zodiac constellation is often recognised by its triangular outline."],
-    "aquarius": ["Aquarius","Long streams of stars extend south from Sadalsuud and Sadalmelik. Connecting lines help reveal this widely spread zodiac constellation."],
-    "pisces": ["Pisces","Two fish are linked by long cords meeting at Alrescha. Their faint outline spans a broad area near the celestial equator."],
-    "pegasus": ["Pegasus","Alpheratz, Algenib, Markab and Scheat form the Great Square. Chains extend into the neck and legs; it is prominent in Korea's autumn sky."],
-    "andromeda": ["Andromeda","A chain leads from Alpheratz through Mirach to Almach. Nearby lies the Andromeda Galaxy, visible to the unaided eye under dark skies."],
-    "crux": ["Crux","Acrux and Gacrux form the long axis; Mimosa and Imai form the crossbar. This compact Southern Cross helps observers find south."],
+    "polaris": [
+      "Polaris",
+      "The brightest star in Ursa Minor lies close to Earth's north celestial pole. It appears almost stationary and helps observers find north."
+    ],
+    "ursa-major": [
+      "Ursa Major",
+      "This large northern constellation includes the Big Dipper. Lines extend from the dipper into the bear's body and legs."
+    ],
+    "ursa-minor": [
+      "Ursa Minor",
+      "Polaris marks the end of this small dipper's handle. Kochab and Pherkad form its outer bowl."
+    ],
+    "cassiopeia": [
+      "Cassiopeia",
+      "Five bright stars form a W or M, depending on the viewing angle. It lies roughly opposite the Big Dipper across Polaris."
+    ],
+    "orion": [
+      "Orion",
+      "Three aligned belt stars make Orion easy to recognise. Red Betelgeuse contrasts with blue-white Rigel; Orion is prominent on winter evenings in Korea."
+    ],
+    "scorpius": [
+      "Scorpius",
+      "Red Antares leads into a long body and hooked tail. Visible in Korea's southern summer sky, its sting is marked by Shaula and Lesath."
+    ],
+    "leo": [
+      "Leo",
+      "A sickle-shaped head near Regulus and a triangular body outline the lion. Denebola marks the tail; Leo is prominent on spring evenings in Korea."
+    ],
+    "cygnus": [
+      "Cygnus",
+      "The swan's neck and wings form the Northern Cross. Deneb belongs to the Summer Triangle, while Albireo marks the head."
+    ],
+    "taurus": [
+      "Taurus",
+      "Orange Aldebaran, a V-shaped face and two long horns identify Taurus. Aldebaran lies in front of the Hyades cluster, rather than within it."
+    ],
+    "aries": [
+      "Aries",
+      "Hamal, Sheratan and Mesarthim form a short curved chain. This zodiac constellation historically marked the beginning of spring."
+    ],
+    "gemini": [
+      "Gemini",
+      "Castor and Pollux mark the twins' heads. Two branching chains of stars form their bodies in this zodiac constellation."
+    ],
+    "cancer": [
+      "Cancer",
+      "A faint Y-shaped zodiac constellation around Asellus Borealis and Asellus Australis. The Beehive Cluster helps locate it under dark skies."
+    ],
+    "virgo": [
+      "Virgo",
+      "Blue-white Spica anchors this broad zodiac constellation. Between Leo and Libra, it is prominent in the southern sky on spring evenings in Korea."
+    ],
+    "libra": [
+      "Libra",
+      "Zubeneschamali and Zubenelgenubi frame the scales. Its stars were once regarded as the claws of Scorpius."
+    ],
+    "sagittarius": [
+      "Sagittarius",
+      "Stars near Kaus Australis and Nunki form the familiar Teapot. The centre of the Milky Way lies beyond this zodiac constellation."
+    ],
+    "capricornus": [
+      "Capricornus",
+      "A low, broad wedge extends between Algedi and Deneb Algedi. This faint zodiac constellation is often recognised by its triangular outline."
+    ],
+    "aquarius": [
+      "Aquarius",
+      "Long streams of stars extend south from Sadalsuud and Sadalmelik. Connecting lines help reveal this widely spread zodiac constellation."
+    ],
+    "pisces": [
+      "Pisces",
+      "Two fish are linked by long cords meeting at Alrescha. Their faint outline spans a broad area near the celestial equator."
+    ],
+    "pegasus": [
+      "Pegasus",
+      "Alpheratz, Algenib, Markab and Scheat form the Great Square. Chains extend into the neck and legs; it is prominent in Korea's autumn sky."
+    ],
+    "andromeda": [
+      "Andromeda",
+      "A chain leads from Alpheratz through Mirach to Almach. Nearby lies the Andromeda Galaxy, visible to the unaided eye under dark skies."
+    ],
+    "crux": [
+      "Crux",
+      "Acrux and Gacrux form the long axis; Mimosa and Imai form the crossbar. This compact Southern Cross helps observers find south."
+    ],
     "sun": [
       "Sun",
       "A star made mostly of hydrogen and helium. Fusion in its core releases energy as hot plasma and light."

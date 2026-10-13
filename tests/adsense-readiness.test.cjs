@@ -88,8 +88,8 @@ test('desktop ad stays hidden until a real slot or an explicit local preview is 
 });
 
 test('Cloudflare site build publishes every AdSense review file',()=>{
- const build=read('tools/cloudflare-site.cjs');
- for(const file of ['ads.txt','robots.txt','sitemap.xml','guide.html','about.html','credits.html','privacy.html','terms.html','changelog.html','site-info.css'])assert.ok(build.includes(`'${file}'`),file);
+ const {releaseFiles}=require('../tools/release-files.cjs'),files=new Set(releaseFiles(root));
+ for(const file of ['ads.txt','robots.txt','sitemap.xml','guide.html','about.html','credits.html','privacy.html','terms.html','changelog.html','site-info.css'])assert.ok(files.has(file),file);
 });
 
 test('Google Analytics runs only on the production domain with denied consent defaults',()=>{

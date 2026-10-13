@@ -130,3 +130,20 @@ test('solar clearance changes only shared draw weights, not orbit buffers',()=>{
  }
  assert.equal(r.stats.orbitBufferBuilds,builds);
 });
+
+test('factory reset restores every size and supported child orbit to 100 percent',()=>{
+ const app=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8');
+ const defaults=vm.runInNewContext(app.match(/const FACTORY_BODY_SCALES=.*;/)[0]+app.match(/const FACTORY_ORBIT_SCALES=.*;/)[0]+';({sizes:FACTORY_BODY_SCALES,orbits:FACTORY_ORBIT_SCALES})',{A});
+ for(const value of [.01,3,100]){
+  const r=fixture();r.setBodyScales(Object.fromEntries(r.allBodies().map(b=>[b.id,value])));r.setSatelliteOrbitScales({sun:.16,earth:.43,jupiter:.05});
+  r.setBodyScales(defaults.sizes);r.setSatelliteOrbitScales(defaults.orbits);
+  for(const b of r.allBodies())assert.equal(r.bodySizeScale(b),1,b.id);
+  assert.deepEqual(plain(r.getSatelliteOrbitScales()),{sun:1,earth:1,jupiter:1});
+ }
+});
+test('unchanged size and orbit settings skip invalidation but real changes invalidate',()=>{
+ const r=fixture();let clears=0;r.clearLabels=()=>clears++;r.dirty=false;r.lastSurfaceSubmit=123;
+ assert.equal(r.allBodies(),r.allBodies());r.setBodyScale('earth',1);r.setSatelliteOrbitScale('earth',1);
+ assert.equal(clears,0);assert.equal(r.dirty,false);assert.equal(r.lastSurfaceSubmit,123);
+ r.setBodyScale('earth',2);r.setSatelliteOrbitScale('earth',.5);assert.equal(clears,2);assert.equal(r.dirty,true);
+});

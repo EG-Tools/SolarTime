@@ -4,7 +4,12 @@
 const STYLE=root.SolarSurfaceStyle;
 const TEXTURE_UPLOAD_PIXELS=512*1024;
 const MAP_LOD_MS=700;
+// Below half a CSS pixel across, the renderer's continuous point layer covers
+// the entire surface. Keep texture demand warm without submitting material draws.
+const POINT_SURFACE_RADIUS=.25;
 // One analytic cone per supported satellite: no shadow map, extra draw or samples.
+// shadowCaster.w is a 2x presentation footprint; its half-radius remains the
+// physical caster used for the centre strength and the start of the penumbra.
 const ECLIPSE_GLSL=`
   uniform vec4 shadowCaster;uniform float shadowSpread;
   float eclipseLight(vec3 n){
@@ -12,20 +17,21 @@ const ECLIPSE_GLSL=`
     vec3 q=shadowCaster.xyz-n;float along=dot(q,light);
     if(along<=0.)return 1.;
     float spread=along*shadowSpread,soft=max(2./max(diameter,1.),.001);
-    float inner=max(0.,shadowCaster.w-spread),outer=shadowCaster.w+spread+soft;
+    float physicalRadius=shadowCaster.w*.5;
+    float inner=max(0.,physicalRadius-spread),outer=shadowCaster.w+spread+soft;
     float distance=length(q-light*along);
     float coverage=1.-smoothstep(max(0.,inner-soft),outer,distance);
-    float peak=min(1.,shadowCaster.w*shadowCaster.w/max(spread*spread,.0000001));
+    float peak=min(1.,physicalRadius*physicalRadius/max(spread*spread,.0000001));
     return 1.-.38*coverage*peak*smoothstep(0.,.12,dot(n,light));
   }`;
 function eclipseLight(nx,ny,nz,light,caster,spread,diameter){
   if(!caster||caster[3]<=0)return 1;
   const x=caster[0]-nx,y=caster[1]-ny,z=caster[2]-nz,along=x*light[0]+y*light[1]+z*light[2];
   if(along<=0)return 1;
-  const width=along*spread,soft=Math.max(2/Math.max(diameter,1),.001),inner=Math.max(0,caster[3]-width-soft),outer=caster[3]+width+soft;
+  const width=along*spread,soft=Math.max(2/Math.max(diameter,1),.001),physicalRadius=caster[3]*.5,inner=Math.max(0,physicalRadius-width),outer=caster[3]+width+soft;
   const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v);};
   const coverage=1-smooth((Math.hypot(x-light[0]*along,y-light[1]*along,z-light[2]*along)-inner)/(outer-inner));
-  return 1-.38*coverage*Math.min(1,caster[3]**2/Math.max(width*width,1e-7))*smooth((nx*light[0]+ny*light[1]+nz*light[2])/.12);
+  return 1-.38*coverage*Math.min(1,physicalRadius**2/Math.max(width*width,1e-7))*smooth((nx*light[0]+ny*light[1]+nz*light[2])/.12);
 }
 if(!STYLE)throw Error('surface-style.js must load before surface.js');
 const EARTH_NIGHT_GLSL=`
@@ -902,6 +908,7 @@ function directProgram(gl,vertex,fragment,uniforms){
   if(!gl.getProgramParameter(program,gl.LINK_STATUS)){const message=gl.getProgramInfoLog(program)||'GPU program link failed';gl.deleteProgram(program);throw Error(message);}
   return {program,a:gl.getAttribLocation(program,'a'),u:Object.fromEntries(uniforms.map(name=>[name,gl.getUniformLocation(program,name)]))};
 }
+function directTexturePixels(record){return record?.pixels??((record?.width||0)*(record?.height||0));}
 function directPower(value){return Math.max(128,Math.min(4096,2**Math.round(Math.log2(Math.max(128,value)))));}
 class DirectRenderer{
   constructor(canvas){
@@ -956,7 +963,9 @@ class DirectRenderer{
     this.orbitBufferBytes=0;this.antialiasMemory=g.getContextAttributes?.()?.antialias!==false;
     this.maxTextureSize=Math.min(4096,2**Math.floor(Math.log2(g.getParameter(g.MAX_TEXTURE_SIZE))));
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
-    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,DIRECT_PLANET_FRAGMENT,['center','viewport','radius','colorMap','previousColorMap','colorLodMix','lodLayers','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread']);
+    this.explicitMipLod=!!g.getExtension('EXT_shader_texture_lod');
+    const fragment=this.explicitMipLod?'#extension GL_EXT_shader_texture_lod : enable\n'+DIRECT_PLANET_FRAGMENT.replace('uniform float colorLodMix;','uniform float materialMip[7];uniform float colorLodMix;').replace('texture2D(map,uv)','texture2DLodEXT(map,uv,(layer<.5?materialMip[0]:layer<1.5?materialMip[1]:layer<2.5?materialMip[2]:layer<3.5?materialMip[3]:materialMip[5]))').replace('texture2D(previousColorMap,uv)','texture2DLodEXT(previousColorMap,uv,materialMip[6])'):DIRECT_PLANET_FRAGMENT;
+    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,fragment,['materialMip','center','viewport','radius','colorMap','previousColorMap','colorLodMix','lodLayers','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread']);
     this.coronaProgram=directProgram(g,DIRECT_CORONA_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
     this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','roll','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','solarOffset','color','ink','inkWeight']);
     this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel','light']);
@@ -975,7 +984,11 @@ class DirectRenderer{
   }
   resize(width,height,dpr=1){
     this.width=Math.max(1,width);this.height=Math.max(1,height);
-    this.dpr=Math.max(.25,Math.min(Math.max(1,dpr),this.viewportLimit[0]/this.width,this.viewportLimit[1]/this.height));this.stats.pixelRatio=this.dpr;
+    // Compact offscreen scenes deliberately render below CSS pixel density.
+    // Ordinary viewport callers still pass >= 1, while the shared 0.25 floor
+    // keeps tiny solar-system composites oversampled at their final size.
+    const requested=Number.isFinite(dpr)?dpr:1;
+    this.dpr=Math.max(.25,Math.min(Math.max(.25,requested),this.viewportLimit[0]/this.width,this.viewportLimit[1]/this.height));this.stats.pixelRatio=this.dpr;
     const w=Math.round(this.width*this.dpr),h=Math.round(this.height*this.dpr);
     if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;this.canvasViewportW=0;this.canvasViewportH=0;}
     this.applyCanvasViewport();
@@ -1009,9 +1022,9 @@ class DirectRenderer{
     if(earth)(this.cloudWeather||=new materialSource.CloudWeather()).prepare(earth.cloudSeed);
     else this.cloudWeather?.cancelBuild();
     this.pruneTextureQueue();
-    const assets=root.SolarAssets?.materials,key=jobs.map(job=>job.id+':'+job.textureWidth+':'+(job.nightTextureWidth||0)+':'+(job.cloudTextureWidth||0)+':'+Number(job.cloudDetail!==0)+':'+(job.venusSurfacePreviewWidth||0)+':'+job.priority+':'+Number(job.nightLights)+':'+(Number.isFinite(job.cloudAmount)?job.cloudAmount:job.id==='earth'?1:0)).join('|')+'|'+this.auxiliaryTextureBytes();
+    const assets=root.SolarAssets?.materials,key=jobs.map(job=>job.id+':'+job.textureWidth+':'+(job.nightTextureWidth||0)+':'+(job.cloudTextureWidth||0)+':'+Number(job.cloudDetail!==0)+':'+(job.venusSurfacePreviewWidth||0)+':'+job.priority+':'+Number(job.nightLights)+':'+(job.cloudAmount===0?0:job.cloudAmount<1?1:2)).join('|')+'|'+this.auxiliaryTextureBytes();
     if(key!==this.planKey||assets!==this.planAssets){
-      this.planKey=key;this.planAssets=assets;this.texturePlan=root.SolarPerformance?.planTextures(jobs,assets,this.maxTextureSize,this.auxiliaryTextureBytes());
+      this.planKey=key;this.planAssets=assets;this.texturePlan=root.SolarPerformance?.planTextures(jobs,assets,this.maxTextureSize,this.auxiliaryTextureBytes(),this.explicitMipLod);
       this.stats.plannedTextureBytes=this.texturePlan?.bytes||0;
     }
     // Jobs arrive focus-first, before depth sorting for painting. Start the
@@ -1132,7 +1145,7 @@ class DirectRenderer{
   }
   async uploadTexturePixels(texture,source,width,height,signal,valid){
     const g=this.gl,bind=()=>{g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);};
-    if(width*height<2048*1024||typeof requestAnimationFrame!=='function'||typeof createImageBitmap!=='function'){
+    if(width*height<TEXTURE_UPLOAD_PIXELS||typeof requestAnimationFrame!=='function'||typeof createImageBitmap!=='function'){
       bind();g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,source);return true;
     }
     // Keep the resident preview until every row is ready. Large 4K uploads
@@ -1140,14 +1153,17 @@ class DirectRenderer{
     // loads now share one bounded upload turn per animation frame.
     await this.waitForTextureUpload(signal);if(!valid())return false;
     bind();g.texImage2D(g.TEXTURE_2D,0,g.RGBA,width,height,0,g.RGBA,g.UNSIGNED_BYTE,null);
-    const rows=Math.max(1,Math.floor(TEXTURE_UPLOAD_PIXELS/width));
-    for(let y=0;y<height;y+=rows){
+    for(let y=0;y<height;){
+      const rows=Math.min(height-y,Math.max(1,Math.floor((this.textureUploadPixels||TEXTURE_UPLOAD_PIXELS)/width)));
       let strip;
       try{
         signal?.throwIfAborted();if(!valid())return false;
         strip=await createImageBitmap(source,0,y,width,Math.min(rows,height-y),{premultiplyAlpha:'none',colorSpaceConversion:'none'});
         await this.waitForTextureUpload(signal);if(!valid())return false;
-        bind();g.texSubImage2D(g.TEXTURE_2D,0,0,y,g.RGBA,g.UNSIGNED_BYTE,strip);
+        bind();const started=performance.now();
+        g.texSubImage2D(g.TEXTURE_2D,0,0,y,g.RGBA,g.UNSIGNED_BYTE,strip);
+        if(performance.now()-started>4)this.textureUploadPixels=Math.max(64*1024,Math.floor((this.textureUploadPixels||TEXTURE_UPLOAD_PIXELS)/2));
+        y+=rows;
       }finally{strip?.close?.();}
     }
     return true;
@@ -1155,16 +1171,16 @@ class DirectRenderer{
   discardRecent(key){
     const old=this.recentTextures?.get(key);if(!old)return;
     if(!this.contextLost)this.gl.deleteTexture(old.texture);
-    this.stats.texturePixels-=old.width*old.height;this.recentTextures.delete(key);
+    this.stats.texturePixels-=directTexturePixels(old);this.recentTextures.delete(key);
     this.stats.recentEvictions=(this.stats.recentEvictions||0)+1;this.resetTextureBindings();
   }
   trimRecent(reserveBytes=0){
     const recent=this.recentTextures;if(!recent?.size)return;
     const budget=Math.max(0,(root.SolarPerformance?.textureBudget()||192*1024*1024)-(this.auxiliaryTextureBytes?.()||0)),limit=Math.min(64*1024*1024,budget/3);
-    let bytes=0;for(const row of recent.values())bytes+=row.width*row.height*4;
+    let bytes=0;for(const row of recent.values())bytes+=directTexturePixels(row)*4;
     for(const [key,row] of recent){
       if(bytes<=limit&&this.stats.texturePixels*4+reserveBytes<=budget)break;
-      bytes-=row.width*row.height*4;this.discardRecent(key);
+      bytes-=directTexturePixels(row)*4;this.discardRecent(key);
     }
     this.stats.recentTextureBytes=bytes;
   }
@@ -1175,11 +1191,11 @@ class DirectRenderer{
     if(!this.contextLost&&source){
       this.recentTextures ||= new Map();
       const key=this.recentKey(name,source,record.width);this.discardRecent(key);
-      this.recentTextures.set(key,{asset:record.residentAsset||record.asset,source,texture:record.texture,width:record.width,height:record.height});
+      this.recentTextures.set(key,{asset:record.residentAsset||record.asset,source,texture:record.texture,width:record.width,height:record.height,pixels:record.pixels,mipmapped:record.mipmapped});
       return key;
     }else{
       if(!this.contextLost)this.gl.deleteTexture(record.texture);
-      this.stats.texturePixels-=record.width*record.height;
+      this.stats.texturePixels-=directTexturePixels(record);
     }
   }
   restoreRecent(name,asset,target){
@@ -1209,21 +1225,25 @@ class DirectRenderer{
       if(prior?.texture&&target>prior.width&&width<prior.width&&prior.asset===root.SolarAssets?.materials?.[name]){
         Object.assign(prior,{pending:false,retryAt:Date.now()+30000});return;
       }
-      this.trimRecent(width*height*4);
-      root.SolarPerformance?.trimTextures(this,width*height*4);
+      const mipmapped=this.explicitMipLod&&!radial,pixels=mipmapped?Math.ceil(width*height*4/3):width*height;
+      this.trimRecent(pixels*4);
+      root.SolarPerformance?.trimTextures(this,pixels*4);
       const g=this.gl;texture=g.createTexture();
       const valid=()=>!this.disposed&&!this.contextLost&&!signal?.aborted&&generation===this.generation&&this.textures.get(name)?.token===token;
       if(!await this.uploadTexturePixels(texture,upload,width,height,signal,valid))return;
+      // Mipmap generation gets its own shared turn, after the final pixel upload.
+      if(mipmapped&&width*height>=TEXTURE_UPLOAD_PIXELS&&typeof requestAnimationFrame==='function')await this.waitForTextureUpload(signal);
       if(!valid())return;
       g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();
       g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,radial?g.CLAMP_TO_EDGE:g.REPEAT);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,name==='clouds-alt'?g.REPEAT:g.CLAMP_TO_EDGE);
-      // Explicit screen-size texture tiers provide LOD without the longitude
-      // derivative seam that implicit mip selection creates on a sphere.
-      g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
+      // Select mip levels explicitly from projected size, never atan derivatives:
+      // this filters receding surfaces without the old longitude seam.
+      if(mipmapped)g.generateMipmap(g.TEXTURE_2D);
+      g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,mipmapped?g.LINEAR_MIPMAP_LINEAR:g.LINEAR);
       const record=this.textures.get(name);if(!record||record.token!==token||record.source.key!==source.key){g.deleteTexture(texture);texture=null;this.stats.discarded++;return;}
       const previousLod=this.parkTexture(name,record);
       record.previousLod=record.residentAsset===record.asset?previousLod:null;record.lodStarted=performance.now();record.lodVisibleStarted=null;record.lodQueued=false;
-      Object.assign(record,{texture,width,height,residentSource:source,residentAsset:record.asset,pending:false,error:null,retryAt:width<target?Date.now()+30000:0});texture=null;this.stats.accepted++;this.stats.texturesLoaded++;this.stats.texturePixels+=width*height;
+      Object.assign(record,{texture,width,height,pixels,mipmapped,residentSource:source,residentAsset:record.asset,pending:false,error:null,retryAt:width<target?Date.now()+30000:0});texture=null;this.stats.accepted++;this.stats.texturesLoaded++;this.stats.texturePixels+=pixels;
       this.trimRecent();
     }catch(error){const record=this.textures.get(name);if(!signal?.aborted&&generation===this.generation&&record&&record.token===token){record.pending=false;record.error=error.message;record.retryAt=Date.now()+30000;this.stats.error=error.message;}}
     finally{bitmap?.close?.();if(texture&&!this.contextLost)this.gl.deleteTexture(texture);if(generation===this.generation)this.pendingCount=Math.max(0,this.pendingCount-1);}
@@ -1256,7 +1276,7 @@ class DirectRenderer{
     if(retryReady&&(changed||resize)&&(!record?.pending||record.pendingTarget!==target||changed)){
       this.cancelTexture(name);
       const old=record?.texture||null,token=++this.textureToken,generation=this.generation;
-      record={asset,source,residentAsset:record?.residentAsset||record?.asset,residentSource:record?.residentSource||record?.source,texture:old,width:record?.width||0,height:record?.height||0,previousLod:record?.previousLod,lodStarted:record?.lodStarted,sampled:record?.sampled,lodVisibleStarted:record?.lodVisibleStarted,lodQueued:record?.lodQueued,pending:true,pendingTarget:target,token};
+      record={asset,source,residentAsset:record?.residentAsset||record?.asset,residentSource:record?.residentSource||record?.source,texture:old,width:record?.width||0,height:record?.height||0,pixels:record?.pixels,mipmapped:record?.mipmapped,previousLod:record?.previousLod,lodStarted:record?.lodStarted,sampled:record?.sampled,lodVisibleStarted:record?.lodVisibleStarted,lodQueued:record?.lodQueued,pending:true,pendingTarget:target,token};
       this.textures.set(name,record);this.queueTexture({name,source,target,token,generation});
     }
     return record?.texture?record:null;
@@ -1270,7 +1290,7 @@ class DirectRenderer{
     for(const record of this.textures.values())if((record.revealPending||record.previousLod&&this.recentTextures?.has(record.previousLod))&&((record.lodQueued&&now-(record.lodSeenAt||0)<1000)||now-record.lodStarted<MAP_LOD_MS))return true;
     return false;
   }
-  mapLod(records,now=performance.now()){
+  mapLod(records,now=performance.now(),diameter=Infinity){
     // One old-map sampler is shared by all material layers. Queued layers
     // retain their previous image until their turn, so no extra draw is needed.
     const empty=this.emptyLodMap||(this.emptyLodMap={texture:this.black});
@@ -1286,13 +1306,17 @@ class DirectRenderer{
     if(active&&active.lodVisibleStarted==null){active.lodVisibleStarted=now;active.lodStarted=now;}
     const t=active?Math.min(1,(now-active.lodVisibleStarted)/MAP_LOD_MS):1;
     const slots=this.lodSlots||(this.lodSlots=[]);slots.length=0;
+    const levels=this.materialMip||(this.materialMip=new Float32Array(7));
+    const mip=record=>record?.mipmapped?Math.max(0,Math.log2(record.width/Math.max(1,diameter*2))):0;
     for(let slot=0;slot<records.length;slot++){
       const record=records[slot];if(!record)continue;
       if(record===active)slots.push(slot);
-      this.bindTextureUnit(slot,record!==active&&record.lodQueued?previous(record).texture:record.texture);
+      const sampled=record!==active&&record.lodQueued?previous(record):record;
+      this.bindTextureUnit(slot,sampled.texture);if(this.explicitMipLod)levels[slot]=mip(sampled);
     }
     this.bindTextureUnit(6,active?previous(active).texture:this.black);
     const g=this.gl,u=this.planetProgram.u;
+    if(this.explicitMipLod){levels[6]=mip(active?previous(active):null);g.uniform1fv(u.materialMip,levels);}
     g.uniform1f(u.colorLodMix,t*t*(3-2*t));g.uniform2f(u.lodLayers,slots[0]??-1,slots[1]??-1);
     const state=this.lodState||(this.lodState={});state.layer=slots[0]??-1;state.mix=t*t*(3-2*t);return state;
   }
@@ -1349,7 +1373,7 @@ class DirectRenderer{
     g.drawArrays(g.LINE_STRIP,0,record.count);this.stats.drawCalls++;
   }
   corona(source,screen,radius,time){
-    if(!source||radius<=0)return;
+    if(!source||radius<POINT_SURFACE_RADIUS)return;
     const g=this.gl;let record=this.coronaTexture;
     if(!record||record.source!==source){
       const texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);
@@ -1408,6 +1432,7 @@ class DirectRenderer{
     const waitingSurface=colorId==='venus-surface'&&!requestedColor;
     const retainedClouds=waitingSurface?this.textures.get('venus'):null;
     const color=requestedColor||(retainedClouds?.texture?retainedClouds:null);if(!color)return false;
+    if(radius<POINT_SURFACE_RADIUS)return true;
     const bump=root.SolarAssets?.materials?.[job.id+'-relief']?this.texture(job.id+'-relief',job.textureWidth):null;
     let cloudAmount=waitingSurface?1:job.id==='earth'||job.id==='venus'?(Number.isFinite(job.cloudAmount)?Math.max(0,Math.min(1,job.cloudAmount)):job.id==='earth'?1:.8):0;
     if(colorId==='venus-surface'&&requestedColor){
@@ -1447,7 +1472,7 @@ class DirectRenderer{
     this.bindTextureUnit(4,weather?.texture||this.black);
     this.bindTextureUnit(5,cloudsAlt?.texture||this.black);
     const maps=this.lodMaps||(this.lodMaps=new Array(6));
-    maps[0]=color;maps[1]=bump;maps[2]=clouds;maps[3]=night;maps[4]=null;maps[5]=cloudsAlt;this.mapLod(maps);
+    maps[0]=color;maps[1]=bump;maps[2]=clouds;maps[3]=night;maps[4]=null;maps[5]=cloudsAlt;this.mapLod(maps,performance.now(),radius*2*this.dpr);
     g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,ringFrame,screen,radius,true,job.light);
     let frameRecord=this.frames.get(job.id);if(!frameRecord){frameRecord={job:null,image:{width:0,height:0,gpu:true}};this.frames.set(job.id,frameRecord);}

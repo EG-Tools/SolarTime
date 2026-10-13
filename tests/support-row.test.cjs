@@ -29,7 +29,7 @@ test('WeChat uses the shared Kakao-style QR dialog without launching a payment p
   assert.match(css,/\.support-qr-dialog\{max-width:320px;/);
   assert.match(html,/id="wechat-pay-link"[^>]*href="wechat-pay-qr\.svg"/);
   assert.doesNotMatch(html,/href="wxp:/);
-  assert.ok(read('tools/cloudflare-site.cjs').includes("'wechat-pay-qr.svg'"));
+  assert.ok(require('../tools/release-files.cjs').releaseFiles(root).includes('wechat-pay-qr.svg'));
   assert.match(read('wechat-pay-qr.svg'),/<svg[^>]*width="240"[^>]*height="240"/);
   const wechat=html.slice(html.indexOf('<dialog id="wechat-pay-dialog"'),html.indexOf('<dialog id="site-policy-dialog"'));
   assert.doesNotMatch(wechat,/modal-note|<p\b|<hr\b/,'QR-only card has no gray footer or divider');

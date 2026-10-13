@@ -6,12 +6,25 @@ test('media uses complete cached objects for ranges, HEAD and ETag without modif
  try{
   const bucket=await mf.getR2Bucket('SOLAR_TIME_MEDIA'),caches=await mf.getCaches(),data='0123456789'.repeat(100);
   const url='https://solar.test/media/track.mp3';await bucket.put('track.mp3',data);
+  const conditionalUrl='https://solar.test/media/conditional.mp3';await bucket.put('conditional.mp3',data);
+  let response=await mf.dispatchFetch(conditionalUrl,{method:'HEAD'}),conditionalEtag=response.headers.get('etag'),conditionalDate=response.headers.get('last-modified');
+  assert.ok(conditionalEtag);assert.ok(conditionalDate);
+  response=await mf.dispatchFetch(conditionalUrl,{headers:{Range:'bytes=10-19','If-Range':conditionalEtag}});assert.equal(response.status,206);assert.equal(await response.text(),'0123456789');
+  response=await mf.dispatchFetch(conditionalUrl+'?mismatch=1',{headers:{Range:'bytes=10-19','If-Range':'"outdated"'}});assert.equal(response.status,200);assert.equal(await response.text(),data);
+  response=await mf.dispatchFetch(conditionalUrl+'?date=1',{headers:{Range:'bytes=-3','If-Range':conditionalDate}});assert.equal(response.status,206);assert.equal(await response.text(),'789');
+  await bucket.put('invalid.mp3',data);response=await mf.dispatchFetch('https://solar.test/media/invalid.mp3',{headers:{Range:'bytes=2000-3000'}});assert.equal(response.status,416);assert.equal(response.headers.get('content-range'),'bytes */1000');assert.equal(response.headers.get('x-solar-media-error'),'range-not-satisfiable');
   const cold=await mf.dispatchFetch(url,{headers:{Range:'bytes=0-'}});assert.equal(cold.status,206);assert.equal(cold.headers.get('content-range'),'bytes 0-999/1000');assert.equal(await cold.text(),data);
   async function cached(key){for(let i=0;i<100;i++){const found=await caches.default.match(key);if(found)return found;await new Promise(r=>setTimeout(r,10));}assert.fail('full media did not enter cache');}
-  let full=await cached(url);assert.equal(full.status,200);assert.equal(full.headers.get('content-length'),'1000');const etag=full.headers.get('etag');await full.text();
+  let full=await cached(url);assert.equal(full.status,200);assert.equal(full.headers.get('content-length'),'1000');const etag=full.headers.get('etag'),lastModified=full.headers.get('last-modified');assert.ok(lastModified);await full.text();
   await bucket.delete('track.mp3'); // Only this test's isolated in-memory bucket.
-  let response=await mf.dispatchFetch(url,{headers:{Range:'bytes=10-19'}});assert.equal(response.status,206);assert.equal(await response.text(),'0123456789');
+  response=await mf.dispatchFetch(url,{headers:{Range:'bytes=10-19'}});assert.equal(response.status,206);assert.equal(await response.text(),'0123456789');
   response=await mf.dispatchFetch(url,{headers:{Range:'bytes=-3'}});assert.equal(response.status,206);assert.equal(await response.text(),'789');
+  response=await mf.dispatchFetch(url,{headers:{Range:'bytes=2000-3000'}});assert.equal(response.status,416);assert.equal(response.headers.get('x-solar-media-error'),'range-not-satisfiable');assert.equal(response.headers.get('x-solar-media-cache'),'HIT');
+  response=await mf.dispatchFetch(url,{headers:{Range:'bytes=20-29','If-Range':etag}});assert.equal(response.status,206);assert.equal(await response.text(),'0123456789');assert.equal(response.headers.get('x-solar-media-cache'),'HIT');
+  response=await mf.dispatchFetch(url,{headers:{Range:'bytes=20-29','If-Range':'W/'+etag}});assert.equal(response.status,200);assert.equal(await response.text(),data);
+  response=await mf.dispatchFetch(url,{headers:{Range:'bytes=20-29','If-Range':'"outdated"'}});assert.equal(response.status,200);assert.equal(await response.text(),data);
+  response=await mf.dispatchFetch(url,{headers:{Range:'bytes=-3','If-Range':lastModified}});assert.equal(response.status,206);assert.equal(await response.text(),'789');
+  response=await mf.dispatchFetch(url,{headers:{Range:'bytes=-3','If-Range':'Sun, 06 Nov 1994 08:49:37 GMT'}});assert.equal(response.status,200);assert.equal(await response.text(),data);
   response=await mf.dispatchFetch(url,{method:'HEAD'});assert.equal(response.status,200);assert.equal(response.headers.get('content-length'),'1000');assert.equal(await response.text(),'');
   response=await mf.dispatchFetch(url,{headers:{'If-None-Match':etag}});assert.equal(response.status,304);
   response=await mf.dispatchFetch(url,{headers:{'If-None-Match':'"other", W/'+etag}});assert.equal(response.status,304);
@@ -22,9 +35,10 @@ test('media uses complete cached objects for ranges, HEAD and ETag without modif
   const ui='releases/content/ui/icon.webp';await bucket.put(ui,'old');response=await mf.dispatchFetch('https://solar.test/media/'+ui);assert.equal(await response.text(),'old');
   await bucket.put(ui,'new');response=await mf.dispatchFetch('https://solar.test/media/'+ui);assert.equal(await response.text(),'new');
   assert.equal(await caches.default.match('https://solar.test/media/'+ui),undefined);
-  assert.equal((await mf.dispatchFetch(url,{method:'POST'})).status,405);
+  response=await mf.dispatchFetch(url,{method:'POST'});assert.equal(response.status,405);assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(response.headers.get('access-control-allow-origin'),'*');assert.equal(response.headers.get('x-solar-media-error'),'method-not-allowed');assert.equal(response.headers.get('x-solar-media-cache'),'BYPASS');
   assert.equal((await mf.dispatchFetch(url,{method:'OPTIONS'})).status,204);
-  assert.equal((await mf.dispatchFetch('https://solar.test/media/%E0%A4%A')).status,400);
+  response=await mf.dispatchFetch('https://solar.test/media/missing.webp');assert.equal(response.status,404);assert.equal(response.headers.get('x-solar-media-error'),'not-found');assert.equal(response.headers.get('x-solar-media-cache'),'MISS');assert.match(response.headers.get('server-timing'),/MISS/);
+  response=await mf.dispatchFetch('https://solar.test/media/%E0%A4%A');assert.equal(response.status,400);assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(response.headers.get('access-control-allow-origin'),'*');assert.equal(response.headers.get('x-solar-media-error'),'bad-path');assert.match(response.headers.get('access-control-expose-headers'),/X-Solar-Media-Error/);
  }finally{await mf.dispose();}
 });
 

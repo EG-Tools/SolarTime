@@ -2,6 +2,13 @@
 
 Current and past Solar Time updates, listed from newest to oldest.
 
+## v0.78 · 2026.10.13
+
+- Improved planet particle sizes, lighting, occlusion and texture transitions.
+- Smoothed wheel movement after selecting a planet.
+- Kept the selected country in the default view and preserved the camera when resetting it.
+- Reduced texture loading and Saturn travel preparation costs.
+
 ## v0.77 · 2026.10.12
 
 - Added connecting lines and tracking for 22 constellations, asterisms and stars.

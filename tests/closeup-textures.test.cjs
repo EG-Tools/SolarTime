@@ -61,6 +61,8 @@ test('completed texture swaps blend through the existing recent cache, including
 test('staged 4K upload keeps the complete preview resident until the final strip is uploaded',async()=>{
  const f=fixture({staged:true});f.focus('earth');
  f.r.textureFor('earth',4096);await turn();f.r.textureFor('earth',4096);await turn();
+ while(f.uploadFrames.size){const callbacks=[...f.uploadFrames.values()];f.uploadFrames.clear();callbacks.forEach(fn=>fn());await turn();}
+ f.strips.length=0;
  const preview=f.r.textures.get('earth').texture;assert.equal(f.r.textures.get('earth').width,1024);
  f.r.textureFor('earth',4096);await turn();let frames=0;
  while(f.uploadFrames.size){
@@ -223,5 +225,33 @@ test('approved texture/audio manifest, compression and helper stay unchanged',()
   if(name.endsWith('.cmd'))bytes=Buffer.from(bytes.toString('utf8').replace(/\r\n/g,'\n'));
   assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),hash,name);
  }
- assert.doesNotMatch(read('src/surface.js'),/\.quality\s*=|generateMipmap\(/);
+ assert.doesNotMatch(read('src/surface.js'),/\.quality\s*=/);
+});
+
+test('explicit mip filtering tracks the map actually bound during queued LOD fades',async()=>{
+ const f=fixture(),r=f.r;let levels;
+ r.explicitMipLod=true;r.black={};r.planetProgram={u:{}};r.gl.uniform1f=()=>{};r.gl.uniform2f=()=>{};r.gl.uniform1fv=(_,v)=>levels=[...v];r.bindTextureUnit=()=>{};
+ const old={texture:{},width:128,mipmapped:true},day={texture:{},width:512,mipmapped:true,previousLod:'old',sampled:true};
+ r.recentTextures.set('old',old);
+ r.mapLod([day],0,32);assert.equal(levels[0],3);assert.equal(levels[6],1);
+ r.mapLod([day],100,32*Math.SQRT2);assert.ok(Math.abs(levels[0]-2.5)<1e-6);
+ r.mapLod([day],800,512);assert.equal(levels[0],0,'close surfaces use full detail');
+});
+test('mip upload, parking, reuse and disposal account for the full bounded chain',async()=>{
+ const f=fixture();f.r.explicitMipLod=true;let builds=0;f.r.gl.generateMipmap=()=>builds++;
+ await full(f);assert.equal(builds,3);
+ const current=f.r.textures.get('earth'),sum=[...f.r.textures.values(),...f.r.recentTextures.values()].reduce((n,r)=>n+(r.pixels||0),0);
+ assert.equal(current.pixels,Math.ceil(4096*2048*4/3));assert.equal(f.r.stats.texturePixels,sum);
+ f.r.dispose();assert.equal(f.r.memoryUsage().textures,0);
+});
+test('cloud opacity changes reuse the texture plan, topology changes invalidate it',()=>{
+ const f=fixture(),r=f.r,base=f.window.SolarPerformance;let plans=0;
+ f.window.SolarPerformance={...base,planTextures(...args){plans++;return base.planTextures(...args);}};
+ r.cloudWeather={prepare(){},cancelBuild(){}};r.auxiliaryTextureBytes=()=>0;r.texture=()=>null;
+ const job={id:'earth',textureWidth:256,cloudTextureWidth:256,cloudDetail:0,cloudAmount:.16,priority:0};
+ for(let i=0;i<120;i++){job.cloudAmount=.16+i*.001;r.prepare([job]);}
+ assert.equal(plans,1);job.cloudAmount=0;r.prepare([job]);assert.equal(plans,2);
+ job.cloudAmount=.2;job.cloudDetail=.01;r.prepare([job]);assert.equal(plans,3);
+ const small=base.planTextures([job],f.window.SolarAssets.materials,4096,0,true);
+ assert.ok(small.bytes>base.planTextures([job],f.window.SolarAssets.materials).bytes);
 });

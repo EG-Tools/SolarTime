@@ -479,7 +479,7 @@ test('normal-view warp preserves the transported frame through a vertical 180-de
  }
 });
 
-test('warp arrival lead adds no turn toward the random opening and returns to the saved view',()=>{
+test('warp arrival lead holds its randomized opening pose and returns to the saved view',()=>{
  for(const seed of [.127694,.45,.8])for(const bank of [0,.17]){
   const {r}=renderer(seed),target={...r.cameraSnapshot(),azimuth:1.2,elevation:.4,panX:.1,panY:-.1,zoom:2,dolly:.6};r.flightBank=bank;
   r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
@@ -490,7 +490,7 @@ test('warp arrival lead adds no turn toward the random opening and returns to th
   for(let time=p.resetAt+10;time<=opening;time+=10){
    r.advanceCamera(time);const current=axes();
    for(let i=0;i<3;i++)for(const key of ['x','y','z'])close(current[i][key],initial[i][key]);
-   close(r.flightBank,bank);
+   close(r.flightBank,move.openingBank);
   }
   r.advanceCamera(opening+1);const next=axes();
   for(let i=0;i<3;i++)for(const key of ['x','y','z'])close(next[i][key],initial[i][key],1e-5);
@@ -944,6 +944,21 @@ test('warp clock uses 4.3-second departure then 4.7-second warp without a dockin
  r.checkReplayClearance(4300,[]);assert.equal(p.brakeAt,4300);assert.equal(r.replayOpeningAt(p),9000);
 });
 
+test('warp adopts the orbit reveal scheduled by its isolated render scene',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+ assert.equal(r.openingOrbitStart,Infinity);
+ const scene=Object.create(Object.getPrototypeOf(r));Object.assign(scene,r);
+ scene.checkReplayClearance(4000,[]);scene.checkReplayClearance(4300,[]);
+ assert.ok(Number.isFinite(scene.openingOrbitStart));
+ assert.equal(r.openingOrbitStart,Infinity,'the isolated schedule must not mutate the live renderer before handoff');
+ r.adoptReplayScene(scene);
+ assert.equal(r.openingOrbitStart,scene.openingOrbitStart);
+ assert.equal(r.openingAnnotationStart,scene.openingAnnotationStart);
+ assert.strictEqual(r.openingOrbitDelays,scene.openingOrbitDelays);
+ assert.strictEqual(r.openingOrbitStyles,scene.openingOrbitStyles);
+ assert.ok(r.openingOrbitOpacity(r.openingAnnotationStart,'earth')>0);
+});
+
 test('T captures only sky orientation once with no second sky bitmap',()=>{
  const {r,sandbox}=renderer();let captures=0;
  sandbox.document={createElement:()=>{throw Error('no bitmap allocation');}};
@@ -1029,9 +1044,10 @@ test('wheel retreat from the portrait true-scale home never jumps forward to the
 });
 test('opening accelerates more gently over 40% and decelerates over 60% into the saved camera',()=>{
  const {r}=renderer(),target={...r.defaultCameraSnapshot(),azimuth:2.4,elevation:.31,zoom:7,dolly:1.6,panX:.2,panY:-.1};
- const values=[.25,.75],opening=r.openingCameraSnapshot(target,()=>values.shift());
- close(opening.azimuth,A.TAU*.25);close(opening.elevation,.425);assert.equal(opening.zoom,target.zoom);assert.equal(opening.dolly,.001);
- assert.equal(opening.focus,null);assert.equal(opening.panX,0);assert.equal(opening.panY,0);assert.equal(opening.mode,target.mode);
+ const values=[.25,.75,.5,.75,.75],opening=r.openingCameraSnapshot(target,()=>values.shift());
+ close(opening.openingAxes.turn,-Math.PI*.875);close(opening.openingAxes.bank,Math.PI*.375);
+ close(opening.azimuth,A.wrap(target.azimuth-opening.openingAxes.turn));close(opening.elevation,Math.PI*.4375);assert.equal(opening.zoom,target.zoom);assert.equal(opening.dolly,.001);
+ assert.equal(opening.focus,null);assert.equal(opening.panX,0);close(opening.panY,2/3-r.viewportLayout().baseY/r.h);assert.equal(opening.mode,target.mode);
  r.restoreCamera(opening);assert.ok(r.animateOpeningCamera(target,0,3000));assert.equal(r.cameraTween.timing,'opening');
  assert.ok(r.cameraTween.openingPath.arc.amplitude>=.06&&r.cameraTween.openingPath.arc.amplitude<=.11);
  r.orbitRevealStart=NaN;
@@ -1044,6 +1060,42 @@ test('opening accelerates more gently over 40% and decelerates over 60% into the
  r.advanceCamera(2000);close((r.camera.dolly-opening.dolly)/(target.dolly-opening.dolly),r.cameraTween.progress);
  r.advanceCamera(2800);const late=(target.dolly-r.camera.dolly)/(target.dolly-opening.dolly);assert.ok(late<.02,'arrival stops gently');
  r.advanceCamera(3000);for(const key of ['azimuth','elevation','zoom','dolly','panX','panY'])close(r.camera[key],target[key]);assert.equal(r.cameraTween,null);
+});
+test('opening departures use all six viewport grid points and rotate the layout in portrait',()=>{
+ const verify=(w,h,expected)=>{
+  const {r}=renderer();r.w=w;r.h=h;const target=r.cameraSnapshot();
+  for(let i=0;i<6;i++){
+   const values=[.25,.5,.5,.5,(i+.1)/6],opening=r.openingCameraSnapshot(target,()=>values.shift()),grid=plain(opening.openingAxes.grid);
+   assert.deepEqual(grid,expected[i]);
+   close((.5+opening.panX)*w,grid.x*w);close((r.viewportLayout().baseY/r.h+opening.panY)*h,grid.y*h);
+  }
+ };
+ verify(1200,800,[{x:.25,y:1/3},{x:.5,y:1/3},{x:.75,y:1/3},{x:.25,y:2/3},{x:.5,y:2/3},{x:.75,y:2/3}]);
+ verify(400,850,[{x:1/3,y:.25},{x:2/3,y:.25},{x:1/3,y:.5},{x:2/3,y:.5},{x:1/3,y:.75},{x:2/3,y:.75}]);
+});
+test('boot and warp arrivals make a random 90-180 degree turn before settling at the saved bearing',()=>{
+ const difference=(a,b)=>A.wrap(a-b+Math.PI)-Math.PI,ease=t=>t*t*t*(t*(t*6-15)+10);
+ const sequence=[.25,.5,.4,.6,.1],{r}=renderer(),target={...r.cameraSnapshot(),azimuth:2.4,elevation:.31},opening=r.openingCameraSnapshot(target,()=>sequence.shift());
+ r.restoreCamera(opening);assert.ok(r.animateOpeningCamera(target,0,6500));
+ const move=r.cameraTween;close(move.openingTurn,-Math.PI*.75);close(move.openingBank,Math.PI*.35);
+ assert.ok(Math.abs(move.openingTurn)>=Math.PI/2&&Math.abs(move.openingTurn)<=Math.PI);
+ let previous=move.from.azimuth,travel=0;
+ for(let i=1;i<=120;i++){const current=r.cameraTweenState(move,i/120).state.azimuth;travel+=difference(current,previous);previous=current;}
+ close(travel,move.openingTurn,1e-6);
+ r.advanceCamera(6500);close(r.camera.azimuth,target.azimuth);close(r.camera.elevation,target.elevation);
+
+ const {r:warp}=renderer(),warpTarget={...warp.cameraSnapshot(),azimuth:1.7},warpValues=[.75,.25,.8,.2,.9],warpOpening=warp.openingCameraSnapshot(warpTarget,()=>warpValues.shift());
+ assert.ok(warp.animateOpeningReplay(warpTarget,warpOpening,0,6500));
+ const replayMove=warp.cameraTween,path=replayMove.replay;path.resetAt=1000;
+ const halfElapsed=warp.replayOpeningAt(path)+path.inbound*.5;
+ const spun=warp.openingReplayPose(replayMove,halfElapsed).state;
+ close(difference(spun.azimuth,path.departure.azimuth),difference(path.departure.azimuth+replayMove.openingTurn*ease(.5),path.departure.azimuth),1e-6);
+
+ const saturnMove={...move,flyThrough:true,duration:6500},handoff=1-r.saturnOpeningHandoffLead/saturnMove.duration;
+ const atHandoff=r.cameraTweenState(saturnMove,handoff).state;
+ close(difference(atHandoff.azimuth,target.azimuth),0);
+ close(atHandoff.elevation,target.elevation);close(atHandoff.panX,target.panX);close(atHandoff.panY,target.panY);
+ assert.ok(Math.abs(difference(r.cameraTweenState(saturnMove,handoff-.05).state.azimuth,target.azimuth))>.001);
 });
 test('opening ramps saved left/right/random rotation into arrival without an angular or velocity jump',()=>{
  for(const mode of [-1,1,'random']){
@@ -1117,23 +1169,26 @@ test('opening uses a different random departure without changing its destination
  for(const state of [a,b]){assert.equal(state.zoom,target.zoom);assert.equal(state.dolly,.001);assert.equal(state.focus,null);}
  assert.deepEqual(plain(target),plain(r.defaultCameraSnapshot()));
 });
-test('ordinary and travel openings inherit the first camera bank without re-leveling',()=>{
+test('ordinary and travel openings use a random 0-90 degree bank and restore the inherited bank',()=>{
  for(const seed of [.1,.9])for(const flyThrough of [false,true])for(const focus of [null,'earth']){
   const {r}=renderer(seed),bank=.2,target={...r.cameraSnapshot(),focus};
   r.flightBank=bank;r.restoreCamera(r.openingCameraSnapshot(target));close(r.flightBank,bank);
   r.animateOpeningCamera(target,0,5000);r.cameraTween.flyThrough=flyThrough;
-  for(let ms=0;ms<=5000;ms+=10){r.advanceCamera(ms);close(r.flightBank,bank);close(r.cameraBasis().sr,Math.sin(bank));}
+  const openingBank=r.cameraTween.openingBank;assert.ok(openingBank>=0&&openingBank<=Math.PI/2);
+  r.advanceCamera(0);close(r.flightBank,openingBank);close(r.cameraBasis().sr,Math.sin(openingBank));
+  for(let ms=10;ms<=5000;ms+=10)r.advanceCamera(ms);
+  close(r.flightBank,bank);close(r.cameraBasis().sr,Math.sin(bank));
   assert.deepEqual(plain(r.cameraSnapshot()),plain(target));
   r.restoreCamera(r.defaultCameraSnapshot());close(r.flightBank,bank);
   r.resetCamera();close(r.flightBank,bank);
  }
 });
 
-test('opening curvature selects the following S bend without replacing inherited bank',()=>{
+test('opening curvature keeps its S bend while the randomized bank settles independently',()=>{
  const {r,sandbox}=renderer();sandbox.window.SolarRingTour={smoothBank:()=>.2,bankLimit:20*A.DEG};
  const target=r.cameraSnapshot();r.flightBank=.13;r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,0,5000);
  const move=r.cameraTween;move.flyThrough=true;
- for(const t of [.75,.79,.8,.81,.85]){close(r.openingTurn(move,t),.2);r.advanceCamera(t*5000);close(r.flightBank,.13);}
+ for(const t of [.75,.79,.8,.81,.85]){close(r.openingTurn(move,t),.2);const pose=r.cameraTweenState(move,t);r.advanceCamera(t*5000);close(r.flightBank,move.openingBank+(.13-move.openingBank)*pose.openingAxisProgress);}
 });
 
 test('focus never changes a body size or overrides its user-set scale',()=>{
@@ -2015,6 +2070,20 @@ test('constellation tracking roll blends through the shared camera and restores 
  for(const key of ['azimuth','elevation','zoom','dolly','panX','panY'])close(r.cameraSnapshot()[key],saved[key]);
 });
 
+test('solar-mode constellation arrows keep grid placement and Home levels only its temporary bank',()=>{
+ const {r}=renderer();let revealed=null;
+ Object.assign(r.sky,{featureDirection:id=>id?{x:1,y:0,z:0}:null,featureGridPose:id=>id==='polaris'?{azimuth:1,elevation:.2,bank:.25}:{azimuth:2,elevation:.3,bank:-.2},setFeatureSelected:()=>true,featureRelationTransitionDuration:()=>0});
+ r.revealSkyFeature=id=>{revealed=id;return true;};
+ assert.equal(r.requestSkyFeaturePlacement('polaris',0,1000),true);assert.equal(r.skyFeatureGridId,'polaris');assert.equal(r.skyFeatureGridBanked,true);
+ r.advanceCamera(1000);close(r.flightBank,.25);assert.equal(revealed,'polaris');
+ assert.equal(r.requestSkyFeatureNavigation('cassiopeia',1000,1000),true);assert.equal(r.skyFeatureTrack??null,null);assert.equal(r.skyFeatureGridId,'cassiopeia');
+ r.advanceCamera(2000);close(r.camera.azimuth,2);close(r.flightBank,-.2);assert.equal(revealed,'cassiopeia');
+ r.setSkyFeatureSelected(null);assert.equal(r.skyFeatureGridId,null);assert.equal(r.skyFeatureGridNavigationActive,true,'the temporary roll remains returnable after closing the card');
+ assert.equal(r.animateHome(2000,1000),true);assert.equal(r.skyFeatureGridNavigationActive,false);assert.equal(r.skyFeatureGridBanked,false);
+ r.advanceCamera(3000);close(r.flightBank,0);close(r.camera.elevation,r.defaultCameraSnapshot().elevation);
+ const {r:ordinary}=renderer();ordinary.flightBank=.17;ordinary.animateHome(3000,1000);assert.equal(ordinary.cameraTween?.bankTo,undefined);ordinary.advanceCamera(4000);close(ordinary.flightBank,.17);
+});
+
 
 test('opening tail grains finish separately without brightening on an interrupted fade',()=>{
  const {r}=renderer(),field={exitAt:null,naturalExitAge:900};
@@ -2042,4 +2111,38 @@ test('pending Saturn particles survive a completed camera until explicit handoff
   r.retireOpeningParticleField(field,18001);assert.equal(field.holdExitEnvelope,true,'repeated retirement preserves the source envelope');
   assert.ok(r.openingParticleFrame(18600,field));assert.equal(r.openingParticleFrame(19200,field),null);
  }
+});
+
+test('opening angles stay in the requested ranges and use either X direction',()=>{
+ const {r}=renderer(),target=r.cameraSnapshot();
+ for(const direction of [.1,.9])for(const amount of [0,.5,.999999]){
+  const values=[direction,amount,amount,amount,.5],o=r.openingCameraSnapshot(target,()=>values.shift());
+  assert.equal(Math.sign(o.openingAxes.turn),direction<.5?-1:1);
+  assert.ok(Math.abs(o.openingAxes.turn)>=Math.PI/2&&Math.abs(o.openingAxes.turn)<=Math.PI);
+  for(const value of [o.elevation,o.openingAxes.bank])assert.ok(value>=Math.PI/4&&value<=Math.PI/2);
+ }
+});
+
+test('forward wheel converges a selected planet to centre and retreat preserves its pan',()=>{
+ const {r}=renderer();r.centerX=640;r.centerY=400;r.projected=[{body:{id:'earth'},screen:{x:900,y:480}}];
+ Object.assign(r.camera,{focus:null,panX:0,panY:0,dolly:1});
+ let previous=Infinity;
+ for(let i=0;i<8;i++){r.smoothDolly(r.camera.dolly*1.226,'earth',i*200);r.advanceCamera(i*200+150);const distance=Math.hypot(r.camera.panX,r.camera.panY);assert.ok(distance<previous);previous=distance;}
+ assert.ok(previous<.003);const pan=r.camera.panX;r.smoothDolly(r.camera.dolly*.8,'earth',1800);r.advanceCamera(1950);close(r.camera.panX,pan);
+});
+test('repeated wheel input carries the current dolly velocity instead of restarting at rest',()=>{
+ const {r}=renderer();r.smoothDolly(2,null,0);const first=r.cameraTween;
+ const before=(r.cameraTweenState(first,60/150).state.dolly-r.cameraTweenState(first,59.99/150).state.dolly)/.01;
+ r.advanceCamera(50);r.smoothDolly(2.4,null,60);const second=r.cameraTween;
+ const after=(r.cameraTweenState(second,.01/150).state.dolly-r.cameraTweenState(second,0).state.dolly)/.01;
+ assert.ok(Math.abs(before-after)<1e-5);r.advanceCamera(210);close(r.camera.dolly,2.4);
+});
+
+test('wheel retarget from a satellite closeup uses the incoming distance even behind the camera',()=>{
+ const {r}=renderer();Object.assign(r.camera,{focus:'europa',dolly:60,panX:0,panY:0});
+ r.frameSerial=1;r.frameItems=new Map([['europa',{world:{x:0,y:0,z:0},frameSerial:1}]]);
+ const target={body:{id:'moon'},world:{x:2000,y:1000,z:0},screen:{behind:true,perspective:0,x:NaN,y:NaN}};
+ r.projected=[target];r.smoothDolly(60*1.226,'moon',0);
+ assert.equal(r.cameraTween.to.focus,'moon');assert.ok(r.cameraTween.to.dolly<4,'old 60x satellite dolly must not transfer to the Moon');
+ const first=r.cameraTween.to.dolly;r.advanceCamera(150);r.smoothDolly(first*1.226,'moon',200);close(r.cameraTween.to.dolly,first*1.226);
 });
