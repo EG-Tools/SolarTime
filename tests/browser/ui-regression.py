@@ -298,7 +298,7 @@ def suite(browser,root,size,installed):
   window.__rotationSpeed={seconds:0,travel:0,frames:0};
   window.__fixedDirectionErrors=[];
   r.advanceAutoRotate=function(mono){
-   const old=this.autoRotation,dt=old&&old.mono!==null?Math.max(0,mono-old.mono)/1000:0;
+   const old=this.autoRotation,dt=old&&old.mono!==null?Math.max(0,this.animationMono(mono)-old.mono)/1000:0;
    const a=this.camera.azimuth,e=this.camera.elevation,result=advance(mono);
    if(old&&dt>0){
     const delta=(x,y)=>((x-y+Math.PI*3)%(Math.PI*2))-Math.PI;
@@ -315,13 +315,13 @@ def suite(browser,root,size,installed):
  }""")
  rotation.click()
  check(rotation.get_attribute('data-mode')=='left',tag+' first click selects left rotation')
- page.wait_for_timeout(600)
+ page.wait_for_function('__rotationSpeed.seconds>.3 && __rotationSpeed.frames>=5',timeout=5000)
  left_speed=page.evaluate('__rotationSpeed')
  check(left_speed['seconds']>.3 and abs(left_speed['travel']/left_speed['seconds']-1.8)<.00001,tag+' left rotation keeps its original speed')
  page.evaluate('window.__rotationSpeed={seconds:0,travel:0,frames:0}')
  rotation.click(button='right');page.locator('#rotation-choice-right').click()
  check(rotation.get_attribute('data-mode')=='right',tag+' expanded choice selects right rotation')
- page.wait_for_timeout(600)
+ page.wait_for_function('__rotationSpeed.seconds>.3 && __rotationSpeed.frames>=5',timeout=5000)
  right_speed=page.evaluate('__rotationSpeed')
  check(right_speed['seconds']>.3 and abs(right_speed['travel']/right_speed['seconds']-1.8)<.00001,tag+' right rotation keeps its original speed')
  page.evaluate('window.__rotationSpeed={seconds:0,travel:0,frames:0}')
