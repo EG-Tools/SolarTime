@@ -6,7 +6,7 @@ const {atomicWrite,projectConfig,runtimeScripts}=require('./asset-pipeline.cjs')
 const {releaseFiles}=require('./release-files.cjs');
 
 const readJson=file=>JSON.parse(fs.readFileSync(file,'utf8'));
-const WORKER_HEADERS='/version.json\n  Cache-Control: no-store\n/index.html\n  Cache-Control: no-cache\n/src/locales/*\n  Access-Control-Allow-Origin: *\n  Cross-Origin-Resource-Policy: cross-origin\n/src/*\n  Cache-Control: public, max-age=3600, must-revalidate\n';
+const WORKER_HEADERS='/styles.css\n  Cache-Control: public, max-age=3600, must-revalidate\n/version.json\n  Cache-Control: no-store\n/index.html\n  Cache-Control: no-cache\n/src/locales/*\n  Access-Control-Allow-Origin: *\n  Cross-Origin-Resource-Policy: cross-origin\n/src/*\n  Cache-Control: public, max-age=3600, must-revalidate\n';
 function inside(parent,child){const relative=path.relative(parent,child);return relative&&!relative.startsWith('..')&&!path.isAbsolute(relative);}
 function packagePublicSite(root,{output,cdnBase,workerHeaders=false,noJekyll=false,manifest=null,deployment=null,synchronize=true}={}){
  if(!output)throw Error('Public site output is required.');

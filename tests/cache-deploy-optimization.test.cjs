@@ -43,3 +43,8 @@ test('shared card style keeps both specificity levels without duplicate declarat
  const css=fs.readFileSync(path.join(root,'styles.css'),'utf8');assert.match(css,/\.card-surface,\.toast\.card-surface\{border-color:var\(--card-border\);background:var\(--card-background\);box-shadow:var\(--card-shadow\);backdrop-filter:var\(--card-filter\);-webkit-backdrop-filter:var\(--card-filter\)\}/);
  assert.equal((css.match(/border-color:var\(--card-border\);background:var\(--card-background\);box-shadow:var\(--card-shadow\);backdrop-filter:var\(--card-filter\);-webkit-backdrop-filter:var\(--card-filter\)/g)||[]).length,1);
 });
+
+test('main stylesheet uses bounded Worker cache and content changes invalidate its URL',()=>{
+ const {WORKER_HEADERS}=require('../tools/public-site.cjs');assert.match(WORKER_HEADERS,/\/styles\.css\n  Cache-Control: public, max-age=3600, must-revalidate/);
+ const tmp=clone();try{const old=revisions(tmp).key('styles.css');fs.appendFileSync(path.join(tmp,'styles.css'),'\n/* cache probe */');sync(tmp,{write:true});assert.notEqual(revisions(tmp).key('styles.css'),old);assert.ok(fs.readFileSync(path.join(tmp,'index.html'),'utf8').includes('styles.css?v='+revisions(tmp).key('styles.css')));}finally{fs.rmSync(tmp,{recursive:true,force:true});}
+});
