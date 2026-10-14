@@ -280,6 +280,20 @@ test('a late Saturn ring texture blends from the procedural fallback and is not 
  assert.deepEqual(values,[0,0,.5,1,1]);r.dispose();
 });
 
+test('travel ring texture remains fully visible on immediate return without a fallback flash',()=>{
+ const f=fixture(),r=f.r,values=[];r.ring={u:{hasRingMap:'ringMix'}};r.black={};r.bind=()=>{};r.viewport=()=>{};r.bindTextureUnit=()=>{};
+ for(const n of ['uniform2f','uniform3f','drawArrays'])r.gl[n]=()=>{};
+ r.gl.uniform1f=(u,v)=>{if(u==='ringMix')values.push(v);};
+ for(const started of [undefined,4990]){
+  f.time(5000);r.textures.set('saturn-ring',{texture:{},width:256,ringVisibleStarted:started});
+  r.markRingTexturePresented('saturn-ring');
+  for(const time of [5000,5016,5350,5700]){
+   f.time(time);r.rings({id:'saturn'},{u:[1,0,0],v:[0,1,0],pole:[0,0,1]},{x:10,y:10},20,true,[1,0,0]);
+  }
+ }
+ assert.ok(values.every(v=>v===1));assert.equal(r.hasLodTransition(5700),false);r.dispose();
+});
+
 test('relief and night filter spacing follows each sampled map through queued LOD changes',()=>{
  const f=fixture(),r=f.r;r.black={};r.planetProgram={u:{}};r.gl.uniform1f=()=>{};r.gl.uniform2f=()=>{};r.bindTextureUnit=()=>{};
  const maps=[{texture:{},width:4096,sampled:true},{texture:{},width:1024,sampled:true,previousLod:'bump'},{texture:{},width:256,sampled:true},{texture:{},width:2048,sampled:true,previousLod:'night'}];

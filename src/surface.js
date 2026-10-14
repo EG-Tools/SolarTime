@@ -1410,6 +1410,12 @@ class DirectRenderer{
       if(width<=0||height<=0)continue;g.scissor(x,y,width,height);g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
     }}finally{g.disable(g.SCISSOR_TEST);}
   }
+  markRingTexturePresented(id){
+    const map=this.textures.get(id);
+    // A travel pass has already shown this exact texture at full opacity.
+    // Returning must not reveal the procedural placeholder a second time.
+    if(map?.texture)map.ringVisibleStarted=performance.now()-MAP_LOD_MS;
+  }
   rings(body,frame,screen,radius,front,light){
     const saturn=body.id==='saturn',inner=saturn?1.28:1.58,outer=saturn?2.26:1.94,g=this.gl,p=this.ring;
     // The normal material owner handles ring LOD, queueing and disposal too.

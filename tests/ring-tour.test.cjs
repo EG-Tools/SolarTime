@@ -167,7 +167,7 @@ test('resting warp accelerates for 7.5 seconds while an already fast camera peak
  near(speed(7.5),speed(8),1e-5);assert.ok(speed(5)<speed(8)*.85);
 });
 
-test('vertical quarter/half turns carry speed, gradually bank to thirty degrees and never flip at the pole',()=>{
+test('vertical quarter/half turns carry speed, gradually bank within thirty degrees and never flip at the pole',()=>{
  const T=window.SolarRingTour,dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0);
  const from={eye:[0,0,0],forward:[0,1,0],up:[0,0,1],right:[-1,0,0]},velocity=[0,.5,0];
  for(const angle of [Math.PI/2,Math.PI])for(const side of [-1,1]){
@@ -187,10 +187,25 @@ test('vertical quarter/half turns carry speed, gradually bank to thirty degrees 
   const next=T.jumpPose(path,8+h),velocityAt=next.eye.map((x,i)=>(x-cruise.eye[i])/h),length=Math.hypot(...velocityAt);
   assert.ok(dot(cruise.forward,velocityAt.map(x=>x/length))>.9999,'view follows the ongoing curve');
   const roll=t=>Math.acos(Math.max(-1,Math.min(1,dot(T.jumpPose(path,t).right,from.right))));
-  assert.ok(roll(2)<roll(5)&&roll(5)<roll(8));near(roll(10),30*Math.PI/180);
+  for(const time of [2,5,8,10,15])assert.ok(roll(time)<=30*Math.PI/180+1e-8);
   const a=T.jumpPose(path,5-h),b=T.jumpPose(path,5),c=T.jumpPose(path,5+h);
   vectorNear(b.eye.map((x,i)=>(x-a.eye[i])/h),c.eye.map((x,i)=>(x-b.eye[i])/h),.001);
   vectorNear(b.forward.map((x,i)=>(x-a.forward[i])/h),c.forward.map((x,i)=>(x-b.forward[i])/h),.001);
+ }
+});
+
+test('warp sky roll keeps one nonzero direction until arrival',()=>{
+ const roll=window.SolarRingTour.warpRoll;
+ for(let seed=0;seed<100;seed++){
+  const end=roll(seed,9,0,0);assert.ok(Math.abs(end)>=7.5*Math.PI/180-1e-12);
+  let previous=0;
+  for(let step=1;step<=90;step++){
+   const value=roll(seed,step/10,0,0);
+   assert.equal(Math.sign(value),Math.sign(end));
+   assert.ok(Math.abs(value)>=previous);assert.ok(Math.abs(value)<=30*Math.PI/180);
+   previous=Math.abs(value);
+  }
+  near(roll(seed,20,0,0),end);
  }
 });
 
@@ -1843,6 +1858,34 @@ test('rotating, stopped and opening views transfer every body into Saturn entry 
    const actual=r.projectRingTourPoint(projection,item.world,{},r.bodyRadiusAtZoom(item.body));
    near(actual.x,item.screen.x,Math.max(.1,tolerance));near(actual.y,item.screen.y,Math.max(.1,tolerance));near(actual.radius,item.radius,Math.max(.1,tolerance));
   }
+  tour.dispose();
+ }
+});
+
+test('wheel-close Saturn tracking preserves ring projection when boarding',()=>{
+ const A=window.SolarAstro,ms=Date.parse('2026-10-08T00:00:00Z');
+ for(const actualScale of [0,1])for(const wheel of [1,1.5,2,3]){
+  const r=Object.create(R);Object.assign(r,{w:1280,h:800,options:{pluto:true,moon:true,overviewOrbitGap:100,actualOrbitSpacing:actualScale},actualScaleMix:actualScale,
+   bodyScales:{},satelliteOrbitScales:{},precisionOrbitPathCache:new Map(),frameItems:new Map(),frameBodies:[],satelliteLayouts:[],frameSerial:0,
+   physicsBodies:new Map(),physicsSatellites:new Map(),clearLabels(){},cameraTween:null,trackingAnchor:null,projectionAnchor:null,flightBank:0,
+   canStartRingTour:()=>true,prepareCloseup(){},startSaturnParticles(){},hitTargets:[]});
+  r.camera=r.defaultCameraSnapshot(ms);r.rebuild(ms);r.camera=r.trackingMoveState('saturn',r.camera);r.camera.dolly*=wheel;
+  r.rebuild(ms);const {bodies}=r.updateFrameBodies(ms);r.updateProjectionAnchor();
+  for(const item of bodies){r.project(item.world,item.screen);item.r*=item.screen.perspective;item.directJob={};}
+  const saturn=r.currentFrameItem('saturn'),axes=A.bodyAxes(saturn.body),units=r.bodyRadiusAtZoom(saturn.body)/r.scale;
+  const samples=Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;const world={...saturn.world};for(const k of ['x','y','z']){const d=units*2*(axes.u[k]*Math.cos(a)+axes.v[k]*Math.sin(a));world[k]+=d;world['depth'+k.toUpperCase()]=(saturn.world['depth'+k.toUpperCase()]??saturn.world[k])+d;}return {world,before:r.project(world,{})};});
+  r.startRingTour(undefined,false,0);const tour=r.ringTour;
+  // Match the actual normal-ring shader (a projected 2D ellipse), not the
+  // separately calibrated projection used for neighbouring world bodies.
+  const frame=r.bodyFrame(saturn.body),pose=tour.pose,focal=r.h/(2*Math.tan(pose.fov*Math.PI/360));
+  for(let i=0;i<12;i++){
+   const a=i*Math.PI/6,x=2*Math.cos(a),z=2*Math.sin(a),local=[x,0,z],delta=local.map((v,k)=>v-pose.eye[k]);
+   const dot=axis=>delta.reduce((sum,v,k)=>sum+v*axis[k],0),depth=pose.orthoScale*(1-pose.perspective)+dot(pose.forward)*pose.perspective;
+   near(r.w/2+(dot(pose.right)/depth+pose.offset[0])*focal,saturn.screen.x+(frame.u.x*x+frame.v.x*z)*saturn.r,.05);
+   near(r.h/2-(dot(pose.up)/depth+pose.offset[1])*focal,saturn.screen.y+(frame.u.y*x+frame.v.y*z)*saturn.r,.05);
+  }
+  const projection=r.prepareRingTourProjection({tour,axes,saturn:saturn.world,saturnRadius:r.bodyRadiusAtZoom(saturn.body),units:tour.worldUnits,focal:r.h/(2*Math.tan(tour.pose.fov*Math.PI/360))});
+  for(const sample of samples){if(sample.before.behind)continue;const q=r.projectRingTourPoint(projection,sample.world,{},1);near(q.x,sample.before.x,.05);near(q.y,sample.before.y,.05);}
   tour.dispose();
  }
 });

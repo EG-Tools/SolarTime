@@ -204,7 +204,7 @@
         // momentum and then steering back against it.
         const turnSpeed=from.turnVelocity?Math.hypot(...from.turnVelocity):0;
         const turnAlignment=turnSpeed>.01?side*dot(viewTurnUp,from.turnVelocity)/turnSpeed:0;
-        const ring={virtual:true,orbit:'virtual',cruiseDeparture:!!from.cruiseDeparture,retreat:from.retreat,center,normal,u:forward,entryForward:forward,entryUp:planeUp,viewUp:up,direction,turnAngle:angle,viewTurnAngle:Math.PI/3,viewTurnUp,side,bankSide:Math.abs(bankIntent)>1e-4?Math.sign(bankIntent):side,radius,speed:speed||radius*.08,duration,accelerationDuration};
+        const ring={virtual:true,orbit:'virtual',cruiseDeparture:!!from.cruiseDeparture,retreat:from.retreat,center,normal,u:forward,entryForward:forward,entryUp:planeUp,viewUp:up,direction,rollSeed:Math.floor(Math.abs(jitter[direction])*1e9)>>>0,turnAngle:angle,viewTurnAngle:Math.PI/3,viewTurnUp,side,bankSide:Math.abs(bankIntent)>1e-4?Math.sign(bankIntent):side,radius,speed:speed||radius*.08,duration,accelerationDuration};
         if(!from.retreat&&obstacles.some(b=>{const d=b.center.map((x,i)=>x-center[i]),height=dot(d,normal),radial=Math.sqrt(Math.max(0,dot(d,d)-height*height));return Math.hypot(radial-radius,height)<b.radius*1.18;}))continue;
         const path=warpPath(from,velocity,ring,duration);
         let crowding=0,nearCrowding=0;
@@ -258,6 +258,16 @@
     const retreat=ease(clamp(t/1.8,0,1));
     return a.eye.map((x,i)=>(2*u**3-3*u*u+1)*x+(u**3-2*u*u+u)*step*a.velocity[i]+(-2*u**3+3*u*u)*b.eye[i]+(u**3-u*u)*step*b.velocity[i]+(ring.retreat?.[i]||0)*retreat);
   }
+  function warpRoll(seed,seconds,firstSide=0,quietChance=.4,duration=9){
+      let key=(seed^0x45d9f3b)>>>0;
+      key=Math.imul(key^(key>>>16),0x7feb352d);key=Math.imul(key^(key>>>15),0x846ca68b);
+      const rand=random((key^(key>>>16))>>>0);
+      const quiet=rand()<quietChance,magnitude=(.25+.75*rand())*30*Math.PI/180;
+      const target=quiet?0:magnitude*(firstSide?Math.sign(firstSide):rand()<.5?-1:1);
+      // One signed target per warp. Never resample or reverse during flight;
+      // outgoing grains retain the final angle throughout their afterglow.
+      return target*smooth(clamp(seconds/Math.max(.001,duration),0,1));
+  }
   function warpArcPose(path,age){
     const t=Math.max(0,age),limited=Number.isFinite(path.ring.viewTurnAngle);
     const angle=limited?path.ring.side*path.ring.viewTurnAngle*ease(t/path.duration):warpArcMotion(path,t).angle;
@@ -271,7 +281,7 @@
     const axis=unit(cross(u,f)),c=Math.cos(angle),s=Math.sin(angle);
     const rotate=v=>{const k=cross(axis,v),a=dot(axis,v);return v.map((x,i)=>x*c-k[i]*s+axis[i]*a*(1-c));};
     const pose={...frame,right:rotate(frame.right),up:rotate(frame.up),forward:rotate(frame.forward),eye:warpPosition(path,t),look:1};
-    const bank=(path.ring.bankSide??path.ring.side)*30*Math.PI/180*smooth(t/(path.duration*2));
+    const bank=warpRoll(path.ring.rollSeed||0,t,path.ring.bankSide??path.ring.side,0,path.duration*2);
     return bankPose(pose,bank);
   }
   function warpSceneEye(path,age){
@@ -1472,6 +1482,7 @@
       g.uniform1f(scene.u.ringTexel,1/ring.width);g.uniform1f(scene.u.focal,height/(2*tan));
       g.uniform1f(scene.u.phase,this.phase);g.uniform1f(scene.u.debrisReady,ready);
       g.bindBuffer(g.ARRAY_BUFFER,gpu.quad);const a=scene.attributes.a;g.enableVertexAttribArray(a);g.vertexAttribPointer(a,2,g.FLOAT,false,0,0);g.drawArrays(g.TRIANGLES,0,6);
+      gpu.markRingTexturePresented?.('saturn-ring');
       g.disableVertexAttribArray(a);
       if(!this.preparationReady||!r.ready){this.drawCalls=1;gpu.stats.drawCalls++;gpu.resetBindings();return true;}
       // Rocks are solid: depth testing prevents far sprites and mesh faces
@@ -1556,6 +1567,7 @@
   RingTour.screenAxis=screenAxis;
   RingTour.viewPose=viewPose;
   RingTour.bankAngle=bankAngle;
+  RingTour.warpRoll=warpRoll;
   RingTour.bankLimit=BANK_MAX;
   RingTour.cinematicBankLimit=BANK_LIMIT;
   RingTour.smoothBank=smoothBank;
