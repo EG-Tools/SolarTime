@@ -72,7 +72,36 @@ async function verifyTextures(root=path.resolve(__dirname,'..'),{request=fetch,d
  const base=new URL(deployment.cdnBase);if(base.protocol!=='https:'||base.hostname!=='solar-time.keg0320.workers.dev'||base.pathname!=='/media/')throw Error('Unreviewed media delivery origin.');
  previous=previous||await publishedManifest(request);const plan=verificationPlan(manifest,previous),report={at:new Date().toISOString(),base:base.href,assetRevision:manifest.revision,previousAssetRevision:previous.revision||null,requestsArePublicReadOnly:true,baselineFiles:plan.filter(row=>row.reasons.includes('baseline')).length,changedFiles:plan.filter(row=>row.reasons.includes('changed')).length,files:[]};
  for(const entry of plan)report.files.push(await verifyEntry(entry,base,{request,delay}));
+ // Probe unchanged music too, without downloading every full track again.
+ // A regional MISS is diagnostic, not proof of a global cache outage.
+ const music=Object.entries(manifest.music||{}).map(([id,entry])=>({id,...entry}));
+ const largest=music.reduce((a,b)=>!a||b.bytes>a.bytes?b:a,null);
+ report.musicOperations=[];
+ for(const entry of [...new Map([largest,music.at(-1)].filter(Boolean).map(entry=>[entry.path,entry])).values()])report.musicOperations.push(await verifyMusicOperations(entry,base,{request,delay}));
  const file=path.join(root,'.cloudflare/media-delivery.json');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify(report,null,2)+'\n');return report;
 }
+async function verifyMusicOperations(entry,base,{request,delay}){
+ const url=new URL(entry.path,base).href,samples=[],observed=[];
+ const read=async(method,headers={})=>{
+  const start=performance.now(),res=await request(url,{method,headers,signal:AbortSignal.timeout(20000)}),status=publicHeaders(entry,res);
+  const bytes=Buffer.from(await res.arrayBuffer());
+  samples.push({method,status:res.status,cache:status,colo:res.headers.get('cf-ray')?.split('-').at(-1)||null,bytes:bytes.length,totalMs:Math.round(performance.now()-start)});
+  return {res,bytes};
+ };
+ const {res:head,bytes:headBytes}=await read('HEAD'),etag=head.headers.get('etag'),length=Number(head.headers.get('content-length'));
+ if(head.status!==200||headBytes.length||!etag||length!==entry.bytes)throw Error(entry.id+': operational HEAD mismatch');
+ const conditional=await read('HEAD',{'if-none-match':etag});
+ if(conditional.res.status!==304||conditional.bytes.length)throw Error(entry.id+': operational conditional HEAD mismatch');
+ const size=Math.min(1024,length);
+ for(let i=0;i<3;i++){
+  if(i)await delay(500);
+  const part=await read('GET',{range:`bytes=0-${size-1}`,'if-range':etag});
+  if(part.res.status!==206||part.res.headers.get('etag')!==etag||part.res.headers.get('content-range')!==`bytes 0-${size-1}/${length}`||part.bytes.length!==size)throw Error(entry.id+': operational Range mismatch');
+  if(observed.length&&!part.bytes.equals(observed[0]))throw Error(entry.id+': repeated Range content changed');
+  observed.push(part.bytes);
+  if(i>0&&samples.at(-1).cache==='HIT')break;
+ }
+ return {id:entry.id,samples,cacheHitObserved:samples.some(row=>row.cache==='HIT'),limitations:'Bounded edge observations; not an account-wide hit rate or actual completed-transfer billing.'};
+}
 if(require.main===module)verifyTextures().then(report=>console.log(`Verified ${report.files.length} media files (${report.changedFiles} changed; ${report.baselineFiles} baseline).`)).catch(error=>{console.error(error.message);process.exitCode=1;});
-module.exports={manifestPaths,mediaEntries,parseRuntimeManifest,publishedManifest,verificationPlan,verifyEntry,verifyTextures};
+module.exports={manifestPaths,mediaEntries,parseRuntimeManifest,publishedManifest,verificationPlan,verifyEntry,verifyMusicOperations,verifyTextures};

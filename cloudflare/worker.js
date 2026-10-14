@@ -283,7 +283,8 @@ export default {
     const started=Date.now(),response=await mediaResponse(request,env,ctx,key);
     // Existing Workers log sampling bounds telemetry cost. No body reads or
     // user identifiers: record regional response setup, not download duration.
-    console.info(JSON.stringify({message:'media delivery',kind:key.split('.').pop()?.toLowerCase(),colo:request.cf?.colo||null,country:request.cf?.country||null,status:response.status,cache:response.headers.get('x-solar-media-cache'),range:request.headers.has('range'),bytes:Number(response.headers.get('content-length'))||0,responseMs:Date.now()-started}));
+    const contentLength=Number(response.headers.get('content-length'))||0;
+    console.info(JSON.stringify({message:'media delivery',method:request.method,kind:key.split('.').pop()?.toLowerCase(),colo:request.cf?.colo||null,country:request.cf?.country||null,status:response.status,cache:response.headers.get('x-solar-media-cache'),range:request.headers.has('range'),contentLength,bytes:request.method==='HEAD'||response.status===304?0:contentLength,responseMs:Date.now()-started}));
     return response;
    }
    return await env.ASSETS.fetch(request);

@@ -2,12 +2,12 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'..'),text=fs.readFileSync(path.join(root,'cloudflare/worker.js'),'utf8');
 function worker({failCacheRead=false,failR2Read=false}={}){
- const store=new Map(),wait=[],body='public texture data';let reads=0;
+ const store=new Map(),wait=[],logs=[],body='public texture data';let reads=0;
  const cache={match:async req=>{if(failCacheRead)throw Error('cache unavailable');return store.get(req.url)?.clone();},put:async(req,res)=>store.set(req.url,res)};
- const context={URL,Request,Response,Headers,console:{warn(){},info(){},error(){}},caches:{default:cache}};
+ const context={URL,Request,Response,Headers,console:{warn(){},info(value){logs.push(JSON.parse(value));},error(){}},caches:{default:cache}};
  vm.createContext(context);vm.runInContext(text.replace('export default {','globalThis.worker = {'),context);
  const env={SOLAR_TIME_MEDIA:{get:async()=>{reads++;if(failR2Read)throw Error('R2 unavailable');return {body,size:body.length,httpEtag:'"content-hash"',writeHttpMetadata:h=>h.set('content-type','image/webp')};}}},ctx={waitUntil:p=>wait.push(p)};
- return {get:url=>context.worker.fetch(new Request(url),env,ctx),wait,reads:()=>reads,body};
+ return {get:(url,options)=>context.worker.fetch(new Request(url,options),env,ctx),wait,logs,reads:()=>reads,body};
 }
 test('media HIT/MISS is explicit and browser timing is exposed on cold and previously cached objects',async()=>{
  const f=worker(),url='https://solar.test/media/releases/content/textures/test.webp';
@@ -17,6 +17,34 @@ test('media HIT/MISS is explicit and browser timing is exposed on cold and previ
 });
 test('cache read errors fall through to R2 without removing the preview-capable media response',async()=>{
  const f=worker({failCacheRead:true}),r=await f.get('https://solar.test/media/releases/content/textures/test.webp');assert.equal(r.status,200);assert.equal(await r.text(),f.body);assert.equal(r.headers.get('x-solar-media-cache'),'MISS');await Promise.all(f.wait);
+});
+
+test('HEAD logging records zero body bytes without losing object length',async()=>{
+ const f=worker(),url='https://solar.test/media/releases/content/textures/test.webp';
+ await(await f.get(url)).text();await Promise.all(f.wait);
+ const res=await f.get(url,{method:'HEAD'});assert.equal(await res.text(),'');
+ const log=f.logs.at(-1);assert.equal(log.method,'HEAD');assert.equal(log.bytes,0);assert.equal(log.contentLength,f.body.length);assert.equal(log.cache,'HIT');
+ assert.equal(f.reads(),1);
+});
+
+test('operational music checks use bounded ranges and conditional HEAD without full downloads',async()=>{
+ const {verifyMusicOperations}=require('../tools/verify-textures.cjs'),calls=[];
+ const entry={id:'track',path:'track.mp3',bytes:4096};let ranges=0;
+ const request=async(_url,options)=>{
+  calls.push(options);const conditional=options.headers['if-none-match'],range=options.headers.range;
+  const status=conditional?304:range?206:200;
+  const headers={'cache-control':'public, max-age=31536000, immutable','access-control-allow-origin':'*','timing-allow-origin':'*','x-solar-media-cache':ranges>0?'HIT':'MISS',etag:'"track"','cf-ray':'sample-PDX'};
+  if(status!==304)headers['content-length']=range?'1024':'4096';
+  if(range){ranges++;headers['content-range']='bytes 0-1023/4096';}
+  return new Response(range?Buffer.alloc(1024,3):null,{status,headers});
+ };
+ const report=await verifyMusicOperations(entry,'https://solar.test/',{request,delay:async()=>{}});
+ assert.equal(report.cacheHitObserved,true);assert.equal(calls.length,4);
+ assert.equal(report.samples.reduce((n,row)=>n+row.bytes,0),2048);
+ assert.ok(calls.filter(c=>c.method==='GET').every(c=>c.headers.range==='bytes=0-1023'));
+ await assert.rejects(verifyMusicOperations(entry,'https://solar.test/',{request:async(u,o)=>{
+  const res=await request(u,o);if(o.headers.range)res.headers.set('content-range','bytes 1-1024/4096');return res;
+ },delay:async()=>{}}),/Range mismatch/);
 });
 test('public media failures retain observable no-store CORS headers',async()=>{
  const r=await worker({failR2Read:true}).get('https://solar.test/media/releases/content/textures/test.webp');assert.equal(r.status,500);assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(r.headers.get('access-control-allow-origin'),'*');assert.equal(r.headers.get('x-solar-media-error'),'internal');assert.equal(r.headers.get('x-solar-media-cache'),'BYPASS');assert.match(r.headers.get('server-timing'),/BYPASS/);
