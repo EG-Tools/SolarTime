@@ -121,6 +121,22 @@ test('immediate warp after star tracking preserves solar hiding before its first
  assert.equal(r.solarSceneHidden(100+r.replayOpeningAt(r.cameraTween.replay)),false);
 });
 
+test('warp arrival creates one independent opening field and preserves Saturn boarding hold',()=>{
+ for(const saturn of [false,true]){
+  const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),100,6500);
+  const move=r.cameraTween,path=move.replay,warp=r.openingParticles;path.resetAt=7000;
+  warp.alpha=.6;warp.awaitingSaturn=saturn;
+  const at=move.start+r.replayOpeningAt(path);
+  r.prepareReplayFrame(at-1);assert.strictEqual(r.openingParticles,warp);
+  r.prepareReplayFrame(at+80);const opening=r.openingParticles;
+  assert.notStrictEqual(opening,warp);assert.strictEqual(warp.replay,path);assert.equal(warp.exitAt,at);
+  assert.ok(opening.replay.openingMove);assert.equal(opening.replay.openingMove.replay,null);
+  assert.equal(opening.start+r.replayOpeningAt(opening.replay),at);
+  assert.equal(!!opening.awaitingSaturn,saturn);assert.equal(warp.points.length>0,true);
+  r.prepareReplayFrame(at+200);assert.strictEqual(r.openingParticles,opening);
+ }
+});
+
 test('blocked warp clearance has a bounded departure and completes through normal arrival',()=>{
  for(const viaPrepare of [false,true]){
   const {r}=renderer(),target=r.cameraSnapshot();r.animateOpeningReplay(target,r.openingCameraSnapshot(target),100,6500);
@@ -1531,10 +1547,17 @@ test('annotation cadence window covers delayed labels but excludes pending and f
 test('opening and warp share cached soft grains and a continuous faint footprint',()=>{
  const {r}=renderer();r.loadFlightParticleAtlas=()=>{throw Error('no network texture request');};
  const sprite={};r.softFlightParticleSprite=()=>sprite;let draws=[];
- const c={save(){},restore(){},translate(){},rotate(){},drawImage(...args){draws.push(args);}};
+ const cores=[];
+ const c={save(){},restore(){},translate(){},rotate(){},beginPath(){},moveTo(){},lineTo(){},stroke(){cores.push({width:this.lineWidth,alpha:this.globalAlpha});},drawImage(...args){draws.push(args);}};
  const field={replay:{},points:[0,1,2,3].map(color=>({color,sizeScale:3})),projected:{}};
  r.drawFlightParticles(c,field,p=>({visible:true,alpha:.5,x:50,y:50,size:4,tail:25,angle:.6}));
- assert.equal(draws.length,4);assert.ok(draws.every(d=>d[0]===sprite));assert.equal(c.globalCompositeOperation,'lighter');
+ assert.equal(draws.length,12);assert.ok(draws.every(d=>d[0]===sprite));assert.equal(c.globalCompositeOperation,'lighter');
+ assert.equal(cores.length,4);assert.ok(cores.every(c=>c.width>0&&c.alpha===.35));
+ for(let i=0;i<4;i++){
+  const [left,middle,right]=draws.slice(i*3,i*3+3);
+  close(left[5]+left[7],middle[5]);close(middle[5]+middle[7],right[5]);
+  close(middle[7],25);close(left[8],right[8]);
+ }
  for(const alpha of [0,.001,.01,.03,.06,.12,1]){
   const scale=r.particleFadeScale(alpha);assert.ok(Number.isFinite(scale)&&scale>=0&&scale<=1);
  }

@@ -1634,6 +1634,16 @@
       if(!Number.isFinite(path.resetAt))move.duration=Math.max(move.duration,mono-move.start+REPLAY_TRANSITION.warp+path.inbound);
       if(mono-move.start>=path.resetAt&&!path.skyCaptured)this.captureReplaySky(path);
       if(this.openingParticles?.replay===path)this.openingParticles.duration=move.duration;
+      const openingAt=move.start+this.replayOpeningAt(path);
+      if(!path.openingParticlesStarted&&Number.isFinite(openingAt)&&mono>=openingAt){
+        path.openingParticlesStarted=true;
+        const awaitingSaturn=!!this.openingParticles?.awaitingSaturn;
+        // A new field owns the arrival clock; the outgoing warp retains its
+        // trajectory while the shared lifecycle fades it independently.
+        this.startOpeningParticles(openingAt,path.inbound,{...move,replay:null,
+          from:path.departure,start:openingAt,duration:path.inbound,timing:'opening'});
+        if(awaitingSaturn)this.keepOpeningParticlesUntilBoarding();
+      }
     }
     captureReplaySky(path){
       if(path.skyCaptured||!this.sky?.canvas)return;
@@ -1840,11 +1850,10 @@
       const step=dt*(target<state.value?.25:.1);
       state.value+=clamp(target-state.value,-step,step);return state.value;
     }
-    startOpeningParticles(mono,duration) {
+    startOpeningParticles(mono,duration,move=this.cameraTween) {
       mono=this.animationMono(mono);
       const previous=this.openingParticles;
       if(previous)this.retireOpeningParticleField(previous,mono);
-      const move=this.cameraTween;
       if(!move)return;
       if(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches){this.clearOpeningParticleFields();return;}
       // Boot keeps the existing opening camera timeline. Its shared particle
@@ -2584,7 +2593,18 @@
       const size=radius*9*(q.glowScale??1)*fade,tail=Math.max(0,q.tail||0)*fade;
       if(size<=0)return;
       c.save();c.globalAlpha=q.alpha;c.translate(q.x,q.y);c.rotate(q.angle||0);
-      c.drawImage(this.softFlightParticleSprite(),(p.color??0)*64,0,64,64,-size/2-tail,-size/2,size+tail,size);
+      const sprite=this.softFlightParticleSprite(),sx=(p.color??0)*64;
+      // Extend the bright centre uniformly along the trail. Stretching the
+      // entire radial tile diluted the core across most of a long streak.
+      if(tail>0){
+        c.drawImage(sprite,sx,0,32,64,-size/2-tail,-size/2,size/2,size);
+        c.drawImage(sprite,sx+31.5,0,1,64,-tail,-size/2,tail,size);
+        c.drawImage(sprite,sx+32,0,32,64,0,-size/2,size/2,size);
+        // The original streak had a white core independent of halo scaling.
+        c.globalAlpha=q.alpha*.7*ease(clamp(tail/.65,0,1));
+        c.strokeStyle='#edf7ff';c.lineWidth=radius*fade;c.lineCap='round';
+        c.beginPath();c.moveTo(-tail,0);c.lineTo(0,0);c.stroke();
+      }else c.drawImage(sprite,sx,0,64,64,-size/2,-size/2,size,size);
       c.restore();
     }
     flightParticleSprite() {
