@@ -25,6 +25,7 @@ test('media uses complete cached objects for ranges, HEAD and ETag without modif
   response=await mf.dispatchFetch(url,{headers:{Range:'bytes=20-29','If-Range':'"outdated"'}});assert.equal(response.status,200);assert.equal(await response.text(),data);
   response=await mf.dispatchFetch(url,{headers:{Range:'bytes=-3','If-Range':lastModified}});assert.equal(response.status,206);assert.equal(await response.text(),'789');
   response=await mf.dispatchFetch(url,{headers:{Range:'bytes=-3','If-Range':'Sun, 06 Nov 1994 08:49:37 GMT'}});assert.equal(response.status,200);assert.equal(await response.text(),data);
+  response=await mf.dispatchFetch(url,{headers:{Range:'bytes=2000-3000','If-None-Match':etag}});assert.equal(response.status,304,'cached conditional takes precedence over invalid range');
   response=await mf.dispatchFetch(url,{method:'HEAD'});assert.equal(response.status,200);assert.equal(response.headers.get('content-length'),'1000');assert.equal(await response.text(),'');
   response=await mf.dispatchFetch(url,{headers:{'If-None-Match':etag}});assert.equal(response.status,304);
   response=await mf.dispatchFetch(url,{headers:{'If-None-Match':'"other", W/'+etag}});assert.equal(response.status,304);

@@ -25,7 +25,7 @@ test('all 15 web and file-language bundles preserve approved interface, timer, b
  const compiled=api.compile(root);
  for(const protocol of ['https:','file:']){
   const environment=runtime({protocol}),{loader}=environment;
-  for(const code of compiled.codes){const bundle=await loader.load(code);assert.equal(api.fingerprint(bundle),data('tests/fixtures/i18n-v077.json')[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
+  for(const code of compiled.codes){const bundle=await loader.load(code);assert.ok(bundle.copy.applyUpdate);const original=structuredClone(bundle);delete original.copy.applyUpdate;assert.equal(api.fingerprint(original),data('tests/fixtures/i18n-v077.json')[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
   assert.equal(environment.scripts.length,protocol==='file:'?1:0,protocol+' compatibility payload');
  }
 });

@@ -821,5 +821,15 @@
       "bytes": 3066728,
       "sha256": "65d33e959349a4d2fe7bc2a1f48d70969c554b44e9048c490126d2d164aa6863"
     }
+  },
+  "effects": {
+    "saturnDebris": {
+      "source": "effects/saturn-debris-atlas-v2.webp",
+      "path": "releases/content/textures/saturn-debris-atlas-v2-1024x512.eba63be4d82c5761d.webp",
+      "width": 1024,
+      "height": 512,
+      "bytes": 134644,
+      "sha256": "eba63be4d82c5761d6dd10fe829725ca7babaffd71fca853c394a8b56eb8848c"
+    }
   }
 }

@@ -71,7 +71,7 @@ body.zen .clock-face{top:max(56px,calc(var(--solar-safe-top) + 8px))}
 
 /* v0.46 r4: one phone-layout flag is shared by CSS and the sky renderer.
    Keep the approved top boundaries and the home-indicator safety inset. */
-:root{--solar-layout-revision:r2}
+:root{--solar-layout-revision:r0}
 html.solar-phone-layout .edge-shade{display:none}
 html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}
 html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 30px)}
@@ -203,4 +203,22 @@ html.solar-standalone :is(.alarm-dialog,.shutdown-dialog){
 html.solar-standalone #reset-defaults-dialog{
   top:calc(var(--solar-viewport-top,0px) + var(--solar-viewport-height,100dvh)/2);
   left:calc(var(--solar-viewport-left,0px) + var(--solar-viewport-width,100vw)/2);
+}
+
+/* Reserve space for the music title in portrait; keep landscape framing. */
+@media(max-width:680px) and (orientation:portrait){
+  .clock-face,body.zen .clock-face{top:max(88px,calc(var(--solar-safe-top) + 58px))}
+}
+.update-notice{position:absolute;left:0;top:calc(100% + 8px);padding:6px 10px;border:1px solid #c8ae7660;border-radius:8px;color:var(--gold,#d7bd85);font:inherit;font-size:11px;cursor:pointer;pointer-events:auto;z-index:2}
+.update-notice:hover,.update-notice:focus-visible{border-color:#d7bd85;outline-offset:3px}
+@media(any-pointer:coarse){.update-shortcut{display:none}}
+
+@media(max-width:680px) and (orientation:portrait){
+  .update-notice{top:calc(100% + 26px)}
+  body:has(#update-notice:not([hidden])) .clock-face{top:max(112px,calc(var(--solar-safe-top) + 82px))}
+}
+
+/* Desktop and tablet landscape: keep the whole clock block below the header guide. */
+@media(min-width:681px) and (min-height:631px) and (orientation:landscape){
+  .clock-face,body.zen .clock-face{top:max(38px,calc(var(--solar-safe-top) + 21px))}
 }

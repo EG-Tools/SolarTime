@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.69",
+    "date": "2026.09.30",
+    "items": [
+      "Improved Earth cloud visuals and performance; range 0–100%, default 100%.",
+      "Added Venus terrain and cloud controls with smoother close-up loading; default 80%.",
+      "Refined cloud-control placement and clock spacing, and added WeChat donations.",
+      "Automated the latest 10 updates in 13 languages and the full Korean archive."
+    ]
+  },
+  {
     "version": "0.68",
     "date": "2026.09.29",
     "items": [

@@ -1,5 +1,6 @@
 {
   "copy": {
+    "applyUpdate": "更新を適用",
     "solarSystemMode": "太陽系モード",
     "constellationMode": "星座モード",
     "expandRotationTouch": "展開：長押し",

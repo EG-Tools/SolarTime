@@ -213,7 +213,7 @@ async function mediaResponse(request,env,ctx,key){
   const lookup=mediaCacheRequest(request,true);if(head)lookup.headers.delete('range');
   if(cache){
     let cached;try{
-      if(ifRange){
+      if(ifRange||request.headers.has('if-none-match')){
         const wholeRequest=mediaCacheRequest(request,true);wholeRequest.headers.delete('range');wholeRequest.headers.delete('if-range');
         const whole=await cache.match(wholeRequest);
         if(whole?.status===304)cached=whole;
@@ -230,17 +230,30 @@ async function mediaResponse(request,env,ctx,key){
       return mediaDelivery(cached,'HIT');
     }
   }
-  let object,rangeAllowed=!!range;
-  if(head)object=await env.SOLAR_TIME_MEDIA.head(key);
-  else if(ifRange){
-    const metadata=await env.SOLAR_TIME_MEDIA.head(key);
-    if(!metadata)return mediaError(404,'Not Found','not-found',cache?'MISS':'BYPASS');
-    rangeAllowed=ifRangeMatches(ifRange,metadata);
-    object=await env.SOLAR_TIME_MEDIA.get(key,rangeAllowed?{range:new Headers({range})}:undefined);
-  }else object=await env.SOLAR_TIME_MEDIA.get(key,range?{range:new Headers({range})}:undefined);
-  if(!object)return mediaError(404,'Not Found','not-found',cache?'MISS':'BYPASS');
-  if(rangeAllowed&&!validByteRange(range,object.size)){if(object.body)ctx.waitUntil(object.body.cancel());return mediaError(416,'Range Not Satisfiable','range-not-satisfiable',cache?'MISS':'BYPASS',{'accept-ranges':'bytes','content-range':`bytes */${object.size}`});}
-  if(etagMatches(request.headers.get('if-none-match'),object.httpEtag)){if(object.body)ctx.waitUntil(object.body.cancel());return mediaDelivery(new Response(null,{status:304,headers:mediaHeaders(object,304,key)}),cache?'MISS':'BYPASS');}
+  let object,metadata,rangeAllowed=!!range;
+  const cacheStatus=cache?'MISS':'BYPASS',noneMatch=request.headers.get('if-none-match');
+  const unsatisfied=size=>mediaError(416,'Range Not Satisfiable','range-not-satisfiable',cacheStatus,{'accept-ranges':'bytes','content-range':`bytes */${size}`});
+  // Only conditional/ranged requests need a metadata read; ordinary GET stays
+  // a single streaming read. Evaluate validators before applying Range.
+  if(head||range||noneMatch){
+    metadata=await env.SOLAR_TIME_MEDIA.head(key);
+    if(!metadata)return mediaError(404,'Not Found','not-found',cacheStatus);
+    if(etagMatches(noneMatch,metadata.httpEtag))return mediaDelivery(new Response(null,{status:304,headers:mediaHeaders(metadata,304,key)}),cacheStatus);
+    if(ifRange)rangeAllowed=ifRangeMatches(ifRange,metadata);
+    if(rangeAllowed&&!validByteRange(range,metadata.size))return unsatisfied(metadata.size);
+  }
+  if(head)object=metadata;
+  else try{object=await env.SOLAR_TIME_MEDIA.get(key,rangeAllowed?{range:new Headers({range})}:undefined);}
+  catch(error){
+    // A missing/changed object can still invalidate a range after HEAD.
+    // Never disguise unrelated storage/network errors as a client range error.
+    if(!rangeAllowed||!(error?.code===10039||error?.code==='10039'||error?.code==='InvalidRange'||/\b(?:InvalidRange|10039)\b/.test(String(error?.message))))throw error;
+    const current=await env.SOLAR_TIME_MEDIA.head(key);
+    if(!current)return mediaError(404,'Not Found','not-found',cacheStatus);
+    return unsatisfied(current.size);
+  }
+  if(!object)return mediaError(404,'Not Found','not-found',cacheStatus);
+  if(etagMatches(noneMatch,object.httpEtag)){if(object.body)ctx.waitUntil(object.body.cancel());return mediaDelivery(new Response(null,{status:304,headers:mediaHeaders(object,304,key)}),cacheStatus);}
   const partial=!!range&&!!object.range,status=partial?206:200,headers=mediaHeaders(object,status,key);
   if(head)return mediaDelivery(new Response(null,{status,headers}),cache?'MISS':'BYPASS');
   const response=new Response(object.body,{status,headers});

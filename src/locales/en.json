@@ -1,5 +1,6 @@
 {
   "copy": {
+    "applyUpdate": "Apply update",
     "solarSystemMode": "Solar system mode",
     "constellationMode": "Constellation mode",
     "expandRotationTouch": "Expand: long press",

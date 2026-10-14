@@ -34,7 +34,7 @@ test('runtime concerns load as modules before the application coordinator',()=>{
 
 test('phone layout shares an explicit standalone-aware flag with the sky renderer',()=>{
   const css=read('src/runtime-optimizations.css'),page=read('src/page-runtime.js'),sky=read('src/sky.js');
-  const mobile=css.slice(css.indexOf('/* v0.46 r4:'));
+  const mobile=css.slice(css.indexOf('/* v0.46 r4:'),css.indexOf('/* Reserve space for the music title'));
   assert.ok(mobile.includes('html.solar-phone-layout .edge-shade{display:none}'));
   assert.ok(mobile.includes('html.solar-phone-layout .planet-nav{padding-top:0;padding-bottom:0}'));
   assert.ok(mobile.includes('html.solar-phone-layout .playback{bottom:calc(max(8px,var(--solar-safe-bottom)) + 30px)}'));
@@ -47,7 +47,7 @@ test('phone layout shares an explicit standalone-aware flag with the sky rendere
 
 test('phone layout refinement leaves the approved top boundary and home-indicator safety intact',()=>{
   const css=read('src/runtime-optimizations.css');
-  const mobile=css.slice(css.indexOf('/* v0.46 r4:'));
+  const mobile=css.slice(css.indexOf('/* v0.46 r4:'),css.indexOf('/* Reserve space for the music title'));
   assert.doesNotMatch(mobile,/\.(?:masthead|clock-face|scene-status|footer)\s*\{/);
   assert.match(css,/--solar-safe-bottom:env\(safe-area-inset-bottom,0px\)/);
   assert.match(css,/\.footer\{\s*bottom:max\(8px,var\(--solar-safe-bottom\)\)/);

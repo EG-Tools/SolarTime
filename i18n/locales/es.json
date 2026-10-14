@@ -1,5 +1,6 @@
 {
   "ui": {
+    "applyUpdate": "Aplicar actualización",
     "solarSystemMode": "Modo sistema solar",
     "constellationMode": "Modo constelaciones",
     "expandRotationTouch": "Ampliar: mantener pulsado",

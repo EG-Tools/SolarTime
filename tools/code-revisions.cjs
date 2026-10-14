@@ -22,6 +22,15 @@ function revisions(root){
    return attr+'="'+target+'?v='+key(target)+'"';
   }));
  }
+ // A stable content identity, independent of the displayed version/revision.
+ // Exclude its own metadata to avoid a hash/reload cycle on every build.
+ const stripBuild=text=>text.replace(/\s*<meta name="solar-time-build" content="[^"]*">/g,'');
+ const identity=require('./release-files.cjs').releaseFiles(root).filter(file=>file!=='version.json')
+  .map(file=>file+'\0'+hash(stripBuild(virtual[file]??read(file)))).join('\n');
+ const buildId=hash(identity),release=JSON.parse(read('version.json'));
+ pending.set('version.json',JSON.stringify({...release,buildId},null,2)+'\n');
+ const html=stripBuild(read('index.html')).replace(/(<meta name="solar-time-revision" content="[^"]*">)/,'$1\n  <meta name="solar-time-build" content="'+buildId+'">');
+ pending.set('index.html',html);
  return {pending,key};
 }
 function sync(root,{write=false}={}){

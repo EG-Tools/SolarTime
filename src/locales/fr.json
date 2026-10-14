@@ -1,5 +1,6 @@
 {
   "copy": {
+    "applyUpdate": "Appliquer la mise à jour",
     "solarSystemMode": "Mode système solaire",
     "constellationMode": "Mode constellations",
     "expandRotationTouch": "Développer : appui long",

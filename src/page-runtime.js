@@ -5,7 +5,8 @@
   const document=root.document,element=document.documentElement;
   const version=document.querySelector('meta[name="solar-time-version"]')?.content||'';
   const revision=document.querySelector('meta[name="solar-time-revision"]')?.content||'r0';
-  const build=Object.freeze({version,revision});
+  const buildId=document.querySelector('meta[name="solar-time-build"]')?.content||'';
+  const build=Object.freeze({version,revision,buildId});
   root.SolarBuild=build;
   const small=root.matchMedia('(max-width:680px), (max-height:630px)');
   const coarse=root.matchMedia('(any-pointer:coarse)');
@@ -72,14 +73,25 @@
   root.visualViewport?.addEventListener('resize',scheduleViewportSync,{passive:true});
   root.visualViewport?.addEventListener('scroll',scheduleViewportSync,{passive:true});
 
-  const interval=5*60*1000,attemptKey='solar-time.update-attempt';
-  let checkedAt=-Infinity,checking=false,reloading=false,lastAttempt=null,pendingUpdate=null;
+  const interval=5*60*1000;
+  let checkedAt=-Infinity,checking=false,reloading=false,pendingUpdate=null;
   const compareVersion=(a,b)=>{
     const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);
     for(let i=0;i<Math.max(x.length,y.length);i++)if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0)?1:-1;
     return 0;
   };
   const revisionNumber=value=>Number(/^r(\d+)$/.exec(String(value))?.[1]||0);
+  function showUpdate(){
+    const button=document.querySelector('#update-notice');if(!button)return;
+    button.hidden=!pendingUpdate;
+  }
+  function applyUpdate(){
+    if(!pendingUpdate||reloading)return false;
+    const next=new URL(root.location.href);
+    next.searchParams.set('release',pendingUpdate.version);next.searchParams.set('revision',pendingUpdate.revision);
+    next.searchParams.set('refresh',Date.now().toString(36));
+    reloading=true;root.location.replace(next.href);return true;
+  }
   async function checkForUpdate(force=false){
     if(!version||!/^https?:$/.test(root.location.protocol)||document.hidden||checking||reloading)return;
     const now=Date.now();if(!force&&now-checkedAt<interval)return;
@@ -89,23 +101,15 @@
       const timeout=typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'?AbortSignal.timeout(12000):undefined;
       const response=await root.fetch(url,{cache:'no-store',credentials:'same-origin',...(timeout?{signal:timeout}:{})});
       if(!response.ok)return;
-      const manifest=await response.json(),nextVersion=String(manifest.version||''),nextRevision=String(manifest.revision||'');
+      const manifest=await response.json(),nextVersion=String(manifest.version||''),nextRevision=String(manifest.revision||''),nextBuild=String(manifest.buildId||'');
       if(!/^\d+(?:\.\d+)+$/.test(nextVersion)||!/^r\d+$/.test(nextRevision))return;
       const order=compareVersion(nextVersion,version);
-      if(order<0||(order===0&&revisionNumber(nextRevision)<=revisionNumber(revision)))return;
-      pendingUpdate={version:nextVersion,revision:nextRevision};
-      // Detection must not interrupt audio, an alarm or a camera sequence.
-      if(document.querySelector('#loading')?.hidden===false||root.SolarTime?.canApplyUpdate?.()===false||document.querySelector('#alarm-dialog')?.open
-        ||document.querySelector('#shutdown-dialog')?.open
-        ||document.querySelector('audio:not([data-preview])')?.paused===false)return;
-      let previous=lastAttempt;
-      try{previous=JSON.parse(root.sessionStorage.getItem(attemptKey)||'null')||previous;}catch(_){/* Storage can be unavailable. */}
-      if(previous?.version===nextVersion&&previous?.revision===nextRevision&&now-previous.at<60000)return;
-      lastAttempt={version:nextVersion,revision:nextRevision,at:now};
-      try{root.sessionStorage.setItem(attemptKey,JSON.stringify(lastAttempt));}catch(_){/* Reload does not depend on storage. */}
-      const next=new URL(root.location.href);
-      next.searchParams.set('release',nextVersion);next.searchParams.set('revision',nextRevision);next.searchParams.set('refresh',now.toString(36));
-      reloading=true;root.location.replace(next.href);
+      const changed=buildId&&/^[a-f0-9]{12,64}$/.test(nextBuild)?nextBuild!==buildId
+        :order>0||(order===0&&revisionNumber(nextRevision)>revisionNumber(revision));
+      pendingUpdate=changed?{version:nextVersion,revision:nextRevision,buildId:nextBuild}:null;
+      // Detection only advertises the update. Explicit user activation owns
+      // reload, so music, timers and camera interaction are never interrupted.
+      showUpdate();
     }catch(_){/* Offline pages keep working. */}
     finally{checking=false;}
   }
@@ -160,9 +164,10 @@
     dialog.querySelector('pre').textContent=JSON.stringify(layoutInfo(),null,2);UI.show(dialog,()=>dialog.showModal());diagnosticCues.update();root.requestAnimationFrame(diagnosticCues.update);
   }
   function ready(){
-    updateLayout();scheduleViewportSync();
+    updateLayout();scheduleViewportSync();showUpdate();
+    document.querySelector('#update-notice')?.addEventListener('click',applyUpdate);
     if(new URL(root.location.href).searchParams.get('layout-debug')==='1')showDiagnostics();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();
-  root.SolarPageRuntime=Object.freeze({checkForUpdate,layoutInfo,showDiagnostics,getPendingUpdate:()=>pendingUpdate,getViewport:()=>viewportBounds});
+  root.SolarPageRuntime=Object.freeze({checkForUpdate,applyUpdate,layoutInfo,showDiagnostics,getPendingUpdate:()=>pendingUpdate,getViewport:()=>viewportBounds});
 })(window);

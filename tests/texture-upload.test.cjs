@@ -19,6 +19,13 @@ test('concurrent large textures share one bounded upload per frame',async()=>{
  for(const id of [1,2])assert.deepEqual(f.calls.filter(c=>c.texture===id&&!c.allocate).map(c=>c.y),Array.from({length:16},(_,i)=>i*128));
  assert.ok(f.calls.filter(c=>!c.allocate).every(c=>c.pixels<=512*1024));
 });
+
+test('cached small maps cannot upload together in the opening frame',async()=>{
+ const f=fixture(),pending=[1,2,3,4].map(id=>f.r.uploadTexturePixels(id,{},256,128,null,()=>true));
+ assert.equal(f.calls.length,0);
+ for(let i=0;i<4;i++){await f.tick();assert.equal(f.calls.length,i+1);}
+ assert.deepEqual(await Promise.all(pending),[true,true,true,true]);
+});
 test('cancelling a staged upload releases its bitmap and scheduled frame without publishing pixels',async()=>{
  const f=fixture(),controller=new AbortController(),pending=f.r.uploadTexturePixels(1,{},4096,2048,controller.signal,()=>!controller.signal.aborted);
  await f.tick();const rejected=assert.rejects(pending);controller.abort();await rejected;

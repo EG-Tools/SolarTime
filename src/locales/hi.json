@@ -1,5 +1,6 @@
 {
   "copy": {
+    "applyUpdate": "अपडेट लागू करें",
     "solarSystemMode": "सौरमंडल मोड",
     "constellationMode": "तारामंडल मोड",
     "expandRotationTouch": "विस्तार: देर तक दबाएँ",

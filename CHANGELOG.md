@@ -2,6 +2,13 @@
 
 Current and past Solar Time updates, listed from newest to oldest.
 
+## v0.79 · 2026.10.14
+
+- Fixed the text above the clock disappearing on small screens.
+- Made opening and warp particles fade out more smoothly.
+- Improved eclipse shadows cast by the Moon and Europa.
+- Added update notifications and improved media response handling and audio validation.
+
 ## v0.78 · 2026.10.13
 
 - Improved planet particle sizes, lighting, occlusion and texture transitions.

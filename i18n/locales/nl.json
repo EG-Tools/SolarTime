@@ -1,5 +1,6 @@
 {
   "ui": {
+    "applyUpdate": "Update toepassen",
     "solarSystemMode": "Zonnestelselmodus",
     "constellationMode": "Sterrenbeeldmodus",
     "expandRotationTouch": "Uitklappen: lang indrukken",

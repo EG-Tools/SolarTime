@@ -1,5 +1,6 @@
 {
   "copy": {
+    "applyUpdate": "업데이트 적용",
     "solarSystemMode": "태양계 모드",
     "constellationMode": "별자리 모드",
     "expandRotationTouch": "확장: 길게 누르기",

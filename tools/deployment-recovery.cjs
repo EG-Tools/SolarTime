@@ -27,11 +27,23 @@ async function capture(root=path.resolve(__dirname,'..'),{request=fetch,status=n
  const versionId=currentVersion(workerStatus);return writeRecord(root,{schema:1,capturedAt:now(),targetSha:process.env.TARGET_SHA||null,previousPair:{worker:{name:WORKER,versionId},pages:{origin:ORIGIN,files}},failure:null,manualRecovery:{workerCommand:`npx wrangler rollback ${versionId} --message "Restore the Worker paired with the previous Pages release"`,note:'Run only after checking whether Pages published; recover both origins from one commit if it did.'}});
 }
 function readRecord(root){const file=recordFile(root);if(!fs.existsSync(file))throw Error('Deployment recovery record is missing.');const record=JSON.parse(fs.readFileSync(file,'utf8'));if(record.schema!==1||record.previousPair?.worker?.name!==WORKER||!validVersion(record.previousPair?.worker?.versionId))throw Error('Deployment recovery record is invalid.');return record;}
-function reportFailure(root=path.resolve(__dirname,'..'),{env=process.env,now=()=>new Date().toISOString()}={}){
+async function reportFailure(root=path.resolve(__dirname,'..'),{env=process.env,request=fetch,now=()=>new Date().toISOString()}={}){
  let record;try{record=readRecord(root);}catch(_){record={schema:1,capturedAt:null,targetSha:env.TARGET_SHA||null,previousPair:null,manualRecovery:null};}
- const workerPublished=fs.existsSync(path.join(root,'.cloudflare/worker-publication.json')),pagesPublished=env.PAGES_OUTCOME==='success';
- record.failure={recordedAt:now(),workerOutcome:env.WORKER_OUTCOME||null,pagesOutcome:env.PAGES_OUTCOME||null,pagesVerificationOutcome:env.PAGES_VERIFY_OUTCOME||null,workerPublished,pagesPublished,recovery:pagesPublished?'Pages published; recover Worker and Pages together from one known commit.':workerPublished?'Pages remains on the captured release; the recorded Worker rollback target is the matching version.':'No Worker publication marker exists; inspect the failed step before retrying.'};return writeRecord(root,record);
+ const workerPublished=fs.existsSync(path.join(root,'.cloudflare/worker-publication.json'));
+ let pagesState=env.PAGES_OUTCOME==='success'?'published':'unknown',observation=null;
+ try{
+  const observed=await pageSnapshot(request,new URL('version.json',ORIGIN).href);
+  const target=fs.readFileSync(path.join(root,'version.json'));
+  const previous=record.previousPair?.pages?.files.find(file=>file.url===observed.url);
+  observation={...observed,matchesTarget:observed.sha256===digest(target),matchesPrevious:observed.sha256===previous?.sha256};
+  if(observation.matchesTarget)pagesState='published';
+  // A timed-out publication can still complete after this observation. Only a
+  // skipped publication and an unchanged public fingerprint prove no update.
+  else if(env.PAGES_OUTCOME==='skipped'&&observation.matchesPrevious)pagesState='not-published';
+ }catch(error){observation={error:error.message};}
+ const pagesPublished=pagesState==='published'?true:pagesState==='not-published'?false:null;
+ record.failure={recordedAt:now(),workerOutcome:env.WORKER_OUTCOME||null,pagesOutcome:env.PAGES_OUTCOME||null,pagesVerificationOutcome:env.PAGES_VERIFY_OUTCOME||null,workerPublished,pagesPublished,pagesState,observation,recovery:pagesPublished===true?'Pages published; recover Worker and Pages together from one known commit.':pagesPublished===false?'Pages publication was skipped and the previous fingerprint remains; inspect the recorded Worker rollback target.':'Pages publication state is unknown; check the deployment and both public origins again before rollback or retry.'};return writeRecord(root,record);
 }
-async function main(args=process.argv.slice(2)){const root=path.resolve(__dirname,'..'),action=args[0];if(action==='capture'){await capture(root);console.log('Captured the active Worker and Pages recovery fingerprint.');}else if(action==='report'){reportFailure(root);console.log('Recorded read-only deployment recovery evidence.');}else throw Error('Use capture or report.');}
+async function main(args=process.argv.slice(2)){const root=path.resolve(__dirname,'..'),action=args[0];if(action==='capture'){await capture(root);console.log('Captured the active Worker and Pages recovery fingerprint.');}else if(action==='report'){await reportFailure(root);console.log('Recorded read-only deployment recovery evidence.');}else throw Error('Use capture or report.');}
 if(require.main===module)main().catch(error=>{console.error(error.message);process.exitCode=1;});
 module.exports={capture,currentVersion,pageSnapshot,readRecord,reportFailure,validVersion,writeRecord,wranglerStatus};

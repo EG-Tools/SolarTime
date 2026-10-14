@@ -1,5 +1,6 @@
 {
   "ui": {
+    "applyUpdate": "应用更新",
     "solarSystemMode": "太阳系模式",
     "constellationMode": "星座模式",
     "expandRotationTouch": "展开：长按",

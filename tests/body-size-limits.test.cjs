@@ -11,7 +11,7 @@ const plain=value=>JSON.parse(JSON.stringify(value));
 const sizes=r=>Object.fromEntries(r.allBodies().map(body=>[body.id,body.size*r.bodySizeScale(body)]));
 
 test('baseline slider ranges share the Moon/Pluto floor and the current parent ceiling',()=>{
- const r=fixture(),expected={sun:[1,3],mercury:[.25,4],venus:[.25,4],earth:[.25,4],mars:[.25,4],jupiter:[.125,2],saturn:[.125,2],uranus:[.125,2],neptune:[.125,2],pluto:[1,16],moon:[1,4],europa:[.5,4]};
+ const r=fixture(),expected={sun:[1,3],mercury:[.25,4],venus:[.25,4],earth:[.25,4],mars:[.25,4],jupiter:[.125,2],saturn:[.125,2],uranus:[.125,2],neptune:[.125,2],pluto:[1,16],moon:[.5,4],europa:[.5,4]};
  for(const [id,[min,max]] of Object.entries(expected))assert.deepEqual(plain(r.bodyScaleLimits(id)),{min,max},id);
 });
 
@@ -19,7 +19,8 @@ test('every body reaches its exact limits and satellites never exceed their pare
  for(const body of fixture().allBodies()){
   const r=fixture(),limits=r.bodyScaleLimits(body);
   assert.equal(r.setBodyScale(body.id,-100),true);close(r.bodySizeScale(body),limits.min);
-  if(body.id!=='sun')close(sizes(r)[body.id],A.MOON.size);
+  if(body.id==='moon')close(sizes(r).moon,A.MOON.size*.5);
+  else if(body.id!=='sun')close(sizes(r)[body.id],A.MOON.size);
   r.setBodyScale(body.id,10000);close(r.bodySizeScale(body),limits.max);
   if(body.id!=='sun')close(sizes(r)[body.id],sizes(r)[body.parent||'sun']);
  }
@@ -62,7 +63,7 @@ test('fractional percent floors and dynamic maxima retain exact 0.1% precision',
  r.setBodyScale('jupiter',.126);close(r.bodySizeScale('jupiter'),.126);
  r.setBodyScale('earth',1.337);close(r.bodyScaleLimits('moon').max,5.348);
  r.setBodyScale('moon',100);close(r.bodySizeScale('moon'),5.348);
- r.setBodyScale('moon',-1);close(r.bodySizeScale('moon'),1);r.setBodyScale('pluto',-1);close(r.bodySizeScale('pluto'),1);
+ r.setBodyScale('moon',-1);close(r.bodySizeScale('moon'),.5);r.setBodyScale('pluto',-1);close(r.bodySizeScale('pluto'),1);
 });
 
 test('physical mode still locks planet controls and uses unchanged physical radii',()=>{

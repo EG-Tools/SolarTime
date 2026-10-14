@@ -1550,7 +1550,7 @@
   }
   RingTour.cursorImage='url("data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g stroke="#d9e6f3" stroke-width="1.7" fill="#111b29"><path d="M10 14a6 6 0 0 1 12 0"/><ellipse cx="16" cy="17" rx="13" ry="5"/><path d="m11 24-2 4m7-4v5m5-5 2 4"/><path d="M9 17h1m5 1h2m5-1h1" stroke="white"/></g></svg>')+'")';
   RingTour.cursor=RingTour.cursorImage+' 16 16, pointer';
-  RingTour.atlasUrl='https://solar-time.keg0320.workers.dev/media/releases/content/textures/saturn-debris-atlas-v2-1024x512.eba63be4d82c5761d.webp';
+ RingTour.atlasUrl=root.SolarAssets?.effects?.saturnDebris||'';
   RingTour.settings=SETTINGS;
   RingTour.departureAnnotationOpacity=age=>1-smooth(age/SETTINGS.annotationHide);
   RingTour.screenAxis=screenAxis;

@@ -1,5 +1,6 @@
 {
   "copy": {
+    "applyUpdate": "Застосувати оновлення",
     "solarSystemMode": "Режим Сонячної системи",
     "constellationMode": "Режим сузір’їв",
     "expandRotationTouch": "Розгорнути: довге натискання",

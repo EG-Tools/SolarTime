@@ -3,12 +3,13 @@ const cacheUrl=file=>require('../tools/code-revisions.cjs').urlFor(require('node
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'../src/page-runtime.js'),'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-function harness({revision='r4',manifest={version:'0.46',revision:'r4'},small=true,coarse=true,standalone=false,legacyStandalone=false,storageFails=false,visual={width:390,height:844,offsetTop:0,offsetLeft:0,scale:1}}={}){
+function harness({buildId='',revision='r4',manifest={version:'0.46',revision:'r4'},small=true,coarse=true,standalone=false,legacyStandalone=false,storageFails=false,visual={width:390,height:844,offsetTop:0,offsetLeft:0,scale:1}}={}){
  const classes=new Set(),windowEvents={},documentEvents={},queries={},requests=[],redirects=[],storage=new Map(),intervals=[];
+ const notice={hidden:true,addEventListener(name,callback){this[name]=callback;}};
  const state={now:1000000,manifest,networkFails:false},css=new Map(),frames=new Map(),visualEvents={},notices=[];let frameId=0;
  const element={style:{setProperty:(key,value)=>css.set(key,value),removeProperty:key=>css.delete(key)},classList:{toggle(name,on){if(on)classes.add(name);else classes.delete(name);},contains:name=>classes.has(name)}};
  const document={documentElement:element,hidden:false,readyState:'loading',
-  querySelector:selector=>selector.includes('solar-time-version')?{content:'0.46'}:selector.includes('solar-time-revision')?{content:revision}:null,
+  querySelector:selector=>selector==='#update-notice'?notice:selector.includes('solar-time-build')?{content:buildId}:selector.includes('solar-time-version')?{content:'0.46'}:selector.includes('solar-time-revision')?{content:revision}:null,
   addEventListener:(name,callback)=>documentEvents[name]=callback};
  const window={document,navigator:{standalone:legacyStandalone},innerWidth:390,innerHeight:844,
   location:{protocol:'https:',href:'https://solartime.example/?saved=1',host:'solartime.example',replace:url=>redirects.push(url)},
@@ -26,7 +27,7 @@ function harness({revision='r4',manifest={version:'0.46',revision:'r4'},small=tr
  const context={window,URL,Date:class extends Date{static now(){return state.now;}},console};
  vm.runInNewContext(source,context);
  function tick(){const callbacks=[...frames.values()];frames.clear();for(const callback of callbacks)callback(state.now);}
- return {window,document,state,queries,classes,windowEvents,documentEvents,requests,redirects,storage,intervals,css,frames,visualEvents,notices,tick};
+ return {notice,window,document,state,queries,classes,windowEvents,documentEvents,requests,redirects,storage,intervals,css,frames,visualEvents,notices,tick};
 }
 test('unchanged r3 is not an update, but foregrounding detects r4 within five minutes',async()=>{
  const h=harness({revision:'r3',manifest:{version:'0.46',revision:'r3'}});await flush();
@@ -34,7 +35,7 @@ test('unchanged r3 is not an update, but foregrounding detects r4 within five mi
  h.state.manifest={version:'0.46',revision:'r4'};h.state.now+=1000;
  h.document.hidden=true;h.documentEvents.visibilitychange();await flush();assert.equal(h.requests.length,1);
  h.document.hidden=false;h.documentEvents.visibilitychange();await flush();
- assert.equal(h.requests.length,2);assert.equal(h.redirects.length,1);
+ assert.equal(h.requests.length,2);assert.equal(h.redirects.length,0);assert.ok(h.window.SolarPageRuntime.getPendingUpdate());h.window.SolarPageRuntime.applyUpdate();assert.equal(h.redirects.length,1);
  const next=new URL(h.redirects[0]);assert.equal(next.searchParams.get('revision'),'r4');assert.equal(next.searchParams.get('saved'),'1');assert.ok(next.searchParams.get('refresh'));
 });
 test('persisted pageshow checks immediately, while initial pageshow avoids duplicate fetches',async()=>{
@@ -50,19 +51,19 @@ test('visible pages poll every five minutes; hidden pages do not make requests',
 test('blocked session storage does not prevent an update and concurrent checks coalesce',async()=>{
  const h=harness({storageFails:true,manifest:{version:'0.46',revision:'r5'}});
  await Promise.all([h.window.SolarPageRuntime.checkForUpdate(true),h.window.SolarPageRuntime.checkForUpdate(true)]);await flush();
- assert.equal(h.requests.length,1);assert.equal(h.redirects.length,1);
+ assert.equal(h.requests.length,1);assert.equal(h.redirects.length,0);assert.ok(h.window.SolarPageRuntime.getPendingUpdate());h.window.SolarPageRuntime.applyUpdate();assert.equal(h.redirects.length,1);
 });
 test('offline update checks keep the page usable and can retry on foreground',async()=>{
  const h=harness();await flush();h.state.networkFails=true;await h.window.SolarPageRuntime.checkForUpdate(true);assert.equal(h.redirects.length,0);
- h.state.networkFails=false;h.state.manifest={version:'0.46',revision:'r5'};h.documentEvents.visibilitychange();await flush();assert.equal(h.redirects.length,1);
+ h.state.networkFails=false;h.state.manifest={version:'0.46',revision:'r5'};h.documentEvents.visibilitychange();await flush();assert.equal(h.redirects.length,0);assert.ok(h.window.SolarPageRuntime.getPendingUpdate());h.window.SolarPageRuntime.applyUpdate();assert.equal(h.redirects.length,1);
 });
 test('revision ordering is numeric and older or malformed manifests cannot cause reloads',async()=>{
  for(const revision of ['r2','r4','r0','r4-malformed','']){
   const h=harness({manifest:{version:'0.46',revision}});await flush();assert.equal(h.redirects.length,0,revision);
  }
- const h=harness({revision:'r9',manifest:{version:'0.46',revision:'r10'}});await flush();assert.equal(h.redirects.length,1);
+ const h=harness({revision:'r9',manifest:{version:'0.46',revision:'r10'}});await flush();assert.equal(h.redirects.length,0);assert.ok(h.window.SolarPageRuntime.getPendingUpdate());h.window.SolarPageRuntime.applyUpdate();assert.equal(h.redirects.length,1);
 });
-test('a recent attempted revision cannot create a stale-manifest reload loop',async()=>{
+test('polling never automatically reloads even with a stale previous attempt',async()=>{
  const h=harness();await flush();h.storage.set('solar-time.update-attempt',JSON.stringify({version:'0.46',revision:'r5',at:h.state.now}));
  h.state.manifest={version:'0.46',revision:'r5'};await h.window.SolarPageRuntime.checkForUpdate(true);assert.equal(h.redirects.length,0);
 });
@@ -78,7 +79,7 @@ test('phone layout supports coarse input and both forms of installed-app detecti
 test('page build metadata matches the release manifest independently of unchanged code bundles',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),release=JSON.parse(fs.readFileSync(path.join(__dirname,'../version.json'),'utf8'));
  const value=name=>new RegExp('<meta name="'+name+'" content="([^"]+)"').exec(html)?.[1];
- assert.equal(value('solar-time-version'),release.version);assert.equal(value('solar-time-revision'),release.revision);
+ assert.equal(value('solar-time-build'),release.buildId);assert.equal(value('solar-time-version'),release.version);assert.equal(value('solar-time-revision'),release.revision);
  assert.ok(html.includes(cacheUrl('src/page-runtime.js')));
  assert.ok(html.includes(cacheUrl('src/runtime-optimizations.css')));
  const h=harness();assert.equal(h.window.SolarBuild.revision,'r4');
@@ -191,7 +192,7 @@ test('Home Screen metadata selects one default status bar before startup scripts
 test('an existing r5 Home Screen page detects the newer status-bar page build',async()=>{
  const release=JSON.parse(fs.readFileSync(path.join(__dirname,'../version.json'),'utf8'));
  const h=harness({revision:'r5',manifest:release,standalone:true});await flush();
- assert.equal(h.redirects.length,1);
+ assert.equal(h.redirects.length,0);assert.ok(h.window.SolarPageRuntime.getPendingUpdate());h.window.SolarPageRuntime.applyUpdate();assert.equal(h.redirects.length,1);
  const next=new URL(h.redirects[0]);
  assert.equal(next.searchParams.get('revision'),release.revision);
  assert.equal(next.searchParams.get('saved'),'1');
@@ -211,7 +212,7 @@ test('layout diagnostics expose the declared status-bar setting without inferrin
 test('busy app and ringing dialogs defer updates without consuming the reload attempt',async()=>{
  const h=harness();await flush();let busy=true;h.window.SolarTime={canApplyUpdate:()=>!busy};h.state.manifest={version:'0.46',revision:'r5'};
  await h.window.SolarPageRuntime.checkForUpdate(true);assert.equal(h.redirects.length,0);assert.equal(h.storage.size,0);assert.equal(h.window.SolarPageRuntime.getPendingUpdate().revision,'r5');
- busy=false;await h.window.SolarPageRuntime.checkForUpdate(true);assert.equal(h.redirects.length,1);
+ busy=false;await h.window.SolarPageRuntime.checkForUpdate(true);assert.equal(h.redirects.length,0);assert.ok(h.window.SolarPageRuntime.getPendingUpdate());h.window.SolarPageRuntime.applyUpdate();assert.equal(h.redirects.length,1);
 });
 test('alarm dialog and audible media block reload even before app startup completes',async()=>{
  for(const kind of ['alarm','audio','loading']){
@@ -219,4 +220,20 @@ test('alarm dialog and audible media block reload even before app startup comple
  h.document.querySelector=selector=>kind==='alarm'&&selector==='#alarm-dialog'?{open:true}:kind==='audio'&&selector==='audio:not([data-preview])'?{paused:false}:kind==='loading'&&selector==='#loading'?{hidden:false}:query(selector);
  h.state.manifest={version:'0.46',revision:'r5'};await h.window.SolarPageRuntime.checkForUpdate(true);assert.equal(h.redirects.length,0,kind);
  }
+});
+
+test('same-version deployments and rollbacks show an update but never auto-reload',async()=>{
+ const h=harness({buildId:'aaaaaaaaaaaa',manifest:{version:'0.46',revision:'r4',buildId:'bbbbbbbbbbbb'}});await flush();
+ assert.equal(h.redirects.length,0);assert.equal(h.window.SolarPageRuntime.getPendingUpdate().buildId,'bbbbbbbbbbbb');
+ h.state.manifest={version:'0.45',revision:'r1',buildId:'cccccccccccc'};await h.window.SolarPageRuntime.checkForUpdate(true);
+ assert.equal(h.window.SolarPageRuntime.getPendingUpdate().buildId,'cccccccccccc');assert.equal(h.redirects.length,0);
+ h.state.manifest={version:'0.46',revision:'r4',buildId:'aaaaaaaaaaaa'};await h.window.SolarPageRuntime.checkForUpdate(true);
+ assert.equal(h.window.SolarPageRuntime.getPendingUpdate(),null);assert.equal(h.window.SolarPageRuntime.applyUpdate(),false);
+});
+
+test('update card renders after parsing and reloads only on click',async()=>{
+ const h=harness({buildId:'aaaaaaaaaaaa',manifest:{version:'0.46',revision:'r4',buildId:'bbbbbbbbbbbb'}});
+ await flush();h.documentEvents.DOMContentLoaded();assert.equal(h.notice.hidden,false);assert.equal(h.redirects.length,0);
+ h.notice.click();assert.equal(h.redirects.length,1);h.notice.click();assert.equal(h.redirects.length,1);
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');assert.ok(html.indexOf('name="solar-time-build"')<html.indexOf('src="src/page-runtime.js'));
 });

@@ -37,7 +37,7 @@
     ['openingPointReveal',['start']],['lookRelease',['start']],['bankRelease',['start']],
     ['ringTour.replayBridge',['start']],['ringTour',['lastMono']],['autoRotation',['mono']],['openingFlight',['mono']],
     ['sky.skySample',['time']],['sky.skyPrevious',['time']],['cameraTween.replay.skyFrom',['time']],
-    ['sky.starRemap',['start']],['actualScaleTween',['started']],['orbitSpacingTween',['started']]
+    ['sky.starRemap',['start']]
   ].map(([path,keys])=>({path:path?path.split('.'):[],keys}));
   function cameraFrame(state,bank=0){
     const a=state.azimuth,e=state.elevation,ca=Math.cos(a),sa=Math.sin(a),ce=Math.cos(e),se=Math.sin(e),cr=Math.cos(bank),sr=Math.sin(bank);
@@ -180,6 +180,7 @@
   const DISPLAY_SAFETY=Object.freeze({satelliteShell:.60,localGap:.8});
   const SATELLITE_ORBIT_PARENTS=new Set(SATELLITES.map(body=>body.parent));
   const ECLIPSE_CASTERS=Object.freeze({earth:'moon',jupiter:'europa'});
+  const ECLIPSE_NORMAL_SHADOW_SCALE=Object.freeze({moon:3,europa:1});
   // Preserve the physical umbra at the centre, but make the faint outer
   // footprint legible at ordinary planet-card scale. The surface owner treats
   // half of this presentation radius as the physical caster radius.
@@ -280,7 +281,7 @@
       const surface=this.gpu?.memoryUsage?.(),sky=this.sky?.memoryUsage?.();
       const activeTour=this.ringTour,ringTour=activeTour?.memoryUsage()||0;
       const preparedRingTour=this.preparedRingTour&&this.preparedRingTour!==activeTour?this.preparedRingTour.memoryUsage?.()||0:0,sprite=this.openingParticleSprite;
-      const flightAtlas=(sprite?.naturalWidth||sprite?.width||0)*(sprite?.naturalHeight||sprite?.height||0)*4;
+      const flightAtlas=(sprite?.naturalWidth||sprite?.width||0)*(sprite?.naturalHeight||sprite?.height||0)*4+(this.softFlightSprite?.width||0)*(this.softFlightSprite?.height||0)*4;
       const main=this.canvas,main2D=main?Math.max(0,main.width||0)*Math.max(0,main.height||0)*4:0;
       const composite=this.solarComposite?.canvas,composite2D=composite?Math.max(0,composite.width||0)*Math.max(0,composite.height||0)*4:0;
       const canvas2D=main2D+composite2D;
@@ -292,7 +293,7 @@
       if(duration>0&&Number.isFinite(mono))this.presentationUntil=Math.max(this.presentationUntil,mono+duration);
     }
     needsDraw(mono=performance.now()){
-      return !!this.pointerCoast||!!this.preparedRingTour?.needsWarmup()||!!this.gpu?.hasLodTransition?.(mono)||
+      return !!this.pointerCoast||!!this.cameraTween?.interactive||!!this.preparedRingTour?.needsWarmup()||!!this.gpu?.hasLodTransition?.(mono)||
         this.dirty||this.presentationDirty||this.resourceSignature()!==this.presentedResources||
         (!this.animationPaused&&(!!this.ringTour||!!this.cameraTween||!!this.skySolarTween||!!this.bankRelease||this.particleLifecycle().size>0||!!this.autoRotation||this.orbitRevealAlpha(mono)<.9999||mono<this.presentationUntil))||!!this.actualScaleTween||!!this.orbitSpacingTween||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
     }
@@ -578,10 +579,11 @@
       const body=typeof bodyOrId==='string'?this.allBodies().find(value=>value.id===bodyOrId):bodyOrId;
       if(!body)return {min:1,max:1};
       if(body.id==='sun')return {min:1,max:3};
-      // The minimum is the Moon/Pluto baseline, never the user's enlarged Moon.
-      // Planets can reach the current Sun; moons can reach their current parent.
+      // The shared minimum is the Moon/Pluto baseline, except that the Moon has
+      // an approved 50% presentation floor. Planets can reach the current Sun;
+      // moons can reach their current parent.
       const parent=body.parent?A.BODIES.find(value=>value.id===body.parent):A.SUN;
-      const min=A.MOON.size/body.size,max=parent.size*this.bodySizeScale(parent)/body.size;
+      const min=body.id==='moon'?.5:A.MOON.size/body.size,max=parent.size*this.bodySizeScale(parent)/body.size;
       return {min,max:Math.max(min,max)};
     }
     effectiveBodySizeScale(body) {const p=Number.isFinite(this.actualScaleMix)?this.actualScaleMix:0;return body.id==='sun'?Math.max(1,this.bodySizeScale(body)):mix(this.bodySizeScale(body),1,p);}
@@ -1361,7 +1363,7 @@
     // A retargeted focus transition retains its last rendered tracking anchor so
     // rapid planet navigation cannot restart from a different body position.
     animateCamera(state,mono=performance.now(),duration=1100,input=false,timing='smooth',tourReplay=false) {
-      mono=this.animationMono(mono);
+      if(timing==='opening')mono=this.animationMono(mono);
       if(!Renderer.validCamera(state)||!Number.isFinite(mono)||!Number.isFinite(duration))return false;
       if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       if(this.ringTour&&!tourReplay){
@@ -1406,7 +1408,7 @@
         }
       }else this.pendingOpeningAxes=null;
       const inputSlope=input&&Math.abs(to.dolly-from.dolly)>1e-12?clamp(inputVelocity*duration/(to.dolly-from.dolly),0,3):0;
-      this.cameraTween={from,to,start:mono,duration,input,inputSlope,timing:resolvedTiming,openingPath,openingTurn:openingAxes?.turn,openingBank:openingAxes?.bank,progress:0,fromAnchor:interruptedAnchor,bankFrom:this.flightBank||0};this.bankRelease=null;
+      this.cameraTween={from,to,start:mono,duration,input,inputSlope,interactive:resolvedTiming!=='opening',timing:resolvedTiming,openingPath,openingTurn:openingAxes?.turn,openingBank:openingAxes?.bank,progress:0,fromAnchor:interruptedAnchor,bankFrom:this.flightBank||0};this.bankRelease=null;
       if((this.skySolarMix||0)>0)this.cameraTween.skySolar={from:this.skySolarMix,to:0};
       if(resolvedTiming==='opening')this.cameraTween.rotationBlend={seconds:0,yaw:0,pitch:0};
       if(to.focus)this.prepareCloseup(to.focus);
@@ -1801,7 +1803,7 @@
     }
     releaseFlightParticleAtlas(){
       if(this.flightParticleImage)this.flightParticleImage.onload=this.flightParticleImage.onerror=null;
-      this.flightParticleImage=null;this.openingParticleSprite=null;this.saturnEntrySprite=null;
+      this.flightParticleImage=null;this.openingParticleSprite=null;this.softFlightSprite=null;this.saturnEntrySprite=null;
     }
     animationMono(mono=performance.now()){return this.animationPaused?this.animationPauseAt:mono;}
     shiftAnimationTime(delay){
@@ -1816,6 +1818,7 @@
       };
       for(const {path,keys} of ANIMATION_TIMESTAMPS){
         let object=this;for(const key of path)object=object?.[key];if(!object)continue;
+        if(object===this.cameraTween&&object.interactive)continue;
         shift(object,keys);
       }
       for(const field of this.particleLifecycle().fields()){
@@ -2057,7 +2060,7 @@
           rows.push({time:particleElapsed,distance:field.distance,axes,position});
         }
       }
-      if(field.exitAt===null)field.naturalExitAge=field.awaitingSaturn?null:Math.max(0,elapsed-(end-PARTICLE_TRANSITION.finalFade));
+      if(field.exitAt===null)field.naturalExitAge=field.awaitingSaturn||path.openingMove?null:Math.max(0,elapsed-(end-PARTICLE_TRANSITION.finalFade));
       const baseAlpha=this.replayParticleAlpha(particleElapsed,particlePath,field.velocity);
       field.alpha=field.exitAt===null?baseAlpha:field.exitBaseAlpha;
       return field;
@@ -2258,6 +2261,15 @@
       const retirement=500+lifetime*(path.inbound+WARP_PARTICLES.afterglow-500);
       const retireFade=Math.min(1000,retirement);
       const endDensity=p.edgeKeep===false?1-contraction:1-ease((arrival-retirement+retireFade)/retireFade);
+      if(path.openingMove&&!this.isSaturnEntryParticleField(field)){
+        // One envelope per opening grain. Multiplying arrival, cohort and
+        // cleanup fades squeezed their tails into a simultaneous blackout.
+        const phase=clamp(p.retirePhase??timing,0,1);
+        const finish=path.inbound+WARP_PARTICLES.afterglow*(.1+.9*phase);
+        const start=Math.max(path.inbound*.35,finish-(1400+1200*lifetime));
+        return (field.awaitingSaturn||field.holdExitEnvelope)?birthDensity
+          :birthDensity*(1-ease((arrival-start)/(finish-start)));
+      }
       const exitWindow=frame.exitWindow;
       const warpExit=path.openingMove?1:1-ease((arrival-timing*exitWindow*.267)
         /(exitWindow*(.333+lifetime*.4)));
@@ -2490,7 +2502,6 @@
       if(field.alpha<=0)return;
       if(field.replay||field.ambient){
         c.save();c.lineCap='round';
-        const path=this.particleFieldPath(field),elapsed=this.particleFieldElapsed(field);
         const points=field.saturnDrawPoints||field.points,count=points.length;
         const projected=field.saturnProjected||(field.saturnProjected=[]);
         for(let i=0;i<count;i++){
@@ -2503,21 +2514,7 @@
         c.globalCompositeOperation='source-over';
         for(let i=0;i<count;i++){
           const p=points[i],q=projected[i];if(!q?.paint)continue;
-          const radius=clamp(q.size*.23,.38,1.05)*(p.sizeScale??1),tail=Math.max(0,q.tail||0),glowScale=q.glowScale??1;
-          const halo=p.haloAlpha??(.045+.035*clamp(((p.glow??.8)-.8)/1.8,0,1));
-          if((field.ambient||(path.saturnTour&&this.replayOpeningAt(path)<=elapsed))&&tail<=.65){
-            c.fillStyle=FLIGHT_GLOW_COLORS[p.color??0];
-            c.globalAlpha=q.alpha*halo;c.beginPath();c.arc(q.x,q.y,radius*4.5*glowScale,0,TAU);c.fill();
-            c.globalAlpha=q.alpha*.3;c.beginPath();c.arc(q.x,q.y,radius*1.6*glowScale,0,TAU);c.fill();
-            c.globalAlpha=q.alpha;c.fillStyle='#edf7ff';c.beginPath();c.arc(q.x,q.y,radius*.5,0,TAU);c.fill();
-            continue;
-          }
-          c.strokeStyle=FLIGHT_GLOW_COLORS[p.color??0];c.beginPath();
-          if(tail>.65){c.moveTo(q.x-Math.cos(q.angle)*tail,q.y-Math.sin(q.angle)*tail);c.lineTo(q.x,q.y);}
-          else{c.moveTo(q.x-radius*.2,q.y);c.lineTo(q.x+radius*.2,q.y);}
-          c.globalAlpha=q.alpha*halo;c.lineWidth=radius*9*glowScale;c.stroke();
-          c.globalAlpha=q.alpha*.3;c.lineWidth=radius*3.2*glowScale;c.stroke();
-          c.globalAlpha=q.alpha;c.strokeStyle='#edf7ff';c.lineWidth=radius;c.stroke();
+          this.drawSoftFlightParticle(c,p,q);
         }
         c.restore();return;
       }
@@ -2528,6 +2525,8 @@
       for(let i=0;i<count;i++){
         const p=field.points[i],q=project(p,field,field.projected);
         if(!q.visible||q.alpha<1e-4)continue;
+        const fade=this.particleFadeScale(q.alpha);
+        c.save();c.translate(q.x,q.y);c.scale(fade,fade);c.translate(-q.x,-q.y);
         c.globalAlpha=q.alpha;
         if(atlas){
           // Alpha and compact glow are baked into the same tile: one image
@@ -2542,7 +2541,7 @@
           // Fixed at birth, never rerolled per frame. Stretch AFTER the local
           // rotation so the image varies but its trail follows forward motion.
           c.rotate(p.rotation||0);c.drawImage(sprite,sx,sy,96,96,-size/2,-size/2,size,size);c.restore();
-          continue;
+          c.restore();continue;
         }
         if(q.tail>2){
           c.save();c.translate(q.x,q.y);c.rotate(q.angle);
@@ -2552,7 +2551,35 @@
           c.drawImage(sprite,p.color*32,32,32,32,q.x-q.glowSize/2,q.y-q.glowSize/2,q.glowSize,q.glowSize);
           c.drawImage(sprite,p.color*32,0,32,32,q.x-q.size/2,q.y-q.size/2,q.size,q.size);
         }
+        c.restore();
       }
+      c.restore();
+    }
+    softFlightParticleSprite() {
+      if(this.softFlightSprite)return this.softFlightSprite;
+      const sprite=document.createElement('canvas');sprite.width=256;sprite.height=64;
+      const c=sprite.getContext('2d');
+      for(let i=0;i<FLIGHT_GLOW_COLORS.length;i++){
+        const x=i*64+32,color=FLIGHT_GLOW_COLORS[i],gradient=c.createRadialGradient(x,32,0,x,32,32);
+        gradient.addColorStop(0,'#edf7ff');gradient.addColorStop(.055,'#edf7ff');
+        gradient.addColorStop(.11,color+'b3');gradient.addColorStop(.22,color+'40');
+        gradient.addColorStop(.36,color+'10');gradient.addColorStop(.65,color+'06');
+        gradient.addColorStop(1,color+'00');c.fillStyle=gradient;c.fillRect(i*64,0,64,64);
+      }
+      return this.softFlightSprite=sprite;
+    }
+    particleFadeScale(alpha) {
+      // Contract the faint footprint so its last quantized alpha step cannot
+      // remove a broad, uniformly lit disc.
+      return Math.sqrt(ease(clamp(alpha/.12,0,1)));
+    }
+    drawSoftFlightParticle(c,p,q) {
+      const fade=this.particleFadeScale(q.alpha);
+      const radius=clamp(q.size*.23,.38,1.05)*(p.sizeScale??1);
+      const size=radius*9*(q.glowScale??1)*fade,tail=Math.max(0,q.tail||0)*fade;
+      if(size<=0)return;
+      c.save();c.globalAlpha=q.alpha;c.translate(q.x,q.y);c.rotate(q.angle||0);
+      c.drawImage(this.softFlightParticleSprite(),(p.color??0)*64,0,64,64,-size/2-tail,-size/2,size+tail,size);
       c.restore();
     }
     flightParticleSprite() {
@@ -2579,29 +2606,12 @@
     drawOrdinaryFlightParticles(c,field,project) {
       if(field.alpha<=0)return;
       if(field.replay){
-        // Three compact additive strokes give a blue/violet halo and a crisp
-        // ice-white core, without textures, per-grain gradients or shadow blur.
+        // Cached soft edges avoid a whole flat halo vanishing at one alpha step.
         c.save();c.globalCompositeOperation='lighter';c.lineCap='round';
         for(const p of field.points){
           const q=project(p,field,field.projected);
           if(!q.visible||q.alpha<1e-4)continue;
-          const radius=clamp(q.size*.23,.38,1.05)*(p.sizeScale??1),tail=Math.max(0,q.tail||0);
-          const halo=p.haloAlpha??(.045+.035*clamp(((p.glow??.8)-.8)/1.8,0,1));
-          if(field.replay.openingMove&&tail<=.65){
-            // Preserve the soft glow when its restored short trail is subpixel.
-            c.fillStyle=FLIGHT_GLOW_COLORS[p.color??0];
-            c.globalAlpha=q.alpha*halo;c.beginPath();c.arc(q.x,q.y,radius*4.5,0,TAU);c.fill();
-            c.globalAlpha=q.alpha*.3;c.beginPath();c.arc(q.x,q.y,radius*1.6,0,TAU);c.fill();
-            c.globalAlpha=q.alpha;c.fillStyle='#edf7ff';c.beginPath();c.arc(q.x,q.y,radius*.5,0,TAU);c.fill();
-            continue;
-          }
-          c.strokeStyle=FLIGHT_GLOW_COLORS[p.color??0];c.beginPath();
-          if(tail>.65){
-            c.moveTo(q.x-Math.cos(q.angle)*tail,q.y-Math.sin(q.angle)*tail);c.lineTo(q.x,q.y);
-          }else{c.moveTo(q.x-radius*.2,q.y);c.lineTo(q.x+radius*.2,q.y);}
-          c.globalAlpha=q.alpha*halo;c.lineWidth=radius*9;c.stroke();
-          c.globalAlpha=q.alpha*.3;c.lineWidth=radius*3.2;c.stroke();
-          c.globalAlpha=q.alpha;c.strokeStyle='#edf7ff';c.lineWidth=radius;c.stroke();
+          this.drawSoftFlightParticle(c,p,q);
         }
         c.restore();return;
       }
@@ -2611,6 +2621,8 @@
       for(const p of field.points){
         const q=project(p,field,field.projected);
         if(!q.visible||q.alpha<1e-4)continue;
+        const fade=this.particleFadeScale(q.alpha);
+        c.save();c.translate(q.x,q.y);c.scale(fade,fade);c.translate(-q.x,-q.y);
         c.globalAlpha=q.alpha;
         if(atlas){
           // Alpha and compact glow are baked into the same tile: one image
@@ -2625,7 +2637,7 @@
           // Fixed at birth, never rerolled per frame. Stretch AFTER the local
           // rotation so the image varies but its trail follows forward motion.
           c.rotate(p.rotation||0);c.drawImage(sprite,sx,sy,96,96,-size/2,-size/2,size,size);c.restore();
-          continue;
+          c.restore();continue;
         }
         if(q.tail>2){
           c.save();c.translate(q.x,q.y);c.rotate(q.angle);
@@ -2635,6 +2647,7 @@
           c.drawImage(sprite,p.color*32,32,32,32,q.x-q.glowSize/2,q.y-q.glowSize/2,q.glowSize,q.glowSize);
           c.drawImage(sprite,p.color*32,0,32,32,q.x-q.size/2,q.y-q.size/2,q.size,q.size);
         }
+        c.restore();
       }
       c.restore();
     }
@@ -2853,8 +2866,8 @@
       this.skySolarMix=mix(blend.from,blend.to,ease(u));this.skySolarTween=u<1?move:null;
     }
     advanceCamera(mono=performance.now()) {
-      mono=this.animationMono(mono);
-      this.advanceSkySolar(mono);
+      this.advanceSkySolar(this.animationMono(mono));
+      if(!this.cameraTween?.interactive)mono=this.animationMono(mono);
       const move=this.cameraTween;
       const releaseLook=()=>{if(!this.lookRelease)return;
         const release=this.lookRelease,p=ease((mono-release.start)/1000),from=release.from;
@@ -2910,6 +2923,7 @@
     }
     cancelCameraTween(mono=performance.now(),preserveParticles=false) {
       this.pointerCoast=null;
+      const cameraMono=mono;
       mono=this.animationMono(mono);
       if(this.cameraTween?.replay||this.cameraTween?.timing==='opening')this.setReplaySolarOpacity(1);
       // Every visible takeover uses the shared flight-particle fade. The old
@@ -2919,7 +2933,7 @@
         this.fadeOpeningParticleField(mono,PARTICLE_TRANSITION.finalFade,field);
       }
       if(this.cameraTween){
-        this.advanceCamera(mono);this.cameraTween=null;
+        this.advanceCamera(cameraMono);this.cameraTween=null;
         if(this.flightLook){this.lookRelease={from:this.flightLook,start:mono};this.invalidatePresentation(1000,mono);}
         // Do not release bank here. The next camera inherits the same baseline.
         this.bankRelease=null;
@@ -3198,17 +3212,27 @@
       job.cloudReveal=body.id==='earth'&&job.cloudAmount>0?this.cloudRevealProgress(mono):1;
       const light=direct?(job.light||(job.light=[0,0,0])):[0,0,0];
       light[0]=lightVector.x/len;light[1]=lightVector.y/len;light[2]=lightVector.z/len;job.light=light;
-      // Eclipse geometry uses physical radii and orbits, independently of the
-      // illustrative display scale. Reuse the frame's cached satellite ephemeris.
+      // Keep ephemeris alignment, but derive the shadow footprint from the same
+      // parent/satellite radius ratio used to draw the visible bodies.
       const caster=job.shadowCaster||(job.shadowCaster=[0,0,0,0]);caster[3]=0;
       job.shadowSpread=0;
-      const satellite=this.options.moon&&SATELLITES.find(value=>value.id===ECLIPSE_CASTERS[body.id]);
+      const orbitFraction=clamp((this.satelliteOrbitScale(body)-.01)/.99,0,1);
+      const shadowPhysicalMix=clamp(this.actualScaleMix||0,0,1);
+      // Ordinary view keeps its orbit-spacing response, but presents the
+      // illustrative Moon/Europa shadows at half of their previous footprint.
+      // True-scale view always returns to the physical footprint.
+      const eclipseCasterId=ECLIPSE_CASTERS[body.id];
+      const normalShadowScale=mix(.5,.175,orbitFraction)*(ECLIPSE_NORMAL_SHADOW_SCALE[eclipseCasterId]||1);
+      job.shadowScale=mix(normalShadowScale,1,shadowPhysicalMix);
+      const satellite=this.options.moon&&SATELLITES.find(value=>value.id===eclipseCasterId);
       if(satellite&&r>=4){
         const unit=this.satelliteUnitAt(satellite,ms),radiusAU=A.BODY_RADIUS_KM[body.id]/A.AU_KM;
         const scale=A.SATELLITE_MEAN_AU[satellite.id]/radiusAU,view=this.viewDirection(unit);
         caster[0]=view.x*scale;caster[1]=view.y*scale;caster[2]=view.z*scale;
         const along=caster[0]*light[0]+caster[1]*light[1]+caster[2]*light[2];
-        const moonRadius=A.BODY_RADIUS_KM[satellite.id]/A.BODY_RADIUS_KM[body.id];
+        const displayRatio=satellite.size*this.bodySizeScale(satellite)/Math.max(1e-12,body.size*this.bodySizeScale(body));
+        const physicalRatio=A.BODY_RADIUS_KM[satellite.id]/A.BODY_RADIUS_KM[body.id];
+        const moonRadius=mix(displayRatio,physicalRatio,shadowPhysicalMix);
         job.shadowSpread=A.BODY_RADIUS_KM.sun/A.AU_KM/len;
         const lateral=Math.hypot(caster[0]-along*light[0],caster[1]-along*light[1],caster[2]-along*light[2]);
         if(along>1&&lateral<1+moonRadius*ECLIPSE_FOOTPRINT_SCALE+(along+1)*job.shadowSpread)caster[3]=moonRadius*ECLIPSE_FOOTPRINT_SCALE;
@@ -4193,6 +4217,7 @@
     }
     draw(ms,seconds,mono=performance.now()) {
       this.advancePointerRotation(mono);
+      const cameraMono=mono;
       mono=this.animationMono(mono);
       this.updateTravelParticleBudget(mono);
       const prepared=this.preparedRingTour;
@@ -4204,7 +4229,7 @@
       this.prepareReplayFrame(mono);
       if(this.drawRingTour(ms,seconds,mono))return;
       this.resumeTravelFocus(mono,ms);
-      this.advanceActualScale(mono);this.advanceCamera(mono);this.advanceAutoRotate(mono);
+      this.advanceActualScale(cameraMono);this.advanceCamera(cameraMono);this.advanceAutoRotate(mono);
       const c=this.ctx;this.frameCount++;c.clearRect(0,0,this.w,this.h);
       if(this.dirty||!Number.isFinite(this.lastPathMs)||A.modelYear(ms)!==this.pathYear)this.rebuild(ms);
       this.sky.draw(seconds,this.replaySkyCamera(this.bankedSkyCamera(),mono),this.options,this.manualBackgroundStars?.offset);

@@ -1,5 +1,101 @@
 [
   {
+    "version": "0.79",
+    "date": "2026.10.14",
+    "localized": {
+      "kor": [
+        "작은 화면에서 시계 상단 문구가 사라지는 문제를 수정했습니다.",
+        "오프닝·워프 파티클이 더 부드럽게 사라지도록 개선했습니다.",
+        "달·유로파의 일식 그림자 표현을 개선했습니다.",
+        "새 업데이트 알림을 추가하고 미디어 응답 처리와 음원 검증을 강화했습니다."
+      ],
+      "en": [
+        "Fixed the text above the clock disappearing on small screens.",
+        "Made opening and warp particles fade out more smoothly.",
+        "Improved eclipse shadows cast by the Moon and Europa.",
+        "Added update notifications and improved media response handling and audio validation."
+      ],
+      "chn": [
+        "修复了小屏幕上时钟上方文字消失的问题。",
+        "让开场和跃迁粒子更平滑地淡出。",
+        "改进了月球和木卫二投射的日食阴影。",
+        "新增更新通知，并加强了媒体响应处理和音频验证。"
+      ],
+      "zht": [
+        "修正了小螢幕上時鐘上方文字消失的問題。",
+        "讓開場與躍遷粒子更平滑地淡出。",
+        "改善了月球與木衛二投射的日食陰影。",
+        "新增更新通知，並加強媒體回應處理與音訊驗證。"
+      ],
+      "jpn": [
+        "小さい画面で時計上部の文言が消える問題を修正しました。",
+        "オープニングとワープの粒子がより滑らかに消えるよう改善しました。",
+        "月とエウロパによる日食の影の表現を改善しました。",
+        "更新通知を追加し、メディア応答処理と音源の検証を強化しました。"
+      ],
+      "de": [
+        "Ein Fehler wurde behoben, durch den der Text über der Uhr auf kleinen Bildschirmen verschwand.",
+        "Partikel beim Start und beim Warp blenden jetzt sanfter aus.",
+        "Die Finsternisschatten von Mond und Europa wurden verbessert.",
+        "Update-Hinweise wurden ergänzt sowie Medienantworten und die Audioprüfung verbessert."
+      ],
+      "fr": [
+        "Correction de la disparition du texte au-dessus de l’horloge sur les petits écrans.",
+        "Disparition plus progressive des particules d’introduction et de saut spatial.",
+        "Amélioration des ombres d’éclipse projetées par la Lune et Europe.",
+        "Ajout des notifications de mise à jour et amélioration du traitement des réponses multimédias et de la validation audio."
+      ],
+      "es": [
+        "Corregida la desaparición del texto sobre el reloj en pantallas pequeñas.",
+        "Las partículas de apertura y salto espacial se desvanecen con mayor suavidad.",
+        "Mejoradas las sombras de eclipse proyectadas por la Luna y Europa.",
+        "Añadidas notificaciones de actualización y mejorados el procesamiento de respuestas multimedia y la validación de audio."
+      ],
+      "pt": [
+        "Corrigido o desaparecimento do texto acima do relógio em telas pequenas.",
+        "As partículas de abertura e salto espacial agora desaparecem mais suavemente.",
+        "Melhoradas as sombras de eclipse projetadas pela Lua e por Europa.",
+        "Adicionadas notificações de atualização e aprimorados o tratamento de respostas de mídia e a validação de áudio."
+      ],
+      "it": [
+        "Corretto il testo sopra l’orologio che scompariva sugli schermi piccoli.",
+        "Le particelle dell’apertura e del salto spaziale ora svaniscono più gradualmente.",
+        "Migliorate le ombre delle eclissi proiettate dalla Luna e da Europa.",
+        "Aggiunte notifiche degli aggiornamenti e migliorati la gestione delle risposte multimediali e il controllo dell’audio."
+      ],
+      "nl": [
+        "Opgelost dat de tekst boven de klok op kleine schermen verdween.",
+        "Deeltjes tijdens de opening en warp vervagen nu vloeiender.",
+        "De verduisteringsschaduwen van de maan en Europa verbeterd.",
+        "Updatemeldingen toegevoegd en de verwerking van media-antwoorden en audiocontrole verbeterd."
+      ],
+      "id": [
+        "Memperbaiki teks di atas jam yang menghilang pada layar kecil.",
+        "Partikel pembuka dan warp kini memudar lebih halus.",
+        "Memperbaiki bayangan gerhana yang dihasilkan Bulan dan Europa.",
+        "Menambahkan pemberitahuan pembaruan serta meningkatkan penanganan respons media dan validasi audio."
+      ],
+      "hi": [
+        "छोटी स्क्रीन पर घड़ी के ऊपर का पाठ गायब होने की समस्या ठीक की गई।",
+        "शुरुआती दृश्य और वार्प के कण अब अधिक सहजता से धुंधले होकर गायब होते हैं।",
+        "चंद्रमा और यूरोपा से पड़ने वाली ग्रहण की छायाओं में सुधार किया गया।",
+        "अपडेट सूचनाएँ जोड़ी गईं और मीडिया प्रतिक्रिया प्रबंधन तथा ऑडियो सत्यापन को बेहतर बनाया गया।"
+      ],
+      "ru": [
+        "Исправлено исчезновение текста над часами на небольших экранах.",
+        "Частицы вступления и варп-перехода теперь исчезают плавнее.",
+        "Улучшены тени затмений от Луны и Европы.",
+        "Добавлены уведомления об обновлениях, улучшены обработка медиаответов и проверка аудио."
+      ],
+      "uk": [
+        "Виправлено зникнення тексту над годинником на малих екранах.",
+        "Частинки вступу й варп-переходу тепер зникають плавніше.",
+        "Поліпшено тіні затемнень від Місяця та Європи.",
+        "Додано сповіщення про оновлення, поліпшено обробку медіавідповідей і перевірку аудіо."
+      ]
+    }
+  },
+  {
     "version": "0.78",
     "date": "2026.10.13",
     "localized": {
@@ -920,102 +1016,6 @@
         "Поліпшено керування камерою, переходи стеження, реальний масштаб і відстані між орбітами.",
         "Оновлено елементи керування вирівнюванням планет, довідку та гарячі клавіші.",
         "Оптимізовано хмари, рендеринг орбіт і початкове завантаження."
-      ]
-    }
-  },
-  {
-    "version": "0.69",
-    "date": "2026.09.30",
-    "localized": {
-      "kor": [
-        "지구 구름 표현·성능을 개선하고, 범위는 0~100%, 기본값은 100%로 정리했습니다.",
-        "금성 지표·구름 조절을 추가하고 근접 로딩을 개선했습니다. 구름 기본값은 80%입니다.",
-        "구름 조절 위치·시계 간격을 정리하고 WeChat 후원을 추가했습니다.",
-        "최근 10개 업데이트는 13개 언어로, 전체 기록은 한국어로 자동 관리합니다."
-      ],
-      "en": [
-        "Improved Earth cloud visuals and performance; range 0–100%, default 100%.",
-        "Added Venus terrain and cloud controls with smoother close-up loading; default 80%.",
-        "Refined cloud-control placement and clock spacing, and added WeChat donations.",
-        "Automated the latest 10 updates in 13 languages and the full Korean archive."
-      ],
-      "chn": [
-        "改善地球云层效果与性能，范围为0–100%，默认100%。",
-        "新增金星地表与云层调节，改善近距离加载；默认80%。",
-        "调整云层控件位置和时钟间距，新增WeChat赞助。",
-        "自动管理最近10次更新的13种语言版本及完整韩语记录。"
-      ],
-      "zht": [
-        "改善地球雲層效果與效能，範圍為0–100%，預設100%。",
-        "新增金星地表與雲層調整，改善近距離載入；預設80%。",
-        "調整雲層控制項位置和時鐘間距，新增WeChat贊助。",
-        "自動管理最近10次更新的13種語言版本及完整韓語紀錄。"
-      ],
-      "jpn": [
-        "地球の雲の表現と処理性能を改善。調整範囲は0〜100%、初期値は100%です。",
-        "金星の地表と雲の調整を追加し、近距離の読み込みを改善。初期値は80%です。",
-        "雲の操作位置と時計の間隔を調整し、WeChatでの支援を追加しました。",
-        "直近10件を13言語で、全履歴を韓国語で自動管理します。"
-      ],
-      "hi": [
-        "पृथ्वी के बादलों का दृश्य और प्रदर्शन सुधारा; सीमा 0–100%, डिफ़ॉल्ट 100%।",
-        "शुक्र की सतह और बादल नियंत्रण जोड़े, नज़दीकी लोडिंग सुधारी; डिफ़ॉल्ट 80%।",
-        "बादल नियंत्रण की जगह और घड़ी का अंतर सुधारा, WeChat से सहयोग जोड़ा।",
-        "नवीनतम 10 अपडेट 13 भाषाओं में और पूरा कोरियाई इतिहास स्वतः व्यवस्थित होता है।"
-      ],
-      "es": [
-        "Mejoradas las nubes terrestres y su rendimiento: rango de 0–100%, con 100% por defecto.",
-        "Añadidos terreno y nubes de Venus, con mejor carga de cerca y 80% por defecto.",
-        "Ajustados los controles de nubes y el espacio del reloj; añadidas donaciones con WeChat.",
-        "Automatizadas las últimas 10 actualizaciones en 13 idiomas y el archivo completo en coreano."
-      ],
-      "de": [
-        "Erdwolken und Leistung verbessert: Bereich 0–100%, Standardwert 100%.",
-        "Venusoberfläche und Wolkenregler ergänzt, mit besserem Laden aus der Nähe; Standardwert 80%.",
-        "Wolkenregler und Uhrenabstände angepasst; WeChat-Spenden ergänzt.",
-        "Die letzten 10 Updates in 13 Sprachen und das vollständige koreanische Archiv werden automatisch verwaltet."
-      ],
-      "fr": [
-        "Nuages terrestres et performances améliorés : plage de 0 à 100%, avec 100% par défaut.",
-        "Ajout du terrain et des nuages de Vénus, avec un chargement rapproché amélioré ; 80% par défaut.",
-        "Réglages des nuages et espacement de l’horloge ajustés ; ajout des dons WeChat.",
-        "Gestion automatisée des 10 dernières mises à jour en 13 langues et de l’archive complète en coréen."
-      ],
-      "pt": [
-        "Melhorados os visuais e o desempenho das nuvens terrestres: faixa de 0–100%, padrão de 100%.",
-        "Adicionados terreno e controle de nuvens de Vênus, com melhor carregamento de perto; padrão de 80%.",
-        "Ajustados os controles de nuvens e o espaçamento do relógio; adicionadas doações por WeChat.",
-        "Automatizadas as últimas 10 atualizações em 13 idiomas e o arquivo completo em coreano."
-      ],
-      "it": [
-        "Migliorate le nuvole terrestri e le prestazioni: intervallo 0–100%, predefinito 100%.",
-        "Aggiunti superficie e controllo delle nuvole di Venere, con caricamento ravvicinato migliorato; predefinito 80%.",
-        "Sistemati controlli delle nuvole e spazi dell’orologio; aggiunte donazioni WeChat.",
-        "Gestione automatica degli ultimi 10 aggiornamenti in 13 lingue e dell’archivio completo in coreano."
-      ],
-      "id": [
-        "Tampilan dan kinerja awan Bumi ditingkatkan; rentang 0–100%, nilai bawaan 100%.",
-        "Permukaan dan kontrol awan Venus ditambahkan, pemuatan jarak dekat ditingkatkan; nilai bawaan 80%.",
-        "Posisi kontrol awan dan jarak jam dirapikan; donasi WeChat ditambahkan.",
-        "Sepuluh pembaruan terbaru dalam 13 bahasa dan arsip lengkap bahasa Korea dikelola otomatis."
-      ],
-      "nl": [
-        "Aardwolken en prestaties verbeterd: bereik 0–100%, standaard 100%.",
-        "Venusoppervlak en wolkenregeling toegevoegd, met beter laden van dichtbij; standaard 80%.",
-        "Wolkenbediening en klokafstand aangepast; WeChat-donaties toegevoegd.",
-        "De laatste 10 updates in 13 talen en het volledige Koreaanse archief worden automatisch beheerd."
-      ],
-      "ru": [
-        "Улучшены вид и производительность облаков Земли; диапазон 0–100%, по умолчанию 100%.",
-        "Добавлены рельеф Венеры и управление облаками с более плавной загрузкой при приближении; по умолчанию 80%.",
-        "Уточнено расположение управления облаками и интервалы часов, добавлены пожертвования через WeChat.",
-        "Автоматизированы последние 10 обновлений на 13 языках интерфейса и полный корейский архив."
-      ],
-      "uk": [
-        "Поліпшено вигляд і продуктивність хмар Землі; діапазон 0–100%, типово 100%.",
-        "Додано рельєф Венери та керування хмарами з плавнішим завантаженням зблизька; типово 80%.",
-        "Уточнено розташування керування хмарами й інтервали годинника, додано пожертви через WeChat.",
-        "Автоматизовано останні 10 оновлень 13 мовами інтерфейсу та повний корейський архів."
       ]
     }
   }

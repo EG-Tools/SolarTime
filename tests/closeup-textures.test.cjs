@@ -60,8 +60,10 @@ test('completed texture swaps blend through the existing recent cache, including
 
 test('staged 4K upload keeps the complete preview resident until the final strip is uploaded',async()=>{
  const f=fixture({staged:true});f.focus('earth');
- f.r.textureFor('earth',4096);await turn();f.r.textureFor('earth',4096);await turn();
- while(f.uploadFrames.size){const callbacks=[...f.uploadFrames.values()];f.uploadFrames.clear();callbacks.forEach(fn=>fn());await turn();}
+ for(let tier=0;tier<2;tier++){
+  f.r.textureFor('earth',4096);await turn();
+  while(f.uploadFrames.size){const callbacks=[...f.uploadFrames.values()];f.uploadFrames.clear();callbacks.forEach(fn=>fn());await turn();}
+ }
  f.strips.length=0;
  const preview=f.r.textures.get('earth').texture;assert.equal(f.r.textures.get('earth').width,1024);
  f.r.textureFor('earth',4096);await turn();let frames=0;
@@ -219,6 +221,8 @@ test('approved texture/audio manifest, compression and helper stay unchanged',()
   // URL generation byte-for-byte against the original texture baseline.
   if(name==='assets/manifest.json'){
    const manifest=JSON.parse(bytes);delete manifest.materials['saturn-ring'];delete manifest.sky.localPreview;delete manifest.sky.galaxyAtlas;delete manifest.sky.galaxyIndices;
+   // The newly registered debris atlas is pinned by the incremental media test.
+   delete manifest.effects;
    bytes=Buffer.from(JSON.stringify(manifest,null,2)+'\n');
   }
   // Normalize Windows helper line endings only.

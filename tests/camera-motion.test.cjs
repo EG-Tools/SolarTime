@@ -284,7 +284,7 @@ test('Saturn t1 entry accelerates from rest and keeps the ordinary warp clock un
 });
 test('Saturn entry profile owns one non-additive painter',()=>{
  const source=read('src/renderer.js'),method=source.slice(source.indexOf('    drawSaturnFlightParticles('),source.indexOf('    drawFlightParticles('));
-  for(const value of ["c.globalCompositeOperation='source-over'","FLIGHT_GLOW_COLORS[p.color??0]","this.saturnEntryParticleAlpha(p,field)"])assert.ok(method.includes(value),value);
+  for(const value of ["c.globalCompositeOperation='source-over'","this.drawSoftFlightParticle(c,p,q)","this.saturnEntryParticleAlpha(p,field)"])assert.ok(method.includes(value),value);
   assert.doesNotMatch(method,/styleMix|transitionSeed|saturn-entry-v071|saturnEntrySprite/);
 });
 test('Saturn t1 grains retain their staggered fade for half a second after landing',()=>{
@@ -298,14 +298,14 @@ test('Saturn t1 grains retain their staggered fade for half a second after landi
  tour.age=10.499;assert.equal(r.openingParticleFrame(10499),field);
  tour.age=10.5;assert.equal(r.openingParticleFrame(10500),null);assert.equal(r.openingParticles,null);assert.equal(field.points.length,0);
 });
-test('Saturn entry limits only the random halo to the requested seven-pixel range',()=>{
- const {r}=renderer(),arcs=[],p={rotation:0,sizeScale:2};
- const c={save(){},restore(){},beginPath(){},arc(x,y,radius){arcs.push(radius);},fill(){},stroke(){}};
- const field={alpha:1,elapsed:3000,replay:{saturnTour:{},resetAt:0,brakeAt:10000},points:[p],projected:{}};
+test('Saturn entry uses the same soft grain and retains its compact halo limit',()=>{
+ const {r}=renderer(),draws=[];r.softFlightParticleSprite=()=>({});
+ const c={save(){},restore(){},translate(){},rotate(){},drawImage(...args){draws.push(args);}};
+ const field={alpha:1,elapsed:3000,replay:{saturnTour:{},resetAt:0,brakeAt:10000},points:[{rotation:0,sizeScale:2}],projected:{}};
  r.drawSaturnFlightParticles(c,field,()=>({visible:true,alpha:1,size:4.5,glowSize:12,glowScale:.7,tail:0,angle:0,x:20,y:20}));
- const coreRadius=Math.min(1.05,Math.max(.38,4.5*.23))*2*.5;
- assert.equal(arcs.length,3);assert.ok(arcs[0]>=1&&arcs[0]<=7);assert.ok(arcs[1]<arcs[0]);close(arcs[2],coreRadius);
+ assert.equal(draws.length,1);assert.ok(draws[0][8]/2<=7);assert.equal(c.globalCompositeOperation,'source-over');
 });
+
 test('an early Saturn return uses the shared particle fade instead of clearing its pool',()=>{
  const {r}=renderer(),tour=entryTour();r.ringTour=tour;r.sky.starAxes={right:[1,0,0],down:[0,1,0],forward:[0,0,1]};r.startSaturnParticles(tour,0);
  tour.age=4;r.openingParticleFrame(4000);const field=r.openingParticles,count=field.points.length;tour.state='returning';
@@ -820,7 +820,7 @@ test('boot opening begins at warp arrival and preserves its camera and fade life
    for(const key of ['velocity','travel','formation','tailScale'])close(boot[key],exit[key]);
    const fadeT=A.clamp((elapsed-(duration+800))/1200,0,1),grainFade=A.clamp((fadeT-.4)/.6,0,1);
    close(boot.alpha,exit.alpha);
-   close(r.particleRetirementAlpha({retirePhase:1},boot),1-grainFade**3*(grainFade*(grainFade*6-15)+10));
+   close(r.particleRetirementAlpha({retirePhase:1},boot),1);
    const alphas=boot.points.map(p=>{const q=r.projectOpeningParticle(p,boot,{});assert.ok([q.x,q.y,q.tail,q.alpha].every(Number.isFinite));return q.alpha;});
    if(elapsed===0)assert.ok(alphas.every(alpha=>alpha===0));else assert.ok(alphas.some(alpha=>alpha>0));assert.equal(r.openingParticles,pool);
   }
@@ -882,7 +882,7 @@ test('boot and warp particles keep approaching while their random alpha fades',(
   if(boot){r.restoreCamera(r.openingCameraSnapshot(target));r.animateOpeningCamera(target,0,6500);}
   else{r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);r.cameraTween.replay.brakeAt=4300;r.cameraTween.replay.resetAt=7000;}
   const end=boot?6500:9000,first={...r.openingParticleFrame(end)};
-  const p={...first.points[0],life:5000,rotation:0,x:.25,y:.1,depth:((2+first.travel*.5-.04)%5)+.04,speed:.1};
+  const p={...first.points[0],life:5000,retirePhase:1,rotation:0,x:.25,y:.1,depth:((2+first.travel*.5-.04)%5)+.04,speed:.1};
   // Isolate forward perspective from the separate camera heading projection.
   const project=f=>r.projectOpeningParticle(p,{...f,headingX:0,headingY:0,flowX:0,flowY:0,bendX:0,bendY:0,vanishingX:0,vanishingY:0},{});
   const a=project(first),later={...r.openingParticleFrame(end+1000)},b=project(later);
@@ -1518,19 +1518,19 @@ test('sixteen flight variants keep fixed random birth angles and the existing ra
 
 
 
-test('warp draws continuous additive trails with stable halos and no texture requests',()=>{
- const {r}=renderer();r.loadFlightParticleAtlas=()=>{throw Error('warp cannot request an atlas');};
- let head,strokes=[];const c={save(){},restore(){},beginPath(){},moveTo(x,y){head=[x,y];},
-  lineTo(x,y){assert.ok(Number.isFinite(x+y));},stroke(){strokes.push([this.globalAlpha,this.lineWidth,this.strokeStyle,this.globalCompositeOperation]);},
-  drawImage(){throw Error('warp cannot draw a texture');}};
- const field={replay:{},points:[0,1,2,3].map(color=>({color,glow:.8+color*.6,sizeScale:1.5+color*2.5/3})),projected:{}};
- const project=p=>({visible:true,alpha:.5,x:50,y:50,size:4,tail:p.color?25:0,angle:.6});
- r.drawFlightParticles(c,field,project);assert.equal(strokes.length,12);
- field.points.forEach((p,i)=>close(strokes[i*3+2][1],.92*p.sizeScale));
- assert.ok(strokes.every(s=>s[3]==='lighter'));
- assert.ok(strokes.filter((_,i)=>i%3===0).every(s=>s[0]<.05));
- assert.ok(strokes.filter((_,i)=>i%3===2).every(s=>s[0]===.5&&s[2]==='#edf7ff'));
- const first=strokes;strokes=[];r.drawFlightParticles(c,field,project);assert.deepEqual(strokes,first);
+test('opening and warp share cached soft grains and a continuous faint footprint',()=>{
+ const {r}=renderer();r.loadFlightParticleAtlas=()=>{throw Error('no network texture request');};
+ const sprite={};r.softFlightParticleSprite=()=>sprite;let draws=[];
+ const c={save(){},restore(){},translate(){},rotate(){},drawImage(...args){draws.push(args);}};
+ const field={replay:{},points:[0,1,2,3].map(color=>({color,sizeScale:3})),projected:{}};
+ r.drawFlightParticles(c,field,p=>({visible:true,alpha:.5,x:50,y:50,size:4,tail:25,angle:.6}));
+ assert.equal(draws.length,4);assert.ok(draws.every(d=>d[0]===sprite));assert.equal(c.globalCompositeOperation,'lighter');
+ for(const alpha of [0,.001,.01,.03,.06,.12,1]){
+  const scale=r.particleFadeScale(alpha);assert.ok(Number.isFinite(scale)&&scale>=0&&scale<=1);
+ }
+ close(r.particleFadeScale(0),0);close(r.particleFadeScale(.12),1);
+ let last=0;for(let i=0;i<=120;i++){const scale=r.particleFadeScale(i/1000);assert.ok(scale>=last&&scale-last<.02);last=scale;}
+ draws=[];field.replay.openingMove={};r.drawFlightParticles(c,field,()=>({visible:true,alpha:0,x:50,y:50,size:4,tail:0}));assert.equal(draws.length,0);
 });
 
 test('flight atlas is loaded once, falls back on error, and ignores late completion after disposal',()=>{
@@ -2160,4 +2160,79 @@ test('wheel retarget from a satellite closeup uses the incoming distance even be
  r.projected=[target];r.smoothDolly(60*1.226,'moon',0);
  assert.equal(r.cameraTween.to.focus,'moon');assert.ok(r.cameraTween.to.dolly<4,'old 60x satellite dolly must not transfer to the Moon');
  const first=r.cameraTween.to.dolly;r.advanceCamera(150);r.smoothDolly(first*1.226,'moon',200);close(r.cameraTween.to.dolly,first*1.226);
+});
+
+test('ordinary opening grains fade separately to zero before natural cleanup',()=>{
+ const {r}=renderer(),path={openingMove:{},inbound:6500,brakeAt:0},field={replay:path,awaitingSaturn:false,exitAt:null};
+ const endings=[];
+ for(const phase of [0,.25,.5,.75,1]){
+  const p={retirePhase:phase,edgeKeep:true,earlyKeep:true};let last=1,end=0;
+  for(let arrival=3000;arrival<=8512;arrival+=16){
+   const alpha=r.particleArrivalEnvelope(p,field,{arrival,early:1,exitWindow:6200},path,arrival,.5,.5,1);
+   assert.ok(alpha<=last+1e-9);assert.ok(last-alpha<.025,'no one-frame drop');if(alpha>1e-4)end=arrival;last=alpha;
+  }
+  assert.equal(last,0);endings.push(end);
+ }
+ assert.ok(endings[4]-endings[0]>1500,'tail completion is spread across grains');
+});
+
+test('soft flight gradient is built once and released with particle resources',()=>{
+ const {r,sandbox}=renderer();let canvases=0,gradients=0;
+ sandbox.document={createElement(){canvases++;return {getContext(){return {createRadialGradient(){gradients++;return {addColorStop(){}};},fillRect(){}};}};}};
+ const sprite=r.softFlightParticleSprite();assert.strictEqual(r.softFlightParticleSprite(),sprite);
+ assert.equal(canvases,1);assert.equal(gradients,4);assert.equal(r.memoryUsage().flightAtlas,256*64*4);
+ r.releaseFlightParticleAtlas();assert.equal(r.softFlightSprite,null);assert.equal(r.memoryUsage().flightAtlas,0);
+});
+
+test('Moon and Europa shadow footprints follow both displayed radii and return to physical ratios',()=>{
+ for(const [parentId,satelliteId] of [['earth','moon'],['jupiter','europa']]){
+  const {r}=renderer(),parent=A.BODIES.find(b=>b.id===parentId),sat=A.SATELLITES.find(b=>b.id===satelliteId);
+  r.dpr=1;r.physicsBodies=new Map();r.physicsSatellites=new Map();r.options.moon=true;r.options.earthCloudAmount=0;r.options.nightLights=true;
+  r.bodyScales={[parentId]:1,[satelliteId]:1};
+  const normalScale=satelliteId==='moon'?3:1;
+  const event=A.eclipseEvent(sat,Date.parse('2026-10-14T00:00:00Z'),1),physical=A.positionAt(parent,event.ms);
+  const job=()=>r.surfaceJob(parent,physical,200,event.ms,0,true);
+  const baseline=job().shadowCaster[3];assert.ok(baseline>0);close(job().shadowScale,.175*normalScale);
+  r.bodyScales[satelliteId]=2;close(job().shadowCaster[3],baseline*2);
+  r.bodyScales[parentId]=2;close(job().shadowCaster[3],baseline);
+  r.satelliteOrbitScales={[parentId]:.01};close(job().shadowScale,.5*normalScale);
+  r.satelliteOrbitScales[parentId]=.505;close(job().shadowScale,.3375*normalScale);
+  r.satelliteOrbitScales[parentId]=1;
+  r.options.actualOrbitSpacing=1;r.actualScaleMix=.5;close(job().shadowScale,(.175*normalScale+1)/2);
+  r.actualScaleMix=1;close(job().shadowScale,1);r.satelliteOrbitScales[parentId]=.01;close(job().shadowScale,1);close(job().shadowCaster[3],2*A.BODY_RADIUS_KM[satelliteId]/A.BODY_RADIUS_KM[parentId]);
+  for(const spacing of [0,.25,.5,.75,1]){
+   r.options.actualOrbitSpacing=spacing;r.orbitSpacingTween={value:spacing};
+   for(const local of [.01,.5,1]){
+    r.satelliteOrbitScales[parentId]=local;
+    close(job().shadowScale,1);close(job().shadowCaster[3],2*A.BODY_RADIUS_KM[satelliteId]/A.BODY_RADIUS_KM[parentId]);
+   }
+  }
+  r.orbitSpacingTween=null;
+
+ }
+});
+
+test('paused inspection camera moves smoothly and resume does not rebase its clock',()=>{
+ const {r}=renderer();r.camera.azimuth=1;r.setAnimationPaused(true,100);const before=r.cameraSnapshot();
+ r.animateCamera({...before,azimuth:before.azimuth+1},1000,1000);
+ assert.equal(r.cameraTween.start,1000);assert.equal(r.cameraTween.interactive,true);assert.equal(r.needsDraw(1100),true);
+ r.advanceCamera(1250);assert.ok(r.camera.azimuth>before.azimuth&&r.camera.azimuth<before.azimuth+1);
+ const quarter=r.camera.azimuth;r.setAnimationPaused(false,1500);assert.equal(r.cameraTween.start,1000);
+ r.advanceCamera(1500);assert.ok(r.camera.azimuth>quarter);r.advanceCamera(2000);close(r.camera.azimuth,before.azimuth+1);assert.equal(r.cameraTween,null);
+});
+test('paused focus changes can be interrupted without snapping or unpausing',()=>{
+ const {r}=renderer();r.setAnimationPaused(true,100);assert.ok(r.animateFocus('earth',1000,1000));r.advanceCamera(1400);
+ const from=r.cameraSnapshot();assert.ok(r.animateFocus('jupiter',1400,1000));close(r.cameraTween.from.dolly,from.dolly);
+ r.advanceCamera(2400);assert.equal(r.camera.focus,'jupiter');assert.equal(r.animationPaused,true);assert.equal(r.animationMono(9999),100);
+});
+
+test('paused size-mode transition completes and starts Home on the real camera clock',()=>{
+ const {r,now}=renderer();r.setAnimationPaused(true,100);now(1000);r.setOption('actualScale',true);
+ r.advanceActualScale(2000);close(r.actualScaleMix,.5);r.setAnimationPaused(false,2200);assert.equal(r.actualScaleTween.started,1000);
+ r.setAnimationPaused(true,2300);r.advanceActualScale(3000);close(r.actualScaleMix,1);assert.equal(r.actualScaleTween,null);
+ assert.equal(r.cameraTween.interactive,true);assert.equal(r.cameraTween.start,3000);r.advanceCamera(6000);assert.equal(r.cameraTween,null);assert.equal(r.animationPaused,true);
+});
+test('paused Home and three saved-view transitions finish without changing simulation pause',()=>{
+ const {r}=renderer();r.setAnimationPaused(true,100);r.camera.dolly=2;r.animateHome(1000,1100);r.advanceCamera(2100);assert.equal(r.cameraTween,null);
+ for(let i=0;i<3;i++){const start=3000+i*2000,target={...r.defaultCameraSnapshot(),azimuth:1+i*.5,dolly:1+i};assert.ok(r.animateCamera(target,start,1100));r.advanceCamera(start+550);assert.ok(r.cameraTween);r.advanceCamera(start+1100);close(r.camera.azimuth,target.azimuth);assert.equal(r.animationPaused,true);}
 });

@@ -8,30 +8,30 @@ const MAP_LOD_MS=700;
 // the entire surface. Keep texture demand warm without submitting material draws.
 const POINT_SURFACE_RADIUS=.25;
 // One analytic cone per supported satellite: no shadow map, extra draw or samples.
-// shadowCaster.w is a 2x presentation footprint; its half-radius remains the
-// physical caster used for the centre strength and the start of the penumbra.
+// shadowCaster.w is a 2x presentation footprint; its half-radius is the
+// displayed caster ratio used for the penumbra. Both receivers share the
+// same centre strength; solar spread changes softness, not peak darkness.
 const ECLIPSE_GLSL=`
-  uniform vec4 shadowCaster;uniform float shadowSpread;
+  uniform vec4 shadowCaster;uniform float shadowSpread;uniform float shadowScale;
   float eclipseLight(vec3 n){
     if(shadowCaster.w<=0.)return 1.;
     vec3 q=shadowCaster.xyz-n;float along=dot(q,light);
     if(along<=0.)return 1.;
     float spread=along*shadowSpread,soft=max(2./max(diameter,1.),.001);
-    float physicalRadius=shadowCaster.w*.5;
-    float inner=max(0.,physicalRadius-spread),outer=shadowCaster.w+spread+soft;
-    float distance=length(q-light*along);
+    float casterRadius=shadowCaster.w*.5;
+    float inner=max(0.,casterRadius-spread),outer=shadowCaster.w+spread+soft;
+    float distance=length(q-light*along)/max(shadowScale,.001);
     float coverage=1.-smoothstep(max(0.,inner-soft),outer,distance);
-    float peak=min(1.,physicalRadius*physicalRadius/max(spread*spread,.0000001));
-    return 1.-.38*coverage*peak*smoothstep(0.,.12,dot(n,light));
+    return 1.-coverage*smoothstep(0.,.12,dot(n,light));
   }`;
-function eclipseLight(nx,ny,nz,light,caster,spread,diameter){
+function eclipseLight(nx,ny,nz,light,caster,spread,diameter,shadowScale=1){
   if(!caster||caster[3]<=0)return 1;
   const x=caster[0]-nx,y=caster[1]-ny,z=caster[2]-nz,along=x*light[0]+y*light[1]+z*light[2];
   if(along<=0)return 1;
-  const width=along*spread,soft=Math.max(2/Math.max(diameter,1),.001),physicalRadius=caster[3]*.5,inner=Math.max(0,physicalRadius-width),outer=caster[3]+width+soft;
+  const width=along*spread,soft=Math.max(2/Math.max(diameter,1),.001),casterRadius=caster[3]*.5,inner=Math.max(0,casterRadius-width-soft),outer=caster[3]+width+soft;
   const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v);};
-  const coverage=1-smooth((Math.hypot(x-light[0]*along,y-light[1]*along,z-light[2]*along)-inner)/(outer-inner));
-  return 1-.38*coverage*Math.min(1,physicalRadius**2/Math.max(width*width,1e-7))*smooth((nx*light[0]+ny*light[1]+nz*light[2])/.12);
+  const coverage=1-smooth((Math.hypot(x-light[0]*along,y-light[1]*along,z-light[2]*along)/Math.max(shadowScale,.001)-inner)/(outer-inner));
+  return 1-coverage*smooth((nx*light[0]+ny*light[1]+nz*light[2])/.12);
 }
 if(!STYLE)throw Error('surface-style.js must load before surface.js');
 const EARTH_NIGHT_GLSL=`
@@ -426,7 +426,7 @@ function surfaceKernel(style){
         if(!g.getProgramParameter(program,g.LINK_STATUS))throw Error(g.getProgramInfoLog(program));this.program=program;
         this.buffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
         this.attribute=g.getAttribLocation(program,'a');
-        this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
+        this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread','shadowScale'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
       }catch(error){if(this.gl){this.gl.getExtension('WEBGL_lose_context')?.loseContext();this.gl=null;}this.canvas=makeCanvas(32);this.ctx=this.canvas.getContext('2d');this.stats.fallback=error.message;}
     }
     async texture(id,width,signal){
@@ -511,7 +511,7 @@ function surfaceKernel(style){
         g.uniform1f(u.cloudDetail,Number.isFinite(job.cloudDetail)?clamp(job.cloudDetail,0,1):1);
         if(cloudState){g.uniform2fv(u.cloudDrift,cloudState.drift);g.uniform3fv(u.cloudWeather,cloudState.blend);g.uniform4fv(u.cloudLife,cloudState.life);g.uniform4fv(u.cloudAltLife,cloudState.altLife);g.uniform1f(u.cloudAltOffset,cloudState.altOffset);g.uniform1f(u.cloudReveal,cloudReveal);}
         g.uniform3fv(u.axisU,frame.u);g.uniform3fv(u.axisV,frame.v);g.uniform3fv(u.pole,frame.pole);g.uniform3fv(u.light,light);
-        g.uniform4fv(u.shadowCaster,job.shadowCaster||[0,0,0,0]);g.uniform1f(u.shadowSpread,job.shadowSpread||0);
+        g.uniform4fv(u.shadowCaster,job.shadowCaster||[0,0,0,0]);g.uniform1f(u.shadowSpread,job.shadowSpread||0);g.uniform1f(u.shadowScale,job.shadowScale??1);
         g.uniform1f(u.phase,phase);g.uniform1f(u.kind,id==='earth'?1:id==='sun'?2:id==='venus'?5:id==='uranus'?4:['jupiter','saturn','neptune'].includes(id)?3:0);
         g.uniform1f(u.hasBump,bump!==color?1:0);g.uniform1f(u.diameter,n);g.uniform1f(u.texel,1/width);g.uniform1f(u.nightTexel,1/night.width);g.uniform1f(u.effectTime,seconds);g.uniform1f(u.sunActivity,activity?1:0);g.uniform1f(u.nightLights,night!==color?1:0);g.uniform1f(u.cloudAmount,cloudAmount);g.drawArrays(g.TRIANGLES,0,6);
         if(g.isContextLost())throw Error('WebGL context lost');
@@ -580,7 +580,7 @@ function surfaceKernel(style){
             const opacity=cloudAmount,rim=(1-nz)**5*day*.16*opacity;
             for(let k=0;k<3;k++)data[i+k]=data[i+k]*(1-opacity)+255*atmosphericTexture(clouds,cu,cv,false,k)*lit*opacity+255*(k===0?.18:k===1?.26:.33)*rim;
           }
-          const shade=eclipseLight(nx,ny,nz,light,job.shadowCaster,job.shadowSpread||0,n);for(let k=0;k<3;k++)data[i+k]*=shade;
+          const shade=eclipseLight(nx,ny,nz,light,job.shadowCaster,job.shadowSpread||0,n,job.shadowScale??1);for(let k=0;k<3;k++)data[i+k]*=shade;
           data[i+3]=map[m+6];
           if((m/7)%8192===0&&performance.now()-sliceStart>6){await new Promise(resolve=>setTimeout(resolve,0));if(this.disposed)throw Error('Surface disposed');sliceStart=performance.now();}
         }
@@ -967,7 +967,7 @@ class DirectRenderer{
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
     this.explicitMipLod=!!g.getExtension('EXT_shader_texture_lod');
     const fragment=this.explicitMipLod?'#extension GL_EXT_shader_texture_lod : enable\n'+DIRECT_PLANET_FRAGMENT.replace('uniform float colorLodMix;','uniform float materialMip[7];uniform float colorLodMix;').replace('texture2D(map,uv)','texture2DLodEXT(map,uv,(layer<.5?materialMip[0]:layer<1.5?materialMip[1]:layer<2.5?materialMip[2]:layer<3.5?materialMip[3]:materialMip[5]))').replace('texture2D(previousColorMap,uv)','texture2DLodEXT(previousColorMap,uv,materialMip[6])'):DIRECT_PLANET_FRAGMENT;
-    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,fragment,['materialMip','center','viewport','radius','colorMap','previousColorMap','colorLodMix','lodLayers','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread']);
+    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,fragment,['materialMip','center','viewport','radius','colorMap','previousColorMap','colorLodMix','lodLayers','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread','shadowScale']);
     this.coronaProgram=directProgram(g,DIRECT_CORONA_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
     this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','roll','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','solarOffset','color','ink','inkWeight']);
     this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel','light']);
@@ -1148,6 +1148,10 @@ class DirectRenderer{
   async uploadTexturePixels(texture,source,width,height,signal,valid){
     const g=this.gl,bind=()=>{g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);};
     if(width*height<TEXTURE_UPLOAD_PIXELS||typeof requestAnimationFrame!=='function'||typeof createImageBitmap!=='function'){
+      // Cached small maps can all finish decoding together during the first
+      // opening. Give them the same shared upload slot as larger maps.
+      if(typeof requestAnimationFrame==='function')await this.waitForTextureUpload(signal);
+      if(!valid())return false;
       bind();g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,source);return true;
     }
     // Keep the resident preview until every row is ready. Large 4K uploads
@@ -1468,7 +1472,7 @@ class DirectRenderer{
     const ringFrame=body.id==='saturn'||body.id==='uranus'?this.bodyRingFrame(frame,job.phase):frame;
     if(body.id==='saturn'||body.id==='uranus')this.rings(body,ringFrame,screen,radius,false,job.light);
     const g=this.gl,p=this.planetProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius);g.uniform3fv(p.u.axisU,frame.u);g.uniform3fv(p.u.axisV,frame.v);g.uniform3fv(p.u.pole,frame.pole);g.uniform3fv(p.u.light,job.light);
-    g.uniform4fv(p.u.shadowCaster,job.shadowCaster||[0,0,0,0]);g.uniform1f(p.u.shadowSpread,job.shadowSpread||0);
+    g.uniform4fv(p.u.shadowCaster,job.shadowCaster||[0,0,0,0]);g.uniform1f(p.u.shadowSpread,job.shadowSpread||0);g.uniform1f(p.u.shadowScale,job.shadowScale??1);
     g.uniform1f(p.u.phase,job.phase);g.uniform1f(p.u.kind,job.id==='earth'?1:job.id==='sun'?2:job.id==='venus'?5:job.id==='uranus'?4:['jupiter','saturn','neptune'].includes(job.id)?3:0);g.uniform1f(p.u.hasBump,bump?1:0);g.uniform1f(p.u.diameter,radius*2*this.dpr);g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.sunActivity,activity?1:0);g.uniform1f(p.u.nightLights,night?1:0);g.uniform1f(p.u.cloudAmount,clouds?cloudAmount:0);
     g.uniform1f(p.u.cloudAltMix,altMix);
     g.uniform1f(p.u.cloudDetail,cloudDetail);g.uniform1f(p.u.cloudReveal,Number.isFinite(job.cloudReveal)?job.cloudReveal:1);

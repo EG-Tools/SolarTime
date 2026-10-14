@@ -16,11 +16,13 @@ function manifestPaths(manifest){
  for(const entry of Object.values(manifest.materials||{}))for(const tier of entry.tiers||[])if(tier.path)out.add(tier.path);
  for(const tier of manifest.sky?.tiers||[])if(tier.path)out.add(tier.path);
  if(manifest.sky?.galaxyAtlas?.path)out.add(manifest.sky.galaxyAtlas.path);
+ for(const entry of Object.values(manifest.effects||{}))if(entry.path)out.add(entry.path);
  for(const entry of Object.values(manifest.music||{}))if(entry.path)out.add(entry.path);
  return out;
 }
 function mediaEntries(manifest){
  const entries=[];
+ for(const [id,entry] of Object.entries(manifest.effects||{}))entries.push({kind:'effect',id,...entry});
  for(const [id,material] of Object.entries(manifest.materials||{}))for(const tier of material.tiers||[])entries.push({kind:'texture',id,width:tier.width,...tier});
  for(const tier of manifest.sky?.tiers||[])entries.push({kind:'background',id:'sky',width:tier.width,...tier});
  if(manifest.sky?.galaxyAtlas?.path){
@@ -56,7 +58,10 @@ async function verifyEntry(entry,base,{request,delay}){
  const etag=res.headers.get('etag');
  if(entry.kind==='music'){
   if(!etag)throw Error(entry.id+': music ETag is missing');const rangeStart=performance.now(),range=await request(url,{headers:{range:'bytes=0-1023','if-range':etag},signal:AbortSignal.timeout(20000)}),rangeHeadersAt=performance.now();
-  if(range.status!==206||!/^bytes 0-\d+\/\d+$/.test(range.headers.get('content-range')||''))throw Error(entry.id+': music byte range is unavailable');const part=Buffer.from(await range.arrayBuffer());if(part.length!==Math.min(1024,bytes.length))throw Error(entry.id+': music byte range length is invalid');
+  const expectedLength=Math.min(1024,bytes.length),expectedRange=`bytes 0-${expectedLength-1}/${bytes.length}`;
+  if(range.status!==206||range.headers.get('content-range')!==expectedRange||range.headers.get('etag')!==etag)throw Error(entry.id+': music byte range metadata is invalid');
+  const part=Buffer.from(await range.arrayBuffer());
+  if(part.length!==expectedLength||!part.equals(bytes.subarray(0,expectedLength)))throw Error(entry.id+': music byte range content is invalid');
   const rangeStatus=publicHeaders(entry,range);row.samples.push({method:'RANGE',cache:rangeStatus,firstByteMs:Math.round(rangeHeadersAt-rangeStart),totalMs:Math.round(performance.now()-rangeStart)});row.cacheHitObserved||=rangeStatus==='HIT';row.rangeVerified=true;
  }
  for(let i=0;!row.cacheHitObserved&&i<3;i++){await delay(250);const headStart=performance.now(),head=await request(url,{method:'HEAD',signal:AbortSignal.timeout(20000)}),headHeadersAt=performance.now();if(head.status!==200)throw Error(entry.id+': HEAD HTTP '+head.status);const headStatus=publicHeaders(entry,head);row.samples.push({method:'HEAD',cache:headStatus,firstByteMs:Math.round(headHeadersAt-headStart),totalMs:Math.round(performance.now()-headStart)});row.cacheHitObserved=headStatus==='HIT';}

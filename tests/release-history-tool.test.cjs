@@ -23,6 +23,7 @@ test('write mode regenerates an isolated fixture, retains English history and is
  try{
   for(const dir of ['i18n','src'])fs.cpSync(path.join(real,dir),path.join(tmp,dir),{recursive:true});
   for(const file of fs.readdirSync(real).filter(f=>/\.(html|css|md)$/.test(f)))fs.copyFileSync(path.join(real,file),path.join(tmp,file));
+  for(const file of ['version.json','ads.txt','robots.txt','sitemap.xml','manifest.webmanifest'])fs.copyFileSync(path.join(real,file),path.join(tmp,file));
   fs.mkdirSync(path.join(tmp,'assets'));
   for(const file of ['manifest.json','revision.json','deployment.json','material-info.json'])fs.copyFileSync(path.join(real,'assets',file),path.join(tmp,'assets',file));
   const historyFile=path.join(tmp,'i18n/releases.json'),allowFile=path.join(tmp,'i18n/legacy-allowlist.json');

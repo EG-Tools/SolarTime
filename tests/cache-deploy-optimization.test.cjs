@@ -13,8 +13,8 @@ test('startup scripts download in parallel while preserving dependency order',()
  assert.ok(runtime.at(-1).src.startsWith('src/app.js'),'the app still executes after all globals it consumes');
 });
 test('app version-only changes keep unrelated code cache URLs; changed code invalidates only its consumers',()=>{
- const tmp=clone();try{const before=revisions(tmp),oldTimerKey=before.key('src/timer-controller.js'),htmlBefore=fs.readFileSync(path.join(tmp,'index.html'),'utf8');fs.writeFileSync(path.join(tmp,'version.json'),' {"version":"0.60","revision":"r1"}\n');assert.deepEqual(sync(tmp),[]);
- fs.appendFileSync(path.join(tmp,'src/timer-controller.js'),'\n// Changed implementation.\n');assert.throws(()=>sync(tmp),/Stale code cache keys/);assert.deepEqual(sync(tmp,{write:true}),['index.html']);const after=revisions(tmp);assert.notEqual(after.key('src/timer-controller.js'),oldTimerKey);
+ const tmp=clone();try{const before=revisions(tmp),oldTimerKey=before.key('src/timer-controller.js'),htmlBefore=fs.readFileSync(path.join(tmp,'index.html'),'utf8');fs.writeFileSync(path.join(tmp,'version.json'),' {"version":"0.60","revision":"r1"}\n');assert.deepEqual(sync(tmp,{write:true}),['version.json']);assert.equal(revisions(tmp).key('src/timer-controller.js'),oldTimerKey);
+ fs.appendFileSync(path.join(tmp,'src/timer-controller.js'),'\n// Changed implementation.\n');assert.throws(()=>sync(tmp),/Stale code cache keys/);assert.deepEqual(sync(tmp,{write:true}),['index.html','version.json']);const after=revisions(tmp);assert.notEqual(after.key('src/timer-controller.js'),oldTimerKey);
  assert.notEqual(fs.readFileSync(path.join(tmp,'index.html'),'utf8'),htmlBefore);assert.equal(after.key('src/sky.js'),revisions(root).key('src/sky.js'));assert.deepEqual(sync(tmp),[]);
  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
 });
@@ -32,9 +32,10 @@ test('deployment recovery captures the active pair and records a read-only manua
   assert.equal(currentVersion({versions:[{version_id:old,percentage:0},{version_id:active,percentage:100}]}),active);assert.equal(currentVersion({latest_version:old}),old);assert.throws(()=>currentVersion({versions:[]}));
   const request=async url=>new Response(Buffer.from(url));const record=await capture(tmp,{request,status:{versions:[{version_id:active,percentage:100}]},now:()=> '2026-10-13T00:00:00.000Z'});
   assert.equal(record.previousPair.worker.versionId,active);assert.equal(record.previousPair.pages.files.length,3);assert.match(record.manualRecovery.workerCommand,new RegExp(active));
-  fs.writeFileSync(path.join(tmp,'.cloudflare/worker-publication.json'),'{}');const failed=reportFailure(tmp,{env:{WORKER_OUTCOME:'success',PAGES_OUTCOME:'failure'},now:()=> '2026-10-13T00:01:00.000Z'});
-  assert.equal(failed.failure.workerPublished,true);assert.equal(failed.failure.pagesPublished,false);assert.match(failed.failure.recovery,/recorded Worker rollback target/);
-  const published=reportFailure(tmp,{env:{WORKER_OUTCOME:'success',PAGES_OUTCOME:'success',PAGES_VERIFY_OUTCOME:'failure'}});
+  fs.writeFileSync(path.join(tmp,'version.json'),'new release');
+  fs.writeFileSync(path.join(tmp,'.cloudflare/worker-publication.json'),'{}');const failed=await reportFailure(tmp,{request:async()=>{throw Error('timeout');},env:{WORKER_OUTCOME:'success',PAGES_OUTCOME:'failure'},now:()=> '2026-10-13T00:01:00.000Z'});
+  assert.equal(failed.failure.workerPublished,true);assert.equal(failed.failure.pagesPublished,null);assert.equal(failed.failure.pagesState,'unknown');
+  const published=await reportFailure(tmp,{request:async()=>new Response('new release'),env:{WORKER_OUTCOME:'success',PAGES_OUTCOME:'failure',PAGES_VERIFY_OUTCOME:'failure'}});
   assert.equal(published.failure.pagesPublished,true);assert.match(published.failure.recovery,/recover Worker and Pages together/);
   const source=fs.readFileSync(path.join(root,'tools/deployment-recovery.cjs'),'utf8');assert.doesNotMatch(source,/action==='restore'|function restore/);
  }finally{fs.rmSync(tmp,{recursive:true,force:true});}

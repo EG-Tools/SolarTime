@@ -41,10 +41,57 @@ test('deployment verifies the visual baseline and every changed texture, sky and
  assert.ok(changed.some(row=>row.id==='galaxy-atlas'));assert.ok(changed.some(row=>row.kind==='music'&&row.id==='08 - Deep Space Journey.mp3'));
  assert.equal(plan.filter(row=>row.reasons.includes('baseline')).length,4);assert.equal(new Set(plan.map(row=>row.path)).size,plan.length);
 });
+
+test('Saturn debris shares the manifest and incremental verification path',()=>{
+ const {parseRuntimeManifest,verificationPlan}=require('../tools/verify-textures.cjs');
+ const manifest=JSON.parse(fs.readFileSync(path.join(root,'assets/manifest.json'),'utf8'));
+ const previous=parseRuntimeManifest(fs.readFileSync(path.join(root,'src/assets.js'),'utf8'));
+ const effect=manifest.effects.saturnDebris;
+ assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(root,'assets',effect.source))).digest('hex'),effect.sha256);
+ delete previous.effects;
+ const plan=verificationPlan(manifest,previous),entry=plan.find(row=>row.id==='saturnDebris');
+ assert.equal(entry.kind,'effect');assert.deepEqual(entry.reasons,['changed']);
+ assert.equal(entry.path,effect.path);
+ const runtime=fs.readFileSync(path.join(root,'src/ring-tour.js'),'utf8');
+ assert.match(runtime,/SolarAssets\?\.effects\?\.saturnDebris/);
+ assert.doesNotMatch(runtime,/workers\.dev\/media/);
+});
 test('media verification downloads full bytes once, then uses HEAD and validates music ranges',async()=>{
  const {verifyEntry}=require('../tools/verify-textures.cjs'),bytes=Buffer.from('verified media bytes'),hash=crypto.createHash('sha256').update(bytes).digest('hex'),common={'cache-control':'public, max-age=31536000, immutable','access-control-allow-origin':'*','timing-allow-origin':'*',etag:'"media"'};
  const methods=[],textureRequest=async(_url,options={})=>{const method=options.method||'GET';methods.push(method);return method==='GET'?new Response(bytes,{status:200,headers:{...common,'x-solar-media-cache':'MISS'}}):new Response(null,{status:200,headers:{...common,'x-solar-media-cache':'HIT'}});};
  const texture=await verifyEntry({kind:'texture',id:'earth',width:1024,path:'release.webp',bytes:bytes.length,sha256:hash,reasons:['baseline']},new URL('https://example.test/media/'),{request:textureRequest,delay:async()=>{}});assert.deepEqual(methods,['GET','HEAD']);assert.equal(texture.cacheHitObserved,true);
  const musicMethods=[],musicRequest=async(_url,options={})=>{const range=options.headers?.range;musicMethods.push(range?'RANGE':options.method||'GET');return range?new Response(bytes.subarray(0,Math.min(1024,bytes.length)),{status:206,headers:{...common,'content-range':`bytes 0-${bytes.length-1}/${bytes.length}`,'x-solar-media-cache':'HIT'}}):new Response(bytes,{status:200,headers:{...common,'x-solar-media-cache':'MISS'}});};
  const music=await verifyEntry({kind:'music',id:'track.mp3',path:'track.mp3',bytes:bytes.length,sha256:hash,reasons:['changed']},new URL('https://example.test/media/'),{request:musicRequest,delay:async()=>{}});assert.deepEqual(musicMethods,['GET','RANGE']);assert.equal(music.rangeVerified,true);
+});
+
+test('music verification rejects same-length corrupt ranges and false range metadata',async()=>{
+ const {verifyEntry}=require('../tools/verify-textures.cjs'),bytes=Buffer.alloc(2048,7);
+ for(const fault of ['body','end','total','etag']){
+  const request=async(_url,opt={})=>{
+   const range=!!opt.headers?.range,headers={'cache-control':'public, immutable','access-control-allow-origin':'*','timing-allow-origin':'*','x-solar-media-cache':'HIT',etag:range&&fault==='etag'?'"wrong"':'"correct"'};
+   if(range)headers['content-range']=fault==='end'?'bytes 0-1000/2048':fault==='total'?'bytes 0-1023/3000':'bytes 0-1023/2048';
+   return new Response(range?(fault==='body'?Buffer.alloc(1024,8):bytes.subarray(0,1024)):bytes,{status:range?206:200,headers});
+  };
+  await assert.rejects(verifyEntry({kind:'music',id:'song',path:'song.mp3'},'https://example.test/',{request,delay:async()=>{}}),/music byte range/);
+ }
+});
+
+test('R2 checks conditions before ranges and only maps explicit range errors to 416',async()=>{
+ for(const scenario of ['invalid','conditional','suffix','mismatch','rangeError','storageError','ordinary']){
+  const context={URL,Request,Response,Headers,console:{warn(){},info(){},error(){}},caches:{default:null}};
+  vm.createContext(context);vm.runInContext(text.replace('export default {','globalThis.worker = {'),context);
+  let heads=0,gets=0;const metadata={size:10,httpEtag:'"test"',writeHttpMetadata(){}};
+  const env={SOLAR_TIME_MEDIA:{head:async()=>{heads++;return metadata;},get:async(_key,opt)=>{
+   gets++;if(scenario==='rangeError')throw Object.assign(Error('InvalidRange'),{code:10039});
+   if(scenario==='storageError')throw Error('storage unavailable');
+   return {...metadata,body:new ReadableStream({start(c){c.enqueue(new TextEncoder().encode(opt?.range?'89':'0123456789'));c.close();}}),...(opt?.range?{range:{suffix:2}}:{})};
+  }}};
+  const headers=scenario==='ordinary'?{}:{range:scenario==='invalid'||scenario==='conditional'?'bytes=99-100':'bytes=-2'};
+  if(scenario==='conditional')headers['if-none-match']='"test"';if(scenario==='mismatch')headers['if-range']='"old"';
+  const response=await context.worker.fetch(new Request('https://solar.test/media/releases/content/ui/test.webp',{headers}),env,{waitUntil(){}});
+  assert.equal(response.status,{invalid:416,conditional:304,suffix:206,mismatch:200,rangeError:416,storageError:500,ordinary:200}[scenario],scenario);
+  if(response.status===416)assert.equal(response.headers.get('content-range'),'bytes */10');
+  if(scenario==='invalid'||scenario==='conditional')assert.equal(gets,0);
+  if(scenario==='ordinary')assert.equal(heads,0,'ordinary GET stays one read');
+ }
 });
