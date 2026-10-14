@@ -320,5 +320,11 @@ test('v0.46 keeps the runtime and asset-pipeline optimizations',()=>{
   assert.match(app,/let cameraUiSignature=''/);
   assert.match(app,/const activeMotion=!!drag\|\|pointers\.size>0/);
   assert.match(performance,/function reportFrameTiming\(elapsed,target\)/);
-  assert.match(performance,/constrained\|\|!active\?1000\/30:1000\/60/);
+  const policyHost={window:{},performance:{now:()=>0}};
+  vm.runInNewContext(performance,policyHost);
+  const policy=policyHost.window.SolarPerformance;
+  assert.equal(policy.frameInterval(1280,800,false),1000/30);
+  assert.equal(policy.frameInterval(1280,800,true),1000/60);
+  for(let i=0;i<40;i++)policy.reportRenderCost(30);
+  assert.equal(policy.frameInterval(1280,800,true),1000/30);
 });

@@ -32,10 +32,10 @@
     frameLag=frameLag*.90+Math.min(lag,80)*.10;
     if(target<25&&frameLag>4)slowUntil=performance.now()+4000;
   }
-  function frameInterval(width,height,active=true){
+  function frameInterval(width,height,active=true,presentation=false){
     const phone=coarse&&Math.min(width,height)<900;
-    const constrained=phone||renderCost>13||frameLag>4||performance.now()<slowUntil;
-    return constrained||!active?1000/30:1000/60;
+    const constrained=(phone&&!presentation)||renderCost>13||frameLag>4||performance.now()<slowUntil;
+    return constrained||(!active&&!presentation)?1000/30:1000/60;
   }
   // Reuse measured load and the existing recovery hold, not another frame monitor.
   const particleCapacity=(quality='auto')=>quality==='low'?.5:coarse?.7:1;

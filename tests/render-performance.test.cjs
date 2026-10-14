@@ -92,6 +92,22 @@ test('compact solar scene uses stable oversampled tiers and restores the viewpor
  assert.equal(r.setSolarRenderRatio(1),2);assert.equal(resizes,2);
 });
 
+test('mobile annotations use spare frame capacity only during reveal and respect overload recovery',()=>{
+ let now=0;const window={},context={window,navigator:{userAgent:'Android Mobile'},matchMedia:()=>({matches:true}),screen:{width:390,height:844},performance:{now:()=>now}};
+ vm.runInNewContext(fs.readFileSync(path.join(root,'src/performance.js'),'utf8'),context);
+ const p=window.SolarPerformance;
+ assert.equal(p.frameInterval(390,844,true),1000/30);
+ assert.equal(p.frameInterval(390,844,false,true),1000/60);
+ for(let n=0;n<40;n++)p.reportRenderCost(30);
+ assert.equal(p.frameInterval(390,844,true,true),1000/30);
+ for(let n=0;n<80;n++)p.reportRenderCost(1);
+ assert.equal(p.frameInterval(390,844,true,true),1000/30);
+ now=5000;assert.equal(p.frameInterval(390,844,true,true),1000/60);
+ assert.equal(p.frameInterval(390,844,false,false),1000/30);
+ for(let n=0;n<20;n++)p.reportFrameTiming(40,1000/60);
+ assert.equal(p.frameInterval(390,844,true,true),1000/30);
+});
+
 test('particle policy reuses sustained load with recovery hold and renderer fades without jumps',()=>{
  let now=0;const window={};vm.runInNewContext(fs.readFileSync(path.join(root,'src/performance.js'),'utf8'),{window,performance:{now:()=>now}});
  const policy=window.SolarPerformance;

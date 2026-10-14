@@ -2561,12 +2561,17 @@
       const c=sprite.getContext('2d');
       for(let i=0;i<FLIGHT_GLOW_COLORS.length;i++){
         const x=i*64+32,color=FLIGHT_GLOW_COLORS[i],gradient=c.createRadialGradient(x,32,0,x,32,32);
-        gradient.addColorStop(0,'#edf7ff');gradient.addColorStop(.055,'#edf7ff');
-        gradient.addColorStop(.11,color+'b3');gradient.addColorStop(.22,color+'40');
-        gradient.addColorStop(.36,color+'10');gradient.addColorStop(.65,color+'06');
+        // Preserve the v0.77 core/middle/halo footprint, with soft boundaries.
+        gradient.addColorStop(0,'#edf7ff');gradient.addColorStop(.09,'#edf7ff');
+        gradient.addColorStop(.13,color+'59');gradient.addColorStop(.32,color+'59');
+        gradient.addColorStop(.39,color+'0d');gradient.addColorStop(.85,color+'0d');
         gradient.addColorStop(1,color+'00');c.fillStyle=gradient;c.fillRect(i*64,0,64,64);
       }
       return this.softFlightSprite=sprite;
+    }
+    openingAnnotationsActive(mono) {
+      return Number.isFinite(this.openingOrbitStart)&&Number.isFinite(this.openingAnnotationStart)&&
+        mono>=this.openingOrbitStart&&mono<this.openingAnnotationStart+OPENING_ANNOTATION_FADE+ORBIT_SCAN.stagger;
     }
     particleFadeScale(alpha) {
       // Contract the faint footprint so its last quantized alpha step cannot

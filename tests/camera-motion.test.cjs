@@ -1518,6 +1518,16 @@ test('sixteen flight variants keep fixed random birth angles and the existing ra
 
 
 
+test('annotation cadence window covers delayed labels but excludes pending and finished openings',()=>{
+ const {r}=renderer();r.openingOrbitStart=r.openingAnnotationStart=Infinity;
+ assert.equal(r.openingAnnotationsActive(5000),false);
+ r.scheduleOpeningAnnotations(1000,6500);
+ assert.equal(r.openingAnnotationsActive(r.openingOrbitStart-1),false);
+ assert.equal(r.openingAnnotationsActive(r.openingOrbitStart),true);
+ assert.equal(r.openingAnnotationsActive(r.openingAnnotationStart+2499),true);
+ assert.equal(r.openingAnnotationsActive(r.openingAnnotationStart+2500),false);
+});
+
 test('opening and warp share cached soft grains and a continuous faint footprint',()=>{
  const {r}=renderer();r.loadFlightParticleAtlas=()=>{throw Error('no network texture request');};
  const sprite={};r.softFlightParticleSprite=()=>sprite;let draws=[];
