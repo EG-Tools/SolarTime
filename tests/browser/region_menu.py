@@ -38,6 +38,10 @@ def verify_region_menu(page, root, tag, size, check):
         check(page.locator('html').get_attribute('lang')==row['locale'],tag+' '+code+' document locale')
         check(page.evaluate("JSON.parse(localStorage.getItem('eg.solar-time.v0.01')).language")==code,tag+' '+code+' selection saved')
         check(page.evaluate("SolarTime.translate('timer')")==('Timer' if row['copy']=='en' else 'Temporizador'),tag+' '+code+' shared timer translation')
+        # Language selection intentionally keeps the menu open. Close it before
+        # exercising the clock's region action so the menu cannot intercept it.
+        page.locator('#language-toggle').click()
+        page.locator('#language-menu').wait_for(state='hidden')
         # Inspect the existing Earth location action without changing camera behavior.
         page.locator('#timezone-button').click();args=page.evaluate('__regionFeatures.at(-1)')
         check(args[0]=='earth' and abs(args[1]-row['latitude'])<1e-8 and abs(args[2]-row['longitude'])<1e-8,tag+' '+code+' Earth-view coordinates')
