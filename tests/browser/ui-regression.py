@@ -219,8 +219,13 @@ def suite(browser,root,size,installed):
  check(page.locator('#kakao-pay-dialog .close-button').is_visible(),tag+' QR close remains visible')
  page.keyboard.press('Escape');page.keyboard.press('Escape')
  for language in ['sg','en','sg']:
-  page.locator('#language-toggle').click();page.locator('[data-language="'+language+'"]').click()
+  menu=page.locator('#language-menu')
+  if not menu.is_visible():
+   page.locator('#language-toggle').click();menu.wait_for(state='visible')
+  choice=page.locator('[data-language="'+language+'"]');choice.scroll_into_view_if_needed();choice.click()
   page.wait_for_function('code=>SolarTime.getState().language===code',arg=language)
+ if page.locator('#language-menu').is_visible():
+  page.locator('#language-toggle').click();page.locator('#language-menu').wait_for(state='hidden')
  state=page.evaluate('SolarTime.getState()')
  check(state['timeZone']=='Asia/Singapore' and state['region']=='SINGAPORE',tag+' SG region and time')
  check(page.locator('html').get_attribute('lang')=='en-SG',tag+' SG locale')
