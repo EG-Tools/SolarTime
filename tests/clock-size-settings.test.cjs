@@ -17,7 +17,7 @@ test('clock size is restored, persisted, reset and applied through one CSS scale
  assert.match(app,/clockSize=1;clockFont='georgia'/);
  assert.match(app,/setProperty\('--clock-scale',String\(clockSize\)\);scheduleClockFit\(\)/);
  assert.match(app,/function fitClockToViewport\(\)/);
- assert.match(app,/availableHalf\/requiredHalf/);
+ assert.match(app,/availableHalf\/naturalHalf/);
  assert.match(app,/dataset\.fitScale=String\(rounded\)/);
  assert.doesNotMatch(app,/\$\('hour-cycle'\)/);
  assert.match(css,/--clock-scale:1;--clock-fit-scale:1;--clock-base-size:78px/);

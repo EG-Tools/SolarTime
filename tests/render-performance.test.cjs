@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const A=require('../src/astro.js'),style=require('../src/surface-style.js'),root=path.resolve(__dirname,'..');
 function fixture(astro=A){
  const timers=new Map();let serial=0,time=0;
- const window={SolarAstro:astro,SolarSurfaceStyle:style},context={window,Math,performance:{now:()=>++time},setTimeout:fn=>{timers.set(++serial,fn);return serial;},clearTimeout:id=>timers.delete(id),document:{createElement:()=>{const canvas={};canvas.getContext=()=>({createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),putImageData:image=>canvas.image=image});return canvas;}}};
+ const window={SolarAstro:astro,SolarSurfaceStyle:style},context={window,Math,AbortController,performance:{now:()=>++time},setTimeout:fn=>{timers.set(++serial,fn);return serial;},clearTimeout:id=>timers.delete(id),document:{createElement:()=>{const canvas={};canvas.getContext=()=>({createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),putImageData:image=>canvas.image=image});return canvas;}}};
  for(const file of ['src/surface.js','src/renderer.js','src/sky.js','src/performance.js'])vm.runInNewContext(fs.readFileSync(path.join(root,file),'utf8'),context);
  const r=Object.create(window.SolarRenderer.prototype);Object.assign(r,{physicsMs:NaN,physicsBodies:new Map(),physicsSatellites:new Map(),dpr:1,options:{quality:'auto'}});
  const step=()=>{const [id,fn]=timers.entries().next().value||[];if(fn){timers.delete(id);fn();}return !!fn;};
@@ -158,4 +158,17 @@ test('direct program frees every created shader and failed program',()=>{
   if(failure)assert.throws(()=>context.directPrograms(gl,[['v','f',[]]]));else context.directPrograms(gl,[['v','f',[]]]);
   assert.equal(deleted.length,created.length);assert.equal(new Set(deleted).size,deleted.length);assert.equal(freed.length,failure?1:0);
  }
+});
+
+test('corona refinement keeps the resident glow and uses one shared upload task',async()=>{
+ const {window}=fixture(),oldSource={width:64,height:64},oldTexture={},nextSource={width:384,height:384},nextTexture={};let finish,uploads=0;
+ const gl={TEXTURE0:0,TEXTURE_2D:1,TEXTURE_WRAP_S:2,TEXTURE_WRAP_T:3,TEXTURE_MAG_FILTER:4,TEXTURE_MIN_FILTER:5,CLAMP_TO_EDGE:6,LINEAR:7,
+  createTexture:()=>nextTexture,activeTexture(){},bindTexture(){},texParameteri(){},deleteTexture(texture){this.deleted=texture;}};
+ const direct=Object.assign(Object.create(window.SolarSurface.DirectRenderer.prototype),{gl,coronaTexture:{source:oldSource,texture:oldTexture,width:64,height:64},coronaUpload:null,generation:1,disposed:false,contextLost:false,stats:{},resetTextureBindings(){},
+  uploadTexturePixels(_texture,_source,_width,_height,_signal,valid){uploads++;return new Promise(resolve=>{finish=()=>resolve(valid());});}});
+ assert.strictEqual(direct.queueCoronaTexture(nextSource),direct.coronaTexture);assert.equal(uploads,1);
+ assert.strictEqual(direct.queueCoronaTexture(nextSource),direct.coronaTexture);assert.equal(uploads,1,'same refinement must not restart');
+ assert.strictEqual(direct.coronaTexture.source,oldSource,'resident glow remains while upload is pending');
+ finish();await Promise.resolve();await Promise.resolve();
+ assert.strictEqual(direct.coronaTexture.source,nextSource);assert.strictEqual(gl.deleted,oldTexture);assert.equal(direct.stats.coronaUploads,1);
 });

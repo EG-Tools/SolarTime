@@ -939,11 +939,11 @@ class DirectRenderer{
     this.canvas=canvas;this.gl=canvas.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:true,depth:true,stencil:false,preserveDrawingBuffer:false});
     if(!this.gl)throw Error('WebGL is required for the direct planet renderer.');
     this.disposed=false;this.paused=false;this.generation=0;this.textureToken=0;this.width=1;this.height=1;this.dpr=1;
-    this.textures=new Map();this.recentTextures=new Map();this.textureIntent=null;this.frames=new Map();this.desired=new Map();this.orbitBuffers=new Map();this.textureSources=new Map();this.coronaTexture=null;this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
+    this.textures=new Map();this.recentTextures=new Map();this.textureIntent=null;this.frames=new Map();this.desired=new Map();this.orbitBuffers=new Map();this.textureSources=new Map();this.coronaTexture=null;this.coronaUpload=null;this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
     this.boundProgram=null;this.boundBuffer=null;this.boundAttrib=-1;this.boundAttribSize=0;this.boundAttribBuffer=null;this.activeTextureUnit=-1;this.boundTextures=[null,null,null,null];this.canvasViewportW=0;this.canvasViewportH=0;this.orbitState={valid:false};
     this.stats={backend:'gpu-direct',accepted:0,discarded:0,drawCalls:0,frames:0,texturesLoaded:0,texturePixels:0,orbitUploads:0,kernel:{backend:'gpu-direct'}};
     this.contextLost=false;this.onLost=event=>{event.preventDefault();this.contextLost=true;this.invalidate();this.cloudWeather?.dispose();this.cloudWeather=null;this.orbitBuffers.clear();this.resetBindings();this.stats.contextLost=true;};
-    this.onRestored=()=>{this.contextLost=false;this.recentTextures.clear();this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.resetBindings();this.setup();};
+    this.onRestored=()=>{this.contextLost=false;this.recentTextures.clear();this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.coronaUpload=null;this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.resetBindings();this.setup();};
     canvas.addEventListener('webglcontextlost',this.onLost,false);canvas.addEventListener('webglcontextrestored',this.onRestored,false);
     this.setup();
   }
@@ -1196,6 +1196,41 @@ class DirectRenderer{
     }
     return true;
   }
+  cancelCoronaUpload(){
+    const task=this.coronaUpload;if(!task)return;
+    this.coronaUpload=null;task.controller.abort();
+  }
+  installCoronaTexture(source,texture){
+    const g=this.gl,old=this.coronaTexture;
+    g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();
+    g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
+    g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
+    if(old?.texture&&old.texture!==texture)g.deleteTexture(old.texture);
+    this.coronaTexture={source,texture,width:source.width,height:source.height};this.stats.coronaUploads=(this.stats.coronaUploads||0)+1;
+  }
+  queueCoronaTexture(source){
+    const current=this.coronaTexture;if(current?.source===source)return current;
+    if(this.coronaUpload?.source===source)return current;
+    this.cancelCoronaUpload();
+    const g=this.gl;
+    // Production's first map is the immediate 64px/16 KiB preview, which
+    // prevents a blank Sun. Every later refinement shares the material upload
+    // queue, retains the old glow, and swaps only after all pixels are ready.
+    if(!current){
+      const texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);
+      g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,source);this.installCoronaTexture(source,texture);return this.coronaTexture;
+    }
+    const controller=new AbortController(),generation=this.generation,texture=g.createTexture(),task={source,texture,controller,generation};this.coronaUpload=task;
+    const valid=()=>!this.disposed&&!this.contextLost&&!controller.signal.aborted&&this.generation===generation&&this.coronaUpload===task;
+    this.uploadTexturePixels(texture,source,source.width,source.height,controller.signal,valid).then(uploaded=>{
+      if(!uploaded||!valid())return;
+      this.installCoronaTexture(source,texture);task.texture=null;
+    }).catch(error=>{if(!controller.signal.aborted)this.stats.error=error.message;}).finally(()=>{
+      if(task.texture&&!this.contextLost)g.deleteTexture(task.texture);
+      if(this.coronaUpload===task)this.coronaUpload=null;
+    });
+    return current;
+  }
   discardRecent(key){
     const old=this.recentTextures?.get(key);if(!old)return;
     if(!this.contextLost)this.gl.deleteTexture(old.texture);
@@ -1413,14 +1448,7 @@ class DirectRenderer{
   }
   corona(source,screen,radius,time,opacity=1){
     if(!source||radius<POINT_SURFACE_RADIUS||opacity<=0)return;
-    const g=this.gl;let record=this.coronaTexture;
-    if(!record||record.source!==source){
-      const texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);
-      g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,source);
-      g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);
-      g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
-      if(record?.texture)g.deleteTexture(record.texture);record=this.coronaTexture={source,texture,width:source.width,height:source.height};
-    }
+    const g=this.gl,record=this.queueCoronaTexture(source);if(!record)return;
     const p=this.coronaProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius*5.1);g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.opacity,opacity);
     this.bindTextureUnit(3,record.texture);
     this.drawCoronaQuad(screen,radius);
@@ -1535,7 +1563,7 @@ class DirectRenderer{
   }
   flush(){if(!this.disposed&&!this.contextLost)this.gl.flush();}
   get(id){return this.frames.get(id)?.image;}
-  invalidate(){this.textureIntent=null;for(const record of this.textures.values()){record.controller?.abort();record.pending=false;}this.generation++;this.loadQueue=[];this.pendingCount=0;}
+  invalidate(){this.textureIntent=null;this.cancelCoronaUpload();for(const record of this.textures.values()){record.controller?.abort();record.pending=false;}this.generation++;this.loadQueue=[];this.pendingCount=0;}
   pause(){this.paused=true;this.cloudWeather?.cancelBuild();this.invalidate();}
   resume(){this.paused=false;this.pumpTextureQueue();}
   suspend(){this.pause();}
@@ -1546,7 +1574,7 @@ class DirectRenderer{
     for(const record of this.orbitBuffers.values())g.deleteBuffer(record.buffer);
     for(const p of [this.planetProgram,this.coronaProgram,this.line,this.ring])g.deleteProgram(p.program);
     if(this.coronaTexture?.texture)g.deleteTexture(this.coronaTexture.texture);
-    g.deleteTexture(this.black);g.deleteBuffer(this.quad);this.textures.clear();this.textureSources.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;
+    g.deleteTexture(this.black);g.deleteBuffer(this.quad);this.textures.clear();this.textureSources.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.coronaUpload=null;
     this.canvas.removeEventListener('webglcontextlost',this.onLost);this.canvas.removeEventListener('webglcontextrestored',this.onRestored);
   }
 }

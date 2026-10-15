@@ -454,33 +454,24 @@
       function fitClockToViewport(){
         clockFitFrame=0;if(disposed)return;
         const clockElement=$('wall-clock'),period=$('ampm'),style=document.documentElement.style;
-        style.setProperty('--clock-fit-scale','1');
         const visual=window.visualViewport,viewLeft=visual?.offsetLeft||0,viewWidth=visual?.width||window.innerWidth;
         const padding=window.innerWidth<=680?12:24;
-        const ratio=()=>{
-          const clockRect=clockElement.getBoundingClientRect(),periodRect=period.hidden?null:period.getBoundingClientRect();
-          const left=Math.min(clockRect.left,periodRect?.left??clockRect.left),right=Math.max(clockRect.right,periodRect?.right??clockRect.right),center=clockRect.left+clockRect.width/2;
-          const availableHalf=Math.max(1,Math.min(center-(viewLeft+padding),viewLeft+viewWidth-padding-center));
-          const requiredHalf=Math.max(1,center-left,right-center);
-          return availableHalf/requiredHalf;
-        };
-        let fit=1;
-        // Linux CI and user-installed fonts can be materially wider than the
-        // preferred Windows faces. Re-measure until fixed letter spacing and
-        // the absolutely positioned AM/PM label are inside the safe width too.
-        for(let pass=0;pass<4;pass++){
-          const next=Math.max(.25,Math.min(1,fit*Math.min(1,ratio())));
-          if(Math.abs(next-fit)<.0005){fit=next;break;}
-          fit=next;style.setProperty('--clock-fit-scale',String(fit));
-        }
+        // One layout read is sufficient: measured extents already contain the
+        // current fit, so divide it out to recover the natural required width.
+        // This avoids the former write/read loop and its repeated reflow.
+        const current=Math.max(.25,Math.min(1,Number(clockElement.dataset.fitScale)||1));
+        const clockRect=clockElement.getBoundingClientRect(),periodRect=period.hidden?null:period.getBoundingClientRect();
+        const left=Math.min(clockRect.left,periodRect?.left??clockRect.left),right=Math.max(clockRect.right,periodRect?.right??clockRect.right),center=clockRect.left+clockRect.width/2;
+        const availableHalf=Math.max(1,Math.min(center-(viewLeft+padding),viewLeft+viewWidth-padding-center));
+        const naturalHalf=Math.max(1,center-left,right-center)/current;
+        const fit=Math.max(.25,Math.min(1,availableHalf/naturalHalf));
         const rounded=Math.floor(fit*1000)/1000;
-        style.setProperty('--clock-fit-scale',String(rounded));clockElement.dataset.fitScale=String(rounded);
+        if(rounded!==current)style.setProperty('--clock-fit-scale',String(rounded));clockElement.dataset.fitScale=String(rounded);
       }
       function scheduleClockFit(){
-        if(clockFitFrame)cancelAnimationFrame(clockFitFrame);
-        // Apply a deterministic fit immediately; a follow-up frame catches
-        // any font or viewport layout that settles after the current event.
-        fitClockToViewport();clockFitFrame=requestAnimationFrame(fitClockToViewport);
+        // Coalesce language, font, size and viewport changes into one read/write
+        // before the next paint. document.fonts.ready schedules its own final fit.
+        if(!clockFitFrame)clockFitFrame=requestAnimationFrame(fitClockToViewport);
       }
       function syncClockSizeControl(){
         const value=Math.round(A.clamp(clockSize,.5,2)*100);
@@ -1709,18 +1700,21 @@
       function frame(mono) {
         if(disposed||document.hidden){raf=0;return;}
         raf=requestAnimationFrame(frame);
-        syncTravelControlLock();syncAnimationPause(mono);const motionMono=renderer.animationMono(mono);
-        if(openingActive&&!openingReplayLocked&&openingControlsLocked&&openingStartedAt!==null&&motionMono-openingStartedAt>=openingDuration-OPENING_UNLOCK_BEFORE_END)unlockOpeningControls();
-        updateTravelCursor(mono);
         const heldZoom=keyboardZoomDirection();
         const activeMotion=!!drag||pointers.size>0||!!renderer.pointerCoast||!!renderer.cameraTween?.interactive||!!renderer.actualScaleTween||!!renderer.orbitSpacingTween||(!clock.paused&&(!!renderer.ringTour||!!renderer.cameraTween||!!renderer.autoRotation))||
           heldZoom!==0||mono-(renderer.cameraChangeAt??-Infinity)<180||(!clock.live&&!clock.paused);
+        let motionMono=renderer.animationMono(mono);
         const annotationReveal=!clock.paused&&renderer.openingAnnotationsActive(motionMono);
         const frameInterval=window.SolarPerformance?.frameInterval(window.innerWidth,window.innerHeight,activeMotion,annotationReveal)??(1000/(activeMotion&&window.innerWidth>=680?60:30));
         const frameDelta=lastFrame?Math.max(0,mono-lastFrame):frameInterval;
         if(!frameGate(mono,frameInterval,!lastFrame))return;
         const dt=lastFrame?frameDelta/1000:0;lastFrame=mono;
         window.SolarPerformance?.reportFrameTiming?.(frameDelta,frameInterval);
+        // UI locks, pause ownership and cursor fades only need the accepted
+        // 30/60 fps presentation cadence, not every display refresh callback.
+        syncTravelControlLock();syncAnimationPause(mono);motionMono=renderer.animationMono(mono);
+        if(openingActive&&!openingReplayLocked&&openingControlsLocked&&openingStartedAt!==null&&motionMono-openingStartedAt>=openingDuration-OPENING_UNLOCK_BEFORE_END)unlockOpeningControls();
+        updateTravelCursor(mono);
         if(heldZoom&&dt>0)keyboardZoom(Math.exp(heldZoom*1.35*dt),mono);
         if(!clock.paused)effectTime+=dt;
         const wall=Date.now(),ms=clock.value(mono,wall);syncAnimationPause(mono);

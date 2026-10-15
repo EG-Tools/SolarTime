@@ -274,7 +274,7 @@
     }
     resourceSignature(){
       const surface=this.gpu||this.surface,sky=this.sky;
-      return [surface?.stats?.accepted||0,surface?.stats?.discarded||0,surface?.stats?.recoveries||0,
+      return [surface?.stats?.accepted||0,surface?.stats?.discarded||0,surface?.stats?.recoveries||0,surface?.stats?.coronaUploads||0,
         surface?.cloudWeather?.builds||0,this.coronaTexture?.width||0,
         sky?.ready?1:0,sky?.stats?.textureStage||0,sky?.stats?.backend||''].join(':');
     }
@@ -3338,9 +3338,13 @@
       const focused=body.id===this.camera.focus,selected=body.id===this.selected,priority=focused||selected;
       const arrival=this.openingPresentation&&this.openingSurfaceTarget;
       const textureRadius=arrival?Math.max(r,this.bodyRadiusForState(body,arrival)):r;
-      const screenDiameter=Math.max(32,textureRadius*2*(this.sceneDpr||this.dpr)),apparentDiameter=Math.max(16,r*2);
+      // A render-only compact scene keeps the same world/camera coordinates,
+      // but its material demand follows the final displayed footprint. This
+      // prevents a 5% solar-system thumbnail from retaining focus-grade 4K.
+      const presentationScale=clamp(Number(this.surfacePresentationScale)||1,.01,1);
+      const screenDiameter=Math.max(32,textureRadius*2*(this.sceneDpr||this.dpr)*presentationScale),apparentDiameter=Math.max(16,r*2*presentationScale);
       const nativeWidth=window.SolarAssets?.materialInfo?.[body.id]?.width||SURFACE.detailWidth;
-      const detailFloor=focused?SURFACE.detailWidth:selected?2048:0;
+      const detailFloor=(focused?SURFACE.detailWidth:selected?2048:0)*presentationScale;
       const textureDemand=Math.max(screenDiameter*4,detailFloor);
       const textureTarget=direct?(TEXTURE_TIERS.find(n=>n>=textureDemand)||SURFACE.detailWidth):(priority?SURFACE.detailWidth:1024);
       const textureWidth=Math.min(nativeWidth,textureTarget);
@@ -4251,7 +4255,7 @@
       const width=Math.max(1,Math.round(this.w*renderDpr)),height=Math.max(1,Math.round(this.h*renderDpr)),c=layer.ctx;
       if(layer.canvas.width!==width||layer.canvas.height!==height){layer.canvas.width=width;layer.canvas.height=height;}
       c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,width,height);c.setTransform(width/this.w,0,0,height/this.h,0,0);
-      const scene=layer.scene;Object.assign(scene,this);scene.renderResourceOwner=this.renderResourceOwner||this;scene.ctx=c;scene.dpr=renderDpr;
+      const scene=layer.scene;Object.assign(scene,this);scene.renderResourceOwner=this.renderResourceOwner||this;scene.ctx=c;scene.dpr=renderDpr;scene.surfacePresentationScale=appearance.scale;
       scene.paintSolarScene(ms,seconds,mono,false);this.adoptReplayScene(scene);
       if(this.gpu){c.save();c.globalCompositeOperation='destination-over';c.globalAlpha=this.replayPresentation(mono).solar;c.drawImage(this.gpu.canvas,0,0,this.w,this.h);c.restore();}
       const out=this.ctx;out.save();out.globalAlpha=appearance.alpha;out.translate(appearance.x,appearance.y);out.scale(appearance.scale,appearance.scale);out.translate(-appearance.x,-appearance.y);out.drawImage(layer.canvas,0,0,this.w,this.h);out.restore();

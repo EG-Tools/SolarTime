@@ -26,6 +26,18 @@ test('initial readiness waits for every planet and visible auxiliary map',()=>{
  r.textures.set('saturn-ring',{texture:{}});assert.equal(r.visibleTexturesReady(),true);
 });
 
+test('compact solar-system material demand follows its final displayed size',()=>{
+ const earth=A.BODIES.find(body=>body.id==='earth');
+ const r=Object.assign(Object.create(window.SolarRenderer.prototype),{options:{earthCloudAmount:1,earthCloudSeed:.2,earthNightLights:true,venusCloudAmount:.8},camera:{focus:'earth'},selected:'earth',dpr:2,sceneDpr:2,actualScaleMix:0,
+  bodyRadiusForState:()=>200,bodyFrame:()=>({u:{x:1,y:0,z:0},v:{x:0,y:1,z:0},pole:{x:0,y:0,z:1}}),viewDirection:v=>v,cloudRevealProgress:()=>1,satelliteOrbitScale:()=>1});
+ r.surfacePresentationScale=1;
+ const full=r.surfaceJob(earth,{x:1,y:1,z:1},200,Date.UTC(2026,9,12),0,true);
+ r.surfacePresentationScale=.05;
+ const compact=r.surfaceJob(earth,{x:1,y:1,z:1},200,Date.UTC(2026,9,12),0,true);
+ assert.equal(full.textureWidth,4096);assert.ok(compact.textureWidth<=256,compact.textureWidth);
+ assert.ok(compact.cloudTextureWidth<=256,compact.cloudTextureWidth);assert.ok(compact.nightTextureWidth<=256,compact.nightTextureWidth);
+});
+
 test('one accepted texture cannot bypass a negative direct-renderer readiness result',async()=>{
  const source=fs.readFileSync('src/app.js','utf8'),code=source.slice(source.indexOf('      async function warmInitialScene('),source.indexOf('      let materialRefreshTimer'));
  let checks=0,now=0;
