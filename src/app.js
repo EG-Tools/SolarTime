@@ -452,7 +452,7 @@
       }
       syncStarDensityControl();
       function fitClockToViewport(){
-        clockFitFrame=0;if(disposed)return;
+        if(disposed)return;
         const clockElement=$('wall-clock'),period=$('ampm'),style=document.documentElement.style;
         const visual=window.visualViewport,viewLeft=visual?.offsetLeft||0,viewWidth=visual?.width||window.innerWidth;
         const padding=window.innerWidth<=680?12:24;
@@ -469,9 +469,10 @@
         if(rounded!==current)style.setProperty('--clock-fit-scale',String(rounded));clockElement.dataset.fitScale=String(rounded);
       }
       function scheduleClockFit(){
-        // Coalesce language, font, size and viewport changes into one read/write
-        // before the next paint. document.fonts.ready schedules its own final fit.
-        if(!clockFitFrame)clockFitFrame=requestAnimationFrame(fitClockToViewport);
+        // Apply interactive changes even when a background/installed page has a
+        // throttled RAF, then coalesce one post-layout correction before paint.
+        fitClockToViewport();
+        if(!clockFitFrame)clockFitFrame=requestAnimationFrame(()=>{clockFitFrame=0;fitClockToViewport();});
       }
       function syncClockSizeControl(){
         const value=Math.round(A.clamp(clockSize,.5,2)*100);

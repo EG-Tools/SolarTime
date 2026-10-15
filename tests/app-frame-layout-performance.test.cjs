@@ -10,11 +10,11 @@ test('discarded display callbacks skip UI lock, pause and cursor work',()=>{
  for(const call of ['syncTravelControlLock();','syncAnimationPause(mono);','updateTravelCursor(mono);'])assert.ok(frame.indexOf(call)>gate,call);
 });
 
-test('clock fitting coalesces requests and uses one layout measurement pass',()=>{
+test('clock fitting applies immediately, coalesces one correction and uses one-pass measurements',()=>{
  const fit=block('      function fitClockToViewport(){','      function scheduleClockFit(){');
  assert.equal((fit.match(/getBoundingClientRect\(\)/g)||[]).length,2,'clock and AM/PM are each measured once');
  assert.doesNotMatch(fit,/for\(let pass=/);assert.doesNotMatch(fit,/setProperty\('--clock-fit-scale','1'\)/);
  const schedule=block('      function scheduleClockFit(){','      function syncClockSizeControl(){');
- assert.match(schedule,/if\(!clockFitFrame\)clockFitFrame=requestAnimationFrame\(fitClockToViewport\)/);
- assert.doesNotMatch(schedule,/fitClockToViewport\(\)/);
+ assert.match(schedule,/fitClockToViewport\(\);/);
+ assert.match(schedule,/if\(!clockFitFrame\)clockFitFrame=requestAnimationFrame\(\(\)=>\{clockFitFrame=0;fitClockToViewport\(\);\}\)/);
 });
