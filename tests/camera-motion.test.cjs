@@ -340,7 +340,7 @@ test('opening reuses the spatial volume without changing its grains and responds
  const {r}=renderer(),axes={right:[1,0,0],down:[0,1,0],forward:[0,0,-1]};
  r.sky.starAxes=axes;r.animateOpeningCamera(r.cameraSnapshot(),0,6500);
  const field=r.openingParticles,original=plain(field.points);
- r.openingParticleFrame(0);assert.ok(field.particleVolume);assert.equal(field.points.length,950);
+ r.openingParticleFrame(0);assert.ok(field.particleVolume);assert.equal(field.points.length,1900);
  const p=field.points[0],v=field.particleVolume,point=v.points.get(p);point.world=[.2,.1,1];
  const before={};r.projectFlightParticleVolume(p,field,0,before);
  field.cameraFrames.push({axes,position:[.025,0,0],time:16,distance:0});field.elapsed=16;
@@ -586,10 +586,12 @@ test('normal-view warp preserves the transported frame through a vertical 180-de
  }
 });
 
-test('warp arrival lead holds its randomized opening pose and returns to the saved view',()=>{
- for(const seed of [.127694,.45,.8])for(const bank of [0,.17]){
+test('warp arrival lead preserves the distant solar start before approaching the saved view',()=>{
+ for(const seed of [.127694,.45,.8])for(const bank of [0,.17])for(const closeup of [false,true]){
   const {r}=renderer(seed),target={...r.cameraSnapshot(),azimuth:1.2,elevation:.4,panX:.1,panY:-.1,zoom:2,dolly:.6};r.flightBank=bank;
-  r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,6500);
+  if(closeup)Object.assign(target,r.trackingMoveState('earth',target,target.zoom));
+  const duration=closeup?8500:6500;
+  r.animateOpeningReplay(target,r.openingCameraSnapshot(target),0,duration);
   const move=r.cameraTween,p=move.replay;p.brakeAt=4300;p.resetAt=7000;
   const opening=r.replayOpeningAt(p);move.duration=opening+p.inbound;
   const axes=()=>[{x:1,y:0,z:0},{x:0,y:1,z:0},{x:0,y:0,z:1}].map(v=>r.viewDirection(v));
@@ -598,9 +600,14 @@ test('warp arrival lead holds its randomized opening pose and returns to the sav
    r.advanceCamera(time);const current=axes();
    for(let i=0;i<3;i++)for(const key of ['x','y','z'])close(current[i][key],initial[i][key]);
    close(r.flightBank,move.openingBank);
+   close(r.camera.dolly,p.departure.dolly);
+   close(p.arrivalProgress,0);
   }
   r.advanceCamera(opening+1);const next=axes();
   for(let i=0;i<3;i++)for(const key of ['x','y','z'])close(next[i][key],initial[i][key],1e-5);
+  assert.ok(r.camera.dolly<p.departure.dolly+(target.dolly-p.departure.dolly)*.001,'first revealed frame still starts with the distant solar system');
+  r.advanceCamera(opening+duration*.5);
+  assert.ok(r.camera.dolly>p.departure.dolly&&r.camera.dolly<target.dolly,'approach proceeds after the solar reveal starts');
   r.advanceCamera(move.duration);
   for(const key of ['azimuth','elevation','panX','panY','zoom','dolly'])close(r.camera[key],target[key]);
   assert.equal(r.cameraTween,null);close(r.flightBank,bank);
@@ -2214,12 +2221,19 @@ test('paused auto rotation preserves manual framing and its configured direction
 });
 test('boot restores short tails and enlarged opening glow while warp keeps its original size range',()=>{
  const {r}=renderer(),home=r.cameraSnapshot();r.animateOpeningCamera(home,0,6500);
- const opening=r.openingParticles;assert.equal(opening.particleProfile,undefined);assert.equal(opening.points.length,950);assert.equal(opening.saturnDrawPoints,undefined);
+ const opening=r.openingParticles;assert.equal(opening.particleProfile,undefined);assert.equal(opening.points.length,1900);assert.equal(opening.saturnDrawPoints,undefined);
  for(const p of opening.points)assert.ok(p.sizeScale>=1.65-1e-12&&p.sizeScale<=3.08);
  for(const time of [0,1000,3000,6000,7000]){const f=r.openingParticleFrame(time);for(const p of f.points){const q=r.projectOpeningParticle(p,f,{}),warp=r.projectOpeningParticle(p,{...f,replay:{...f.replay,openingMove:null}},{});close(q.tail,warp.tail*.175);}}
  r.animateOpeningReplay(home,r.openingCameraSnapshot(home),10000,6500);
  const warp=r.openingParticles;assert.equal(warp.particleProfile,undefined);assert.equal(warp.points.length,4271);assert.equal(warp.saturnDrawPoints,undefined);
  for(const p of warp.points)assert.ok(p.sizeScale>=1&&p.sizeScale<=2);
+ const tailRatios=warp.points.slice(0,32).map(p=>{
+  const gain=p.warpTailGain??1,q=r.projectOpeningParticle(p,warp,{}),saved=p.warpTailGain;p.warpTailGain=1;
+  const base=r.projectOpeningParticle(p,warp,{});p.warpTailGain=saved;return base.tail>0?q.tail/base.tail:gain;
+ });
+ tailRatios.forEach((ratio,i)=>close(ratio,warp.points[i].warpTailGain??1));
+ assert.ok(Math.max(...tailRatios)-Math.min(...tailRatios)>.1,'fixed per-particle tail variety remains visible');
+ assert.match(read('src/renderer.js'),/out\.tail\*=\.72930375\*frame\.fastTailGain\*\(p\.warpTailGain\?\?1\)/);
 });
 
 test('ring-only viewport intersections prepare the same extent as drawing without preparing a corona-only sun',()=>{
@@ -2228,6 +2242,17 @@ test('ring-only viewport intersections prepare the same extent as drawing withou
   const body={id};assert.equal(r.visible(screen,102),false);assert.equal(r.visible(screen,r.bodyVisibleRadius(body,100,{surface:true})),true);assert.equal(r.bodyVisibleRadius(body,100,{surface:true}),r.bodyVisibleRadius(body,100));
  }
  const sun={id:'sun'},screen={x:-150,y:400};assert.equal(r.visible(screen,r.bodyVisibleRadius(sun,100,{surface:true})),false);assert.equal(r.visible(screen,r.bodyVisibleRadius(sun,100)),true);
+});
+
+test('close-up solar shine fades only across its final offscreen reach',()=>{
+ const {r}=renderer();r.w=1280;r.h=800;const radius=100,outer=radius*5.1;
+ assert.equal(r.ringTourBodyVisibleRadius({id:'sun'},radius),526);
+ assert.equal(r.ringTourBodyVisibleRadius({id:'earth'},radius),266);
+ assert.equal(r.coronaEdgeOpacity({x:-outer*.8,y:400},radius),1);
+ const middle=r.coronaEdgeOpacity({x:-outer*.91,y:400},radius);
+ assert.ok(middle>0&&middle<1);
+ assert.equal(r.coronaEdgeOpacity({x:-outer,y:400},radius),0);
+ assert.equal(r.coronaEdgeOpacity({x:640,y:400,behind:true},radius),0);
 });
 
 test('frozen travel does not demand frames but dirty resources still do',()=>{

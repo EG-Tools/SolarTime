@@ -26,3 +26,13 @@ test('hidden material draw restores scissor and color mask even when rendering t
   assert.equal(JSON.stringify(state),original);assert.equal(resets,1);
  }
 });
+
+test('closeup arrivals prepare bounded previews while retaining one warm draw per frame',()=>{
+ let jobs,draws=0;const r=Object.assign(Object.create(window.SolarRenderer.prototype),{
+ cameraTween:{replay:{}},openingSurfaceTarget:{focus:'earth'},options:{activity:true},
+ surfaceJob(body){return {id:body.id,textureWidth:4096,cloudTextureWidth:2048,nightTextureWidth:4096};},
+ gpu:{prepare(value){jobs=value;},warmPlanet(){draws++;return true;}}
+ });
+ r.prepareReplaySurfaces(['earth','saturn','jupiter'].map(id=>({body:{id},physical:{}})),0,0,0,{solar:0,reveal:true});
+ assert.equal(draws,1);assert.ok(jobs.every(j=>j.textureWidth===1024&&j.cloudTextureWidth===1024&&j.nightTextureWidth===1024));
+});

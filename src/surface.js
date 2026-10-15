@@ -786,7 +786,7 @@ const DIRECT_CORONA_VERTEX=`attribute vec2 a;
     layerOpacity=vec2(.8*(1.+sin(t*.19)*.035),.37*(1.+sin(t*.19+1.)*.035));
   }`;
 const DIRECT_CORONA_FRAGMENT=`precision highp float;
-  varying vec2 p,nearUV,farUV,layerOpacity;uniform sampler2D coronaMap;
+  varying vec2 p,nearUV,farUV,layerOpacity;uniform sampler2D coronaMap;uniform float opacity;
   vec4 filament(vec2 uv,float opacity){
     if(any(lessThan(uv,vec2(0.)))||any(greaterThan(uv,vec2(1.))))return vec4(0.);
     vec4 sample=texture2D(coronaMap,uv);sample.a*=opacity;return sample;
@@ -804,7 +804,7 @@ const DIRECT_CORONA_FRAGMENT=`precision highp float;
     over(premul,alpha,vec3(1.,.655,.263),halo);
     over(premul,alpha,nearLayer.rgb,nearLayer.a);
     over(premul,alpha,farLayer.rgb,farLayer.a);
-    if(alpha<.001)discard;gl_FragColor=vec4(premul/alpha,alpha);
+    alpha*=opacity;premul*=opacity;if(alpha<.001)discard;gl_FragColor=vec4(premul/alpha,alpha);
   }`;
 // Orbit vertices stay in model space in STATIC_DRAW buffers. Camera rotation,
 // orbit-shape blending and dolly perspective are evaluated by the vertex
@@ -862,8 +862,14 @@ const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,ax
   void main(){local=a*outer;depth=dot(local,depthAxis);vec2 q=center+(axisU*local.x+axisV*local.y)*radius;gl_Position=vec4(q.x/viewport.x*2.-1.,1.-q.y/viewport.y*2.,0.,1.);}`;
  const DIRECT_RING_FRAGMENT=`precision highp float;varying vec2 local;varying float depth;
    uniform vec2 axisU,axisV;uniform float radius,inner,outer,front,saturn,pixel;uniform vec3 ringColor,light;
-   uniform sampler2D ringMap;uniform float hasRingMap,ringTexel;
+   uniform sampler2D ringMap,previousRingMap;uniform float hasRingMap,ringTexel,previousRingTexel,ringLodMix;
    ${STYLE.ringSamplingGLSL}
+   ${STYLE.ringSamplingGLSL.replaceAll('ringMap','previousRingMap').replaceAll('ringTexel','previousRingTexel').replaceAll('ringSample','previousRingSample').replaceAll('ringFiltered','previousRingFiltered')}
+   vec4 blendedRing(float f,float aa){
+     vec4 current=ringFiltered(f,aa);if(ringLodMix>=1.)return current;
+     vec4 previous=previousRingFiltered(f,aa);float alpha=mix(previous.a,current.a,ringLodMix);
+     return vec4(mix(previous.rgb*previous.a,current.rgb*current.a,ringLodMix)/max(alpha,.00001),alpha);
+   }
    ${STYLE.ringShadowGLSL}
    float lineBand(float f,float center,float width,float aa){return 1.-smoothstep(width,width+aa,abs(f-center));}
    void main(){float r=length(local);if(r<inner||r>outer||(front>.5&&depth<0.)||(front<.5&&depth>=0.))discard;
@@ -872,7 +878,7 @@ const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,ax
      float aa=max(pixel/span,1.15/(max(radius*length(screenRadial),1.)*span));
      float edge=max(pixel,aa*span),alpha=smoothstep(inner,inner+edge,r)*(1.-smoothstep(outer-edge,outer,r));
      float shadow=saturn>.5?ringShadow(vec3(local.x,0.,local.y),light):1.;
-     if(saturn>.5&&hasRingMap>=1.){vec4 band=ringFiltered(f,aa);gl_FragColor=vec4(band.rgb*shadow,alpha*band.a);return;}
+     if(saturn>.5&&hasRingMap>=1.){vec4 band=blendedRing(f,aa);gl_FragColor=vec4(band.rgb*shadow,alpha*band.a);return;}
      float edgeAlpha=alpha;
      if(saturn>.5){
        float gap=smoothstep(.56-aa*1.5,.56+aa*1.5,f)*(1.-smoothstep(.62-aa*1.5,.62+aa*1.5,f));
@@ -894,7 +900,7 @@ const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,ax
     }
     vec4 result=vec4(ringColor*shadow,alpha);
     if(saturn>.5&&hasRingMap>0.){
-      vec4 band=ringFiltered(f,aa);band=vec4(band.rgb*shadow,edgeAlpha*band.a);
+      vec4 band=blendedRing(f,aa);band=vec4(band.rgb*shadow,edgeAlpha*band.a);
       float a=mix(result.a,band.a,hasRingMap);
       result=vec4(mix(result.rgb*result.a,band.rgb*band.a,hasRingMap)/max(a,.00001),a);
     }
@@ -968,9 +974,9 @@ class DirectRenderer{
     this.explicitMipLod=!!g.getExtension('EXT_shader_texture_lod');
     const fragment=this.explicitMipLod?'#extension GL_EXT_shader_texture_lod : enable\n'+DIRECT_PLANET_FRAGMENT.replace('uniform float colorLodMix;','uniform float materialMip[7];uniform float colorLodMix;').replace('texture2D(map,uv)','texture2DLodEXT(map,uv,(layer<.5?materialMip[0]:layer<1.5?materialMip[1]:layer<2.5?materialMip[2]:layer<3.5?materialMip[3]:materialMip[5]))').replace('texture2D(previousColorMap,uv)','texture2DLodEXT(previousColorMap,uv,materialMip[6])'):DIRECT_PLANET_FRAGMENT;
     this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,fragment,['materialMip','center','viewport','radius','colorMap','previousColorMap','colorLodMix','lodLayers','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread','shadowScale']);
-    this.coronaProgram=directProgram(g,DIRECT_CORONA_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime']);
+    this.coronaProgram=directProgram(g,DIRECT_CORONA_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime','opacity']);
     this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','roll','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','solarOffset','color','ink','inkWeight']);
-    this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel','light']);
+    this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel','previousRingMap','previousRingTexel','ringLodMix','light']);
     this.quad=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.quad);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
     this.black=g.createTexture();g.bindTexture(g.TEXTURE_2D,this.black);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,1,1,0,g.RGBA,g.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
     g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
@@ -980,7 +986,7 @@ class DirectRenderer{
     g.uniform1i(this.planetProgram.u.cloudAltMap,5);
     g.uniform1i(this.planetProgram.u.previousColorMap,6);
     g.useProgram(this.coronaProgram.program);g.uniform1i(this.coronaProgram.u.coronaMap,3);
-    g.useProgram(this.ring.program);g.uniform1i(this.ring.u.ringMap,0);
+    g.useProgram(this.ring.program);g.uniform1i(this.ring.u.ringMap,0);g.uniform1i(this.ring.u.previousRingMap,1);
     for(const p of [this.planetProgram,this.coronaProgram,this.line,this.ring]){p.viewportWidth=NaN;p.viewportHeight=NaN;}
     g.enable(g.BLEND);g.blendFuncSeparate(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA,g.ONE,g.ONE_MINUS_SRC_ALPHA);g.disable(g.DEPTH_TEST);g.clearColor(0,0,0,0);this.resetBindings();
   }
@@ -1008,6 +1014,7 @@ class DirectRenderer{
     if(this.openingPreview)for(const job of this.desired.values()){
       if(job.id==='earth'&&job.cloudAmount>0&&!this.textures.get('clouds')?.texture)return false;
       if(job.id==='earth'&&job.nightLights&&!this.textures.get('earth-night')?.texture)return false;
+      if(job.id==='venus'&&job.cloudAmount>0&&job.cloudAmount<1&&!this.textures.get('venus')?.texture)return false;
       if(job.id==='saturn'&&!this.textures.get('saturn-ring')?.texture)return false;
     }
     return true;
@@ -1035,6 +1042,7 @@ class DirectRenderer{
       this.texture(job.id==='venus'&&job.cloudAmount<1?'venus-surface':job.id,job.textureWidth);
       if(job.id==='saturn')this.texture('saturn-ring',job.textureWidth);
       if(job.id==='venus'&&job.cloudAmount>=1&&job.venusSurfacePreviewWidth>0)this.texture('venus-surface',256);
+      if(job.id==='venus'&&job.cloudAmount>0&&job.cloudAmount<1)this.texture('venus',job.cloudTextureWidth||job.textureWidth);
       if(job.id==='earth'&&job.nightLights)this.texture('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth));
       if(job.openingPreview&&job.id==='earth'&&job.cloudAmount>0)this.texture('clouds',job.cloudTextureWidth||job.textureWidth);
     }
@@ -1210,7 +1218,7 @@ class DirectRenderer{
     if(saved.asset!==asset){this.discardRecent(key);return null;}
     this.recentTextures.delete(key);const current=this.textures.get(name);
     this.cancelTexture(name);const previousLod=this.parkTexture(name,current);
-    const record={...saved,sampled:current?.sampled,residentSource:saved.source,pending:false,token:++this.textureToken,retryAt:0,previousLod:current?.asset===asset?previousLod:null,lodStarted:performance.now()};
+    const record={...saved,sampled:current?.sampled,ringVisibleStarted:current?.ringVisibleStarted,residentSource:saved.source,pending:false,token:++this.textureToken,retryAt:0,previousLod:current?.asset===asset?previousLod:null,lodStarted:performance.now()};
     this.textures.set(name,record);this.resetTextureBindings();this.trimRecent();
     this.stats.recentHits=(this.stats.recentHits||0)+1;this.stats.accepted=(this.stats.accepted||0)+1;
     return record;
@@ -1265,6 +1273,8 @@ class DirectRenderer{
     // Finish a displayed layer before replacing its source a second time.
     if(!assetChanged&&record?.texture&&record.lodQueued&&now-(record.lodSeenAt||0)<1000)return record;
     const current=record?.pending?Math.max(record.width,record.pendingTarget):record?.width||0;
+    // Keep arrival detail through the temporary distant portion of an opening.
+    if(this.openingPreview&&!this.texturePlan?.constrained&&!assetChanged)target=Math.max(target,current);
     if(!assetChanged&&current>target&&!this.texturePlan?.constrained){
       if(record.lowerTarget!==target){record.lowerTarget=target;record.lowerSince=now;}
       if(now-record.lowerSince<650)return record.texture?record:null;
@@ -1301,12 +1311,12 @@ class DirectRenderer{
     // One old-map sampler is shared by all material layers. Queued layers
     // retain their previous image until their turn, so no extra draw is needed.
     const empty=this.emptyLodMap||(this.emptyLodMap={texture:this.black});
-    const previous=record=>record.revealPending?empty:this.recentTextures?.get(record.previousLod);
+    const previous=record=>record.revealPending?(record.revealFallback||empty):this.recentTextures?.get(record.previousLod);
     const unique=this.lodUnique||(this.lodUnique=[]);unique.length=0;
     for(let slot=0;slot<records.length;slot++){
       const record=records[slot];if(!record||unique.includes(record))continue;unique.push(record);
       if(!record.sampled){record.sampled=true;record.revealPending=true;}
-      if(record.lodVisibleStarted!=null&&now-record.lodVisibleStarted>=MAP_LOD_MS){record.previousLod=null;record.revealPending=false;record.lodVisibleStarted=null;}
+      if(record.lodVisibleStarted!=null&&now-record.lodVisibleStarted>=MAP_LOD_MS){record.previousLod=null;record.revealPending=false;record.revealFallback=null;record.lodVisibleStarted=null;}
       record.lodQueued=!!previous(record);record.lodSeenAt=now;
     }
     const active=unique.find(r=>r.lodQueued&&r.lodVisibleStarted!=null)||unique.find(r=>r.lodQueued);
@@ -1381,8 +1391,8 @@ class DirectRenderer{
     }
     g.drawArrays(g.LINE_STRIP,0,record.count);this.stats.drawCalls++;
   }
-  corona(source,screen,radius,time){
-    if(!source||radius<POINT_SURFACE_RADIUS)return;
+  corona(source,screen,radius,time,opacity=1){
+    if(!source||radius<POINT_SURFACE_RADIUS||opacity<=0)return;
     const g=this.gl;let record=this.coronaTexture;
     if(!record||record.source!==source){
       const texture=g.createTexture();g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,texture);this.resetTextureBindings();g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,false);
@@ -1391,7 +1401,7 @@ class DirectRenderer{
       g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
       if(record?.texture)g.deleteTexture(record.texture);record=this.coronaTexture={source,texture,width:source.width,height:source.height};
     }
-    const p=this.coronaProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius*5.1);g.uniform1f(p.u.effectTime,time);
+    const p=this.coronaProgram;this.bind(p);this.viewport(p);g.uniform2f(p.u.center,screen.x,screen.y);g.uniform1f(p.u.radius,radius*5.1);g.uniform1f(p.u.effectTime,time);g.uniform1f(p.u.opacity,opacity);
     this.bindTextureUnit(3,record.texture);
     this.drawCoronaQuad(screen,radius);
   }
@@ -1426,6 +1436,15 @@ class DirectRenderer{
     const lx=light?.[0]||0,ly=light?.[1]||0,lz=light?.[2]||0,{u,v,pole}=frame;
     g.uniform3f(p.u.light,u[0]*lx+u[1]*ly+u[2]*lz,pole?pole[0]*lx+pole[1]*ly+pole[2]*lz:0,v[0]*lx+v[1]*ly+v[2]*lz);
     let ringMix=0;if(ready){map.ringVisibleStarted??=performance.now();const t=Math.max(0,Math.min(1,(performance.now()-map.ringVisibleStarted)/MAP_LOD_MS));ringMix=t*t*(3-2*t);}
+    const now=performance.now(),previous=ready?this.recentTextures?.get(map.previousLod):null;
+    let lodMix=1;
+    if(previous){
+      map.lodVisibleStarted??=now;map.lodSeenAt=now;map.lodQueued=true;
+      const t=Math.min(1,Math.max(0,(now-map.lodVisibleStarted)/MAP_LOD_MS));lodMix=t*t*(3-2*t);
+      if(t>=1){map.previousLod=null;map.lodQueued=false;map.lodVisibleStarted=null;}
+    }
+    this.bindTextureUnit(1,previous?.texture||this.black);
+    g.uniform1f(p.u.previousRingTexel,1/(previous?.width||1));g.uniform1f(p.u.ringLodMix,lodMix);
     this.bindTextureUnit(0,ready?map.texture:this.black);g.uniform1f(p.u.hasRingMap,ringMix);g.uniform1f(p.u.ringTexel,1/(ready?map.width:1));
     g.uniform1f(p.u.radius,radius);g.uniform1f(p.u.inner,inner);g.uniform1f(p.u.outer,outer);g.uniform1f(p.u.front,front?1:0);g.uniform1f(p.u.saturn,saturn?1:0);g.uniform1f(p.u.pixel,1/Math.max(radius,1));
     g.uniform3f(p.u.ringColor,saturn?.88:.62,saturn?.75:.78,saturn?.55:.80);g.drawArrays(g.TRIANGLES,0,6);this.stats.drawCalls++;
@@ -1459,6 +1478,10 @@ class DirectRenderer{
       cloudAmount=1-(1-cloudAmount)*t*t*(3-2*t);
     }
     const clouds=job.id==='earth'&&cloudAmount>0?this.texture('clouds',Math.min(4096,job.cloudTextureWidth||job.textureWidth)):job.id==='venus'&&cloudAmount>0?(colorId==='venus'?color:this.texture('venus',Math.min(4096,job.cloudTextureWidth||job.textureWidth))):null;
+    // During a cold close-up the surface preview can arrive before the separate
+    // cloud deck. Keep the visible Venus map as the reveal source so the
+    // atmosphere never drops to black for one frame and then switches back on.
+    if(job.id==='venus'&&clouds&&clouds!==color&&!clouds.sampled)clouds.revealFallback=retainedClouds?.texture?retainedClouds:color;
     // Optional secondary source starts only after the main map is resident.
     // The existing loader owns its LOD, cancellation, retries and eviction.
     const cloudsAlt=job.id==='earth'&&cloudAmount>0&&job.cloudDetail!==0&&clouds?this.texture('clouds-alt',Math.min(2048,job.cloudTextureWidth||job.textureWidth)):null;

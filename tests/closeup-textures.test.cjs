@@ -304,3 +304,33 @@ test('relief and night filter spacing follows each sampled map through queued LO
  state=r.mapLod(maps,1050);assert.equal(state.nightTexel,(1/512+1/2048)/2);
  state=r.mapLod(maps,1400);assert.equal(state.nightTexel,1/2048);r.dispose();
 });
+
+test('ring LOD changes retain the old map until a visible continuous fade completes',()=>{
+ const f=fixture(),r=f.r,values=[],bound=new Map();r.ring={u:{ringLodMix:'lod'}};r.black={};r.bind=()=>{};r.viewport=()=>{};r.bindTextureUnit=(slot,map)=>bound.set(slot,map);
+ for(const n of ['uniform2f','uniform3f','drawArrays'])r.gl[n]=()=>{};
+ r.gl.uniform1f=(u,v)=>{if(u==='lod')values.push(v);};
+ const old={texture:{id:'old'},width:256},record={texture:{id:'new'},width:1024,previousLod:'old',ringVisibleStarted:0};
+ r.recentTextures.set('old',old);r.textures.set('saturn-ring',record);
+ const draw=()=>r.rings({id:'saturn'},{u:[1,0,0],v:[0,1,0],pole:[0,0,1]},{x:10,y:10},150,true,[1,0,0]);
+ for(const t of [5000,5350,5700]){f.time(t);draw();assert.equal(bound.get(1),old.texture);}
+ assert.deepEqual(values,[0,.5,1]);assert.equal(record.previousLod,null);assert.equal(record.lodQueued,false);
+ f.time(5800);draw();assert.equal(values.at(-1),1);r.dispose();
+});
+
+test('opening preview retains prepared detail through a distant phase until arrival',async()=>{
+ const f=fixture({hold:true});f.r.openingPreview=true;f.focus('saturn',1024);f.r.textureFor('saturn',1024);f.requests[0].finish();await turn();
+ f.focus('saturn',4096);f.r.textureFor('saturn',4096);assert.equal(f.requests[1].width,4096);
+ f.time(2000);f.focus('saturn',256);f.r.textureFor('saturn',256);f.time(3000);f.r.textureFor('saturn',256);
+ assert.equal(f.requests[1].signal.aborted,false);assert.equal(f.requests.length,2);
+ f.requests[1].finish();await turn();assert.equal(f.r.textures.get('saturn').width,4096);
+ f.r.openingPreview=false;f.time(4000);f.r.textureFor('saturn',256);f.time(4700);f.r.textureFor('saturn',256);assert.equal(f.r.textures.get('saturn').pendingTarget,256);f.r.dispose();
+});
+
+test('Venus close-up prepares its atmosphere and reveals it over a visible fallback',()=>{
+ const f=fixture(),r=f.r,calls=[];r.openingPreview=true;r.texture=(name,width)=>{calls.push([name,width]);return r.textures.get(name)||null;};
+ r.desired.set('venus',{id:'venus',textureWidth:1024,cloudTextureWidth:512,cloudAmount:.5});r.planTextures=()=>{};r.textureIntent={};r.prepare([...r.desired.values()]);
+ assert.ok(calls.some(([name,width])=>name==='venus'&&width===512));
+ assert.equal(r.visibleTexturesReady(),false);r.textures.set('venus-surface',{texture:{id:'surface-map'}});r.textures.set('venus',{texture:{id:'cloud'}});assert.equal(r.visibleTexturesReady(),true);
+ const cloud=r.textures.get('venus'),surface={texture:{id:'surface'},sampled:true};cloud.sampled=false;cloud.revealFallback=surface;r.black={id:'black'};r.planetProgram={u:{}};r.gl.uniform1f=()=>{};r.gl.uniform2f=()=>{};
+ let previous;r.bindTextureUnit=(slot,texture)=>{if(slot===6)previous=texture;};r.mapLod([surface,null,cloud],0);assert.equal(previous,surface.texture);r.dispose();
+});

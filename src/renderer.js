@@ -1164,6 +1164,14 @@
       if(surface&&body.id!=='saturn'&&body.id!=='uranus')return r+2;
       return r*(body.id==='sun'?5.1:body.id==='saturn'?2.3:body.id==='uranus'?2:1.3)+16;
     }
+    coronaEdgeOpacity(screen,radius){
+      if(!screen||screen.behind||!(radius>0))return 0;
+      const dx=screen.x<0?-screen.x:screen.x>this.w?screen.x-this.w:0;
+      const dy=screen.y<0?-screen.y:screen.y>this.h?screen.y-this.h:0;
+      const distance=Math.hypot(dx,dy),outer=radius*5.1,fadeStart=outer*.82;
+      return 1-ease(clamp((distance-fadeStart)/Math.max(1,outer-fadeStart),0,1));
+    }
+    ringTourBodyVisibleRadius(body,radius){return Math.max(radius*2.5+16,this.bodyVisibleRadius(body,radius));}
     visible(p,r=0) {return !p.behind&&p.x+r>=0&&p.x-r<=this.w&&p.y+r>=0&&p.y-r<=this.h;}
     skyFeatureHit(x,y){return this.sky?.featureHit?.(x,y)||null;}
     setSkyFeatureHover(id){if(this.sky?.setFeatureHover?.(id))this.invalidatePresentation(Math.max(1300,this.sky.featureHoverTransitionDuration?.()||0));}
@@ -1885,7 +1893,7 @@
       const particleSeed=Math.floor(Math.random()*4294967296)>>>0,rand=random(particleSeed);
       const budget=this.options.quality==='low'?320:Math.min(this.w,this.h)<600?520:960;
       const capacity=window.SolarPerformance?.particleCapacity?.(this.options.quality)??1;
-      const count=Math.floor(budget*capacity*(openingStyle?.99:replay.path?4.44916214975232:1));
+      const count=Math.floor(budget*capacity*(openingStyle?1.98:replay.path?4.44916214975232:1));
       // One fixed pool for the entire T journey. Depths are staggered so the
       // loop cannot pulse; a grain wraps only after it has left the view.
       const stretchSpread=!openingStyle&&replay.path&&!replay.saturnTour&&!replay.saturnProfile?1.3:1;
@@ -2523,7 +2531,7 @@
       if(warpStyle){
         // Warp-only presentation trim. Scale the complete footprint rather
         // than merely lowering the upper clamp, so medium grains match too.
-        out.tail*=.694575*frame.fastTailGain*(p.warpTailGain??1);
+        out.tail*=.72930375*frame.fastTailGain*(p.warpTailGain??1);
         out.size=Math.min(out.size*.56,1.4112);out.glowSize=out.size*p.glow;
       }
       out.alpha=renderOpacity*density*(field.particleVolume?out.volumeAlpha:1-ease((depth-length*.7)/(length*.3)));
@@ -3459,10 +3467,11 @@
     corona(c,x,y,r,seconds) {
       // v0.19: activity is a true visibility toggle, not merely an animation freeze.
       if(!this.options.activity)return;
+      const opacity=this.coronaEdgeOpacity({x,y},r);if(opacity<=0)return;
       // Public SolarTime timing and layer blend values.
       const t=seconds*24;
       const texture=this.coronaSource(r);
-      c.save();c.translate(x,y);
+      c.save();c.globalAlpha*=opacity;c.translate(x,y);
       c.globalCompositeOperation='screen';
       const halo=c.createRadialGradient(0,0,r*.92,0,0,r*5.1);
       halo.addColorStop(0,'rgba(255,167,64,.25)');halo.addColorStop(.17,'rgba(216,102,25,.095)');
@@ -3949,7 +3958,7 @@
         this.projectRingTourPoint(projection,item.world,s,baseRadius,normalScreen);item.r=s.radius;
         item.tourLocal=[s.localX,s.localY,s.localZ];if(item===saturn)continue;
         const normalRadius=baseRadius*normalScreen.perspective;
-        const visibleNow=this.visible(s,item.r*2.5+16),prepareReturn=returning&&this.visible(normalScreen,normalRadius*2.5+16);
+        const visibleNow=this.visible(s,this.ringTourBodyVisibleRadius(item.body,item.r)),prepareReturn=returning&&this.visible(normalScreen,this.ringTourBodyVisibleRadius(item.body,normalRadius));
         if(!visibleNow&&!prepareReturn)continue;
         const job=this.surfaceJob(item.body,item.physical,Math.max(visibleNow?item.r:0,prepareReturn?normalRadius:0),ms,seconds,true,item.directJob,mono),bodyAxes=A.bodyAxes(item.body);
         const frame=item.tourFrame||(item.tourFrame={u:new Float32Array(3),v:new Float32Array(3),pole:new Float32Array(3)});
@@ -3964,7 +3973,7 @@
       let tourDrawn=false;
       for(const item of visible){
         if(!tourDrawn&&this.bodyDepthOrder(item,saturn)>=0){tour.draw(this.gpu,this.w,this.h);tourDrawn=true;}
-        if(item.body.id==='sun'&&this.options.activity)this.gpu.corona(this.coronaSource(item.r),item.screen,item.r,seconds);
+        if(item.body.id==='sun'&&this.options.activity)this.gpu.corona(this.coronaSource(item.r),item.screen,item.r,seconds,this.coronaEdgeOpacity(item.screen,item.r));
         this.gpu.planet(item.directJob,item.body,item.screen,item.r,seconds,this.options.activity);
       }
       if(!tourDrawn)tour.draw(this.gpu,this.w,this.h);
@@ -4240,12 +4249,13 @@
       // Keep baseline maps wanted, and warm at most ONE material per frame.
       const warm=path.surfaceWarmup||(path.surfaceWarmup={jobs:[],byId:new Map(),done:new Set(),cursor:0});
       warm.jobs.length=0;
+      const previewWidth=this.openingSurfaceTarget?.focus?1024:256;
       for(const item of bodies){
         const job=this.surfaceJob(item.body,item.physical,16,ms,seconds,true,warm.byId.get(item.body.id),mono);
         warm.byId.set(item.body.id,job);
-        job.textureWidth=Math.min(256,job.textureWidth);
-        if(job.nightTextureWidth)job.nightTextureWidth=Math.min(256,job.nightTextureWidth);
-        if(job.cloudTextureWidth)job.cloudTextureWidth=Math.min(256,job.cloudTextureWidth);
+        job.textureWidth=Math.min(previewWidth,job.textureWidth);
+        if(job.nightTextureWidth)job.nightTextureWidth=Math.min(previewWidth,job.nightTextureWidth);
+        if(job.cloudTextureWidth)job.cloudTextureWidth=Math.min(previewWidth,job.cloudTextureWidth);
         warm.jobs.push(job);
       }
       this.gpu.prepare(warm.jobs);
@@ -4320,7 +4330,7 @@
         if(solar>0)this.gpu.prepare(jobs);
         else this.prepareReplaySurfaces(bodies,ms,seconds,mono,presentation);
         const sun=this.currentFrameItem('sun');
-        if(solar>0&&sun&&this.options.activity&&this.visible(sun.screen,sun.r*5.1+16))this.gpu.corona(this.coronaSource(sun.r),sun.screen,sun.r,seconds);
+        if(solar>0&&sun&&this.options.activity&&this.visible(sun.screen,sun.r*5.1+16))this.gpu.corona(this.coronaSource(sun.r),sun.screen,sun.r,seconds,this.coronaEdgeOpacity(sun.screen,sun.r));
         for(const p of bodies){const extent=this.bodyVisibleRadius(p.body,p.r);if(solar<=0||!this.visible(p.screen,extent))continue;
           const job=p.directReady?p.directJob:null;if(job&&this.gpu.planet(job,p.body,p.screen,p.r,seconds,this.options.activity))directBodies.push(p);
         }
