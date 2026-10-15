@@ -63,10 +63,16 @@ test('solar fade continues on its original clock after manual rotation interrupt
  r.advanceCamera(3800);close(r.skySolarMix,0);assert.equal(r.solarSceneAppearance().scale,1);
 });
 test('constellation solar display keeps a coherent five-percent scene and OFF restores the hidden fade',()=>{
- const {r}=renderer();r.skySolarMix=1;r.skyFeatureTrack={id:'polaris'};
+ const {r,now}=renderer();r.skySolarMix=1;r.skyFeatureTrack={id:'polaris'};
  assert.equal(r.skySolarDisplay(),true);assert.equal(r.solarSceneHidden(100),false);close(r.solarSceneAppearance().scale,.05);close(r.solarSceneAppearance().alpha,1);
- assert.equal(r.setSkySolarDisplay(false),true);assert.equal(r.solarSceneHidden(100),true);close(r.solarSceneAppearance().scale,.05);close(r.solarSceneAppearance().alpha,0);
- assert.equal(r.setSkySolarDisplay(true),true);assert.equal(r.solarSceneHidden(100),false);
+ assert.equal(r.setSkySolarDisplay(false),true);assert.equal(r.solarSceneHidden(100),false);close(r.solarSceneAppearance().alpha,1);
+ now(350);close(r.solarSceneAppearance().alpha,.5);close(r.solarSceneAppearance().scale,.05);
+ now(700);assert.equal(r.solarSceneHidden(700),true);close(r.solarSceneAppearance().alpha,0);
+ assert.equal(r.setSkySolarDisplay(true),true);now(1050);close(r.solarSceneAppearance().alpha,.5);
+ r.setSkySolarDisplay(false);close(r.solarSceneAppearance().alpha,.5);
+ now(1400);close(r.solarSceneAppearance().alpha,.25);
+ r.skySolarMix=.5;close(r.solarSceneAppearance().alpha,.625);
+ r.skySolarMix=0;close(r.solarSceneAppearance().alpha,1);
 });
 test('compact solar selection ignores close-up bodies clipped outside the viewport',()=>{
  const {r}=renderer();r.skySolarMix=1;r.skyFeatureTrack={id:'polaris'};
@@ -78,6 +84,14 @@ test('compact solar selection ignores close-up bodies clipped outside the viewpo
  assert.deepEqual(plain(target),{x:640,y:400,r:13});
  r.frameBodies.push({body:{id:'earth'},screen:{x:640,y:400,behind:false},r:1e4});
  assert.deepEqual(plain(r.updateSkySolarTarget({x:640,y:400,scale:.05})),{x:640,y:400,r:42});
+});
+
+test('paused solar display still fades and paints its final state after a delayed frame',()=>{
+ const {r,now}=renderer();r.animationPaused=true;r.skySolarMix=1;
+ r.setSkySolarDisplay(false);r.presentationDirty=false;r.dirty=false;r.resourceSignature=()=>'';r.presentedResources='';
+ assert.equal(r.needsDraw(350),true);
+ now(2000);assert.equal(r.needsDraw(2000),true);assert.equal(r.skySolarDisplayTween,null);
+ assert.equal(r.solarSceneAppearance().alpha,0);assert.equal(r.presentationDirty,true);
 });
 
 test('star tracking wheel travel retains lateral distance through tween, save and return',()=>{
@@ -391,7 +405,7 @@ test('Saturn t1 entry accelerates from rest and keeps the ordinary warp clock un
 });
 test('Saturn entry profile owns one non-additive painter',()=>{
  const source=read('src/renderer.js'),method=source.slice(source.indexOf('    drawSaturnFlightParticles('),source.indexOf('    drawFlightParticles('));
-  for(const value of ["c.globalCompositeOperation='source-over'","this.drawSoftFlightParticle(c,p,q)","this.saturnEntryParticleAlpha(p,field)"])assert.ok(method.includes(value),value);
+  for(const value of ["c.globalCompositeOperation='source-over'","this.drawSoftFlightParticle(c,p,q,.12,base)","this.saturnEntryParticleAlpha(p,field)"])assert.ok(method.includes(value),value);
   assert.doesNotMatch(method,/styleMix|transitionSeed|saturn-entry-v071|saturnEntrySprite/);
 });
 test('Saturn t1 grains retain their staggered fade for half a second after landing',()=>{
@@ -2457,4 +2471,16 @@ test('paused size-mode transition completes and starts Home on the real camera c
 test('paused Home and three saved-view transitions finish without changing simulation pause',()=>{
  const {r}=renderer();r.setAnimationPaused(true,100);r.camera.dolly=2;r.animateHome(1000,1100);r.advanceCamera(2100);assert.equal(r.cameraTween,null);
  for(let i=0;i<3;i++){const start=3000+i*2000,target={...r.defaultCameraSnapshot(),azimuth:1+i*.5,dolly:1+i};assert.ok(r.animateCamera(target,start,1100));r.advanceCamera(start+550);assert.ok(r.cameraTween);r.advanceCamera(start+1100);close(r.camera.azimuth,target.azimuth);assert.equal(r.animationPaused,true);}
+});
+
+test('Saturn/opening particle painting shares canvas state and preserves the parent transform',()=>{
+ const {r}=renderer();r.softFlightParticleSprite=()=>({});let saves=0,restores=0,images=0,strokes=0;const transforms=[];
+ const base={a:2,b:0,c:0,d:3,e:4,f:5};
+ const c={save(){saves++;},restore(){restores++;},getTransform(){return base;},setTransform(...v){transforms.push(v);},
+  translate(){throw Error('per-particle translate');},rotate(){throw Error('per-particle rotate');},
+  drawImage(){images++;},beginPath(){},moveTo(){},lineTo(){},stroke(){strokes++;}};
+ const field={alpha:1,replay:{path:{}},points:[{},{}],projected:{}};
+ r.drawSaturnFlightParticles(c,field,()=>({visible:true,alpha:.4,x:10,y:20,angle:0,size:1,tail:10}));
+ assert.equal(saves,1);assert.equal(restores,1);assert.equal(transforms.length,2);
+ assert.deepEqual(transforms[0],[2,0,0,3,24,65]);assert.equal(images,6);assert.equal(strokes,2);
 });

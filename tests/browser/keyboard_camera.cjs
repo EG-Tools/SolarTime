@@ -37,9 +37,10 @@ module.exports=async({root,evaluate,send,session})=>{
     await send('Input.dispatchKeyEvent',{type:'keyDown',key:'0',code:'Digit0',windowsVirtualKeyCode:48},session);
     await send('Input.dispatchKeyEvent',{type:'keyUp',key:'0',code:'Digit0',windowsVirtualKeyCode:48},session);
    }else await evaluate(`document.getElementById('fit-view').click()`);
-   equalCamera(await evaluate('SolarTime.renderer.cameraTween.to'),home);
+   const expectedHome={...home,azimuth:2}; // Home preserves the user's local rotation.
+   equalCamera(await evaluate('SolarTime.renderer.cameraTween.to'),expectedHome);
    const end=Date.now()+5000;while(await evaluate('!!SolarTime.renderer.cameraTween')){assert.ok(Date.now()<end,'home transition must finish');await delay(50);}
-   equalCamera((await snapshot()).camera,home);cases.push(control+' returns to the shared home');
+   equalCamera((await snapshot()).camera,expectedHome);cases.push(control+' returns home while preserving local rotation');
   }
   for(const direction of ['ArrowUp','ArrowDown']){
    const before=await snapshot();await key(direction,'keyDown');await delay(250);await key(direction,'keyUp');
@@ -59,7 +60,7 @@ module.exports=async({root,evaluate,send,session})=>{
   assert.ok(departure.dolly>blurred.camera.dolly);equalCamera((await snapshot()).camera,departure);cases.push('reload while held');
   // Native range-input arrow keys must remain separate from camera travel.
   const beforeEditing=await snapshot();
-  await evaluate(`document.getElementById('settings-button').click();document.getElementById('star-density').focus()`);
+  await evaluate(`document.getElementById('settings-button').click();document.documentElement.dataset.focusInput='keyboard';document.getElementById('star-density').focus()`);
   await key('ArrowDown','keyDown');await key('ArrowDown','keyUp');equalCamera((await snapshot()).camera,beforeEditing.camera);cases.push('focused slider leaves camera unchanged');
   // Capture the synchronous reset pose at the shared renderer entry point,
   // before its intentionally enabled auto-rotation advances the next frame.

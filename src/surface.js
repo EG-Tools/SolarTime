@@ -422,8 +422,11 @@ function surfaceKernel(style){
         if(!gpu)throw Error('CPU compatibility adapter');
         const g=this.canvas.getContext('webgl',{alpha:true,premultipliedAlpha:false,antialias:false,preserveDrawingBuffer:true});
         if(!g)throw Error('WebGL unavailable');this.gl=g;
-        const vs=compile(g,g.VERTEX_SHADER,vertex),fs=compile(g,g.FRAGMENT_SHADER,fragment),program=g.createProgram();g.attachShader(program,vs);g.attachShader(program,fs);g.linkProgram(program);g.deleteShader(vs);g.deleteShader(fs);
-        if(!g.getProgramParameter(program,g.LINK_STATUS))throw Error(g.getProgramInfoLog(program));this.program=program;
+        let vs,fs,program;
+        try{vs=compile(g,g.VERTEX_SHADER,vertex);fs=compile(g,g.FRAGMENT_SHADER,fragment);program=g.createProgram();g.attachShader(program,vs);g.attachShader(program,fs);g.linkProgram(program);
+          if(!g.getProgramParameter(program,g.LINK_STATUS))throw Error(g.getProgramInfoLog(program));
+        }catch(error){if(program)g.deleteProgram(program);throw error;}finally{if(vs)g.deleteShader(vs);if(fs)g.deleteShader(fs);}
+        this.program=program;
         this.buffer=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.buffer);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
         this.attribute=g.getAttribLocation(program,'a');
         this.uniforms=Object.fromEntries(['colorMap','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread','shadowScale'].map(k=>[k,g.getUniformLocation(program,k)]));this.stats.backend='gpu';
@@ -905,16 +908,25 @@ const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,ax
       result=vec4(mix(result.rgb*result.a,band.rgb*band.a,hasRingMap)/max(a,.00001),a);
     }
     gl_FragColor=result;}`;
-function directCompile(gl,type,source){
-  const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
-  if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS)){const message=gl.getShaderInfoLog(shader)||'GPU shader compilation failed';gl.deleteShader(shader);throw Error(message);}
-  return shader;
-}
-function directProgram(gl,vertex,fragment,uniforms){
-  const vs=directCompile(gl,gl.VERTEX_SHADER,vertex),fs=directCompile(gl,gl.FRAGMENT_SHADER,fragment),program=gl.createProgram();
-  gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);gl.deleteShader(vs);gl.deleteShader(fs);
-  if(!gl.getProgramParameter(program,gl.LINK_STATUS)){const message=gl.getProgramInfoLog(program)||'GPU program link failed';gl.deleteProgram(program);throw Error(message);}
-  return {program,a:gl.getAttribLocation(program,'a'),u:Object.fromEntries(uniforms.map(name=>[name,gl.getUniformLocation(program,name)]))};
+function directPrograms(gl,specs){
+  const stages=[];let complete=false;
+  try{
+    for(const [vertex,fragment,uniforms] of specs){
+      const stage={shaders:[],program:null,uniforms};stages.push(stage);
+      for(const [type,source] of [[gl.VERTEX_SHADER,vertex],[gl.FRAGMENT_SHADER,fragment]]){
+        const shader=gl.createShader(type);if(!shader)throw Error('GPU shader allocation failed');stage.shaders.push(shader);gl.shaderSource(shader,source);gl.compileShader(shader);
+      }
+      stage.program=gl.createProgram();if(!stage.program)throw Error('GPU program allocation failed');
+      for(const shader of stage.shaders)gl.attachShader(stage.program,shader);gl.linkProgram(stage.program);
+    }
+    // Submit independent programs before querying results, avoiding one
+    // synchronous compilation barrier for every shader and program.
+    const result=stages.map(stage=>{
+      for(const shader of stage.shaders)if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(shader)||'GPU shader compilation failed');
+      if(!gl.getProgramParameter(stage.program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(stage.program)||'GPU program link failed');
+      return {program:stage.program,a:gl.getAttribLocation(stage.program,'a'),u:Object.fromEntries(stage.uniforms.map(name=>[name,gl.getUniformLocation(stage.program,name)]))};
+    });complete=true;return result;
+  }finally{for(const stage of stages){for(const shader of stage.shaders)gl.deleteShader(shader);if(!complete&&stage.program)gl.deleteProgram(stage.program);}}
 }
 function directTexturePixels(record){return record?.pixels??((record?.width||0)*(record?.height||0));}
 function directPower(value){return Math.max(128,Math.min(4096,2**Math.round(Math.log2(Math.max(128,value)))));}
@@ -973,10 +985,12 @@ class DirectRenderer{
     this.viewportLimit=g.getParameter(g.MAX_VIEWPORT_DIMS);
     this.explicitMipLod=!!g.getExtension('EXT_shader_texture_lod');
     const fragment=this.explicitMipLod?'#extension GL_EXT_shader_texture_lod : enable\n'+DIRECT_PLANET_FRAGMENT.replace('uniform float colorLodMix;','uniform float materialMip[7];uniform float colorLodMix;').replace('texture2D(map,uv)','texture2DLodEXT(map,uv,(layer<.5?materialMip[0]:layer<1.5?materialMip[1]:layer<2.5?materialMip[2]:layer<3.5?materialMip[3]:materialMip[5]))').replace('texture2D(previousColorMap,uv)','texture2DLodEXT(previousColorMap,uv,materialMip[6])'):DIRECT_PLANET_FRAGMENT;
-    this.planetProgram=directProgram(g,DIRECT_QUAD_VERTEX,fragment,['materialMip','center','viewport','radius','colorMap','previousColorMap','colorLodMix','lodLayers','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread','shadowScale']);
-    this.coronaProgram=directProgram(g,DIRECT_CORONA_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime','opacity']);
-    this.line=directProgram(g,DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','roll','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','solarOffset','color','ink','inkWeight']);
-    this.ring=directProgram(g,DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel','previousRingMap','previousRingTexel','ringLodMix','light']);
+    const programSpecs=[],programTargets=[],queueProgram=(vertex,fragment,uniforms)=>{const target={};programSpecs.push([vertex,fragment,uniforms]);programTargets.push(target);return target;};
+    this.planetProgram=queueProgram(DIRECT_QUAD_VERTEX,fragment,['materialMip','center','viewport','radius','colorMap','previousColorMap','colorLodMix','lodLayers','bumpMap','cloudsMap','nightMap','cloudWeatherMap','cloudAltMap','cloudAltOffset','cloudAltMix','cloudAltLife','cloudDrift','cloudWeather','cloudLife','cloudReveal','cloudDetail','axisU','axisV','pole','light','phase','kind','hasBump','diameter','texel','nightTexel','effectTime','sunActivity','nightLights','cloudAmount','shadowCaster','shadowSpread','shadowScale']);
+    this.coronaProgram=queueProgram(DIRECT_CORONA_VERTEX,DIRECT_CORONA_FRAGMENT,['center','viewport','radius','coronaMap','effectTime','opacity']);
+    this.line=queueProgram(DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','roll','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','solarOffset','color','ink','inkWeight']);
+    this.ring=queueProgram(DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel','previousRingMap','previousRingTexel','ringLodMix','light']);
+    directPrograms(g,programSpecs).forEach((program,index)=>Object.assign(programTargets[index],program));
     this.quad=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.quad);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
     this.black=g.createTexture();g.bindTexture(g.TEXTURE_2D,this.black);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,1,1,0,g.RGBA,g.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
     g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
@@ -1339,6 +1353,12 @@ class DirectRenderer{
     const texel=slot=>{const record=records[slot],current=1/(record?.width||1);if(!record?.lodQueued)return current;const old=1/(previous(record)?.width||record.width||1);return record===active?old+(current-old)*state.mix:old;};
     state.texel=texel(1);state.nightTexel=texel(3);return state;
   }
+  retainMapReveal(record,fallback){
+    // A material source change uses the same first-visible LOD clock as a
+    // resolution change. Never restart it or fade a resident base from black.
+    if(record&&!record.sampled&&fallback?.texture&&fallback!==record&&!record.revealFallback)record.revealFallback=fallback;
+    return record;
+  }
   prepareOrbit(key,xyz,components=3){
     if(!key||!xyz?.length||this.disposed||this.contextLost)return null;
     const g=this.gl,p=this.line,data=xyz instanceof Float32Array?xyz:new Float32Array(xyz);
@@ -1465,23 +1485,13 @@ class DirectRenderer{
     // A first reveal must never replace the already visible Venus with a
     // blank disc. Keep its resident cloud deck until the surface is ready.
     const waitingSurface=colorId==='venus-surface'&&!requestedColor;
-    const retainedClouds=waitingSurface?this.textures.get('venus'):null;
+    const retainedClouds=colorId!==job.id?this.textures.get(job.id):null;
     const color=requestedColor||(retainedClouds?.texture?retainedClouds:null);if(!color)return false;
+    this.retainMapReveal(requestedColor,retainedClouds);
     if(radius<POINT_SURFACE_RADIUS)return true;
     const bump=root.SolarAssets?.materials?.[job.id+'-relief']?this.texture(job.id+'-relief',job.textureWidth):null;
     let cloudAmount=waitingSurface?1:job.id==='earth'||job.id==='venus'?(Number.isFinite(job.cloudAmount)?Math.max(0,Math.min(1,job.cloudAmount)):job.id==='earth'?1:.8):0;
-    if(colorId==='venus-surface'&&requestedColor){
-      // Loading the underlying surface must not remove the resident cloud
-      // deck in one frame when approaching Venus for the first time.
-      this.venusSurfaceReadyAt??=performance.now();
-      const t=Math.max(0,Math.min(1,(performance.now()-this.venusSurfaceReadyAt)/MAP_LOD_MS));
-      cloudAmount=1-(1-cloudAmount)*t*t*(3-2*t);
-    }
     const clouds=job.id==='earth'&&cloudAmount>0?this.texture('clouds',Math.min(4096,job.cloudTextureWidth||job.textureWidth)):job.id==='venus'&&cloudAmount>0?(colorId==='venus'?color:this.texture('venus',Math.min(4096,job.cloudTextureWidth||job.textureWidth))):null;
-    // During a cold close-up the surface preview can arrive before the separate
-    // cloud deck. Keep the visible Venus map as the reveal source so the
-    // atmosphere never drops to black for one frame and then switches back on.
-    if(job.id==='venus'&&clouds&&clouds!==color&&!clouds.sampled)clouds.revealFallback=retainedClouds?.texture?retainedClouds:color;
     // Optional secondary source starts only after the main map is resident.
     // The existing loader owns its LOD, cancellation, retries and eviction.
     const cloudsAlt=job.id==='earth'&&cloudAmount>0&&job.cloudDetail!==0&&clouds?this.texture('clouds-alt',Math.min(2048,job.cloudTextureWidth||job.textureWidth)):null;

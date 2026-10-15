@@ -132,3 +132,30 @@ test('hidden warp retains only a bounded arrival preview and leaves clearance st
  assert.equal(previews,3);assert.equal(path.clearSince,123);assert.equal(path.resetAt,7000);
  r.prepareReplayFrame(7200);assert.equal(previews,3);
 });
+
+test('render-only scenes share one live corona build and cannot overwrite its completed texture',()=>{
+ const f=fixture(),{r}=f;r.coronaTexture=r.makeCoronaTexture(64);let builds=0;const rows=r.coronaRows;r.coronaRows=function*(size){builds++;return yield* rows.call(this,size);};
+ r.rebuild=()=>{};r.centerX=r.centerY=0;const scene=r.replaySceneContext({x:0,y:0},0);assert.equal(scene.renderResourceOwner,r);
+ for(let i=0;i<120;i++){Object.assign(scene,r);scene.coronaSource(20);r.adoptReplayScene(scene);f.step();}
+ f.drain();assert.equal(builds,1);assert.equal(r.coronaTexture.width,384);assert.equal(r.coronaTask,null);
+ r.adoptReplayScene(scene);assert.equal(r.coronaTexture.width,384);
+ scene.coronaSource(200);assert.ok(r.coronaTask);r.cancelCoronaBuild();f.drain();assert.equal(r.coronaTexture.width,384);
+});
+test('render-only scenes preserve cloud reveal progress across repeated frames',()=>{
+ const {r}=fixture();r.options.earthCloudAmount=1;r.options.earthCloudSeed=.5;
+ const scene=Object.assign(Object.create(Object.getPrototypeOf(r)),r,{renderResourceOwner:r});
+ assert.equal(scene.cloudRevealProgress(100),0);r.adoptReplayScene(scene);Object.assign(scene,r);
+ assert.equal(scene.cloudRevealProgress(1900),.5);r.adoptReplayScene(scene);Object.assign(scene,r);
+ assert.equal(scene.cloudRevealProgress(3700),1);assert.equal(r.cloudRevealStart,100);
+});
+
+test('direct program frees every created shader and failed program',()=>{
+ const source=fs.readFileSync(path.join(root,'src/surface.js'),'utf8'),chunk=source.slice(source.indexOf('function directPrograms('),source.indexOf('function directTexturePixels('));
+ for(const failure of ['vertex','fragment','link',null]){
+  let n=0;const created=[],deleted=[],programs=[],freed=[];
+  const gl={VERTEX_SHADER:'vertex',FRAGMENT_SHADER:'fragment',COMPILE_STATUS:1,LINK_STATUS:2,createShader:type=>{const s={type,id:++n};created.push(s);return s;},shaderSource(){},compileShader(){},getShaderParameter:s=>s.type!==failure,getShaderInfoLog:()=>failure,deleteShader:s=>deleted.push(s),createProgram:()=>{const p={};programs.push(p);return p;},attachShader(){},linkProgram(){},getProgramParameter:()=>failure!=='link',getProgramInfoLog:()=>failure,deleteProgram:p=>freed.push(p),getAttribLocation:()=>0,getUniformLocation:()=>0};
+  const context={};vm.runInNewContext(chunk,context);
+  if(failure)assert.throws(()=>context.directPrograms(gl,[['v','f',[]]]));else context.directPrograms(gl,[['v','f',[]]]);
+  assert.equal(deleted.length,created.length);assert.equal(new Set(deleted).size,deleted.length);assert.equal(freed.length,failure?1:0);
+ }
+});

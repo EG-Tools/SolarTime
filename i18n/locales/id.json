@@ -231,7 +231,7 @@
     "randomRotate": "Rotasi acak",
     "starDensityLabel": "Kepadatan bintang",
     "starDensityAria": "Kepadatan bintang partikel. Nol menyembunyikan bintang partikel.",
-    "cookieSettings": "Pengaturan cookie",
+    "cookieSettings": "Cookie",
     "cookieDismiss": "Tutup tanpa mengubah pilihan",
     "cookieChoiceNote": "Pilihan Izinkan diingat selama 6 bulan. Tolak dan X tidak disimpan, sehingga akan ditanyakan lagi pada kunjungan berikutnya.",
     "music": "Musik",
@@ -241,7 +241,8 @@
     "warpShortcut": "Warp",
     "constellationsShortcut": "Tampilkan rasi bintang",
     "targetSwitch": "Target sebelumnya / berikutnya",
-    "targetSwitchHint": "Beralih antara planet, wilayah, atau rasi bintang sesuai tampilan saat ini."
+    "targetSwitchHint": "Beralih antara planet, wilayah, atau rasi bintang sesuai tampilan saat ini.",
+    "openingPlay": "Putar"
   },
   "timer": {
     "helperDownloadPrivacy": "Hanya ID permintaan acak sekali pakai, versi asisten, dan hasil perintah yang dikirim ke Solar Time. Akun, berkas, dan nama komputer tidak dikirim. Bukti konfirmasi kedaluwarsa dan dihapus otomatis.",

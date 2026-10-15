@@ -611,7 +611,8 @@ class Sky{
    g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);
    this.edgeShadeStrength=null;g.useProgram(program);g.uniform1i(this.u.sky,0);g.uniform1i(this.u.quietMask,1);g.uniform1f(this.u.fov,this.tanFov);
    const sources=root.SolarVisualEffects.starShaderSources(precision,Object.keys(SKY_FEATURES).length);
-   const starVertex=shader(g,g.VERTEX_SHADER,sources.vertex),starFragment=shader(g,g.FRAGMENT_SHADER,sources.fragment);
+   const starVertex=shader(g,g.VERTEX_SHADER,sources.vertex);let starFragment;
+   try{starFragment=shader(g,g.FRAGMENT_SHADER,sources.fragment);}catch(error){g.deleteShader(starVertex);throw error;}
    this.starProgram=g.createProgram();g.attachShader(this.starProgram,starVertex);g.attachShader(this.starProgram,starFragment);g.linkProgram(this.starProgram);g.deleteShader(starVertex);g.deleteShader(starFragment);
    if(!g.getProgramParameter(this.starProgram,g.LINK_STATUS))throw Error(g.getProgramInfoLog(this.starProgram)||'Star link failed');
    const stars=starField(root.SolarAssets?.starData||root.SolarAssets?.stars),starData=stars instanceof Float32Array?stars:new Float32Array(stars.length*6);

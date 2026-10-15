@@ -231,7 +231,7 @@
     "randomRotate": "Rotazione casuale",
     "starDensityLabel": "Densità stellare",
     "starDensityAria": "Densità delle stelle particellari. Zero nasconde le stelle particellari.",
-    "cookieSettings": "Impostazioni cookie",
+    "cookieSettings": "Cookie",
     "cookieDismiss": "Chiudi senza modificare la scelta",
     "cookieChoiceNote": "Il consenso viene ricordato per 6 mesi. Il rifiuto e la X non vengono salvati, quindi verrà chiesto di nuovo alla prossima visita.",
     "music": "Musica",
@@ -241,7 +241,8 @@
     "warpShortcut": "Salto spaziale",
     "constellationsShortcut": "Mostra costellazioni",
     "targetSwitch": "Obiettivo precedente / successivo",
-    "targetSwitchHint": "Passa tra pianeti, regioni o costellazioni in base alla vista attuale."
+    "targetSwitchHint": "Passa tra pianeti, regioni o costellazioni in base alla vista attuale.",
+    "openingPlay": "Riproduci"
   },
   "timer": {
     "helperDownloadPrivacy": "A Solar Time vengono inviati solo ID casuali monouso, la versione dell’assistente e i risultati dei comandi. Non vengono inviati account, file o nomi del computer. Le ricevute scadono e vengono eliminate automaticamente.",

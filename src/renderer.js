@@ -27,7 +27,7 @@
   const RENDER_SCENE_OUTPUTS=Object.freeze([
     'frameSerial','projected','presentationDirty','presentedResources','replayLayerStyle','solarComposite',
     'openingPointReveal','openingParticles','openingOrbitStart','openingAnnotationStart','openingOrbitDelays','openingOrbitStyles',
-    'lastLabelMono','lastSurfaceSubmit','lastSurfaceSimMs','lastSurfaceMono','coronaTexture','coronaBuild','coronaBuildKey'
+    'lastLabelMono','lastSurfaceSubmit','lastSurfaceSimMs','lastSurfaceMono'
   ]);
   // Absolute presentation timestamps only. Particle ages, simulation dates and
   // wall-clock time never belong to this registry. Aliases are shifted once.
@@ -264,6 +264,7 @@
       return p*p*(3-2*p);
     }
     cloudRevealProgress(mono=performance.now()) {
+      if(this.renderResourceOwner)return this.renderResourceOwner.cloudRevealProgress(mono);
       if(!(this.options.earthCloudAmount>0))return 0;
       if(this.cloudRevealSeed!==this.options.earthCloudSeed){
         this.cloudRevealSeed=this.options.earthCloudSeed;this.cloudRevealStart=mono;
@@ -293,7 +294,9 @@
       if(duration>0&&Number.isFinite(mono))this.presentationUntil=Math.max(this.presentationUntil,mono+duration);
     }
     needsDraw(mono=performance.now()){
-      return !!this.pointerCoast||!!this.cameraTween?.interactive||!!this.preparedRingTour?.needsWarmup()||!!this.gpu?.hasLodTransition?.(mono)||
+      const displayTween=this.skySolarDisplayTween;
+      if(displayTween&&mono>=displayTween.start+displayTween.duration){this.skySolarDisplayTween=null;this.presentationDirty=true;}
+      return !!this.skySolarDisplayTween||!!this.pointerCoast||!!this.cameraTween?.interactive||!!this.preparedRingTour?.needsWarmup()||!!this.gpu?.hasLodTransition?.(mono)||
         this.dirty||this.presentationDirty||this.resourceSignature()!==this.presentedResources||
         (!this.animationPaused&&(!!this.ringTour||!!this.cameraTween||!!this.skySolarTween||!!this.bankRelease||this.particleLifecycle().size>0||!!this.autoRotation||this.orbitRevealAlpha(mono)<.9999||mono<this.presentationUntil))||!!this.actualScaleTween||!!this.orbitSpacingTween||mono<(this.gpu?.cloudBlendUntil||0)||mono<(this.gpu?.cloudWeather?.readyAt||-Infinity)+300||mono-(this.cameraChangeAt??-Infinity)<400;
     }
@@ -1210,9 +1213,16 @@
     restoreSkyFeatureDisplay(ids,master=true){this.sky?.restoreFeatureDisplay?.(ids);this.sky?.setFeatureDisplayMaster?.(master);this.invalidatePresentation();}
     setSkyFeatureDisplay(id,enabled){if(this.sky?.setFeaturePinned?.(id,enabled))this.invalidatePresentation(this.sky.featureDisplayTransitionDuration?.(enabled)??650);}
     skySolarDisplay(){return this.skySolarVisible!==false;}
-    setSkySolarDisplay(enabled){
+    setSkySolarDisplay(enabled,mono=performance.now()){
       const next=enabled!==false;if(next===this.skySolarDisplay())return false;
-      this.skySolarVisible=next;if(!next)this.setSkySolarHover(false);this.invalidatePresentation(700);return true;
+      const from=this.skySolarDisplayOpacity(mono);
+      this.skySolarVisible=next;
+      this.skySolarDisplayTween=(this.skySolarMix||0)>0?{from,to:next?1:0,start:mono,duration:700}:null;
+      if(!next)this.setSkySolarHover(false);this.invalidatePresentation(700,mono);return true;
+    }
+    skySolarDisplayOpacity(mono=performance.now()){
+      const tween=this.skySolarDisplayTween;if(!tween)return this.skySolarDisplay()?1:0;
+      return mix(tween.from,tween.to,ease(clamp((mono-tween.start)/tween.duration,0,1)));
     }
     skySolarHoverOpacity(mono=performance.now()){
       const tween=this.skySolarHoverTween;if(!tween)return this.skySolarHover?1:0;
@@ -1353,6 +1363,7 @@
       if((SATELLITES.some(body=>body.id===state.focus)&&!this.options.moon)||(state.focus==='pluto'&&!this.options.pluto))return false;
       this.endRingTour();
       this.skySolarMix=0;this.skySolarTween=null;this.solarComposite=null;
+      this.gpu?.canvas?.classList?.remove('solar-composited');
       this.setReplaySolarOpacity(1);
       const mono=performance.now(),direction=this.rotationIntent,generation=this.autoRotation?.generation||this.pendingAutoRotation?.generation||this.rotationGeneration;
       // Bank belongs to the camera lineage, not to an individual transition.
@@ -1575,7 +1586,7 @@
       if(!slide)return this;
       const scene=this.replayRenderContext||(this.replayRenderContext=Object.create(Renderer.prototype));
       const frameCache=scene.replayFrameCache||(scene.replayFrameCache=new Map());
-      Object.assign(scene,this);scene.replayRenderContext=null;scene.replayFrameCache=frameCache;frameCache.clear();scene.frameCache=frameCache;
+      Object.assign(scene,this);scene.renderResourceOwner=this.renderResourceOwner||this;scene.replayRenderContext=null;scene.replayFrameCache=frameCache;frameCache.clear();scene.frameCache=frameCache;
       scene.camera=slide?.camera||this.camera;scene.flightBank=slide?.bank??this.flightBank;scene.flightLook=slide?slide.look:this.flightLook;scene.trackingAnchor=slide?slide.anchor:this.trackingAnchor;
       scene.basis=null;scene.bankSkyBasis=null;scene.bankSkyAxes=null;
       scene.rebuild(ms);
@@ -2631,6 +2642,7 @@
       if(field.alpha<=0)return;
       if(field.replay||field.ambient){
         c.save();c.lineCap='round';
+        const base=c.getTransform?.();
         const points=field.saturnDrawPoints||field.points,count=points.length;
         const projected=field.saturnProjected||(field.saturnProjected=[]);
         for(let i=0;i<count;i++){
@@ -2643,7 +2655,7 @@
         c.globalCompositeOperation='source-over';
         for(let i=0;i<count;i++){
           const p=points[i],q=projected[i];if(!q?.paint)continue;
-          this.drawSoftFlightParticle(c,p,q);
+          this.drawSoftFlightParticle(c,p,q,.12,base);
         }
         c.restore();return;
       }
@@ -3444,9 +3456,10 @@
       }if((y&1)===1)yield;}
       ctx.putImageData(image,0,0);return canvas;
     }
-    cancelCoronaBuild(){if(this.coronaTask){clearTimeout(this.coronaTask.timer);this.coronaTask.work.return();this.coronaTask=null;}}
-    coronaSource(r) {
-      const detail=r*(this.sceneDpr||this.dpr)>128&&this.options.quality!=='low'?768:384;
+    cancelCoronaBuild(){if(this.renderResourceOwner)return this.renderResourceOwner.cancelCoronaBuild();if(this.coronaTask){clearTimeout(this.coronaTask.timer);this.coronaTask.work.return();this.coronaTask=null;}}
+    coronaSource(r,pixelRatio=this.sceneDpr||this.dpr) {
+      if(this.renderResourceOwner)return this.renderResourceOwner.coronaSource(r,pixelRatio);
+      const detail=r*pixelRatio>128&&this.options.quality!=='low'?768:384;
       // A tiny immediate preview avoids a blank Sun. Refine the unchanged
       // filament pattern cooperatively instead of blocking the first close-up.
       if(!this.coronaTexture)this.coronaTexture=this.makeCoronaTexture(64);
@@ -3879,6 +3892,7 @@
       mono=this.animationMono(mono);
       const tour=this.ringTour,gpu=this.gpu;
       if(!tour)return false;
+      gpu?.canvas?.classList?.remove('solar-composited');
       if(gpu.contextLost||gpu.gl.isContextLost()){this.endRingTour();return false;}
       tour.animationPaused=!!this.animationPaused;
       tour.particleBudget=clamp((this.travelParticleBudget?.value??1)/(tour.particleCapacity||1),0,1);
@@ -4176,13 +4190,13 @@
     }
     solarSceneHidden(mono=this.animationMono(performance.now())){
       const move=this.cameraTween;
-      return ((this.skySolarMix||0)>=1&&!this.skySolarDisplay())||!!(move?.replay&&move.skySolar&&mono-move.start<this.replayOpeningAt(move.replay));
+      return ((this.skySolarMix||0)>=1&&this.skySolarDisplayOpacity()<=0)||!!(move?.replay&&move.skySolar&&mono-move.start<this.replayOpeningAt(move.replay));
     }
     solarSceneAppearance(){
       const amount=clamp(this.skySolarMix||0,0,1);
       if(amount<=0)return {alpha:1,scale:1,x:0,y:0};
       const sun=this.currentFrameItem('sun')?.screen;
-      return {alpha:this.skySolarDisplay()?1:1-amount,scale:mix(1,SKY_SOLAR_SCALE,amount),x:sun&&!sun.behind?sun.x:this.cx,y:sun&&!sun.behind?sun.y:this.cy};
+      return {alpha:mix(1,this.skySolarDisplayOpacity(),amount),scale:mix(1,SKY_SOLAR_SCALE,amount),x:sun&&!sun.behind?sun.x:this.cx,y:sun&&!sun.behind?sun.y:this.cy};
     }
     updateSkySolarTarget(appearance){
       if(!this.skyFeatureInputLocked||!this.skySolarDisplay()||(this.skySolarMix||0)<.98){this.skySolarTarget=null;return null;}
@@ -4219,6 +4233,9 @@
     }
     drawSolarScene(ms,seconds,mono){
       const amount=clamp(this.skySolarMix||0,0,1);
+      // Compositing is a visibility handoff, not another opacity animation.
+      // Keep the replay envelope as the only owner of the GPU layer's alpha.
+      this.gpu?.canvas?.classList?.toggle('solar-composited',amount>0&&!this.solarSceneHidden(mono));
       if(amount<=0||this.solarSceneHidden(mono)){
         if(amount<=0)this.setSolarRenderRatio(1);
         this.solarComposite=null;this.skySolarTarget=null;this.setSkySolarHover(false,mono);return this.paintSolarScene(ms,seconds,mono);
@@ -4234,9 +4251,9 @@
       const width=Math.max(1,Math.round(this.w*renderDpr)),height=Math.max(1,Math.round(this.h*renderDpr)),c=layer.ctx;
       if(layer.canvas.width!==width||layer.canvas.height!==height){layer.canvas.width=width;layer.canvas.height=height;}
       c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,width,height);c.setTransform(width/this.w,0,0,height/this.h,0,0);
-      const scene=layer.scene;Object.assign(scene,this);scene.ctx=c;scene.dpr=renderDpr;
+      const scene=layer.scene;Object.assign(scene,this);scene.renderResourceOwner=this.renderResourceOwner||this;scene.ctx=c;scene.dpr=renderDpr;
       scene.paintSolarScene(ms,seconds,mono,false);this.adoptReplayScene(scene);
-      if(this.gpu){c.save();c.globalCompositeOperation='destination-over';c.globalAlpha=this.replayPresentation(mono).solar;c.drawImage(this.gpu.canvas,0,0,this.w,this.h);c.restore();this.setReplaySolarOpacity(0);}
+      if(this.gpu){c.save();c.globalCompositeOperation='destination-over';c.globalAlpha=this.replayPresentation(mono).solar;c.drawImage(this.gpu.canvas,0,0,this.w,this.h);c.restore();}
       const out=this.ctx;out.save();out.globalAlpha=appearance.alpha;out.translate(appearance.x,appearance.y);out.scale(appearance.scale,appearance.scale);out.translate(-appearance.x,-appearance.y);out.drawImage(layer.canvas,0,0,this.w,this.h);out.restore();
       this.hitTargets.length=0;
       const target=this.updateSkySolarTarget(appearance);this.drawSkySolarGuide(out,target,mono);

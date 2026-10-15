@@ -81,9 +81,9 @@
     const list=document.getElementById('language-scroll');if(!list)return;
     const fragment=document.createDocumentFragment();
     for(const region of REGION_CATALOG){
-      const button=document.createElement('button'),code=document.createElement('strong'),name=document.createElement('span');
+      const button=document.createElement('button'),name=document.createElement('span');
       button.type='button';button.setAttribute('role','menuitemradio');button.dataset.language=region.id;
-      code.textContent=region.code;name.textContent=region.name;button.append(code,name);fragment.append(button);
+      name.textContent=region.id==='do'?region.name.replace(' ','\n'):region.name;button.append(name);fragment.append(button);
     }
     list.replaceChildren(fragment);
   }
@@ -272,7 +272,7 @@
       let clockFont='georgia',savedRotationMode=FACTORY_AUTO_ROTATE,fixedRotationVisual=FACTORY_AUTO_ROTATE===-1?'right':'left',overviewCamera=renderer.defaultCameraSnapshot(),keyboardTrackingReturn=null,restoredUserCamera=false;
       renderer.options.twinkle=true;
       renderer.restoreSkyFeatureDisplay(Object.keys(SKY_FEATURE_CATALOG),false);
-      const validKeys={actualScale:'actual-scale',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',alignmentGuideVisible:'show-alignment',earthNightLights:'earth-night-lights',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
+      const validKeys={actualScale:'actual-scale',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',earthNightLights:'earth-night-lights',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
       try {
         const saved=Preferences.read(STORAGE_KEY);
         if(saved&&typeof saved==='object') {
@@ -354,7 +354,8 @@
       function syncTravelControlLock(){
         const locked=travelSettingsLocked(),focusLocked=openingActive,viewLocked=cameraViewControlsLocked(),lockState=`${locked}:${focusLocked}:${viewLocked}`;
         if(lastTravelControlLock===lockState)return;lastTravelControlLock=lockState;
-        for(const id of ['eclipse-previous','eclipse-next','alignment-previous','alignment-next','show-alignment','actual-scale','camera-mode-toggle','reset-defaults','reset-defaults-yes'])$(id).disabled=locked;
+        for(const id of ['eclipse-previous','eclipse-next','alignment-previous','alignment-next','actual-scale','camera-mode-toggle','reset-defaults','reset-defaults-yes'])$(id).disabled=locked;
+        syncEclipseControl();syncAlignmentControl();
         // A body selected during a planet tour may request the shared
         // return-home-then-focus transition. Opening and warp still own the
         // camera completely, so tracking stays unavailable there.
@@ -775,6 +776,7 @@
         const available=bodyId==='moon'||bodyId==='europa',target=eclipseTargets.get(bodyId);
         $('eclipse-control').hidden=!available;
         $('eclipse-date').textContent=available&&Number.isFinite(target)?compactDate(target):'—';
+        $('eclipse-reset').disabled=travelSettingsLocked()||!Number.isFinite(target);
       }
       function travelToEclipse(direction) {if(travelSettingsLocked())return;
         const id=renderer.selected;if(id!=='moon'&&id!=='europa')return;
@@ -794,7 +796,7 @@
       function syncAlignmentControl(bodyId=renderer.selected) {
         const available=bodyId==='sun',output=$('alignment-date');
         $('alignment-control').hidden=!available;
-        $('show-alignment').checked=renderer.options.alignmentGuideVisible!==false;
+        $('alignment-reset').disabled=travelSettingsLocked()||!alignmentTarget;
         output.textContent=available&&alignmentTarget?compactDay(alignmentTarget.ms):'—';
         output.classList.toggle('space-alignment',available&&alignmentTarget?.kind==='space');
         output.classList.toggle('sky-alignment',available&&alignmentTarget?.kind==='sky');
@@ -957,6 +959,7 @@
         uiNow();toast(t('returnedNow'));
       }
       $('live-button').addEventListener('click',now);
+      for(const id of ['alignment-reset','eclipse-reset'])$(id).addEventListener('click',()=>{if(!travelSettingsLocked())now();});
       $('speed-mode-button').addEventListener('click',()=>{
         // A unit shown as "ready" is always applied first. Only the active unit
         // advances, including after a different control changed the clock rate.
@@ -991,7 +994,7 @@
         renderer.setOption('actualScale',!!enabled);$('actual-scale').checked=renderer.options.actualScale;
         syncOrbitSpacingControl();if(renderer.selected)syncBodySizeControl();cameraUi();persist();
       }
-      for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{if(key==='alignmentGuideVisible'&&travelSettingsLocked()){$(id).checked=renderer.options[key]!==false;return;}if(key==='actualScale'){setActualScale($(id).checked);return;}renderer.setOption(key,$(id).checked);if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
+      for(const [key,id] of Object.entries(validKeys))$(id).addEventListener('change',()=>{if(key==='actualScale'){setActualScale($(id).checked);return;}renderer.setOption(key,$(id).checked);if(key==='pluto'&&!$(id).checked&&renderer.selected==='pluto')closeBody();if(key==='moon'&&!$(id).checked&&A.SATELLITES.some(body=>body.id===renderer.selected))closeBody();navVisibility();persist();});
       $('overview-orbit-gap').addEventListener('input',()=>{if(travelSettingsLocked()){syncOrbitSpacingControl();return;}const actual=renderer.options.actualScale;renderer.setOption(actual?'actualOrbitSpacing':'overviewOrbitGap',Number($('overview-orbit-gap').value)/(actual?100:1));syncOrbitSpacingControl();});
       $('overview-orbit-gap').addEventListener('change',persist);
       $('overview-orbit-gap-reset').addEventListener('click',()=>{if(travelSettingsLocked())return;const actual=renderer.options.actualScale;renderer.setOption(actual?'actualOrbitSpacing':'overviewOrbitGap',actual?0:FACTORY_OPTIONS.overviewOrbitGap);syncOrbitSpacingControl();persist();});
@@ -1289,7 +1292,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=8bb84ea3fdcd','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=565dff333005','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1383,8 +1386,8 @@
       function closeLanguageMenu(returnFocus=false){hideFading(languageMenu);languageToggle.setAttribute('aria-expanded','false');if(returnFocus)languageToggle.focus({preventScroll:true});}
       UI.bindPopup(languageMenu,()=>closeLanguageMenu());
       languageToggle.addEventListener('click',()=>uiElementVisible(languageMenu)?closeLanguageMenu():openLanguageMenu());
-      languageMenu.querySelector('[data-language-auto]').addEventListener('click',()=>{closeLanguageMenu(true);setLanguage('auto',{userInitiated:true});});
-      for(const option of languageMenu.querySelectorAll('[data-language]'))option.addEventListener('click',()=>{const next=option.dataset.language;closeLanguageMenu(true);setLanguage(next,{userInitiated:true});});
+      languageMenu.querySelector('[data-language-auto]').addEventListener('click',()=>{setLanguage('auto',{userInitiated:true});});
+      for(const option of languageMenu.querySelectorAll('[data-language]'))option.addEventListener('click',()=>{const next=option.dataset.language;setLanguage(next,{userInitiated:true});});
       window.addEventListener('languagechange',()=>{if(disposed)return;if(languageMode==='auto')setLanguage('auto').catch(fatal);else translateStatic();});
       const refreshAutomaticContext=()=>{if(!disposed&&languageMode==='auto')setLanguage('auto').catch(fatal);};
       languageMenu.addEventListener('keydown',event=>{
@@ -1408,14 +1411,16 @@
       });
       for(const option of $('opening-menu').querySelectorAll('[data-opening]'))option.addEventListener('click',()=>{
         const changed=openingMode!==option.dataset.opening;openingMode=option.dataset.opening;
-        Preferences.write(openingModeKey,openingMode);syncOpeningMenu();closeOpeningMenu(true);if(changed)toast(t('openingReload'));
+        Preferences.write(openingModeKey,openingMode);syncOpeningMenu();if(changed)toast(t('openingReload'));
       });
       $('opening-menu').addEventListener('keydown',event=>{
-        const options=[...$('opening-menu').querySelectorAll('[data-opening]')],index=options.indexOf(document.activeElement);let next;
+        const options=[...$('opening-menu').querySelectorAll('[role="menuitemradio"],[role="menuitem"]')],index=options.indexOf(document.activeElement);let next;
         if(event.key==='ArrowDown')next=(index+1)%options.length;else if(event.key==='ArrowUp')next=(index-1+options.length)%options.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=options.length-1;else return;
         event.preventDefault();options[next].focus({preventScroll:true});
       });
       document.addEventListener('pointerdown',event=>{if(uiElementVisible($('opening-menu'))&&!$('opening-control').contains(event.target))closeOpeningMenu();});
+      $('opening-play').addEventListener('click',()=>replayOpening());
+      for(const [control,close] of [[languageControl,closeLanguageMenu],[$('opening-control'),closeOpeningMenu]])control.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')close();});
       const canvas=$('universe'),pointers=new Map(),heldZoomKeys=new Set();
       let drag=null,pinchDistance=0,pinchLevel=1,pinchOrigin=null,pinched=false,clickGestures=0;
       function interactionBusy(){return !!drag||pointers.size>0||heldZoomKeys.size>0||!!renderer.pointerRotation||!!renderer.pointerCoast;}
@@ -1541,8 +1546,14 @@
         // Do not take OS/browser shortcut combinations or interrupt an IME composition.
         if(event.ctrlKey||event.metaKey||event.altKey||event.isComposing)return;
         const physical=event.code||'',key=/^Key[A-Z]$/.test(physical)?physical.slice(3).toLowerCase():event.key.toLowerCase();
-        const constellationArrow=selectedSkyFeature&&event.target===$('show-sky-feature')&&(key==='arrowleft'||key==='arrowright');
-        const editing=!constellationArrow&&!!event.target.closest?.('input,select,textarea,[contenteditable]:not([contenteditable="false"])');
+        const input=event.target.closest?.('input,select,textarea,[contenteditable]:not([contenteditable="false"])');
+        const directControl=input?.matches('input[type="range"],input[type="checkbox"],input[type="radio"],input[type="button"],input[type="submit"]');
+        const editing=!!input&&!directControl;
+        if(document.documentElement.dataset.focusInput==='keyboard'&&event.target.closest?.('button,a')&&['Enter',' '].includes(event.key))return;
+        // Tab-focused controls retain their native navigation/activation keys.
+        // Pointer-focused controls no longer suppress unrelated scene shortcuts.
+        if(directControl&&document.documentElement.dataset.focusInput==='keyboard'&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown',' '].includes(event.key))return;
+        if(event.target.closest?.('[role="menu"],#rotation-choices')&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Enter',' '].includes(event.key))return;
         // Music is independent even while an opening owns the camera controls.
         if(key==='m'){
           if(!editing&&!UI.topDialog()){
@@ -1573,16 +1584,14 @@
         if(cameraViewControlsLocked()&&(['+','=','0','1','2','3'].includes(key)||/^(?:Digit|Numpad)[0123]$/.test(physical)||physical==='NumpadAdd')){
           if(!editing){event.preventDefault();event.stopPropagation();}return;
         }
+        if(editing)return;
         if(openingActive)finishOpening();
         const digit=/^(?:Digit|Numpad)[123]$/.test(physical)?physical.slice(-1):/^[123]$/.test(key)?key:null;
         if(digit){
-          // Always recall while the app has focus, including open dialogs/fields.
-          // In a field, keep native numeric entry; preset recall should not swallow typed digits.
-          if(!editing)event.preventDefault();event.stopPropagation();
+          event.preventDefault();event.stopPropagation();
           if(!event.repeat){if(presetDialog.open)closePresetDialog(false);recallPreset(Number(digit)-1);wakePointer();}
           return;
         }
-        if(editing)return;
         if(key==='arrowup'||key==='arrowdown'){
           if(UI.topDialog()||languageMenu.contains(event.target))return;
           event.preventDefault();event.stopPropagation();heldZoomKeys.add(key);
@@ -1613,11 +1622,11 @@
           if(languageMenu.contains(event.target))return;
           event.preventDefault();event.stopPropagation();setActualScale(!renderer.options.actualScale);return;
         }
+        if(key==='r'){event.preventDefault();event.stopPropagation();now();return;}
+        if(key==='-'){event.preventDefault();event.stopPropagation();zoom(1/1.15);return;}
         if(event.target.closest?.('button,a'))return;
         if(key==='enter'){event.preventDefault();event.stopPropagation();toggleKeyboardTracking();}
 
-        else if(key==='r')now();
-        else if(key==='-'){event.preventDefault();zoom(1/1.15);}
       },{capture:true});
       // Keyboard travel has no tween-completion save. Commit once when the
       // gesture ends; blur/visibility/pagehide also cover a missing keyup.
@@ -1770,7 +1779,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){firstHelpPending=helpReminder.visit();renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive&&!openingDeparture&&!clock.paused)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!interactionBusy()&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.79',revision:'r4',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!interactionBusy()&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.80',revision:'r0',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);if(openingRunMode!=='none')renderer.startOpeningPointReveal(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

@@ -14,26 +14,26 @@ module.exports=async({root,evaluate,send,session})=>{
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms)),url='http://127.0.0.1:'+server.address().port+'/';
   const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
   async function ready(){const end=Date.now()+35000;while(!await evaluate('!!window.SolarTime&&SolarTime.getState().opening===false')){if(Date.now()>end)throw Error('Local alignment app did not become ready');await delay(100);}}
-  const snapshot=()=>evaluate(`(()=>{const r=SolarTime.renderer,input=document.getElementById('show-alignment');return {checked:input.checked,enabled:r.options.alignmentGuideVisible,saved:JSON.parse(localStorage.getItem('eg.solar-time.v0.01')||'{}').alignmentGuideVisible,date:document.getElementById('alignment-date').textContent,event:r.alignmentGuide?.ms,hidden:document.getElementById('alignment-control').hidden};})()`);
+  const snapshot=()=>evaluate(`(()=>{const r=SolarTime.renderer;return {resetDisabled:document.getElementById('alignment-reset').disabled,enabled:r.options.alignmentGuideVisible,date:document.getElementById('alignment-date').textContent,event:r.alignmentGuide?.ms,hidden:document.getElementById('alignment-control').hidden};})()`);
   try{
     await send('Emulation.setDeviceMetricsOverride',{width:1280,height:800,deviceScaleFactor:1,mobile:false},session);
     await send('Page.navigate',{url},session);await ready();
     await evaluate(`(async()=>{await SolarTime.setLanguage('kor');document.getElementById('cookie-reject').click();SolarTime.renderer.setAutoRotate(0);document.querySelector('#planet-nav [data-body="sun"]').click();document.getElementById('alignment-next').click();})()`);
-    const initial=await snapshot();assert.equal(initial.checked,true);assert.equal(initial.hidden,false);assert.ok(initial.event&&initial.date!=='—');
-    await evaluate(`document.getElementById('show-alignment').click()`);
-    const off=await snapshot();assert.equal(off.enabled,false);assert.equal(off.checked,false);assert.equal(off.saved,false);assert.equal(off.event,initial.event);assert.equal(off.date,initial.date);
-    await evaluate(`document.getElementById('alignment-next').click()`);
-    const nextOff=await snapshot();assert.ok(nextOff.event>off.event);assert.equal(nextOff.enabled,false);assert.equal(nextOff.checked,false);
-    await evaluate(`document.getElementById('show-alignment').click()`);
-    const on=await snapshot();assert.equal(on.enabled,true);assert.equal(on.saved,true);assert.equal(on.date,nextOff.date);assert.equal(on.event,nextOff.event);
-    await evaluate(`document.getElementById('show-alignment').click();document.querySelector('#planet-nav [data-body="earth"]').click()`);
+    const initial=await snapshot();assert.equal(initial.resetDisabled,false);assert.equal(initial.hidden,false);assert.ok(initial.event&&initial.date!=='—');
+    const resetCamera=await evaluate(`(()=>{const r=SolarTime.renderer,before=JSON.stringify(r.cameraSnapshot());document.getElementById('alignment-reset').click();return {same:before===JSON.stringify(r.cameraSnapshot()),live:SolarTime.clock.live};})()`);
+    assert.deepEqual(resetCamera,{same:true,live:true});assert.equal((await snapshot()).resetDisabled,true);assert.equal((await snapshot()).date,'—');
+    for(const body of ['moon','europa']){
+      const result=await evaluate(`(()=>{document.querySelector('#planet-nav [data-body="${body}"]').click();const r=SolarTime.renderer,before=JSON.stringify(r.cameraSnapshot());document.getElementById('eclipse-next').click();const active=!document.getElementById('eclipse-reset').disabled;document.getElementById('eclipse-reset').click();return {active,reset:document.getElementById('eclipse-reset').disabled,live:SolarTime.clock.live,same:before===JSON.stringify(r.cameraSnapshot())};})()`);
+      assert.deepEqual(result,{active:true,reset:true,live:true,same:true});
+    }
+    await evaluate(`document.querySelector('#planet-nav [data-body="earth"]').click()`);
     assert.equal((await snapshot()).hidden,true);
     await evaluate(`document.querySelector('#planet-nav [data-body="sun"]').click()`);
-    assert.equal((await snapshot()).checked,false);
+    assert.equal((await snapshot()).resetDisabled,true);
     const layouts=[];
     for(const [width,height] of [[1280,800],[390,844]]){
       await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600},session);await delay(400);
-      const layout=await evaluate(`(()=>{const box=document.getElementById('alignment-control');box.scrollIntoView({block:'center'});const label=box.querySelector('label').getBoundingClientRect(),toggle=box.querySelector('input').getBoundingClientRect(),nav=box.querySelector('.eclipse-navigation').getBoundingClientRect(),rect=box.getBoundingClientRect();return {below:nav.top>=Math.max(label.bottom,toggle.bottom),beside:toggle.left>=label.right,contained:nav.left>=rect.left&&nav.right<=rect.right,switchVisible:toggle.width>0&&toggle.height>0,centered:Math.abs(label.left+label.width/2-rect.left-rect.width/2)<1};})()`);
+      const layout=await evaluate(`(()=>{const box=document.getElementById('alignment-control');box.scrollIntoView({block:'center'});const label=box.querySelector('.event-heading>span').getBoundingClientRect(),toggle=box.querySelector('.range-reset').getBoundingClientRect(),nav=box.querySelector('.eclipse-navigation').getBoundingClientRect(),rect=box.getBoundingClientRect();return {below:nav.top>=Math.max(label.bottom,toggle.bottom),beside:toggle.left>=box.querySelector('.event-heading span').getBoundingClientRect().right,contained:nav.left>=rect.left&&nav.right<=rect.right,switchVisible:toggle.width>0&&toggle.height>0,centered:Math.abs(label.left+label.width/2-rect.left-rect.width/2)<1};})()`);
       assert.deepEqual(layout,{below:true,beside:true,contained:true,switchVisible:true,centered:true});layouts.push({width,height,...layout});
     }
     await delay(250);
@@ -41,7 +41,7 @@ module.exports=async({root,evaluate,send,session})=>{
     await send('Emulation.setDeviceMetricsOverride',{width:1280,height:800,deviceScaleFactor:1,mobile:false},session);
     await send('Page.reload',{},session);await delay(150);await ready();
     await evaluate(`SolarTime.renderer.setAutoRotate(0);document.querySelector('#planet-nav [data-body="sun"]').click()`);
-    const restored=await snapshot();assert.equal(restored.checked,false);assert.equal(restored.enabled,false);
+    const restored=await snapshot();assert.equal(restored.resetDisabled,true);assert.equal(restored.enabled,true);
     await evaluate(`document.getElementById('body-close').click();SolarTime.renderer.restoreCamera(SolarTime.renderer.defaultCameraSnapshot())`);await delay(300);
     const camera=()=>evaluate(`({camera:SolarTime.renderer.cameraSnapshot(),readout:document.getElementById('zoom-value').textContent,label:document.getElementById('zoom-value').getAttribute('aria-label')})`);
     const before=await camera();
@@ -73,10 +73,24 @@ module.exports=async({root,evaluate,send,session})=>{
       assert.equal(row.actual,expected[i]);assert.equal(row.checked,expected[i]);assert.equal(row.pressed,String(expected[i]));assert.equal(row.saved,expected[i]);assert.ok(row.title.endsWith(' · +'));assert.ok(!row.title.includes('→'));
       close(row.zoom,shortcuts.rows[0].zoom);close(row.dolly,shortcuts.rows[0].dolly);
     });
+    const focusShortcuts=await evaluate(`(()=>{
+      const press=(target,key,code)=>target.dispatchEvent(new KeyboardEvent('keydown',{key,code,bubbles:true,cancelable:true}));
+      const slider=document.getElementById('body-size-slider'),toggle=document.getElementById('actual-scale'),button=document.getElementById('camera-mode-toggle');
+      document.documentElement.dataset.focusInput='pointer';
+      const before=SolarTime.getState().zen;slider.focus();press(slider,'h','KeyH');const afterSlider=SolarTime.getState().zen;
+      toggle.focus();press(toggle,'h','KeyH');const afterToggle=SolarTime.getState().zen;
+      const paused=SolarTime.clock.paused;press(slider,' ','Space');const pausedAfter=SolarTime.clock.paused;
+      press(button,'r','KeyR');const live=SolarTime.clock.live;
+      document.documentElement.dataset.focusInput='keyboard';slider.focus();const cameraBefore=JSON.stringify(SolarTime.renderer.cameraSnapshot());press(slider,'ArrowDown','ArrowDown');const cameraAfter=JSON.stringify(SolarTime.renderer.cameraSnapshot());
+      document.documentElement.dataset.focusInput='pointer';document.activeElement?.blur();
+      return {before,afterSlider,afterToggle,paused,pausedAfter,live,cameraBefore,cameraAfter};
+    })()`);
+    assert.notEqual(focusShortcuts.afterSlider,focusShortcuts.before);assert.equal(focusShortcuts.afterToggle,focusShortcuts.before);
+    assert.notEqual(focusShortcuts.pausedAfter,focusShortcuts.paused);assert.equal(focusShortcuts.live,true);assert.equal(focusShortcuts.cameraBefore,focusShortcuts.cameraAfter);
     await evaluate(`document.getElementById('reset-defaults').click();document.getElementById('reset-defaults-yes').click()`);
     const deadline=Date.now()+5000;while((await snapshot()).enabled!==true){if(Date.now()>deadline)throw Error('Reset did not restore alignment visibility');await delay(50);}
-    const reset=await snapshot();assert.equal(reset.checked,true);assert.equal(reset.saved,true);assert.equal(reset.event,undefined);
-    return {initial,off,nextOff,on,restored,reset,layouts,preview,controls:{before,wheel,right},shortcuts};
+    const reset=await snapshot();assert.equal(reset.resetDisabled,true);assert.equal(reset.event,undefined);
+    return {initial,restored,reset,layouts,preview,controls:{before,wheel,right},shortcuts};
   }finally{
     await send('Page.navigate',{url:'about:blank'},session).catch(()=>{});
     server.closeAllConnections();await new Promise(resolve=>server.close(resolve));

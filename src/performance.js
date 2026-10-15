@@ -55,6 +55,8 @@
   }
   function protectTexture(renderer,name){
     const desired=renderer.desired;
+    const texture=renderer.textures?.get(name)?.texture;
+    if(texture)for(const record of renderer.textures.values())if(record.revealFallback?.texture===texture)return true;
     if(name==='saturn-ring')return !!desired?.has('saturn');
     if(name==='venus-surface')return !!desired?.has('venus')&&(desired.get('venus').cloudAmount<1||desired.get('venus').venusSurfacePreviewWidth>0);
     if(name==='venus')return !!desired?.has('venus')&&(desired.get('venus').cloudAmount!==0||(!renderer.textures?.get('venus-surface')?.texture&&!!renderer.textures?.get('venus')?.texture));

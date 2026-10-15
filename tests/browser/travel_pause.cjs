@@ -10,7 +10,7 @@ module.exports=async({evaluate,send,session,until,esc,delay,mouse})=>{
   assert.equal(point.hit,true,id+' must receive pointer input');
   await mouse('mouseMoved',point.x,point.y);await mouse('mousePressed',point.x,point.y,'left',1);await mouse('mouseReleased',point.x,point.y,'left',0);
  };
- const lockedIds=['eclipse-previous','eclipse-next','alignment-previous','alignment-next','show-alignment','actual-scale','camera-mode-toggle','reset-defaults','reset-defaults-yes','overview-orbit-gap'];
+ const lockedIds=['eclipse-previous','eclipse-next','alignment-previous','alignment-next','actual-scale','camera-mode-toggle','reset-defaults','reset-defaults-yes','overview-orbit-gap'];
  const checkLocks=async(locked,focusAllowed=false)=>{
   await until(`document.getElementById("actual-scale").disabled===${locked}`);
   const controls=await evaluate(`(${JSON.stringify(lockedIds)}).map(id=>[id,document.getElementById(id).disabled])`);
@@ -23,7 +23,7 @@ module.exports=async({evaluate,send,session,until,esc,delay,mouse})=>{
   assert.equal(await evaluate(`(()=>{
    const r=SolarTime.renderer, before=JSON.stringify(r.options), tween=r.cameraTween,tour=r.ringTour,rate=SolarTime.clock.rate;
    for(const id of ['eclipse-next','alignment-next','reset-defaults','reset-defaults-yes'${focusAllowed?'':",'timezone-button'"}])document.getElementById(id).dispatchEvent(new MouseEvent('click',{bubbles:true}));
-   for(const id of ['actual-scale','show-alignment']){const n=document.getElementById(id);n.checked=!n.checked;n.dispatchEvent(new Event('change'));}
+   for(const id of ['actual-scale']){const n=document.getElementById(id);n.checked=!n.checked;n.dispatchEvent(new Event('change'));}
    const gap=document.getElementById('overview-orbit-gap');gap.value='99';gap.dispatchEvent(new Event('input'));
    return JSON.stringify(r.options)===before&&r.cameraTween===tween&&r.ringTour===tour&&SolarTime.clock.rate===rate&&!document.getElementById('reset-defaults-dialog').open;
   })()`),true,'disabled commands preserve travel and scene settings');

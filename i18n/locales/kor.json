@@ -231,7 +231,7 @@
     "randomRotate": "랜덤 회전",
     "starDensityLabel": "별 밀도",
     "starDensityAria": "파티클 별 밀도. 0이면 파티클 별을 숨깁니다.",
-    "cookieSettings": "쿠키 설정",
+    "cookieSettings": "쿠키",
     "cookieDismiss": "선택을 변경하지 않고 닫기",
     "cookieChoiceNote": "허용은 6개월간 기억합니다. 거부와 X는 저장하지 않으며, 다음 접속 때 다시 묻습니다.",
     "music": "배경 음악",
@@ -241,7 +241,8 @@
     "warpShortcut": "워프",
     "constellationsShortcut": "별자리 표시",
     "targetSwitch": "이전·다음 대상",
-    "targetSwitchHint": "현재 상태에 따라 행성·지역·별자리를 전환합니다."
+    "targetSwitchHint": "현재 상태에 따라 행성·지역·별자리를 전환합니다.",
+    "openingPlay": "재생"
   },
   "timer": {
     "timer": "타이머",

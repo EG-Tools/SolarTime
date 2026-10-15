@@ -231,7 +231,7 @@
     "randomRotate": "Willekeurige rotatie",
     "starDensityLabel": "Sterdichtheid",
     "starDensityAria": "Dichtheid van de deeltjessterren. Bij nul zijn de deeltjessterren verborgen.",
-    "cookieSettings": "Cookie-instellingen",
+    "cookieSettings": "Cookies",
     "cookieDismiss": "Sluiten zonder uw keuze te wijzigen",
     "cookieChoiceNote": "Toestaan wordt 6 maanden onthouden. Weigeren en X worden niet opgeslagen, dus bij het volgende bezoek vragen we het opnieuw.",
     "music": "Muziek",
@@ -241,7 +241,8 @@
     "warpShortcut": "Warp",
     "constellationsShortcut": "Sterrenbeelden tonen",
     "targetSwitch": "Vorig / volgend doel",
-    "targetSwitchHint": "Wissel tussen planeten, regio’s of sterrenbeelden, afhankelijk van de huidige weergave."
+    "targetSwitchHint": "Wissel tussen planeten, regio’s of sterrenbeelden, afhankelijk van de huidige weergave.",
+    "openingPlay": "Afspelen"
   },
   "timer": {
     "helperDownloadPrivacy": "Alleen eenmalige willekeurige aanvraag-ID’s, de helperversie en opdrachtresultaten worden naar Solar Time verzonden. Geen accounts, bestanden of computernamen. Bevestigingen verlopen en worden automatisch verwijderd.",

@@ -32,6 +32,18 @@ test('Saturn and Uranus rings inherit the same parent phase frame as their body'
  const whole=f.r.bodyRingFrame(frame,1);close([...whole.u],frame.u);close([...whole.v],frame.v);
  assert.match(source,/body\.id==='saturn'\|\|body\.id==='uranus'\?this\.bodyRingFrame\(frame,job\.phase\):frame/);
 });
+test('material source reveal keeps the visible base and uses the shared LOD clock once',()=>{
+ const f=fixture(),r=f.r,bound=new Map();r.black={id:'black'};r.planetProgram={u:{}};r.gl.uniform1f=()=>{};r.gl.uniform2f=()=>{};r.bindTextureUnit=(slot,texture)=>bound.set(slot,texture);
+ const deck={texture:{id:'deck'},sampled:true},surface={texture:{id:'surface'}};
+ r.textures.set('venus',deck);r.textures.set('venus-surface',surface);r.desired.set('venus',{id:'venus',cloudAmount:0});
+ r.retainMapReveal(surface,deck);assert.equal(f.window.SolarPerformance.protectTexture(r,'venus'),true);
+ assert.equal(r.mapLod([surface,null,deck],5000).mix,0);assert.equal(bound.get(6),deck.texture);assert.equal(bound.get(2),deck.texture);
+ r.retainMapReveal(surface,deck);assert.equal(r.mapLod([surface,null,deck],5350).mix,.5);
+ assert.equal(r.mapLod([surface,null,deck],5700).mix,1);assert.equal(surface.revealFallback,null);
+ r.retainMapReveal(surface,deck);assert.equal(r.mapLod([surface,null,deck],9000).layer,-1);
+ assert.equal(f.window.SolarPerformance.protectTexture(r,'venus'),false);r.dispose();
+});
+
 test('cold detail publishes baseline, then 1024 preview, then original 4096; no 512/2048 chain',async()=>{
  const f=fixture();await full(f);assert.deepEqual(f.requests.map(r=>r.width),[256,1024,4096]);assert.deepEqual(f.uploads,[256,1024,4096]);f.r.dispose();
 });

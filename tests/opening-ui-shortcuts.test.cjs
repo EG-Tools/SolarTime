@@ -3,6 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const source=fs.readFileSync('src/app.js','utf8'),start=source.indexOf("window.addEventListener('keydown',event=>{"),end=source.indexOf('},{capture:true});',start);
 function run(key,extra={},locked=true){
  const calls=[],scope={disposed:false,selectedSkyFeature:null,openingControlsLocked:locked,openingActive:true,zen:false,
+  document:{documentElement:{dataset:{focusInput:'pointer'}}},clock:{paused:false},cameraViewControlsLocked:()=>false,presetDialog:{open:false},recallPreset:n=>calls.push(['preset',n]),wakePointer(){},now:()=>calls.push('now'),
   UI:{topDialog:()=>null},fullscreen:()=>calls.push('fullscreen'),setZen:v=>calls.push(['zen',v]),finishOpening:()=>calls.push('finish'),
   window:{addEventListener(name,handler){scope.handler=handler;}}};
  vm.runInNewContext(source.slice(start,end+'},{capture:true});'.length),scope);
@@ -18,9 +19,18 @@ test('H and F use toolbar actions during opening and warp without ending the cam
 });
 test('UI shortcuts preserve text input, browser modifiers, IME and repeat protection',()=>{
  for(const key of ['h','f']){
-  for(const extra of [{ctrlKey:true},{metaKey:true},{altKey:true},{isComposing:true},{target:{closest:()=>({})}}])assert.deepEqual(run(key,extra),[]);
+  for(const extra of [{ctrlKey:true},{metaKey:true},{altKey:true},{isComposing:true},{target:{closest:selector=>selector.startsWith('input')?{matches:()=>false}:null}}])assert.deepEqual(run(key,extra),[]);
   assert.deepEqual(run(key,{repeat:true}),['prevent','stop']);
  }
+});
+
+test('pointer-focused ranges and switches accept shortcuts but typing never recalls a preset',()=>{
+ const control={closest:selector=>selector.startsWith('input')?{matches:()=>true}:null};
+ for(const key of ['h','f'])assert.ok(run(key,{target:control},false).includes('prevent'));
+ const text={closest:selector=>selector.startsWith('input')?{matches:()=>false}:null};
+ assert.deepEqual(run('1',{code:'Digit1',target:text},false),[]);
+ assert.ok(run('1',{code:'Digit1',target:control},false).some(call=>Array.isArray(call)&&call[0]==='preset'));
+ assert.ok(run('r',{target:{closest:selector=>selector==='button,a'?{}:null}},false).includes('now'));
 });
 
 test('Escape cancels opening handoff and starts orbit reveal now, with controls unlocked',()=>{

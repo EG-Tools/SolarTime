@@ -191,7 +191,9 @@
     "expandRotationMouse",
     "scrollUp",
     "scrollDown",
-    "skyNavigate"
+    "skyNavigate",
+    "openingPlay",
+    "cookieSettings"
   ],
   "invariantKeys": [
     "timer.helperChecksumLabel"

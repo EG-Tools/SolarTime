@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.70",
+    "date": "2026.10.01",
+    "items": [
+      "Refined the opening camera, particles, and orbit and label reveals.",
+      "Improved camera controls, tracking transitions, true scale, and orbit spacing.",
+      "Updated planetary alignment controls, help, and shortcuts.",
+      "Optimized cloud and orbit rendering and initial loading."
+    ]
+  },
+  {
     "version": "0.69",
     "date": "2026.09.30",
     "items": [

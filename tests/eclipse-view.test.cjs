@@ -10,7 +10,7 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
 test('Moon and Europa cards expose shared, accessible eclipse navigation',()=>{
   const html=read('index.html'),focus=html.indexOf('id="focus-body"'),eclipse=html.indexOf('id="eclipse-control"'),feature=html.indexOf('id="feature-view"');
-  assert.ok(focus>=0&&focus<eclipse&&eclipse<feature);
+  assert.ok(focus>=0&&focus<feature&&feature<eclipse&&eclipse<html.indexOf('id="body-size-control"'));
   assert.match(html,/id="eclipse-previous" class="step-previous"/);
   assert.match(html,/id="eclipse-next" class="step-next"/);
   assert.match(html,/release-notes-navigation step-navigation/);

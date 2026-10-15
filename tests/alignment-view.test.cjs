@@ -12,9 +12,9 @@ test('Sun card keeps alignment navigation before the final body-option section',
   assert.match(html,/id="alignment-previous" class="step-previous"/);
   assert.match(html,/id="alignment-next" class="step-next"/);
   assert.match(html,/class="step-navigation eclipse-navigation"/);
-  assert.match(html,/label for="show-alignment" data-i18n="alignmentView"/);
-  assert.match(html,/id="show-alignment"[^>]*role="switch"[^>]*checked/);
-  assert.ok(html.indexOf('id="show-alignment"')<html.indexOf('id="alignment-previous"'));
+  assert.doesNotMatch(html,/id="show-alignment"/);
+  assert.match(html,/id="alignment-reset" class="range-reset"/);
+  assert.match(html,/id="eclipse-reset" class="range-reset"/);
 });
 
 test('alignment catalog keeps Earth-sky dates and strict space-axis dates distinct',()=>{
@@ -58,8 +58,8 @@ test('every locale carries full alignment labels and long names wrap without abb
     for(const key of ['alignmentView','alignmentPrevious','alignmentNext','alignmentUnavailable'])assert.ok(copy[key],`${file}: ${key}`);
   }
   assert.equal(JSON.parse(read('src/locales/en.json')).copy.alignmentView,'Planetary alignment');
-  const css=read('styles.css');assert.match(css,/\.alignment-control label\{[^}]*white-space:normal[^}]*overflow-wrap:anywhere/);
-  assert.match(css,/\.alignment-control label\{[^}]*text-align:center/);
+  const css=read('styles.css');assert.match(css,/\.eclipse-control \.event-heading\{[^}]*overflow-wrap:anywhere/);
+  assert.match(css,/\.eclipse-control \.event-heading\{[^}]*text-align:center/);
   assert.match(css,/\.eclipse-control\{[^}]*flex-direction:column[^}]*align-items:center/);
   assert.match(css,/\.eclipse-control>span\{[^}]*width:100%[^}]*text-align:center/);
   assert.match(css,/\.alignment-control output\.space-alignment\{[^}]*color:#e7bd70/);
@@ -73,11 +73,11 @@ test('viewport alignment guide is anchored to Earth or Sun and drawn for either 
   assert.match(renderer,/strokeStyle='#e9bd67'/);
 });
 
-test('alignment visibility uses the persisted setting and resets with appearance defaults',()=>{
+test('alignment and eclipse reset reuse real time without restoring the camera',()=>{
   const app=read('src/app.js');
   assert.match(app,/FACTORY_OPTIONS=Object\.freeze\(\{[^\n]*alignmentGuideVisible:true/);
-  assert.match(app,/alignmentGuideVisible:'show-alignment'/);
-  assert.match(app,/show-alignment'\)\.checked=renderer\.options\.alignmentGuideVisible!==false/);
+  assert.doesNotMatch(app,/alignmentGuideVisible:'show-alignment'/);
+  assert.match(app,/for\(const id of \['alignment-reset','eclipse-reset'\]\).*now\(\)/);
 });
 
 test('hidden alignment guide does no drawing and stays hidden across date changes',()=>{

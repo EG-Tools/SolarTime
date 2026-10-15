@@ -2,6 +2,13 @@
 
 Current and past Solar Time updates, listed from newest to oldest.
 
+## v0.80 · 2026.10.15
+
+- Standardized button order, text size and spacing across planet and constellation cards.
+- Added reset buttons that return planetary alignments and eclipses to real time.
+- Refined time-control card spacing and selected translations on phones and tablets.
+- Optimized solar glow, clouds, particles and initial GPU preparation.
+
 ## v0.79 · 2026.10.14
 
 - Fixed the text above the clock disappearing on small screens.

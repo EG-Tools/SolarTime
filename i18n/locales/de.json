@@ -231,7 +231,7 @@
     "randomRotate": "Zufällige Drehung",
     "starDensityLabel": "Sterndichte",
     "starDensityAria": "Dichte der Partikelsterne. Bei 0 werden Partikelsterne ausgeblendet.",
-    "cookieSettings": "Cookie-Einstellungen",
+    "cookieSettings": "Cookies",
     "cookieDismiss": "Schließen, ohne die Auswahl zu ändern",
     "cookieChoiceNote": "Zulassen wird 6 Monate gespeichert. Ablehnen und X werden nicht gespeichert, daher fragen wir beim nächsten Besuch erneut.",
     "music": "Musik",
@@ -241,7 +241,8 @@
     "warpShortcut": "Warp",
     "constellationsShortcut": "Sternbilder anzeigen",
     "targetSwitch": "Vorheriges / nächstes Ziel",
-    "targetSwitchHint": "Je nach aktueller Ansicht zwischen Planeten, Regionen oder Sternbildern wechseln."
+    "targetSwitchHint": "Je nach aktueller Ansicht zwischen Planeten, Regionen oder Sternbildern wechseln.",
+    "openingPlay": "Abspielen"
   },
   "timer": {
     "helperDownloadPrivacy": "Solar Time erhält nur einmalige zufällige Anfrage-IDs, die Helferversion und Befehlsergebnisse. Konten, Dateien oder Computernamen werden nicht gesendet. Bestätigungen verfallen und werden automatisch gelöscht.",

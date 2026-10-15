@@ -1,5 +1,101 @@
 [
   {
+    "version": "0.80",
+    "date": "2026.10.15",
+    "localized": {
+      "kor": [
+        "행성·별자리 카드의 버튼 순서, 글자 크기와 간격을 통일했습니다.",
+        "행성 정렬과 일식에서 실제 시간으로 돌아오는 리셋 버튼을 추가했습니다.",
+        "모바일·태블릿의 시간 조절 카드 여백과 일부 번역을 정리했습니다.",
+        "태양 광채·구름·파티클 처리와 초기 GPU 준비를 최적화했습니다."
+      ],
+      "en": [
+        "Standardized button order, text size and spacing across planet and constellation cards.",
+        "Added reset buttons that return planetary alignments and eclipses to real time.",
+        "Refined time-control card spacing and selected translations on phones and tablets.",
+        "Optimized solar glow, clouds, particles and initial GPU preparation."
+      ],
+      "chn": [
+        "统一了行星与星座卡片的按钮顺序、文字大小和间距。",
+        "为行星排列和日食添加了返回实时状态的重置按钮。",
+        "调整了手机与平板上的时间控制卡片间距及部分翻译。",
+        "优化了太阳光晕、云层、粒子处理和初始 GPU 准备。"
+      ],
+      "zht": [
+        "統一了行星與星座卡片的按鈕順序、文字大小和間距。",
+        "為行星排列與日食加入了返回即時狀態的重設按鈕。",
+        "調整了手機與平板上的時間控制卡片間距及部分翻譯。",
+        "最佳化了太陽光暈、雲層、粒子處理和初始 GPU 準備。"
+      ],
+      "jpn": [
+        "惑星・星座カードのボタン順、文字サイズ、間隔を統一しました。",
+        "惑星整列と日食をリアルタイムへ戻すリセットボタンを追加しました。",
+        "スマートフォンとタブレットの時間操作カードの余白と一部の翻訳を整えました。",
+        "太陽光、雲、パーティクル処理と初期 GPU 準備を最適化しました。"
+      ],
+      "de": [
+        "Reihenfolge, Textgröße und Abstände der Schaltflächen auf Planeten- und Sternbildkarten wurden vereinheitlicht.",
+        "Für Planetenausrichtungen und Finsternisse wurden Rücksetztasten zur Echtzeit hinzugefügt.",
+        "Abstände der Zeitsteuerungskarte und ausgewählte Übersetzungen auf Smartphones und Tablets wurden überarbeitet.",
+        "Sonnenglanz, Wolken, Partikel und die anfängliche GPU-Vorbereitung wurden optimiert."
+      ],
+      "fr": [
+        "L’ordre des boutons, la taille du texte et les espacements des fiches de planètes et de constellations ont été harmonisés.",
+        "Des boutons de réinitialisation vers le temps réel ont été ajoutés aux alignements planétaires et aux éclipses.",
+        "Les marges de la carte de contrôle du temps et certaines traductions ont été ajustées sur mobile et tablette.",
+        "La lueur solaire, les nuages, les particules et la préparation initiale du GPU ont été optimisés."
+      ],
+      "es": [
+        "Unificamos el orden de los botones, el tamaño del texto y el espaciado de las tarjetas de planetas y constelaciones.",
+        "Añadimos botones para restablecer las alineaciones planetarias y los eclipses al tiempo real.",
+        "Ajustamos el espaciado de la tarjeta de tiempo y algunas traducciones en móviles y tabletas.",
+        "Optimizamos el brillo solar, las nubes, las partículas y la preparación inicial de la GPU."
+      ],
+      "pt": [
+        "Padronizamos a ordem dos botões, o tamanho do texto e o espaçamento nos cartões de planetas e constelações.",
+        "Adicionamos botões para redefinir alinhamentos planetários e eclipses para o tempo real.",
+        "Ajustamos o espaçamento do cartão de tempo e algumas traduções em celulares e tablets.",
+        "Otimizamos o brilho solar, as nuvens, as partículas e a preparação inicial da GPU."
+      ],
+      "it": [
+        "Uniformati l’ordine dei pulsanti, le dimensioni del testo e gli spazi nelle schede di pianeti e costellazioni.",
+        "Aggiunti pulsanti per riportare all’ora reale gli allineamenti planetari e le eclissi.",
+        "Rivisti gli spazi della scheda dei controlli temporali e alcune traduzioni su telefoni e tablet.",
+        "Ottimizzati luce solare, nuvole, particelle e preparazione iniziale della GPU."
+      ],
+      "nl": [
+        "De knopvolgorde, tekstgrootte en afstand op planeet- en sterrenbeeldkaarten zijn gelijkgetrokken.",
+        "Resetknoppen toegevoegd om planeetuitlijningen en verduisteringen terug te zetten naar realtime.",
+        "De ruimte in de tijdkaart en enkele vertalingen op telefoons en tablets zijn aangepast.",
+        "Zonnegloed, wolken, deeltjes en de eerste GPU-voorbereiding zijn geoptimaliseerd."
+      ],
+      "id": [
+        "Menyeragamkan urutan tombol, ukuran teks, dan jarak pada kartu planet dan rasi bintang.",
+        "Menambahkan tombol reset untuk mengembalikan kesejajaran planet dan gerhana ke waktu nyata.",
+        "Merapikan jarak kartu kontrol waktu dan sejumlah terjemahan pada ponsel dan tablet.",
+        "Mengoptimalkan cahaya Matahari, awan, partikel, dan persiapan awal GPU."
+      ],
+      "hi": [
+        "ग्रह और तारामंडल कार्डों में बटनों का क्रम, पाठ का आकार और अंतर एक समान किया गया।",
+        "ग्रह-संरेखण और ग्रहण को वास्तविक समय पर लौटाने के लिए रीसेट बटन जोड़े गए।",
+        "फ़ोन और टैबलेट पर समय नियंत्रण कार्ड का अंतर और कुछ अनुवाद सुधारे गए।",
+        "सूर्य की चमक, बादल, कण और शुरुआती GPU तैयारी को अनुकूलित किया गया।"
+      ],
+      "ru": [
+        "Унифицированы порядок кнопок, размер текста и интервалы в карточках планет и созвездий.",
+        "Добавлены кнопки сброса, возвращающие выравнивания планет и затмения к реальному времени.",
+        "Исправлены отступы карточки управления временем и отдельные переводы на телефонах и планшетах.",
+        "Оптимизированы солнечное свечение, облака, частицы и начальная подготовка GPU."
+      ],
+      "uk": [
+        "Уніфіковано порядок кнопок, розмір тексту та відступи в картках планет і сузір’їв.",
+        "Додано кнопки скидання, що повертають вирівнювання планет і затемнення до реального часу.",
+        "Упорядковано відступи картки керування часом і окремі переклади на телефонах та планшетах.",
+        "Оптимізовано сонячне сяйво, хмари, частинки та початкову підготовку GPU."
+      ]
+    }
+  },
+  {
     "version": "0.79",
     "date": "2026.10.14",
     "localized": {
@@ -920,102 +1016,6 @@
         "Уточнено розміри, відстані між орбітами та параметри скидання у звичайному й реальному масштабі.",
         "Поліпшено вигляд за замовчуванням, переходи камери та збережені налаштування камери.",
         "Додано нову текстуру кілець Сатурна з LOD за відстанню."
-      ]
-    }
-  },
-  {
-    "version": "0.70",
-    "date": "2026.10.01",
-    "localized": {
-      "kor": [
-        "오프닝 카메라·파티클과 궤도·이름 표시 연출을 개선했습니다.",
-        "카메라 조작·추적 전환과 실제 크기·궤도 간격을 개선했습니다.",
-        "행성 정렬 표시 제어와 도움말·단축키를 정리했습니다.",
-        "구름·궤도 렌더링과 초기 로딩을 최적화했습니다."
-      ],
-      "en": [
-        "Refined the opening camera, particles, and orbit and label reveals.",
-        "Improved camera controls, tracking transitions, true scale, and orbit spacing.",
-        "Updated planetary alignment controls, help, and shortcuts.",
-        "Optimized cloud and orbit rendering and initial loading."
-      ],
-      "chn": [
-        "优化开场镜头、粒子及轨道和名称的显示效果。",
-        "改进相机操作、跟踪切换、真实比例和轨道间距。",
-        "完善行星排列显示控制、帮助和快捷键。",
-        "优化云层与轨道渲染及初始加载。"
-      ],
-      "zht": [
-        "優化開場鏡頭、粒子及軌道和名稱的顯示效果。",
-        "改進相機操作、追蹤切換、真實比例和軌道間距。",
-        "完善行星排列顯示控制、說明和快捷鍵。",
-        "優化雲層與軌道算繪及初始載入。"
-      ],
-      "jpn": [
-        "オープニングのカメラ・パーティクルと軌道・名前の表示演出を改善しました。",
-        "カメラ操作・追跡切り替えと実寸比率・軌道間隔を改善しました。",
-        "惑星整列の表示操作、ヘルプ、ショートカットを整理しました。",
-        "雲・軌道の描画と初期読み込みを最適化しました。"
-      ],
-      "hi": [
-        "शुरुआती कैमरा, कणों और कक्षाओं व नामों के प्रकट होने के प्रभाव बेहतर किए।",
-        "कैमरा नियंत्रण, ट्रैकिंग बदलाव, वास्तविक आकार अनुपात और कक्षाओं के बीच दूरी में सुधार किया।",
-        "ग्रहों के संरेखण के प्रदर्शन नियंत्रण, सहायता और शॉर्टकट अद्यतन किए।",
-        "बादलों व कक्षाओं की रेंडरिंग और शुरुआती लोडिंग को अनुकूलित किया।"
-      ],
-      "es": [
-        "Mejoramos la cámara inicial, las partículas y la aparición de órbitas y nombres.",
-        "Mejoramos los controles de cámara, las transiciones de seguimiento, la escala real y la separación orbital.",
-        "Actualizamos los controles de alineación planetaria, la ayuda y los atajos.",
-        "Optimizamos el renderizado de nubes y órbitas y la carga inicial."
-      ],
-      "de": [
-        "Startkamera, Partikel sowie das Einblenden von Umlaufbahnen und Namen verbessert.",
-        "Kamerasteuerung, Verfolgungsübergänge, reale Größenverhältnisse und Bahnabstände verbessert.",
-        "Steuerung der Planetenausrichtung, Hilfe und Tastenkürzel überarbeitet.",
-        "Wolken- und Bahndarstellung sowie das anfängliche Laden optimiert."
-      ],
-      "fr": [
-        "Amélioration de la caméra d’ouverture, des particules et de l’apparition des orbites et des noms.",
-        "Amélioration des commandes de caméra, des transitions de suivi, de l’échelle réelle et de l’espacement orbital.",
-        "Mise à jour des commandes d’alignement planétaire, de l’aide et des raccourcis.",
-        "Optimisation du rendu des nuages et des orbites et du chargement initial."
-      ],
-      "pt": [
-        "Melhoramos a câmera de abertura, as partículas e a exibição gradual de órbitas e nomes.",
-        "Melhoramos os controles de câmera, as transições de acompanhamento, a escala real e o espaçamento orbital.",
-        "Atualizamos os controles de alinhamento planetário, a ajuda e os atalhos.",
-        "Otimizamos a renderização de nuvens e órbitas e o carregamento inicial."
-      ],
-      "it": [
-        "Migliorati la camera iniziale, le particelle e la comparsa di orbite e nomi.",
-        "Migliorati i controlli della camera, le transizioni di inseguimento, la scala reale e la distanza tra le orbite.",
-        "Aggiornati i controlli di allineamento planetario, la guida e le scorciatoie.",
-        "Ottimizzati il rendering di nuvole e orbite e il caricamento iniziale."
-      ],
-      "id": [
-        "Menyempurnakan kamera pembuka, partikel, serta kemunculan orbit dan nama.",
-        "Meningkatkan kontrol kamera, transisi pelacakan, skala sebenarnya, dan jarak orbit.",
-        "Memperbarui kontrol tampilan kesejajaran planet, bantuan, dan pintasan.",
-        "Mengoptimalkan rendering awan dan orbit serta pemuatan awal."
-      ],
-      "nl": [
-        "De openingscamera, deeltjes en het verschijnen van banen en namen verbeterd.",
-        "Camerabediening, volgtransities, werkelijke schaal en baanafstand verbeterd.",
-        "Bediening van planeetuitlijning, hulp en sneltoetsen bijgewerkt.",
-        "Weergave van wolken en banen en het aanvankelijke laden geoptimaliseerd."
-      ],
-      "ru": [
-        "Улучшены вступительная камера, частицы, раскрытие орбит и подписей.",
-        "Улучшены управление камерой, переходы слежения, реальный масштаб и расстояния между орбитами.",
-        "Обновлены элементы управления выравниванием планет, справка и горячие клавиши.",
-        "Оптимизированы облака, отрисовка орбит и начальная загрузка."
-      ],
-      "uk": [
-        "Поліпшено вступну камеру, частинки, розкриття орбіт і підписів.",
-        "Поліпшено керування камерою, переходи стеження, реальний масштаб і відстані між орбітами.",
-        "Оновлено елементи керування вирівнюванням планет, довідку та гарячі клавіші.",
-        "Оптимізовано хмари, рендеринг орбіт і початкове завантаження."
       ]
     }
   }

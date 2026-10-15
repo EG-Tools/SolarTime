@@ -231,7 +231,7 @@
     "randomRotate": "ランダム回転",
     "starDensityLabel": "星の密度",
     "starDensityAria": "パーティクル星の密度。0 にするとパーティクル星を非表示にします。",
-    "cookieSettings": "Cookie 設定",
+    "cookieSettings": "Cookie",
     "cookieDismiss": "選択を変更せずに閉じる",
     "cookieChoiceNote": "許可は6か月間保存されます。拒否とXは保存されず、次回のアクセス時に再度確認します。",
     "music": "音楽",
@@ -241,7 +241,8 @@
     "warpShortcut": "ワープ",
     "constellationsShortcut": "星座を表示",
     "targetSwitch": "前 / 次の対象",
-    "targetSwitchHint": "現在の表示に応じて、惑星・地域・星座を切り替えます。"
+    "targetSwitchHint": "現在の表示に応じて、惑星・地域・星座を切り替えます。",
+    "openingPlay": "再生"
   },
   "timer": {
     "helperDownloadPrivacy": "Solar Timeに送信されるのは、一度限りのランダムな要求ID、ヘルパーのバージョン、コマンドの結果のみです。アカウント、ファイル、コンピューター名は送信されません。確認記録は期限切れ後に自動削除されます。",

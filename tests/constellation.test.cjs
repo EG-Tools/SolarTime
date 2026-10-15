@@ -352,7 +352,7 @@ test('the star shortcut masks only the saved individual display choices',()=>{
  const saved=Array.from(sky.featureDisplayPreferences());assert.deepEqual(saved,['big-dipper']);
  assert.equal(sky.setFeatureDisplayMaster(false),true);assert.equal(sky.isFeaturePinned('big-dipper'),true);assert.equal(sky.isFeaturePinnedVisible('big-dipper'),false);assert.equal(sky.isFeaturePinnedVisible('polaris'),false);assert.deepEqual(Array.from(sky.featureDisplayPreferences()),saved);
  assert.equal(sky.setFeatureDisplayMaster(true),true);assert.equal(sky.isFeaturePinnedVisible('big-dipper'),true);assert.equal(sky.isFeaturePinnedVisible('polaris'),false);
- const renderer=read('src/renderer.js'),app=read('src/app.js'),css=read('styles.css');assert.match(renderer,/toggleAllSkyFeatureDisplay\(\)[\s\S]*setFeatureDisplayMaster/);assert.doesNotMatch(renderer,/toggleAllSkyFeatureDisplay\(\)[\s\S]{0,300}for\(const id of ids\)/);assert.match(app,/skyFeatureDisplayMaster:renderer\.skyFeatureDisplayMaster\(\)/);assert.equal(localized.ui.showConstellation,'이음선 표시');assert.match(css,/#sky-solar-display-control\{border-top:0(?:;|\})/);
+ const renderer=read('src/renderer.js'),app=read('src/app.js'),css=read('styles.css');assert.match(renderer,/toggleAllSkyFeatureDisplay\(\)[\s\S]*setFeatureDisplayMaster/);assert.doesNotMatch(renderer,/toggleAllSkyFeatureDisplay\(\)[\s\S]{0,300}for\(const id of ids\)/);assert.match(app,/skyFeatureDisplayMaster:renderer\.skyFeatureDisplayMaster\(\)/);assert.equal(localized.ui.showConstellation,'이음선 표시');assert.match(css,/\.body-option-row\{[^}]*border-top:0/);
 });
 test('named stars use independent periods and phases for both display states',()=>{
  const sky=centeredSky(),start=1000;sky.featurePinned=new Set(['big-dipper','polaris']);
@@ -395,7 +395,7 @@ test('rotation projects shared stars once and still expires offscreen guide reve
 
 test('constellation viewing reuses one five-percent solar composite and one hover target',()=>{
  const renderer=read('src/renderer.js'),app=read('src/app.js'),html=read('index.html');
- assert.match(renderer,/const SKY_SOLAR_SCALE=\.05/);assert.match(renderer,/scale:mix\(1,SKY_SOLAR_SCALE,amount\)/);assert.match(renderer,/skySolarDisplay\(\)\?1:1-amount/);assert.match(renderer,/updateSkySolarTarget\(appearance\)/);assert.match(renderer,/skySolarHit\(x,y\)/);assert.match(renderer,/drawSkySolarGuide\(c,target,mono\)/);
+ assert.match(renderer,/const SKY_SOLAR_SCALE=\.05/);assert.match(renderer,/scale:mix\(1,SKY_SOLAR_SCALE,amount\)/);assert.match(renderer,/alpha:mix\(1,this\.skySolarDisplayOpacity\(\),amount\)/);assert.match(renderer,/updateSkySolarTarget\(appearance\)/);assert.match(renderer,/skySolarHit\(x,y\)/);assert.match(renderer,/drawSkySolarGuide\(c,target,mono\)/);
  assert.match(app,/renderer\.skySolarHit\(p\.x,p\.y\)/);assert.match(app,/skySolarDisplay:renderer\.skySolarDisplay\(\)/);assert.match(html,/id="sky-feature-display-control"[\s\S]*id="sky-solar-display-control"[\s\S]*id="show-sky-solar"/);assert.doesNotMatch(html,/id="show-sky-solar"[^>]*checked/);assert.match(app,/saved\.skySolarDisplay===true/);assert.match(app,/applyFactoryDefaults\(\)[\s\S]*renderer\.setSkySolarDisplay\(false\)/);assert.match(renderer,/this\.skySolarVisible=false/);
 });
 

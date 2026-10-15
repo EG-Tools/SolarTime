@@ -48,7 +48,7 @@ async function main(){
       console.log(JSON.stringify({renderPerformance:report}));
       assert.ok(report.weatherIdentical&&report.coronaIdentical&&report.cancelled);assert.equal(report.weatherBytes,32768);
       assert.ok(report.weatherYields>1&&report.coronaYields>1);assert.equal(report.previewSize,64);
-      assert.equal(report.memoryAfterDispose,0);assert.equal(report.error,0);assert.equal(report.depthBuffer,false);
+      assert.equal(report.memoryAfterDispose,0);assert.equal(report.error,0);assert.equal(report.depthBuffer,true);assert.ok(report.particlePixelDifference<=1);
     }
     if(process.argv.includes('--orbit-reveal')){
       const ink=await evaluate(fs.readFileSync(path.join(__dirname,'orbit_reveal.js'),'utf8'));
@@ -114,8 +114,12 @@ async function main(){
       console.log(JSON.stringify({support}));
     }
     if(process.argv.includes('--saturn-rings'))console.log(JSON.stringify({saturnRings:await require('./saturn_rings.cjs')({root,evaluate})}));
+    if(process.argv.includes('--material-reveal'))console.log(JSON.stringify({materialReveal:await require('./material_reveal.cjs')({evaluate})}));
     if(process.argv.includes('--venus-app'))console.log(JSON.stringify({venusApp:await require('./venus_app.cjs')({root,evaluate,send,session})}));
     if(process.argv.includes('--opening-app'))console.log(JSON.stringify({openingApp:await require('./opening_camera.cjs')({root,evaluate,send,session})}));
+    if(process.argv.includes('--particle-cost'))console.log(JSON.stringify({particleCost:await require('./particle_cost.cjs')({root,evaluate,send,session})}));
+    if(process.argv.includes('--card-spacing'))console.log(JSON.stringify({cardSpacing:await require('./card_spacing.cjs')({root,evaluate,send,session})}));
+    if(process.argv.includes('--settings-menus'))console.log(JSON.stringify({settingsMenus:await require('./settings_menus.cjs')({root,evaluate,send,session})}));
     if(process.argv.includes('--alignment-app'))console.log(JSON.stringify({alignmentApp:await require('./alignment_app.cjs')({root,evaluate,send,session})}));
     if(process.argv.includes('--orbit-spacing-app'))console.log(JSON.stringify({orbitSpacingApp:await require('./orbit_spacing_app.cjs')({root,evaluate,send,session})}));
     if(process.argv.includes('--keyboard-camera-app'))console.log(JSON.stringify({keyboardCameraApp:await require('./keyboard_camera.cjs')({root,evaluate,send,session})}));
