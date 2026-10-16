@@ -22,10 +22,11 @@ test('ads.txt authorizes only the configured Google publisher',()=>{
 
 test('policy and original-content pages are public, linked and crawlable',()=>{
  const html=read('index.html'),robots=read('robots.txt'),sitemap=read('sitemap.xml');
- for(const file of ['guide.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
+ for(const file of ['guide.html','learn.html','learn-orbits.html','learn-scale.html','learn-eclipses.html','learn-sky.html','learn-cinematics.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
   const page=read(file);
-  for(const destination of ['guide.html','about.html','credits.html','privacy.html','terms.html','changelog.html'])assert.ok(page.includes(`href="${destination}"`),`${file} links to ${destination}`);
-  assert.ok(html.includes(`href="${file}"`),file);
+  for(const destination of ['guide.html','learn.html','about.html','credits.html','privacy.html','terms.html','changelog.html'])assert.ok(page.includes(`href="${destination}"`),`${file} links to ${destination}`);
+  if(file==='learn.html'||!file.startsWith('learn-'))assert.ok(html.includes(`href="${file}"`),file);
+  else assert.ok(read('learn.html').includes(`href="${file}"`),file+' linked from learning hub');
   assert.ok(sitemap.includes(`https://solartime.app/${file}`),file);
   assert.ok(page.includes(`content="${publisher}"`),file);
   assert.ok(page.length>1800,file);
@@ -35,6 +36,7 @@ test('policy and original-content pages are public, linked and crawlable',()=>{
  assert.ok(robots.includes('https://solartime.app/sitemap.xml'));
  assert.doesNotMatch(html,/class="source-link"/);
  assert.match(html,/class="site-policy-row"><a href="guide\.html">GUIDE<\/a><a href="credits\.html">CREDITS<\/a><a href="changelog\.html">UPDATES<\/a>/);
+ assert.match(html,/class="site-policy-row"><a href="learn\.html">LEARN<\/a><a href="about\.html">ABOUT<\/a>/);
  assert.doesNotMatch(html,/github\.com\/EG-Tools\/SolarTime|assets\/CREDITS\.md/);
 });
 
@@ -89,7 +91,7 @@ test('desktop ad stays hidden until a real slot or an explicit local preview is 
 
 test('Cloudflare site build publishes every AdSense review file',()=>{
  const {releaseFiles}=require('../tools/release-files.cjs'),files=new Set(releaseFiles(root));
- for(const file of ['ads.txt','robots.txt','sitemap.xml','guide.html','about.html','credits.html','privacy.html','terms.html','changelog.html','site-info.css'])assert.ok(files.has(file),file);
+ for(const file of ['ads.txt','robots.txt','sitemap.xml','guide.html','learn.html','learn-orbits.html','learn-scale.html','learn-eclipses.html','learn-sky.html','learn-cinematics.html','about.html','credits.html','privacy.html','terms.html','changelog.html','site-info.css'])assert.ok(files.has(file),file);
 });
 
 test('Google Analytics runs only on the production domain with denied consent defaults',()=>{
@@ -101,7 +103,7 @@ test('Google Analytics runs only on the production domain with denied consent de
  assert.ok(code.includes('document.querySelector(`script[src="${source}"]`)'));
  assert.ok(code.includes("root.gtag('config',measurementId)"));
  for(const key of ['ad_storage','ad_user_data','ad_personalization','analytics_storage'])assert.ok(consent.includes(`${key}:'denied'`),key);
- for(const file of ['index.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
+ for(const file of ['index.html','learn.html','learn-orbits.html','learn-scale.html','learn-eclipses.html','learn-sky.html','learn-cinematics.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
   const page=read(file);assert.ok(page.includes(cacheUrl('src/consent.js')),file);assert.ok(page.includes(cacheUrl('src/google-analytics.js')),file);
   assert.ok(page.indexOf('src/consent.js')<page.indexOf('src/google-analytics.js'),file+' consent order');
  }

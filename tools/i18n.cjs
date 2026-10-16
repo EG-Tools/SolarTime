@@ -135,7 +135,7 @@ function changelogPage(root,releases,archive){
   <title>Complete Update History · Solar Time</title>
 </head>
 <body><div class="site-shell">
-  <header class="site-header"><a class="site-brand" href="./">SOLAR TIME</a><nav class="site-nav" aria-label="Site information"><a href="guide.html">GUIDE</a><a href="constellations.html">CONSTELLATIONS</a><a href="about.html">ABOUT</a><a href="credits.html">CREDITS</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a><a href="changelog.html" aria-current="page">UPDATES</a></nav></header>
+  <header class="site-header"><a class="site-brand" href="./">SOLAR TIME</a><nav class="site-nav" aria-label="Site information"><a href="guide.html">GUIDE</a><a href="constellations.html">CONSTELLATIONS</a><a href="learn.html">LEARN</a><a href="about.html">ABOUT</a><a href="credits.html">CREDITS</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a><a href="changelog.html" aria-current="page">UPDATES</a></nav></header>
   <main>
     <p class="eyebrow">UPDATE ARCHIVE · ENGLISH</p><h1>Complete Update History</h1>
     <p class="lead">Current and past Solar Time updates are collected here, from the latest release to the earliest public version.</p>

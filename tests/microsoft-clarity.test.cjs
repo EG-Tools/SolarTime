@@ -43,7 +43,7 @@ test('Clarity restores granted consent on production but never loads off product
 });
 
 test('every public page loads Clarity after the shared consent owner',()=>{
-  for(const file of ['index.html','guide.html','constellations.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
+  for(const file of ['index.html','guide.html','constellations.html','learn.html','learn-orbits.html','learn-scale.html','learn-eclipses.html','learn-sky.html','learn-cinematics.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
     const html=fs.readFileSync(path.join(root,file),'utf8');
     const consent=html.indexOf('src/consent.js');
     const clarity=html.indexOf('src/microsoft-clarity.js');

@@ -14,6 +14,7 @@ test('the English guide is substantial, semantic and connected to the app',()=>{
  for(const label of ['Space','Real time','True size ratio','Saturn ring travel','Keyboard shortcuts','Troubleshooting'])assert.ok(page.includes(label),label);
  assert.match(index,/<nav class="site-policy-links"[^>]*><span class="site-policy-row"><a href="guide\.html">GUIDE<\/a><a href="credits\.html">CREDITS<\/a><a href="changelog\.html">UPDATES<\/a><\/span>/);
  assert.ok(sitemap.includes('https://solartime.app/guide.html'));
+ assert.ok(index.includes('<a href="learn.html">LEARN</a>'));
 });
 
 test('constellation illustrations match the live catalogue and contain every star and edge',()=>{

@@ -11,7 +11,7 @@ test('main information buttons navigate to standalone HTML pages',()=>{
   const html=read('index.html'),code=read('src/policy-dialog.js');
   const nav=/<nav class="site-policy-links"[^>]*>(.*?)<\/nav>/.exec(html)?.[1]||'';
   assert.match(nav,/class="site-policy-row"><a href="guide\.html">GUIDE<\/a><a href="credits\.html">CREDITS<\/a><a href="changelog\.html">UPDATES<\/a><\/span>/);
-  assert.match(nav,/class="site-policy-row"><a href="about\.html">ABOUT<\/a><a href="privacy\.html">PRIVACY<\/a><a href="terms\.html">TERMS<\/a><\/span>/);
+  assert.match(nav,/class="site-policy-row"><a href="learn\.html">LEARN<\/a><a href="about\.html">ABOUT<\/a><a href="privacy\.html">PRIVACY<\/a><a href="terms\.html">TERMS<\/a><\/span>/);
   assert.doesNotMatch(nav,/target=/);
   assert.ok(code.includes("const intercepted=links.filter(link=>!link.closest('.site-policy-links'))"));
   assert.ok(code.includes("for(const link of intercepted)link.addEventListener('click'"));
@@ -22,13 +22,13 @@ test('cookie privacy can reuse the dialog while public pages stay independently 
   const html=read('index.html'),code=read('src/policy-dialog.js'),css=read('site-info.css');
   assert.ok(html.includes('id="site-policy-dialog"'));
   assert.ok(html.includes('id="site-policy-frame"'));
-  assert.equal((html.match(/class="site-policy-tab"/g)||[]).length,6);
+  assert.equal((html.match(/class="site-policy-tab"/g)||[]).length,7);
   assert.ok(html.includes('src="'+cacheUrl('src/policy-dialog.js')+'"'));
   assert.ok(code.includes('#cookie-consent a[href="privacy.html"]'));
   assert.ok(code.includes("url.searchParams.set('embed','1')"));
   assert.ok(code.includes('UI.show(dialog,()=>dialog.showModal())'));
   assert.ok(css.includes('html.embedded body{min-height:0;background:transparent}'));
-  for(const file of ['guide.html','constellations.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
+  for(const file of ['guide.html','constellations.html','learn.html','learn-orbits.html','learn-scale.html','learn-eclipses.html','learn-sky.html','learn-cinematics.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
     const page=read(file);
     assert.ok(page.includes('src="'+cacheUrl('src/policy-dialog.js')+'"'),file);
     assert.ok(page.includes('rel="canonical" href="https://solartime.app/'+file+'"'),file);
