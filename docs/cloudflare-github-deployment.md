@@ -8,7 +8,7 @@ Do not send API tokens, Global API Keys or passwords in chat, commit them, or pu
 
 Create a dedicated Cloudflare API token called `SolarTime GitHub Deploy`. For this Worker/R2 project, configure Account / Workers Scripts / Edit, Account / Workers R2 Storage / Edit, and Account / Account Settings / Read. Limit account resources to the SolarTime account `4640527a19614f7b65a034f422704b64`. No DNS, billing write, zone-route, KV or global administrator access is requested by this workflow. These are account-scoped product permissions; they are not a promise that Cloudflare limits the token to one Worker or bucket. Use a separate account when stricter isolation is necessary.
 
-Add the token as a **repository secret** in `EG-Tools/SolarTime` under Settings -> Secrets and variables -> Actions -> Secrets -> New repository secret:
+Add the token as a **repository secret** in `LyriKey/SolarTime` under Settings -> Secrets and variables -> Actions -> Secrets -> New repository secret:
 
 - Name: `CLOUDFLARE_API_TOKEN`
 - Secret: the token value

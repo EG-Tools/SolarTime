@@ -32,6 +32,12 @@ test('invalid and oversized payloads, forged origins, wrong methods and tokens a
  assert.equal((await f.request(status.replace(token,'bad'))).status,400);
  assert.equal((await f.request(complete,{method:'OPTIONS'})).status,204);
 });
+test('renamed Pages origin works while the released old account and lookalikes are rejected',async()=>{
+ for(const [origin,expected] of [['https://lyrikey.github.io',204],['https://eg-tools.github.io',403],['https://lyrikey.github.io.example.com',403]]){
+  const f=fixture();assert.equal((await f.request(complete,{...post(receipt()),headers:{'content-type':'application/json',origin}})).status,expected,origin);
+ }
+});
+
 test('installation reports the actual helper revision; old clients remain compatible',async()=>{
  const f=fixture(),url=base+'install-complete?token='+token,get=base+'install-status?token='+token;
  assert.equal((await f.request(url,{method:'POST'})).status,204);assert.deepEqual(await (await f.request(get)).json(),{installed:true});await f.settle();

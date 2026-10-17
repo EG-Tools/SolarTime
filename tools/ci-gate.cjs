@@ -1,7 +1,7 @@
 /* Read-only authorization: deploy only the latest fully verified main commit. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
-const REPO='EG-Tools/SolarTime';
+const REPO='LyriKey/SolarTime';
 const REQUIRED=['unit (ubuntu-latest, 22)','unit (ubuntu-latest, 24)','unit (windows-latest, 22)','unit (windows-latest, 24)',...['opening','features','desktop','mobile','installed','tiny-star'].map(name=>'browser ('+name+')'),'recovery (chromium)','recovery (firefox)','recovery (webkit)','verified'];
 function selectVerification(runs,sha){
  const candidates=runs.filter(r=>r.head_sha===sha&&r.head_branch==='main'&&r.head_repository?.full_name===REPO&&['push','workflow_dispatch'].includes(r.event)&&r.path==='.github/workflows/verify.yml').sort((a,b)=>b.id-a.id);

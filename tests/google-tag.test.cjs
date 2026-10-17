@@ -38,7 +38,7 @@ test('grant, reject and reset propagate to all four consent types without reconf
  h.run();assert.equal(h.commands().filter(c=>c[0]==='config').length,2);assert.equal(h.scripts.length,1);
 });
 test('preview, local files, localhost and lookalike hosts never initialize either Google destination',()=>{
- for(const host of ['','localhost','127.0.0.1','eg-tools.github.io','solar-time.keg0320.workers.dev','solartime.app.example.com','othersolartime.app']){
+ for(const host of ['','localhost','127.0.0.1','eg-tools.github.io','lyrikey.github.io','solar-time.keg0320.workers.dev','solartime.app.example.com','othersolartime.app']){
   const h=harness({host});h.run();assert.equal(h.scripts.length,0,host);assert.equal(h.commands().filter(c=>c[0]==='config'||c[0]==='js').length,0,host);
  }
 });

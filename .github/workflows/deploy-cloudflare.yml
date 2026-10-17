@@ -13,7 +13,7 @@ concurrency:
 jobs:
   deploy:
     if: >-
-      github.repository == 'EG-Tools/SolarTime' &&
+      github.repository == 'LyriKey/SolarTime' &&
       ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_run' &&
       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') &&

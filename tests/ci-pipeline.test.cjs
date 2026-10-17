@@ -1,11 +1,11 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),{selectVerification,assertJobs,assertMain,REQUIRED}=require('../tools/ci-gate.cjs');
-const sha='a'.repeat(40),base={id:1,head_sha:sha,head_branch:'main',head_repository:{full_name:'EG-Tools/SolarTime'},event:'push',path:'.github/workflows/verify.yml',status:'completed',conclusion:'success'};
+const sha='a'.repeat(40),base={id:1,head_sha:sha,head_branch:'main',head_repository:{full_name:'LyriKey/SolarTime'},event:'push',path:'.github/workflows/verify.yml',status:'completed',conclusion:'success'};
 function tree(dir,prefix=''){return fs.readdirSync(path.join(dir,prefix),{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?tree(dir,path.join(prefix,entry.name)):[path.join(prefix,entry.name).split(path.sep).join('/')]).sort();}
 test('production requires the latest successful exact-main verification, not a PR or an older pass',()=>{
  assert.equal(selectVerification([base],sha).id,1);
- for(const change of [{head_sha:'b'.repeat(40)},{head_branch:'other'},{event:'pull_request'},{head_repository:{full_name:'other/SolarTime'}},{status:'in_progress'},{conclusion:'failure'},{conclusion:'skipped'}])assert.throws(()=>selectVerification([{...base,...change}],sha));
+ for(const change of [{head_sha:'b'.repeat(40)},{head_branch:'other'},{event:'pull_request'},{head_repository:{full_name:'other/SolarTime'}},{head_repository:{full_name:'EG-Tools/SolarTime'}},{status:'in_progress'},{conclusion:'failure'},{conclusion:'skipped'}])assert.throws(()=>selectVerification([{...base,...change}],sha));
  assert.throws(()=>selectVerification([base,{...base,id:2,conclusion:'failure'}],sha));
  assert.equal(selectVerification([{...base,event:'workflow_dispatch'}],sha).id,1);
 });
@@ -24,6 +24,7 @@ test('one candidate workflow owns the full matrix, independent browser suites an
 });
 test('manual and automatic production paths share the guard and never grant PRs cloud credentials',()=>{
  const text=fs.readFileSync(path.join(root,'.github/workflows/deploy-cloudflare.yml'),'utf8');
+ assert.ok(text.includes("github.repository == '"+base.head_repository.full_name+"'"),'workflow and verification guard must use the same renamed repository');
  assert.match(text,/run: node tools\/ci-gate.cjs/);assert.match(text,/actions\/deploy-pages@[a-f0-9]{40}/);assert.doesNotMatch(text,/pull_request_target|\n  pull_request:/);assert.match(text,/conclusion == 'success'/);
  assert.match(text,/deployment-recovery\.cjs capture/);assert.match(text,/deployment-recovery\.cjs report/);assert.doesNotMatch(text,/deployment-recovery\.cjs restore/);
  const audit=fs.readFileSync(path.join(root,'.github/workflows/public-shutdown-delivery.yml'),'utf8');assert.doesNotMatch(audit,/\n  pull_request:|\n  push:/);

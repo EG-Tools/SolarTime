@@ -5,7 +5,7 @@ const RECEIPT_PREFIX='releases/runtime/windows-helper-v2/';
 const helperCors=Object.freeze({'access-control-allow-origin':'*','access-control-allow-methods':'GET, POST, DELETE, OPTIONS','access-control-allow-headers':'content-type','access-control-max-age':'600'});
 const helperStatusKey=token=>`releases/runtime/windows-helper/${token}`;
 const receiptKey=(kind,token)=>RECEIPT_PREFIX+kind+'/'+token;
-const helperOrigin=origin=>!origin||origin==='null'||['https://solartime.app','https://www.solartime.app','https://eg-tools.github.io','https://solar-time.keg0320.workers.dev'].includes(origin)||/^http:\/\/(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$/.test(origin);
+const helperOrigin=origin=>!origin||origin==='null'||['https://solartime.app','https://www.solartime.app','https://lyrikey.github.io','https://solar-time.keg0320.workers.dev'].includes(origin)||/^http:\/\/(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$/.test(origin);
 
 function validReceipt(value,kind){
  const actions=kind==='install'?['install']:kind==='diagnostic'?['probe']:['schedule','cancel','probe','uninstall'];
