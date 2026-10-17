@@ -1430,7 +1430,7 @@
       const refreshAutomaticContext=()=>{if(!disposed&&languageMode==='auto')setLanguage('auto').catch(fatal);};
       const navigateLanguageMenu=event=>{
         if(!uiElementVisible(languageMenu)||UI.topDialog()||event.ctrlKey||event.metaKey||event.altKey||event.isComposing)return;
-        if(!languageMenu.contains(event.target)&&!languageMenu.matches(':hover'))return;
+        if(!event.target.closest?.('#language-menu')&&!languageMenu.matches(':hover'))return;
         if(event.target.closest?.('input,textarea,select,[contenteditable="true"]'))return;
         const options=[...languageMenu.querySelectorAll('[role="menuitemradio"]')];
         const focused=options.indexOf(document.activeElement),index=focused<0?options.findIndex(option=>option.getAttribute('aria-checked')==='true'):focused;let next=-1;
@@ -1643,7 +1643,7 @@
           return;
         }
         if(key==='arrowup'||key==='arrowdown'){
-          if(UI.topDialog()||languageMenu.contains(event.target))return;
+          if(UI.topDialog()||event.target.closest?.('#language-menu'))return;
           event.preventDefault();event.stopPropagation();heldZoomKeys.add(key);
           if(!event.repeat)keyboardZoom(key==='arrowup'?1.04:1/1.04);
           return;
@@ -1672,7 +1672,7 @@
           else navigateBody(direction);return;
         }
         if(key==='+'||key==='='||physical==='NumpadAdd'){
-          if(languageMenu.contains(event.target))return;
+          if(event.target.closest?.('#language-menu'))return;
           event.preventDefault();event.stopPropagation();setActualScale(!renderer.options.actualScale);return;
         }
         if(key==='r'){event.preventDefault();event.stopPropagation();now();return;}
