@@ -225,14 +225,14 @@ test('approved texture/audio manifest, compression and helper stay unchanged',()
  // removal of unused debug locators; shader and media bytes stay intact.
  const crypto=require('node:crypto');
  const baseline=JSON.parse(read('tests/fixtures/texture-v062-hashes.json'));
- // Runtime behavior is covered by rendering/UI tests; retain immutable media and helper checks.
- for(const [name,hash] of Object.entries(baseline).filter(([name])=>!['src/assets.js','src/sky.js','styles.css','src/runtime-optimizations.css'].includes(name))){
+ // Runtime behavior, including the new shared Uranus ring shader, is covered by rendering/UI tests; retain immutable media and helper checks.
+ for(const [name,hash] of Object.entries(baseline).filter(([name])=>!['src/assets.js','src/sky.js','src/surface-style.js','styles.css','src/runtime-optimizations.css'].includes(name))){
   let bytes=fs.readFileSync(path.join(root,name));
   // The explicitly added Saturn ring is independently pinned/validated by
   // saturn-rings.test.cjs. Keep every pre-existing media entry and all runtime
   // URL generation byte-for-byte against the original texture baseline.
   if(name==='assets/manifest.json'){
-   const manifest=JSON.parse(bytes);delete manifest.materials['saturn-ring'];delete manifest.sky.localPreview;delete manifest.sky.galaxyAtlas;delete manifest.sky.galaxyIndices;
+   const manifest=JSON.parse(bytes);delete manifest.materials['saturn-ring'];delete manifest.materials.triton;delete manifest.sky.localPreview;delete manifest.sky.galaxyAtlas;delete manifest.sky.galaxyIndices;
    // The newly registered debris atlas is pinned by the incremental media test.
    delete manifest.effects;
    bytes=Buffer.from(JSON.stringify(manifest,null,2)+'\n');

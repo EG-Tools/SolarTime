@@ -53,7 +53,7 @@ module.exports=async({evaluate,send,session,until,esc,delay,mouse})=>{
  await key();await until('SolarTime.renderer.animationPaused');await delay(100);const ring=await state();await checkLocks(true,true);await drag();await delay(400);const looked=await state();
  assert.equal(looked.age,ring.age);assert.equal(looked.visualAge,ring.visualAge);assert.deepEqual(looked.pose.eye,ring.pose.eye);assert.notDeepEqual(looked.pose.forward,ring.pose.forward);
  await key();await delay(400);assert.ok((await state()).age>ring.age);await esc();await until('!SolarTime.renderer.ringTour&&!SolarTime.renderer.cameraTween');
- await checkLocks(false);await choose('default');await key('KeyT','t');await until('SolarTime.getState().openingLocked&&!!SolarTime.renderer.cameraTween');await delay(2000);
+ await checkLocks(false);await choose('default');await key('KeyW','w');await until('SolarTime.getState().openingLocked&&!!SolarTime.renderer.cameraTween');await delay(2000);
  await key();await until('SolarTime.renderer.animationPaused');await delay(100);const warp=await state();await drag();await delay(1000);const locked=await state();
  assert.equal(locked.elapsed,warp.elapsed);assert.deepEqual(locked.camera,warp.camera);assert.equal(await evaluate('SolarTime.getState().openingLocked'),true);
  await checkLocks(true);await checkTravelUi();await key();await delay(300);assert.ok((await state()).elapsed>warp.elapsed);await until('!SolarTime.getState().opening');

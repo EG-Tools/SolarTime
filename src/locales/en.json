@@ -9,7 +9,7 @@
     "scrollDown": "Scroll down",
     "skyNavigate": "Go to {name}",
     "openingTravel": "Opening journey",
-    "openingDefault": "Default opening",
+    "openingDefault": "Default",
     "openingNone": "None",
     "openingReload": "Press T to play the selected opening.",
     "metaDescription": "A solar-system clock flowing with the stars—real time, planetary orbits, Earth and Moon in a small cosmos.",
@@ -62,7 +62,7 @@
     "clockFont": "Clock numeral font",
     "clockSize": "Clock size",
     "sunShine": "Solar shine",
-    "satellites": "Major moons · Moon and Europa",
+    "satellites": "Major moons · Moon, Europa and Triton",
     "pluto": "Pluto",
     "dwarfPlanet": "Dwarf planet",
     "comets": "Distant comets",
@@ -210,6 +210,8 @@
     "night": "night",
     "auNote": "",
     "koreaView": "View {region}",
+    "northPole": "North Pole",
+    "southPole": "South Pole",
     "stormView": "View the Great Red Spot",
     "speedUnitActive": "Speed unit: {unit}. Press to cycle units.",
     "speedUnitReady": "Speed unit {unit} ready. Press to start at this unit.",
@@ -242,7 +244,8 @@
     "constellationsShortcut": "Show constellations",
     "targetSwitch": "Previous / next target",
     "targetSwitchHint": "Switch between planets, regions, or constellations depending on the current view.",
-    "openingPlay": "Play",
+    "openingPlay": "Warp",
+    "parentDistance": "Mean distance to {name}",
     "timer": "Timer",
     "timerClose": "Close timer",
     "alarm": "Alarm",
@@ -450,6 +453,38 @@
     "big-dipper": [
       "Big Dipper",
       "An asterism formed by seven bright stars in Ursa Major. Its dipper-shaped outline is a classic guide to the northern sky, and the line from Merak through Dubhe points toward Polaris."
+    ],
+    "triton": [
+      "Triton",
+      "Neptune’s largest moon follows a retrograde orbit. Its cold surface is covered with nitrogen ice and water ice."
+    ],
+    "centaurus": [
+      "Centaurus",
+      "A southern constellation beside Crux, containing Alpha and Beta Centauri."
+    ],
+    "carina": [
+      "Carina",
+      "A southern constellation containing the bright star Canopus."
+    ],
+    "vela": [
+      "Vela",
+      "A southern constellation depicting the sails of a ship, beside Carina."
+    ],
+    "triangulum-australe": [
+      "Triangulum Australe",
+      "Three bright stars form a compact triangle in the southern sky."
+    ],
+    "pavo": [
+      "Pavo",
+      "A southern constellation depicting a peacock."
+    ],
+    "grus": [
+      "Grus",
+      "A southern constellation depicting a crane, marked by Alnair."
+    ],
+    "phoenix": [
+      "Phoenix",
+      "A southern constellation depicting the mythical phoenix."
     ]
   },
   "phases": {

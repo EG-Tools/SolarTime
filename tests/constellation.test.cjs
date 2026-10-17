@@ -19,8 +19,8 @@ test('explicit guide OFF cancels a navigation reveal and uses the same fade on f
 });
 
 test('twenty constellations share one complete catalogue of geometry, Korean cards and connected traces',()=>{
- const groups=Object.values(Sky.FEATURES);assert.equal(groups.length,22);
- assert.deepEqual(groups.slice(2).map(f=>f.id),['ursa-major','ursa-minor','cassiopeia','orion','scorpius','leo','cygnus','taurus','aries','gemini','cancer','virgo','libra','sagittarius','capricornus','aquarius','pisces','pegasus','andromeda','crux']);
+ const groups=Object.values(Sky.FEATURES);assert.equal(groups.length,29);
+ assert.deepEqual(groups.slice(2).map(f=>f.id),['ursa-major','ursa-minor','cassiopeia','orion','scorpius','leo','cygnus','taurus','aries','gemini','cancer','virgo','libra','sagittarius','capricornus','aquarius','pisces','pegasus','andromeda','crux','centaurus','carina','vela','triangulum-australe','pavo','grus','phoenix']);
  for(const f of groups){
   assert.ok(card(f.id).name&&card(f.id).description&&f.card.english);
   for(const s of f.stars){assert.ok(Number.isFinite(s.ra+s.dec+s.magnitude));assert.ok(s.ra>=0&&s.ra<24&&Math.abs(s.dec)<=90);assert.equal(s.depth,99);}
@@ -166,7 +166,7 @@ test('every named constellation star stays on the outer 99-percent sky layer',()
 
 test('the fixed asterism projects as one selectable sky feature',()=>{
   const sky=centeredSky(),entries=sky.updateSkyFeatures(),points=entries.find(entry=>entry.feature.id==='big-dipper').points;
-  assert.equal(entries.length,22);assert.ok(points.every(point=>point&&point.x>=0&&point.x<=sky.w&&point.y>=0&&point.y<=sky.h));
+  assert.equal(entries.length,29);assert.ok(points.every(point=>point&&point.x>=0&&point.x<=sky.w&&point.y>=0&&point.y<=sky.h));
   assert.equal(sky.featureHit(points[3].x,points[3].y),'big-dipper');
   const [a,b]=feature.edges[4].map(index=>points[index]);assert.equal(sky.featureHit((a.x+b.x)/2,(a.y+b.y)/2),'big-dipper');assert.equal(sky.featureHit(0,0),null);
   assert.equal(sky.setFeatureHover('big-dipper'),true);assert.equal(sky.setFeatureHover('big-dipper'),false);assert.equal(sky.setFeatureSelected('big-dipper'),true);assert.equal(sky.invalidations,2);
@@ -240,7 +240,7 @@ test('moving directly to another constellation preserves the previous two-second
 });
 
 test('fixed quiet zones contain the stars independent of the camera',()=>{
- const sky=centeredSky(),zones=sky.featureQuietZones();assert.equal(zones.length,22);
+ const sky=centeredSky(),zones=sky.featureQuietZones();assert.equal(zones.length,29);
  for(const [i,f] of [feature,polaris].entries())for(const star of f.stars){const z=zones[i];assert.ok(Math.hypot(star.direction.x-z.x,star.direction.y-z.y,star.direction.z-z.z)<=z.radius);}
  const first=JSON.stringify(zones);sky.camera={azimuth:2,elevation:1,zoom:12};sky.w=300;sky.h=1200;sky.skyFeatures=[];assert.equal(JSON.stringify(sky.featureQuietZones()),first);assert.equal(sky.featureQuietUniforms().length,zones.length*4);
 });

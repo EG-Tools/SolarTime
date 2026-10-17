@@ -3,15 +3,17 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8'),rows=require('./fixtures/regions-v061.json'),added=require('./fixtures/regions-v075.json');
 const {metadata}=require('./helpers/region-metadata.cjs');
 function detect(zone,languages){const window={};require('./helpers/i18n-runtime.cjs').localization({window,navigator:{languages,language:languages[0]},Intl:{DateTimeFormat:()=>({resolvedOptions:()=>({timeZone:zone})})}});return window.SolarModules.Localization.detect();}
-test('13 requested countries reuse existing English/Spanish without new locale payloads',()=>{
- const {order,meta,regions}=metadata(),prior=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mz','nl','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve'];
- assert.equal(order.length,67);assert.equal(new Set(order).size,67);assert.equal(rows.filter(r=>r.copy==='en').length,11);assert.equal(rows.filter(r=>r.copy==='es').length,2);
+test('requested countries retain existing shared locales and Mongolia adds Mongolian',()=>{
+ const {order,meta,regions}=metadata(),prior=['ao','ar','au','at','be','br','ca','cl','chn','co','cr','ec','fr','de','hk','hi','id','ie','it','jpn','kor','mx','mn','mz','nl','nz','pa','pe','pt','ru','sg','es','tw','ua','eu','en','uy','ve'];
+ assert.equal(order.length,68);assert.equal(new Set(order).size,68);assert.equal(rows.filter(r=>r.copy==='en').length,11);assert.equal(rows.filter(r=>r.copy==='es').length,2);
  assert.deepEqual(Array.from(order).filter(c=>!rows.some(r=>r.code===c)&&!added.some(r=>r.code===c)),prior);
  for(const r of rows){assert.deepEqual(JSON.parse(JSON.stringify(meta[r.code])),{code:r.code.toUpperCase(),name:r.name,locale:r.locale,html:r.locale,copy:r.copy});
   assert.deepEqual(JSON.parse(JSON.stringify(regions[r.code])),{code:r.code.toUpperCase(),label:r.label,timeZone:r.timeZone,latitude:r.latitude,longitude:r.longitude,region:r.name,city:r.city});
   assert.ok(!fs.existsSync(path.join(__dirname,'../src/locales/'+r.code+'.json')));
  }
- assert.equal(fs.readdirSync(path.join(__dirname,'../src/locales')).filter(f=>f.endsWith('.json')).length,15);
+ assert.equal(meta.mn.copy,'mn');assert.equal(meta.mn.locale,'mn-MN');assert.equal(regions.mn.timeZone,'Asia/Ulaanbaatar');
+ assert.equal(detect('Asia/Ulaanbaatar',['mn-MN']),'mn');assert.equal(detect('Etc/UTC',['mn-MN']),'mn');
+ assert.equal(fs.readdirSync(path.join(__dirname,'../src/locales')).filter(f=>f.endsWith('.json')).length,16);
  const html=read('index.html'),app=read('src/app.js');assert.doesNotMatch(html,/data-language="[^"]+"/);assert.match(app,/for\(const region of REGION_CATALOG\)/);
 });
 test('17 additional regions keep local clocks while reusing existing translation bundles',()=>{
@@ -30,7 +32,7 @@ test('17 additional regions keep local clocks while reusing existing translation
   assert.equal(detect(r.timeZone,[r.locale]),r.code);assert.equal(detect('Etc/UTC',[r.locale]),r.code);
   assert.equal(detect('Asia/Seoul',[r.locale]),'kor');assert.equal(detect('Asia/Tokyo',[r.locale]),'jpn');
  }
- assert.equal(fs.readdirSync(path.join(__dirname,'../src/locales')).filter(f=>f.endsWith('.json')).length,15);
+ assert.equal(fs.readdirSync(path.join(__dirname,'../src/locales')).filter(f=>f.endsWith('.json')).length,16);
 });
 for(const r of rows){
  test(r.code+' uses local time in winter/summer and on date rollover',()=>{

@@ -9,7 +9,7 @@
     "scrollDown": "向下滚动",
     "skyNavigate": "前往{name}",
     "openingTravel": "开场旅行",
-    "openingDefault": "默认开场",
+    "openingDefault": "默认",
     "openingNone": "无",
     "openingReload": "按 T 播放所选开场。",
     "metaDescription": "伴随星光流动的太阳系时钟，在小宇宙中呈现实时时间、行星公转、地球与月球。",
@@ -62,7 +62,7 @@
     "clockFont": "时钟数字字体",
     "clockSize": "时钟大小",
     "sunShine": "太阳光芒",
-    "satellites": "主要卫星 · 月球与木卫二",
+    "satellites": "主要卫星 · 月球、木卫二和海卫一",
     "pluto": "冥王星",
     "dwarfPlanet": "矮行星",
     "comets": "远方彗星",
@@ -210,6 +210,8 @@
     "night": "夜晚",
     "auNote": "1 AU 是地球与太阳之间的平均距离。大小和距离已为画面显示调整比例。",
     "koreaView": "查看{region}",
+    "northPole": "北极",
+    "southPole": "南极",
     "stormView": "查看大红斑",
     "speedUnitActive": "速度单位：{unit}。点击切换下一单位。",
     "speedUnitReady": "速度单位 {unit} 待用。点击以该单位开始倍速。",
@@ -242,7 +244,8 @@
     "constellationsShortcut": "显示星座",
     "targetSwitch": "上一个 / 下一个目标",
     "targetSwitchHint": "根据当前视图切换行星、地区或星座。",
-    "openingPlay": "播放",
+    "openingPlay": "跃迁",
+    "parentDistance": "距{name}平均距离",
     "timer": "计时器",
     "timerClose": "关闭计时器",
     "alarm": "闹钟",
@@ -450,6 +453,38 @@
     "big-dipper": [
       "北斗七星",
       "由大熊座中七颗明亮恒星组成的星群。勺形轮廓是辨认北方天空的经典标志，从天璇指向天枢的连线可延伸至北极星。"
+    ],
+    "triton": [
+      "海卫一",
+      "海王星最大的卫星，沿逆行轨道运行。寒冷的表面覆盖着氮冰和水冰。"
+    ],
+    "centaurus": [
+      "半人马",
+      "位于南十字座旁，包含半人马座α星和β星。"
+    ],
+    "carina": [
+      "船底",
+      "包含明亮的老人星的南天星座。"
+    ],
+    "vela": [
+      "船帆",
+      "位于船底座旁，象征船帆的南天星座。"
+    ],
+    "triangulum-australe": [
+      "南三角",
+      "三颗亮星在南天组成紧凑的三角形。"
+    ],
+    "pavo": [
+      "孔雀",
+      "象征孔雀的南天星座。"
+    ],
+    "grus": [
+      "天鹤",
+      "包含鹤一、象征仙鹤的南天星座。"
+    ],
+    "phoenix": [
+      "凤凰",
+      "象征神话中凤凰的南天星座。"
     ]
   },
   "phases": {

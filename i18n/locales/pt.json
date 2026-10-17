@@ -9,7 +9,7 @@
     "scrollDown": "Rolar para baixo",
     "skyNavigate": "Ir para {name}",
     "openingTravel": "Viagem de abertura",
-    "openingDefault": "Abertura padrão",
+    "openingDefault": "Padrão",
     "openingNone": "Nenhuma",
     "openingReload": "Pressione T para reproduzir a abertura selecionada.",
     "metaDescription": "Um relógio do Sistema Solar que flui com as estrelas — hora real, órbitas planetárias, Terra e Lua em um pequeno cosmos.",
@@ -62,7 +62,7 @@
     "clockFont": "Fonte dos números do relógio",
     "clockSize": "Tamanho do relógio",
     "sunShine": "Brilho solar",
-    "satellites": "Luas principais · Lua e Europa",
+    "satellites": "Luas principais · Lua, Europa e Tritão",
     "pluto": "Plutão",
     "dwarfPlanet": "Planeta anão",
     "comets": "Cometas distantes",
@@ -210,6 +210,8 @@
     "night": "noite",
     "auNote": "",
     "koreaView": "Ver {region}",
+    "northPole": "Polo Norte",
+    "southPole": "Polo Sul",
     "stormView": "Ver a Grande Mancha Vermelha",
     "speedUnitActive": "Unidade de velocidade: {unit}. Prima para alternar.",
     "speedUnitReady": "Unidade de velocidade {unit} pronta. Prima para iniciar nesta unidade.",
@@ -242,7 +244,8 @@
     "constellationsShortcut": "Mostrar constelações",
     "targetSwitch": "Alvo anterior / seguinte",
     "targetSwitchHint": "Alterne entre planetas, regiões ou constelações conforme a vista atual.",
-    "openingPlay": "Reproduzir"
+    "openingPlay": "Salto espacial",
+    "parentDistance": "Distância média: {name}"
   },
   "timer": {
     "helperDownloadPrivacy": "Somente IDs aleatórios de uso único, a versão do assistente e os resultados dos comandos são enviados ao Solar Time. Nenhuma conta, arquivo ou nome do computador é enviado. Os comprovantes expiram e são removidos automaticamente.",
@@ -451,6 +454,38 @@
     "big-dipper": [
       "Grande Carro",
       "Asterismo formado por sete estrelas brilhantes da Ursa Maior. A forma de concha é uma referência clássica do céu do norte, e a linha de Merak a Dubhe aponta para a Estrela Polar."
+    ],
+    "triton": [
+      "Tritão",
+      "A maior lua de Netuno segue uma órbita retrógrada. Sua superfície fria é coberta por gelo de nitrogênio e de água."
+    ],
+    "centaurus": [
+      "Centauro",
+      "Constelação austral junto ao Cruzeiro do Sul, com Alfa e Beta Centauri."
+    ],
+    "carina": [
+      "Carina",
+      "Constelação austral que contém a brilhante Canopus."
+    ],
+    "vela": [
+      "Velas",
+      "Constelação austral junto à Carina que representa as velas de um navio."
+    ],
+    "triangulum-australe": [
+      "Triângulo Austral",
+      "Três estrelas brilhantes formam um pequeno triângulo austral."
+    ],
+    "pavo": [
+      "Pavão",
+      "Constelação austral que representa um pavão."
+    ],
+    "grus": [
+      "Grou",
+      "Constelação austral com Alnair que representa um grou."
+    ],
+    "phoenix": [
+      "Fênix",
+      "Constelação austral que representa a fênix mitológica."
     ]
   },
   "phases": {

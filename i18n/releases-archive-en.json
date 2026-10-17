@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.71",
+    "date": "2026.10.02",
+    "items": [
+      "Refined sizes, orbit spacing, and reset defaults in normal and true-scale views.",
+      "Improved the default view, camera transitions, and saved camera settings.",
+      "Added a new Saturn ring texture with distance-based LOD."
+    ]
+  },
+  {
     "version": "0.70",
     "date": "2026.10.01",
     "items": [

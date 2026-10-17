@@ -9,7 +9,7 @@
     "scrollDown": "Gulir ke bawah",
     "skyNavigate": "Buka {name}",
     "openingTravel": "Perjalanan pembuka",
-    "openingDefault": "Pembuka bawaan",
+    "openingDefault": "Default",
     "openingNone": "Tidak ada",
     "openingReload": "Tekan T untuk memutar pembukaan yang dipilih.",
     "metaDescription": "Jam Tata Surya yang mengalir bersama bintang—waktu nyata, orbit planet, Bumi, dan Bulan dalam sebuah kosmos kecil.",
@@ -62,7 +62,7 @@
     "clockFont": "Font angka jam",
     "clockSize": "Ukuran jam",
     "sunShine": "Cahaya Matahari",
-    "satellites": "Bulan utama · Bulan dan Europa",
+    "satellites": "Satelit utama · Bulan, Europa, dan Triton",
     "pluto": "Pluto",
     "dwarfPlanet": "Planet katai",
     "comets": "Komet jauh",
@@ -210,6 +210,8 @@
     "night": "malam",
     "auNote": "",
     "koreaView": "Lihat {region}",
+    "northPole": "Kutub Utara",
+    "southPole": "Kutub Selatan",
     "stormView": "Lihat Bintik Merah Besar",
     "speedUnitActive": "Satuan kecepatan: {unit}. Tekan untuk mengganti.",
     "speedUnitReady": "Satuan kecepatan {unit} siap. Tekan untuk mulai dengan satuan ini.",
@@ -242,7 +244,8 @@
     "constellationsShortcut": "Tampilkan rasi bintang",
     "targetSwitch": "Target sebelumnya / berikutnya",
     "targetSwitchHint": "Beralih antara planet, wilayah, atau rasi bintang sesuai tampilan saat ini.",
-    "openingPlay": "Putar",
+    "openingPlay": "Warp",
+    "parentDistance": "Jarak rata-rata: {name}",
     "timer": "Timer",
     "timerClose": "Tutup timer",
     "alarm": "Alarm",
@@ -450,6 +453,38 @@
     "big-dipper": [
       "Biduk",
       "Asterisme yang dibentuk oleh tujuh bintang terang di Ursa Major. Bentuknya yang menyerupai gayung menjadi penunjuk klasik langit utara, dan garis dari Merak ke Dubhe mengarah ke Polaris."
+    ],
+    "triton": [
+      "Triton",
+      "Bulan terbesar Neptunus bergerak pada orbit retrograd. Permukaannya yang dingin tertutup es nitrogen dan es air."
+    ],
+    "centaurus": [
+      "Sentaurus",
+      "Rasi selatan di dekat Salib Selatan, berisi Alpha dan Beta Centauri."
+    ],
+    "carina": [
+      "Carina",
+      "Rasi selatan yang memuat bintang terang Canopus."
+    ],
+    "vela": [
+      "Vela",
+      "Rasi selatan di dekat Carina yang menggambarkan layar kapal."
+    ],
+    "triangulum-australe": [
+      "Segitiga Selatan",
+      "Tiga bintang terang membentuk segitiga kecil di langit selatan."
+    ],
+    "pavo": [
+      "Merak",
+      "Rasi selatan yang menggambarkan burung merak."
+    ],
+    "grus": [
+      "Bangau",
+      "Rasi selatan dengan Alnair yang menggambarkan burung bangau."
+    ],
+    "phoenix": [
+      "Phoenix",
+      "Rasi selatan yang menggambarkan burung phoenix dalam mitologi."
     ]
   },
   "phases": {

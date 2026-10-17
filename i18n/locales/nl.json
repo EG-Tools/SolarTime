@@ -9,7 +9,7 @@
     "scrollDown": "Omlaag scrollen",
     "skyNavigate": "Ga naar {name}",
     "openingTravel": "Openingsreis",
-    "openingDefault": "Standaardopening",
+    "openingDefault": "Standaard",
     "openingNone": "Geen",
     "openingReload": "Druk op T om de gekozen opening af te spelen.",
     "metaDescription": "Een klok van het zonnestelsel tussen de sterren — de actuele tijd, planeetbanen, de aarde en de maan in een kleine kosmos.",
@@ -62,7 +62,7 @@
     "clockFont": "Lettertype van de klokcijfers",
     "clockSize": "Klokgrootte",
     "sunShine": "Zonnegloed",
-    "satellites": "Grote manen · Maan en Europa",
+    "satellites": "Grote manen · Maan, Europa en Triton",
     "pluto": "Pluto",
     "dwarfPlanet": "Dwergplaneet",
     "comets": "Verre kometen",
@@ -210,6 +210,8 @@
     "night": "nacht",
     "auNote": "",
     "koreaView": "{region} bekijken",
+    "northPole": "Noordpool",
+    "southPole": "Zuidpool",
     "stormView": "De Grote Rode Vlek bekijken",
     "speedUnitActive": "Snelheidseenheid: {unit}. Druk om de eenheid te wijzigen.",
     "speedUnitReady": "Snelheidseenheid {unit} staat klaar. Druk om met deze eenheid te starten.",
@@ -242,7 +244,8 @@
     "constellationsShortcut": "Sterrenbeelden tonen",
     "targetSwitch": "Vorig / volgend doel",
     "targetSwitchHint": "Wissel tussen planeten, regio’s of sterrenbeelden, afhankelijk van de huidige weergave.",
-    "openingPlay": "Afspelen"
+    "openingPlay": "Warp",
+    "parentDistance": "Gemiddelde afstand: {name}"
   },
   "timer": {
     "helperDownloadPrivacy": "Alleen eenmalige willekeurige aanvraag-ID’s, de helperversie en opdrachtresultaten worden naar Solar Time verzonden. Geen accounts, bestanden of computernamen. Bevestigingen verlopen en worden automatisch verwijderd.",
@@ -451,6 +454,38 @@
     "big-dipper": [
       "Grote Wagen",
       "Een asterisme van zeven heldere sterren in de Grote Beer. De wagenvorm is een klassieke wegwijzer aan de noordelijke hemel; de lijn van Merak naar Dubhe wijst naar de Poolster."
+    ],
+    "triton": [
+      "Triton",
+      "De grootste maan van Neptunus volgt een retrograde baan. Het koude oppervlak is bedekt met stikstofijs en waterijs."
+    ],
+    "centaurus": [
+      "Centaur",
+      "Een zuidelijk sterrenbeeld naast het Zuiderkruis, met Alpha en Beta Centauri."
+    ],
+    "carina": [
+      "Kiel",
+      "Een zuidelijk sterrenbeeld met de heldere ster Canopus."
+    ],
+    "vela": [
+      "Zeilen",
+      "Een zuidelijk sterrenbeeld naast Kiel dat scheepszeilen voorstelt."
+    ],
+    "triangulum-australe": [
+      "Zuiderdriehoek",
+      "Drie heldere sterren vormen een kleine driehoek aan de zuidelijke hemel."
+    ],
+    "pavo": [
+      "Pauw",
+      "Een zuidelijk sterrenbeeld dat een pauw voorstelt."
+    ],
+    "grus": [
+      "Kraanvogel",
+      "Een zuidelijk sterrenbeeld met Alnair dat een kraanvogel voorstelt."
+    ],
+    "phoenix": [
+      "Feniks",
+      "Een zuidelijk sterrenbeeld dat de mythische feniks voorstelt."
     ]
   },
   "phases": {

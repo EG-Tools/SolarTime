@@ -62,14 +62,15 @@
     dialog.addEventListener('pointerdown',down);dialog.addEventListener('click',click);dialog.addEventListener('cancel',cancel);dialog.addEventListener('close',closed);
     return own(()=>{unbind();dialog.removeEventListener('pointerdown',down);dialog.removeEventListener('click',click);dialog.removeEventListener('cancel',cancel);dialog.removeEventListener('close',closed);});
   }
-  function bindScrollCues(container,scroller){
+  function bindScrollCues(container,scroller,{horizontal=false}={}){
+    const position=horizontal?"scrollLeft":"scrollTop",extent=horizontal?"scrollWidth":"scrollHeight",size=horizontal?"clientWidth":"clientHeight";
     let frame=0,stopped=false;
     const cues=Array.from(container.querySelectorAll?.('.scroll-cue')||[]).map(element=>({element,direction:element.classList.contains('scroll-cue-up')?-1:1}));
-    const update=()=>{if(stopped)return;const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;container.classList.toggle('can-scroll-up',scroller.scrollTop>3);container.classList.toggle('can-scroll-down',remaining>3);
-      for(const {element,direction} of cues){const available=direction<0?scroller.scrollTop>3:remaining>3;element.classList.toggle('scroll-cue-enabled',available);element.tabIndex=available?0:-1;element.setAttribute('aria-disabled',String(!available));}
+    const update=()=>{if(stopped)return;const remaining=scroller[extent]-scroller[size]-scroller[position];container.classList.toggle('can-scroll-up',scroller[position]>3);container.classList.toggle('can-scroll-down',remaining>3);
+      for(const {element,direction} of cues){const available=direction<0?scroller[position]>3:remaining>3;element.classList.toggle('scroll-cue-enabled',available);element.tabIndex=available?0:-1;element.setAttribute('aria-disabled',String(!available));}
     };
-    const activate=(event,direction)=>{event.preventDefault();event.stopPropagation();const maximum=Math.max(0,scroller.scrollHeight-scroller.clientHeight),top=Math.max(0,Math.min(maximum,scroller.scrollTop+direction*scroller.clientHeight*.8));scroller.scrollTo({top,behavior:root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});};
-    for(const cue of cues){const {element,direction}=cue;element.removeAttribute('aria-hidden');element.setAttribute('role','button');element.setAttribute('aria-label',direction<0?'Scroll up':'Scroll down');cue.click=event=>activate(event,direction);cue.key=event=>{if(event.key==='Enter'||event.key===' ')activate(event,direction);};element.addEventListener('click',cue.click);element.addEventListener('keydown',cue.key);}
+    const activate=(event,direction)=>{event.preventDefault();event.stopPropagation();const maximum=Math.max(0,scroller[extent]-scroller[size]),top=Math.max(0,Math.min(maximum,scroller[position]+direction*scroller[size]*.8));scroller.scrollTo({[horizontal?"left":"top"]:top,behavior:root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});};
+    for(const cue of cues){const {element,direction}=cue;element.removeAttribute('aria-hidden');element.setAttribute('role','button');element.setAttribute('aria-label',horizontal?(direction<0?'Scroll left':'Scroll right'):(direction<0?'Scroll up':'Scroll down'));cue.click=event=>activate(event,direction);cue.key=event=>{if(event.key==='Enter'||event.key===' ')activate(event,direction);};element.addEventListener('click',cue.click);element.addEventListener('keydown',cue.key);}
     update();
     const schedule=()=>{if(!frame&&!stopped)frame=root.requestAnimationFrame(()=>{frame=0;update();});};
     scroller.addEventListener('scroll',update,{passive:true});

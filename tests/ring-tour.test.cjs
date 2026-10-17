@@ -8,6 +8,30 @@ function create(seed=123,extra={}){return new window.SolarRingTour({seed,frame,r
 const near=(a,b,tolerance=1e-8)=>assert.ok(Math.abs(a-b)<tolerance,a+' != '+b);
 const vectorNear=(a,b,tolerance)=>a.forEach((v,i)=>near(v,b[i],tolerance));
 
+test('narrow ring tours retain their sheet profile and increase debris without changing flight grains',()=>{
+ const base=create(123,{particleCapacity:.25}),tour=create(123,{particleCapacity:.25,bodyId:'uranus',narrowRing:true,ringBounds:[1.58,1.94],debrisDensity:1.5});
+ assert.equal(tour.narrowRing,true);assert.deepEqual(tour.ringBounds,[1.58,1.94]);
+ for(const pool of ['points','fogPoints','chipPoints'])assert.equal(tour[pool].length,base[pool].length*1.5);
+ assert.equal(tour.flightField.points.length,base.flightField.points.length);
+ for(const t of [base,tour]){
+  let previous=0;
+  for(const age of [0,1,4,8,10]){
+   t.age=age;t.pose=t.cameraPose();const amount=t.ringDetailState().amount;
+   assert.ok(amount>=previous&&amount<=1);previous=amount;
+   if(age<=1)assert.equal(amount,0);if(age===10)assert.equal(amount,1);
+  }
+ }
+ for(const pool of ['points','fogPoints','chipPoints'])for(let i=0;i<tour[pool].length;i+=5){
+  const radius=Math.hypot(tour[pool][i],tour[pool][i+2]);assert.ok(radius>=1.58-1e-6&&radius<=1.94+1e-6);
+ }
+ assert.ok(tour.radius>=1.58&&tour.radius<=1.94);
+ // The local replacement leaves the opposite ring visible at full arrival.
+ const detail=tour.ringDetailState(),eye=detail.eye,radius=Math.hypot(eye[0],eye[2]);
+ const farDistance=Math.hypot(eye[0]+eye[0]/radius*1.9,eye[1]*5,eye[2]+eye[2]/radius*1.9);
+ assert.ok(farDistance>2.8,'the opposite ring lies outside the debris replacement patch');
+ assert.equal(create(123,{deferPreparation:true}).ringBounds[0],1.28,'Saturn sheet retains its original inner radius');
+});
+
 test('ring debris inherits simulation phase through one parent transform',()=>{
  const T=window.SolarRingTour,t=Object.create(T.prototype),pose={eye:[2,3,5],right:[1,0,0],up:[0,1,0],forward:[0,0,1],basis:new Float32Array([1,0,0,0,1,0,0,0,1]),fov:72,offset:[0,0],perspective:1,orthoScale:1};
  const parent=t.parentPose(pose,.25);
@@ -369,6 +393,15 @@ test('card and ring entry share readiness and reject invalid or duplicate starts
  }
  for(const id of ['saturn','saturn-ring']){r.gpu.textures.delete(id);assert.equal(r.canStartRingTour(),false,id);r.gpu.textures.set(id,texture);}
  r.currentFrameItem=()=>null;assert.equal(r.canStartRingTour(),false);
+});
+test('Uranus shares the ring-flight controller with its own body and debris material',()=>{
+ const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8'),source=read('src/renderer.js'),tour=read('src/ring-tour.js'),release=read('tools/release-files.cjs');
+ assert.match(source,/RING_TOUR_PROFILES=Object\.freeze\(\{[\s\S]*uranus:Object\.freeze/);
+ assert.match(source,/atlasPath:'assets\/effects\/uranus-debris-atlas-v1\.webp'/);
+ assert.equal((source.match(/new window\.SolarRingTour\(/g)||[]).length,1,'preparation and entry share a single profile factory');
+ assert.match(source,/currentFrameItem\(tour\.bodyId\)/);
+ assert.match(tour,/this\.planetTextureId=planetTextureId/);assert.match(tour,/this\.materialTint=materialTint/);
+ assert.match(release,/assets\/effects\/uranus-debris-atlas-v1\.webp/);
 });
 function step(t,start,end){for(let ms=start;ms<=end;ms+=16)t.advance(ms);if(t.lastMono<end)t.advance(end);}
 
@@ -787,10 +820,10 @@ test('looking and lens changes leave path and original camera independent',()=>{
  assert.equal(t.angle,angle);assert.deepEqual([...t.pose.eye],eye);assert.notDeepEqual([...t.pose.forward],dir);
  for(const v of [t.pose.up,t.pose.right,t.pose.forward])assert.ok(Math.abs(Math.hypot(...v)-1)<1e-8);
 });
-test('ring-tour lens controls stop at the same 0.8x minimum as the main camera',()=>{
+test('ring-tour lens controls respect the 60-degree cap and main camera minimum',()=>{
  for(const lensZoom of [.8,1.1853048513203654,8]){
   const t=create(123,{lensZoom});
-  t.zoom(.0001);assert.ok(t.lensScale()>=.8-1e-10);if(t.fov<100-1e-8)near(t.lensScale(),.8);
+  t.zoom(.0001);assert.ok(t.lensScale()>=.8-1e-10);assert.ok(t.fov<=60);if(t.fov<60-1e-8)near(t.lensScale(),.8);
   t.zoom(1e6);assert.equal(t.fov,35);assert.ok(t.lensScale()>.8);
  }
 });
@@ -809,10 +842,10 @@ test('Saturn opening reaches the requested solar view before its fixed S path be
  assert.match(renderer,/velocity\.perspective=\(pose\.perspective-previous\.pose\.perspective\)\/dt/);
  assert.match(renderer,/startPose,.*openingVelocity:fromOpening\?/);
  assert.match(renderer,/Number\.isFinite\(capturedTurn\)\?capturedTurn/);
- assert.match(app,/startRingTour\(undefined,true,mono,openingRunMode==='saturn',openingCameraTarget\)/);
- assert.match(app,/let resumeTravel=openingRunMode==='saturn';/,'only the Saturn opening may hand its camera directly to ring travel');
+ assert.match(app,/startRingTour\(\{bodyId:openingRunMode\},true,mono,true,openingCameraTarget\)/);
+ assert.match(app,/let resumeTravel=renderer\.hasRingTour\(openingRunMode\);/,'ring openings hand their camera to the selected ring travel');
  assert.doesNotMatch(app,/ring-travel-resume|travelSaved/,'a stale travel flag cannot attach Saturn travel to the default opening');
- assert.match(app,/function replayOpening[\s\S]*?resumeTravel=openingRunMode==='saturn';/,'T obeys the newly selected opening mode instead of stale travel state');
+ assert.match(app,/function replayOpening[\s\S]*?resumeTravel=renderer\.hasRingTour\(openingRunMode\);/,'T obeys the newly selected opening mode instead of stale travel state');
 });
 test('one Escape spirals out within seven seconds; repeat Escape never restarts or cuts',()=>{
  const t=create();step(t,0,10000);t.stop();
@@ -839,7 +872,7 @@ test('clicked angle seeds the locator in the outer twenty percent, then camera b
 });
 test('ring hover and picking start at the visible inner band, not transparent map padding',()=>{
  const f={u:{x:1,y:0,z:0},v:{x:0,y:1,z:0},pole:{x:0,y:0,z:1}};
- const r={camera:{},gpu:{},ringTourHover:true,bodyFrame:()=>f,currentFrameItem:()=>({body:{},r:100,screen:{x:640,y:400}})};
+ const r={camera:{},gpu:{},ringTourHover:'saturn',bodyFrame:()=>f,currentFrameItem:()=>({body:{},r:100,screen:{x:640,y:400}})};
  assert.equal(R.ringTourHit.call(r,640+1.31*100,400),false);
  assert.ok(R.ringTourHit.call(r,640+1.36*100,400));
  const starts=[],c={save(){},restore(){},beginPath(){},moveTo(x,y){starts.push([x,y]);},lineTo(){},stroke(){}};
@@ -897,7 +930,7 @@ test('entry and return remain continuous after free look, pan and lens changes, 
    last=t.pose;
   }
   t.returnAge=t.returnDuration;t.advance(t.lastMono);
-  assert.equal(t.state,'complete');vectorNear(t.pose.eye,t.startPose.eye);vectorNear(t.pose.up,t.startPose.up);near(t.pose.fov,72);
+  assert.equal(t.state,'complete');vectorNear(t.pose.eye,t.startPose.eye);vectorNear(t.pose.up,t.startPose.up);near(t.pose.fov,t.startPose.fov);
  }
 });
 test('home at five seconds backs out directly to a distinct home pose without a second tween',()=>{
@@ -1116,7 +1149,7 @@ test('rounded geometry LOD submits each visible rock once and retains detail nea
  const high=t.visibleInstances(t.points,5,data,t.instanceOrder,indices,true,null,{level:1,focal}),members=new Set(t.instanceOrder);
  const low=t.visibleInstances(t.points,5,data,t.instanceOrder,indices,true,null,{level:0,focal});
  for(const i of t.instanceOrder){assert.ok(!members.has(i));members.add(i);}
- assert.equal(high+low,visible);assert.deepEqual(members,all);assert.ok(low>0&&high>0);
+ assert.equal(high+low,visible);assert.deepEqual(members,all);assert.ok(visible>0); // Narrow lenses may put every visible rock in the same LOD; threshold coverage follows below.
  t.pose={eye:[0,0,0],forward:[0,0,1],perspective:1,orthoScale:1};
  const p=new Float32Array([0,0,1,.004,.15]),sample=pixels=>{
    p[2]=7*p[3]*100/pixels;
@@ -1281,8 +1314,9 @@ test('return policy switches exactly at eighty percent boarding, not eighty perc
 
 test('grazing ring coverage preserves partial pixels rather than multiplying edge fades',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/ring-tour.js'),'utf8');
- assert.ok(source.includes('ringCoverage(r,aa*.98)'));
- assert.ok(source.includes('(min(2.26,radius+span*.5)-max(1.28,radius-span*.5))/span'));
+ assert.ok(source.includes('ringCoverage(r,aa*span)'));
+ assert.ok(source.includes('ringBandCoverage(radius,footprint,ringBounds)'));
+ assert.ok(window.SolarSurfaceStyle.ringCoverageGLSL.includes('(min(bounds.y,radius+span*.5)-max(bounds.x,radius-span*.5))/span'));
  const coverage=(radius,span)=>Math.max(0,Math.min(1,(Math.min(2.26,radius+span/2)-Math.max(1.28,radius-span/2))/span));
  near(coverage(1.77,.1),1);near(coverage(1.28,.1),.5);near(coverage(2.26,.1),.5);
  for(const span of [1,2,5,10])near(coverage(1.77,span),.98/span);
@@ -1965,7 +1999,7 @@ test('moving Saturn keeps its live departure position and size while tracking bl
   const item={body,r:20,world:{x:15,y:20,z:2}},screen=r.project(item.world);
   const t=create(123,{frame:r.bodyFrame(body),radius:item.r*screen.perspective,screen,deferPreparation:true});
   const baseline=create(123,{frame:r.bodyFrame(body),radius:item.r*screen.perspective,screen,deferPreparation:true});
-  const focal=r.h/(2*Math.tan(72*Math.PI/360));
+  const focal=r.h/(2*Math.tan(t.fov*Math.PI/360));
   for(const age of [0,.01,.5,2,5,9.9,10]){
    // Five simulated years per second: retain a moving target throughout entry.
    const angle=age*5/29.46*Math.PI*2;
@@ -2365,5 +2399,165 @@ test('opening handoff does not ease inherited Saturn and overview motion back to
   tour.age=age;
   const raw=r.projectRingTourPoint(projection,world,{},10),drawn=r.projectRingTourPoint(projection,world,{},10,{});
   near(drawn.x,raw.x,1e-10);near(drawn.y,raw.y,1e-10);near(drawn.radius,raw.radius,1e-10);
+ }
+});
+
+
+test('ring destination handoff preserves the world pose and velocity in both directions',()=>{
+ const A=window.SolarAstro,types=['saturn','uranus'];
+ for(const id of types){
+  const other=types.find(v=>v!==id),source={body:A.BODIES.find(b=>b.id===id),world:{x:20,y:-10,z:4},units:3},destination={body:A.BODIES.find(b=>b.id===other),world:{x:-30,y:50,z:8},units:1.5};
+  const old=create(123,{bodyId:id});old.age=12;old.state='cruising';old.fov=48;old.pose=old.cameraPose();
+  const sample=old.takeoffStart(),pose=R.mapRingTourPose(sample.from,source,destination),before=R.mapRingTourPose(sample.previous,source,destination),velocity={};
+  for(const key of ['eye','offset','right','up','forward'])velocity[key]=pose[key].map((v,i)=>(v-before[key][i])/sample.dt);
+  for(const key of ['perspective','orthoScale'])velocity[key]=(pose[key]-before[key])/sample.dt;
+  const next=create(456,{bodyId:other,startPose:pose,openingVelocity:velocity,gentleDeparture:true,deferPreparation:true});
+  const roundtrip=R.mapRingTourPose(next.cameraPose(0),destination,source);
+  for(const key of ['eye','right','up','forward','offset'])vectorNear(roundtrip[key],sample.from[key],1e-6);
+  near(roundtrip.fov,sample.from.fov);
+  const h=.00001,a=next.cameraPose(0),b=next.cameraPose(h);
+  for(const key of ['eye','forward','up'])vectorNear(b[key].map((v,i)=>(v-a[key][i])/h),velocity[key],.02);
+  for(let t=0;t<=10;t+=.1)for(const key of ['eye','right','up','forward'])assert.ok(next.cameraPose(t)[key].every(Number.isFinite));
+  old.dispose();next.dispose();
+ }
+});
+
+test('ring transfer enables only a different destination while cruising, including behind camera',()=>{
+ const gpu={contextLost:false,gl:{isContextLost:()=>false,getExtension:()=>true},textures:new Map(['saturn','uranus','saturn-ring'].map(k=>[k,{texture:{}}]))};
+ const r=Object.create(R);Object.assign(r,{gpu,ringTour:{bodyId:'saturn',state:'cruising'},currentFrameItem:()=>({directJob:{},r:NaN,screen:{behind:true}})});
+ assert.equal(r.canStartRingTour(false,'saturn'),false);assert.equal(r.canStartRingTour(false,'uranus'),true);
+ r.ringTour.state='returning';assert.equal(r.canStartRingTour(false,'uranus'),false);
+});
+
+
+test('gentle inter-ring departure limits the first second without changing arrival',()=>{
+ const a=create(42,{radius:10,openingVelocity:{},deferPreparation:true}),b=create(42,{radius:10,openingVelocity:{},gentleDeparture:true,deferPreparation:true});
+ const travel=t=>t.startDistance-t.entryMotion(1).distance;
+ assert.ok(travel(b)<travel(a)*.5,travel(b)+' / '+travel(a));
+ vectorNear(a.entryPosition(10),b.entryPosition(10),1e-8);
+ for(const t of [a,b])t.dispose();
+});
+
+test('T cycle chooses the nearer ring and keeps alternating without returning home',()=>{
+ const r=Object.create(R),calls=[],home={azimuth:1,elevation:.2,zoom:2,panX:.1,panY:0};
+ Object.assign(r,{warpDeparture:()=>({from:{eye:[0,0,0]}}),canStartRingTour:()=>true,currentFrameItem:id=>({body:{id},world:{x:id==='saturn'?20:5,y:0,z:0}}),bodyRadiusAtZoom:()=>1,scale:1,
+ startRingTour:target=>{calls.push(target.bodyId);return true;},animateCamera:target=>{assert.equal(target,home);calls.push('home');return true;}});
+ assert.equal(r.cycleRingTravel(),true);assert.equal(calls[0],'uranus');
+ r.ringTour={bodyId:'uranus',state:'entering',visitedBodies:['uranus'],returnTarget:home};
+ for(let i=0;i<3;i++){assert.equal(r.ringTravelShortcutLocked,true);assert.equal(r.cycleRingTravel(),false);}assert.deepEqual(calls,['uranus']);
+ r.ringTour.state='cruising';assert.equal(r.ringTravelShortcutLocked,false);r.cycleRingTravel();assert.equal(calls[1],'saturn');
+ r.ringTour={bodyId:'saturn',state:'entering',visitedBodies:['uranus','saturn'],returnTarget:home};
+ assert.equal(r.cycleRingTravel(),false);assert.equal(calls.length,2);
+ r.ringTour.state='cruising';r.cycleRingTravel();assert.equal(calls[2],'uranus');
+ for(let i=0;i<6;i++){r.ringTour={bodyId:calls.at(-1),state:'cruising',returnTarget:home};r.cycleRingTravel();assert.notEqual(calls.at(-1),calls.at(-2));}
+ assert.ok(!calls.includes('home'));const count=calls.length;
+ r.ringTour.state='returning';assert.equal(r.ringTravelShortcutLocked,true);assert.equal(r.cycleRingTravel(),false);assert.equal(calls.length,count);
+});
+
+test('travelling camera ray can select another ring without selecting its card',()=>{
+ const r=Object.create(R),items=Object.fromEntries(['saturn','uranus'].map(id=>[id,{body:{id},world:{x:0,y:0,z:0},r:100,screen:{x:640,y:400,z:0,behind:false}}]));
+ Object.assign(r,{w:1280,h:800,scale:1,gpu:{},ringTour:{bodyId:'saturn',state:'cruising',pose:{},worldUnits:1},currentFrameItem:id=>items[id],bodyRadiusAtZoom:()=>1,
+ mapRingTourPose:()=>({eye:[1.8,2,0],forward:[0,-1,0],right:[1,0,0],up:[0,0,1],offset:[0,0],fov:72})});
+ const hit=r.ringTourHit(640,400);assert.equal(hit.bodyId,'uranus');vectorNear(hit.point,[1.8,0,0],1e-9);
+ r.mapRingTourPose=()=>({eye:[0,2,0],forward:[0,-1,0],right:[1,0,0],up:[0,0,1],offset:[0,0],fov:72});
+ assert.equal(r.ringTourHit(640,400),false);
+});
+
+
+test('departing rings retain their original detail patch and fade it continuously',()=>{
+ const t=create(222,{deferPreparation:true});t.age=12;t.state='cruising';t.pose=t.cameraPose();t.beginDepartureVisuals();
+ const start=t.departureDetail;
+ for(const elapsed of [0,.01,.5,1,1.5,2]){
+  t.departureVisual={detail:start,elapsed};const detail=t.ringDetailState([100,200,300]);
+  vectorNear(detail.eye,start.eye,1e-12);assert.ok(detail.amount>=0&&detail.amount<=start.amount);
+  if(elapsed===0)near(detail.amount,start.amount);if(elapsed===2)near(detail.amount,0);
+ }
+ t.departureVisual=null;t.dispose();
+});
+
+
+test('retained ring scene follows the shared corrected centre and radius throughout return',()=>{
+ const r=Object.create(R);r.w=1280;r.h=800;
+ const t=create(101,{deferPreparation:true}),item={r:31,screen:{x:1000,y:173,behind:false}};
+ for(const perspective of [1,.8,.4,0]){
+  const p=r.alignRingScenePose({...t.pose,perspective},item),f=r.h/(2*Math.tan(p.fov*Math.PI/360));
+  const depth=p.orthoScale*(1-perspective)-p.eye.reduce((sum,v,i)=>sum+v*p.forward[i],0)*perspective;
+  near(r.w/2+f*(p.offset[0]-p.eye.reduce((sum,v,i)=>sum+v*p.right[i],0)/depth),item.screen.x,1e-7);
+  near(r.h/2-f*(p.offset[1]-p.eye.reduce((sum,v,i)=>sum+v*p.up[i],0)/depth),item.screen.y,1e-7);
+  near(f/depth,item.r,1e-7);
+ }
+ t.dispose();
+});
+
+
+test('inter-ring surface morph preserves screen centre and size while perspective settles',()=>{
+ for(const bodyId of ['saturn','uranus']){
+  const t=create(21,{bodyId,gentleDeparture:true,deferPreparation:true});
+  t.pose={eye:[8,3,-15],right:[1,0,0],up:[0,1,0],forward:[0,0,1],offset:[.12,-.06],perspective:1,orthoScale:30,fov:72};
+  const original=t.pose,depth=15;let previous=-1;
+  for(const age of [0,.001,.1,.5,1,2,5,8,9.999,10]){
+   t.age=age;const p=t.surfacePose(),denominator=p.orthoScale*(1-p.perspective)+depth*p.perspective;
+   near(denominator,depth,1e-8);assert.ok(p.perspective>=previous);previous=p.perspective;
+   near(p.offset[0]-p.eye[0]/denominator,original.offset[0]-original.eye[0]/depth);
+   assert.equal(t.pose,original,'render morph must not rewrite the flight camera');
+   if(age===0)near(p.perspective,0);if(age===10)assert.equal(p,original);
+   if(age<=2)assert.ok(p.perspective<.15,"projection must not settle in the first two seconds");
+  }
+  t.state='cruising';t.age=0;assert.equal(t.surfacePose(),original);t.dispose();
+ }
+});
+
+
+test('inter-ring attitude eases over five seconds without retiming translation or landing',()=>{
+ const t=create(427,{gentleDeparture:true,openingVelocity:{},deferPreparation:true});
+ const angle=(a,b)=>Math.acos(Math.max(-1,Math.min(1,(['right','up','forward'].reduce((sum,key)=>sum+a[key].reduce((n,v,i)=>n+v*b[key][i],0),0)-1)/2)));
+ const first=t.entryPose(1),base=t.bankEntryPose(t.openingPose(1),1);
+ assert.ok(angle(t.startPose,first)<=angle(t.startPose,base)*.1+1e-7);
+ for(const age of [0,.1,1,2.5,4.999,5,8,10]){
+  const p=t.entryPose(age),original=t.bankEntryPose(t.openingPose(age),age);
+  vectorNear(p.eye,original.eye,1e-10);
+  if(age>=5)for(const key of ['right','up','forward'])vectorNear(p[key],original[key],1e-9);
+ }
+ const before=t.entryPose(5-.0001),after=t.entryPose(5+.0001);assert.ok(angle(before,after)<.001);
+ t.dispose();
+});
+
+
+test('returning to a previously visited ring preserves its existing perspective',()=>{
+ for(const bodyId of ['saturn','uranus']){
+  const t=create(21,{bodyId,gentleDeparture:true,surfacePerspectiveStart:1,deferPreparation:true});
+  for(const age of [0,.001,.5,1,2,5,10]){t.age=age;t.pose=t.cameraPose();assert.equal(t.surfacePose(),t.pose);}
+  t.dispose();
+ }
+});
+
+
+test('ring surface projection stays continuous at near-depth boundary, cancellation and reentry',()=>{
+ for(const bodyId of ['saturn','uranus']){
+  const t=create(21,{bodyId,gentleDeparture:true,deferPreparation:true});t.age=2;
+  const pose={eye:[8,3,-15],right:[1,0,0],up:[0,1,0],forward:[0,0,1],basis:new Float32Array([1,0,0,0,1,0,0,0,1]),offset:[.12,-.06],perspective:1,orthoScale:30,fov:72};
+  t.pose={...pose,eye:[8,3,-1.000001]};const far=t.surfacePose().perspective;t.pose={...pose,eye:[8,3,-.999999]};near(t.surfacePose().perspective,far,1e-8);
+  t.pose=t.cameraPose();const before=t.surfacePose().perspective;t.setReturnView(t.startPose);near(t.surfacePose().perspective,before,1e-8);
+  t.state='entering';t.pose=pose;const next=create(32,{bodyId,gentleDeparture:true,surfacePerspectiveStart:t.surfaceProjectionProgress(),deferPreparation:true});next.pose=pose;near(next.surfacePose().perspective,t.surfacePose().perspective,1e-8);
+  next.dispose();t.dispose();
+ }
+});
+
+test('repeated ring transfers keep quaternion interpolation continuous across half turns',()=>{
+ const A=window.SolarAstro,angle=(a,b)=>Math.acos(Math.max(-1,Math.min(1,(['right','up','forward'].reduce((s,k)=>s+a[k].reduce((n,v,i)=>n+v*b[k][i],0),0)-1)/2)));
+ for(let seed=1;seed<=16;seed++){
+  const source={body:A.BODIES.find(b=>b.id==='saturn'),world:{x:20,y:-10,z:4},units:3},dest={body:A.BODIES.find(b=>b.id==='uranus'),world:{x:-30,y:50,z:8},units:1.5};
+  let old=create(seed,{deferPreparation:true});
+  for(let leg=0;leg<3;leg++){
+   old.age=12+seed*3;old.state='cruising';old.pose=old.cameraPose();
+   const from=leg%2?dest:source,to=leg%2?source:dest,sample=old.takeoffStart(),pose=R.mapRingTourPose(sample.from,from,to),prior=R.mapRingTourPose(sample.previous,from,to),velocity={};
+   for(const key of ['eye','offset','right','up','forward'])velocity[key]=pose[key].map((v,i)=>(v-prior[key][i])/sample.dt);
+   for(const key of ['perspective','orthoScale'])velocity[key]=(pose[key]-prior[key])/sample.dt;
+   const next=create(seed*71+leg,{bodyId:to.body.id,startPose:pose,openingVelocity:velocity,gentleDeparture:true,deferPreparation:true});
+   let previous=next.cameraPose(0);
+   for(let i=1;i<=600;i++){const p=next.cameraPose(i/60);assert.ok(angle(previous,p)<.15,'orientation jump seed '+seed+' leg '+leg+' time '+i/60);previous=p;}
+   old.dispose();old=next;
+  }
+  old.dispose();
  }
 });

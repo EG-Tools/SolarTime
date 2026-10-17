@@ -10,6 +10,11 @@
     try{root.localStorage.setItem(key,JSON.stringify(value));return true;}
     catch(_){return false;}
   }
+  function restoreCatalogSelection(enabled,known,current,legacy=current){
+    if(!Array.isArray(enabled))return [...current];
+    const selected=new Set(enabled),previous=new Set(Array.isArray(known)?known:legacy);
+    return current.filter(id=>selected.has(id)||!previous.has(id));
+  }
   function createHelpReminder(now=()=>Date.now()){
     const seenKey='solar-time.help-seen.v1',visitKey='solar-time.help-visit.v1',absence=14*24*60*60*1000;
     let seen=read(seenKey)===true,state={lastActive:0,pending:!seen},lastWrite=0;
@@ -31,5 +36,5 @@
       seen(){seen=true;write(seenKey,true);save({lastActive:now(),pending:false});}
     });
   }
-  modules.Preferences=Object.freeze({read,write,createHelpReminder});
+  modules.Preferences=Object.freeze({read,write,restoreCatalogSelection,createHelpReminder});
 })(window);

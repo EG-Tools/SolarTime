@@ -1,5 +1,123 @@
 [
   {
+    "version": "0.81",
+    "date": "2026.10.17",
+    "localized": {
+      "kor": [
+        "천왕성 고리 여행과 토성·천왕성 간 연속 여행이 가능해졌습니다.",
+        "해왕성의 위성 트리톤이 추가되었습니다.",
+        "남반구 별자리 7개가 추가되었습니다.",
+        "감상모드의 영역별 UI 표시와 카드·메뉴·행성 목록 조작을 개선했습니다.",
+        "지구 지역, 몽골어와 북극·남극 선택을 추가했습니다."
+      ],
+      "en": [
+        "Added Uranus ring tours and continuous travel between Saturn and Uranus.",
+        "Added Triton, a moon of Neptune.",
+        "Added seven southern constellations.",
+        "Improved area-specific UI visibility in viewing mode and controls for cards, menus and the planet list.",
+        "Added Earth regions, Mongolian language support and North and South Pole selection."
+      ],
+      "chn": [
+        "新增天王星环旅行，以及土星与天王星之间的连续旅行。",
+        "新增海王星的卫星海卫一。",
+        "新增七个南天星座。",
+        "改进观赏模式下各区域界面的显示，以及卡片、菜单和行星列表的操作。",
+        "新增地球地区、蒙古语支持及北极和南极选择。"
+      ],
+      "zht": [
+        "新增天王星環旅行，以及土星與天王星之間的連續旅行。",
+        "新增海王星的衛星海衛一。",
+        "新增七個南天星座。",
+        "改善觀賞模式下各區域介面的顯示，以及卡片、選單和行星清單的操作。",
+        "新增地球地區、蒙古語支援及北極和南極選擇。"
+      ],
+      "jpn": [
+        "天王星の環の旅と、土星・天王星間の連続した旅に対応しました。",
+        "海王星の衛星トリトンを追加しました。",
+        "南天の星座を7つ追加しました。",
+        "鑑賞モードのエリア別UI表示と、カード・メニュー・惑星一覧の操作を改善しました。",
+        "地球の地域、モンゴル語対応、北極・南極の選択を追加しました。"
+      ],
+      "mn": [
+        "Тэнгэрийн вангийн цагирагаар аялах болон Санчир, Тэнгэрийн вангийн хооронд тасралтгүй аялах боломж нэмэгдлээ.",
+        "Далайн вангийн дагуул Тритоныг нэмлээ.",
+        "Өмнөд тэнгэрийн долоон одны ордыг нэмлээ.",
+        "Ажиглах горимын хэсэг тус бүрийн интерфейсийн харагдац болон карт, цэс, гарагийн жагсаалтын удирдлагыг сайжрууллаа.",
+        "Дэлхийн бүсүүд, монгол хэл болон Хойд, Өмнөд туйлыг сонгох боломж нэмэгдлээ."
+      ],
+      "hi": [
+        "अरुण के वलयों की यात्रा और शनि व अरुण के बीच लगातार यात्रा जोड़ी गई।",
+        "वरुण के उपग्रह ट्राइटन को जोड़ा गया।",
+        "दक्षिणी आकाश के सात तारामंडल जोड़े गए।",
+        "दर्शन मोड में क्षेत्रवार इंटरफ़ेस दृश्यता और कार्ड, मेनू व ग्रह सूची के नियंत्रण बेहतर किए गए।",
+        "पृथ्वी के क्षेत्र, मंगोलियाई भाषा और उत्तरी व दक्षिणी ध्रुव का चयन जोड़ा गया।"
+      ],
+      "es": [
+        "Añadimos recorridos por los anillos de Urano y viajes continuos entre Saturno y Urano.",
+        "Añadimos Tritón, una luna de Neptuno.",
+        "Añadimos siete constelaciones australes.",
+        "Mejoramos la visibilidad de la interfaz por zonas en el modo de contemplación y los controles de tarjetas, menús y la lista de planetas.",
+        "Añadimos regiones terrestres, el idioma mongol y la selección de los polos norte y sur."
+      ],
+      "de": [
+        "Ringreisen zum Uranus und durchgehende Reisen zwischen Saturn und Uranus hinzugefügt.",
+        "Triton, einen Mond des Neptun, hinzugefügt.",
+        "Sieben südliche Sternbilder hinzugefügt.",
+        "Die bereichsweise Sichtbarkeit der Oberfläche im Betrachtungsmodus und die Bedienung von Karten, Menüs und Planetenliste verbessert.",
+        "Erdregionen, Mongolisch und die Auswahl von Nord- und Südpol hinzugefügt."
+      ],
+      "fr": [
+        "Ajout de voyages dans les anneaux d’Uranus et de trajets continus entre Saturne et Uranus.",
+        "Ajout de Triton, une lune de Neptune.",
+        "Ajout de sept constellations australes.",
+        "Amélioration de la visibilité de l’interface par zone en mode contemplation et des commandes des fiches, menus et de la liste des planètes.",
+        "Ajout de régions terrestres, du mongol et de la sélection des pôles Nord et Sud."
+      ],
+      "pt": [
+        "Adicionámos viagens pelos anéis de Urano e viagens contínuas entre Saturno e Urano.",
+        "Adicionámos Tritão, uma lua de Neptuno.",
+        "Adicionámos sete constelações austrais.",
+        "Melhorámos a visibilidade da interface por área no modo de contemplação e os controlos dos cartões, menus e da lista de planetas.",
+        "Adicionámos regiões terrestres, o idioma mongol e a seleção dos polos Norte e Sul."
+      ],
+      "it": [
+        "Aggiunti viaggi negli anelli di Urano e viaggi continui tra Saturno e Urano.",
+        "Aggiunto Tritone, una luna di Nettuno.",
+        "Aggiunte sette costellazioni australi.",
+        "Migliorate la visibilità dell’interfaccia per area nella modalità contemplazione e le interazioni con schede, menu ed elenco dei pianeti.",
+        "Aggiunti regioni terrestri, lingua mongola e selezione del Polo Nord e del Polo Sud."
+      ],
+      "id": [
+        "Menambahkan perjalanan ke cincin Uranus dan perjalanan berkelanjutan antara Saturnus dan Uranus.",
+        "Menambahkan Triton, satelit Neptunus.",
+        "Menambahkan tujuh rasi bintang selatan.",
+        "Meningkatkan tampilan antarmuka per area dalam mode pengamatan serta kontrol kartu, menu, dan daftar planet.",
+        "Menambahkan wilayah Bumi, bahasa Mongolia, serta pilihan Kutub Utara dan Kutub Selatan."
+      ],
+      "nl": [
+        "Ringreizen naar Uranus en doorlopende reizen tussen Saturnus en Uranus toegevoegd.",
+        "Triton, een maan van Neptunus, toegevoegd.",
+        "Zeven zuidelijke sterrenbeelden toegevoegd.",
+        "De zichtbaarheid van de interface per gebied in de kijkmodus en de bediening van kaarten, menu’s en de planetenlijst verbeterd.",
+        "Aardregio’s, Mongools en de keuze voor de Noord- en Zuidpool toegevoegd."
+      ],
+      "ru": [
+        "Добавлены путешествия по кольцам Урана и непрерывные перелёты между Сатурном и Ураном.",
+        "Добавлен Тритон, спутник Нептуна.",
+        "Добавлены семь южных созвездий.",
+        "Улучшены показ интерфейса по областям в режиме созерцания и управление карточками, меню и списком планет.",
+        "Добавлены регионы Земли, монгольский язык и выбор Северного и Южного полюсов."
+      ],
+      "uk": [
+        "Додано подорожі кільцями Урана та безперервні перельоти між Сатурном і Ураном.",
+        "Додано Тритон, супутник Нептуна.",
+        "Додано сім південних сузір’їв.",
+        "Поліпшено показ інтерфейсу за ділянками в режимі споглядання та керування картками, меню й списком планет.",
+        "Додано регіони Землі, монгольську мову та вибір Північного й Південного полюсів."
+      ]
+    }
+  },
+  {
     "version": "0.80",
     "date": "2026.10.15",
     "localized": {
@@ -92,6 +210,12 @@
         "Додано кнопки скидання, що повертають вирівнювання планет і затемнення до реального часу.",
         "Упорядковано відступи картки керування часом і окремі переклади на телефонах та планшетах.",
         "Оптимізовано сонячне сяйво, хмари, частинки та початкову підготовку GPU."
+      ],
+      "mn": [
+        "Гараг болон одны ордын картуудын товчлуурын дараалал, бичвэрийн хэмжээ, зайг нэг мөр болголоо.",
+        "Гарагуудын жагсаал болон хиртэлтийг бодит цагт буцаах дахин тохируулах товч нэмлээ.",
+        "Утас, таблет дээрх цаг удирдах картын зай болон зарим орчуулгыг сайжрууллаа.",
+        "Нарны гэрэлтэлт, үүл, бөөмс болон GPU-ийн анхны бэлтгэлийг оновчлов."
       ]
     }
   },
@@ -188,6 +312,12 @@
         "Частинки вступу й варп-переходу тепер зникають плавніше.",
         "Поліпшено тіні затемнень від Місяця та Європи.",
         "Додано сповіщення про оновлення, поліпшено обробку медіавідповідей і перевірку аудіо."
+      ],
+      "mn": [
+        "Жижиг дэлгэц дээр цагийн дээд талын бичвэр алга болдог асуудлыг заслаа.",
+        "Нээлт болон варпын бөөмсийг илүү зөөлөн бүдгэрч алга болдог болголоо.",
+        "Сар болон Европагаас үүсэх хиртэлтийн сүүдрийг сайжрууллаа.",
+        "Шинэчлэлтийн мэдэгдэл нэмж, медиа хариу боловсруулалт болон дууны шалгалтыг сайжрууллаа."
       ]
     }
   },
@@ -284,6 +414,12 @@
         "Зроблено плавнішим рух коліщатком після вибору планети.",
         "Вибрана країна зберігається в початковому вигляді, а її скидання не переміщує камеру.",
         "Зменшено навантаження під час завантаження текстур і підготовки подорожі до Сатурна."
+      ],
+      "mn": [
+        "Гарагийн бөөмийн хэмжээ, гэрэлтүүлэг, халхлалт болон текстурын шилжилтийг сайжрууллаа.",
+        "Гараг сонгосны дараах хулганын дугуйн хөдөлгөөнийг зөөлрүүллээ.",
+        "Үндсэн харагдацад сонгосон улсыг хадгалж, дахин тохируулахад камерыг хэвээр үлдээлээ.",
+        "Текстур ачаалалт болон Санчир руу аялах бэлтгэлийн ачааллыг буурууллаа."
       ]
     }
   },
@@ -410,6 +546,14 @@
         "Deep Space Journey від Maryan Dembitskyi додано до фонової музики.",
         "Оптимізовано відтворення й завантаження тла, сонячного сяйва, сузір’їв і текстур.",
         "Додано інструкції, ілюстрований путівник і зрозумілішу довідку про клавіші."
+      ],
+      "mn": [
+        "22 одны орд, оддын дүрс болон одонд холбох шугам ба дагах горим нэмлээ.",
+        "Бөөм, халхлалт, текстурын шилжилтийг зөөлрүүлж, дагуул болон Санчирын цагаригийн сүүдрийг сайжрууллаа.",
+        "Одны ордын удирдлага, эргэлтийн цэс, картын байрлал болон орчуулгыг сайжрууллаа.",
+        "Maryan Dembitskyi-ийн Deep Space Journey бүтээлийг дэвсгэр хөгжимд нэмлээ.",
+        "Дэвсгэр, нарны гэрэлтэлт, одны орд болон текстурын дүрслэл ба ачааллын зардлыг буурууллаа.",
+        "Одны ордын заавар, зурагт гарын авлага болон илүү ойлгомжтой товчлолын тусламж нэмлээ."
       ]
     }
   },
@@ -506,6 +650,12 @@
         "Підвищено точність вибору країн, а також поліпшено рух і масштабування камери.",
         "Додано 17 країн: Білорусь, Болівія, Камерун, Кот-д’Івуар, Куба, Сальвадор, Гондурас, Казахстан, Кенія, Киргизстан, Ліхтенштейн, Люксембург, Нікарагуа, Пакистан, Парагвай, Сенегал і Швейцарія.",
         "Solar Time тепер підтримує 15 мов і 67 країн."
+      ],
+      "mn": [
+        "Дэлхийн улсын хилийг сонгон тухайн бүс нутаг болон орон нутгийн цагийг харна.",
+        "Улс сонгох нарийвчлал, камерын хөдөлгөөн болон томруулалтыг сайжрууллаа.",
+        "Беларусь, Боливи, Камерун, Кот-д’Ивуар, Куба, Эль-Сальвадор, Гондурас, Казахстан, Кени, Киргизстан, Лихтенштейн, Люксембург, Никарагуа, Пакистан, Парагвай, Сенегал, Швейцар гэсэн 17 улс нэмлээ.",
+        "Solar Time одоо 15 хэл болон 67 улсыг дэмжинэ."
       ]
     }
   },
@@ -617,6 +767,13 @@
         "Поява та зникнення частинок під час наближення до Сатурна стали природнішими.",
         "Виправлено різкі обриви та раптову появу частинок під час переходів.",
         "Поліпшено початкове завантаження та загальну продуктивність."
+      ],
+      "mn": [
+        "Нээлт, варп болон Санчир руу аялах үеийн камерын шилжилтийг сайжрууллаа.",
+        "Алсын Санчирын аяллын үед гараг болон тойрог зам зөрдөг асуудлыг заслаа.",
+        "Санчирт орох бөөмсийг илүү байгалийн байдлаар гарч, алга болдог болголоо.",
+        "Шилжилтийн үед бөөмс гэнэт тасрах эсвэл гарч ирэх асуудлыг заслаа.",
+        "Анхны ачаалалт болон нийт гүйцэтгэлийг сайжрууллаа."
       ]
     }
   },
@@ -728,6 +885,13 @@
         "Виправлено зміщення розмірів і орбіт планет під час початку подорожі до Сатурна з великої відстані та повернення.",
         "Поліпшено частинки подорожі до Сатурна й відчуття глибини фонових зірок.",
         "Додано російську й українську мови та регіони, а також окремі кнопки скидання для повзунків налаштувань."
+      ],
+      "mn": [
+        "Үндсэн харагдац болон алсын гарагуудын дүрслэлийг сайжрууллаа.",
+        "Нээлт, варп болон Санчирын цагаригийн аяллын камерын хөдөлгөөнийг зөөлрүүллээ.",
+        "Алсаас Санчирын аяллыг эхлүүлэх эсвэл буцах үед гарагийн хэмжээ, тойрог зам шилждэг асуудлыг заслаа.",
+        "Санчирын аяллын бөөмс болон дэвсгэр оддын орон зайн мэдрэмжийг сайжрууллаа.",
+        "Орос, Украин хэл ба бүсийн дэмжлэг, тохиргооны гулсуур бүрийн дахин тохируулах удирдлага нэмлээ."
       ]
     }
   },
@@ -809,6 +973,11 @@
         "Підвищено надійність будильника, запланованого вимкнення та автоматичного оновлення.",
         "Поліпшено вступні й дорожні послідовності, а також видимість кілець біля країв екрана.",
         "Оптимізовано продуктивність і розширено автоматичні перевірки в різних браузерах."
+      ],
+      "mn": [
+        "Сэрүүлэг, хуваарьт унтраалт болон автомат шинэчлэлтийн найдвартай ажиллагааг сайжрууллаа.",
+        "Нээлт ба аяллын үзэгдэл, мөн дэлгэцийн зах дахь цагаригийн харагдацыг сайжрууллаа.",
+        "Гүйцэтгэлийг оновчилж, хөтөч хоорондын автомат шалгалтыг өргөжүүллээ."
       ]
     }
   },
@@ -935,87 +1104,14 @@
         "Використовуйте кнопку НЛО, щоб вибрати вступну послідовність.",
         "Натисніть Space, щоб призупинити або продовжити кінематографічну камеру.",
         "Підвищено продуктивність завдяки різним оптимізаціям."
-      ]
-    }
-  },
-  {
-    "version": "0.71",
-    "date": "2026.10.02",
-    "localized": {
-      "kor": [
-        "일반·실제 보기의 크기·궤도 간격과 초기화 기준을 정리했습니다.",
-        "기본 시점과 카메라 전환·저장 동작을 개선했습니다.",
-        "토성 고리에 새 텍스처와 거리별 LOD를 적용했습니다."
       ],
-      "en": [
-        "Refined sizes, orbit spacing, and reset defaults in normal and true-scale views.",
-        "Improved the default view, camera transitions, and saved camera settings.",
-        "Added a new Saturn ring texture with distance-based LOD."
-      ],
-      "chn": [
-        "调整普通视图和真实比例视图的大小、轨道间距及重置默认值。",
-        "改进默认视角、相机切换和相机设置保存。",
-        "为土星环添加新纹理和基于距离的细节层级。"
-      ],
-      "zht": [
-        "調整一般視圖和真實比例視圖的大小、軌道間距及重設預設值。",
-        "改善預設視角、相機切換和相機設定儲存。",
-        "為土星環加入新紋理和依距離調整的細節層級。"
-      ],
-      "jpn": [
-        "通常表示と実寸比率表示のサイズ・軌道間隔・リセット時の初期値を整理しました。",
-        "基本視点、カメラ切り替え、カメラ設定の保存を改善しました。",
-        "土星の環に新しいテクスチャと距離に応じたLODを適用しました。"
-      ],
-      "hi": [
-        "सामान्य और वास्तविक पैमाने वाले दृश्यों में आकार, कक्षाओं की दूरी और रीसेट के डिफ़ॉल्ट मान बेहतर किए।",
-        "डिफ़ॉल्ट दृश्य, कैमरा बदलाव और कैमरा सेटिंग सहेजने में सुधार किया।",
-        "शनि के छल्लों में नई टेक्सचर और दूरी के अनुसार विवरण स्तर जोड़ा।"
-      ],
-      "es": [
-        "Ajustamos los tamaños, la separación orbital y los valores de restablecimiento en las vistas normal y a escala real.",
-        "Mejoramos la vista predeterminada, las transiciones de cámara y el guardado de sus ajustes.",
-        "Añadimos una nueva textura a los anillos de Saturno con nivel de detalle según la distancia."
-      ],
-      "de": [
-        "Größen, Bahnabstände und Rücksetzwerte in der normalen und maßstabsgetreuen Ansicht überarbeitet.",
-        "Standardansicht, Kameraübergänge und das Speichern der Kameraeinstellungen verbessert.",
-        "Neue Textur für Saturns Ringe mit entfernungsabhängiger Detailstufe hinzugefügt."
-      ],
-      "fr": [
-        "Ajustement des tailles, de l’espacement orbital et des valeurs de réinitialisation en vues normale et à l’échelle réelle.",
-        "Amélioration de la vue par défaut, des transitions de caméra et de l’enregistrement de ses réglages.",
-        "Ajout d’une nouvelle texture aux anneaux de Saturne avec un niveau de détail adapté à la distance."
-      ],
-      "pt": [
-        "Ajustamos os tamanhos, o espaçamento orbital e os padrões de redefinição nas visualizações normal e em escala real.",
-        "Melhoramos a vista padrão, as transições de câmera e o salvamento de suas configurações.",
-        "Adicionamos uma nova textura aos anéis de Saturno com nível de detalhe conforme a distância."
-      ],
-      "it": [
-        "Rivisti dimensioni, distanza tra le orbite e valori di ripristino nelle viste normale e in scala reale.",
-        "Migliorati la vista predefinita, le transizioni della camera e il salvataggio delle sue impostazioni.",
-        "Aggiunta una nuova texture agli anelli di Saturno con livello di dettaglio in base alla distanza."
-      ],
-      "id": [
-        "Menyempurnakan ukuran, jarak orbit, dan nilai bawaan saat reset dalam tampilan normal dan skala sebenarnya.",
-        "Meningkatkan tampilan awal, transisi kamera, dan penyimpanan pengaturan kamera.",
-        "Menambahkan tekstur baru pada cincin Saturnus dengan tingkat detail berdasarkan jarak."
-      ],
-      "nl": [
-        "Groottes, baanafstanden en herstelwaarden in de normale weergave en op werkelijke schaal verfijnd.",
-        "De standaardweergave, cameraovergangen en het opslaan van camera-instellingen verbeterd.",
-        "Een nieuwe textuur voor de ringen van Saturnus toegevoegd met afstandsafhankelijk detailniveau."
-      ],
-      "ru": [
-        "Уточнены размеры, расстояния между орбитами и параметры сброса в обычном и реальном масштабе.",
-        "Улучшены вид по умолчанию, переходы камеры и сохранённые настройки камеры.",
-        "Добавлена новая текстура колец Сатурна с LOD по расстоянию."
-      ],
-      "uk": [
-        "Уточнено розміри, відстані між орбітами та параметри скидання у звичайному й реальному масштабі.",
-        "Поліпшено вигляд за замовчуванням, переходи камери та збережені налаштування камери.",
-        "Додано нову текстуру кілець Сатурна з LOD за відстанню."
+      "mn": [
+        "Нээлтийн үзэгдлийг сайжрууллаа.",
+        "Одоо хүссэн үедээ Санчирын цагариг дундуур аялж болно.",
+        "Аяллыг эхлүүлэхийн тулд T дарна уу.",
+        "Нээлтийн үзэгдлийг сонгохын тулд Нисдэг таваг товчийг ашиглана уу.",
+        "Кино камерын хөдөлгөөнийг түр зогсоох эсвэл үргэлжлүүлэхийн тулд Space дарна уу.",
+        "Олон төрлийн оновчлолоор гүйцэтгэлийг сайжрууллаа."
       ]
     }
   }

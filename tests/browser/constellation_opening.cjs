@@ -16,7 +16,7 @@ module.exports=async({evaluate,send,session,until})=>{
   await evaluate('SolarTime.renderer.stopAutoRotate()');
   const before=await evaluate('({camera:SolarTime.renderer.cameraSnapshot(),axes:SolarTime.renderer.sky.axesNow})');
   await evaluate('window.__guideFrames=[];document.activeElement?.blur()');
-  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'t',code:'KeyT'},session);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'t',code:'KeyT'},session);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'w',code:'KeyW'},session);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'w',code:'KeyW'},session);
   await until('window.__guideFrames.some(r=>r.replay)',10000);
   await until('!SolarTime.getState().opening&&!SolarTime.renderer.cameraTween',45000);
   const warp=await evaluate('window.__guideFrames'),during=warp.filter(r=>r.replay);

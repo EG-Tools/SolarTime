@@ -55,6 +55,7 @@
   }
   function protectTexture(renderer,name){
     const desired=renderer.desired;
+    if(desired)for(const job of desired.values())if(job.requiredTextures?.includes(name))return true;
     const texture=renderer.textures?.get(name)?.texture;
     if(texture)for(const record of renderer.textures.values())if(record.revealFallback?.texture===texture)return true;
     if(name==='saturn-ring')return !!desired?.has('saturn');
@@ -70,7 +71,7 @@
   // lower-priority visible bodies yield detail before the tracked body does.
   function planTextures(jobs,assets,maxWidth=4096,reserveBytes=0,mipmapped=false){
     const entries=[];
-    const add=(name,width,priority)=>{if(assets?.[name])entries.push({name,width:Math.max(128,Math.min(maxWidth,width)),priority});};
+    const add=(name,width,priority)=>{if(!assets?.[name])return;width=Math.max(128,Math.min(maxWidth,width));const existing=entries.find(entry=>entry.name===name);if(existing){existing.width=Math.max(existing.width,width);existing.priority=Math.max(existing.priority,priority);}else entries.push({name,width,priority});};
     for(const job of jobs){
       if(job.id==='venus'){
         if(job.cloudAmount<1)add('venus-surface',job.textureWidth,job.priority||0);
@@ -78,6 +79,7 @@
         if(job.cloudAmount!==0)add('venus',job.cloudTextureWidth||job.textureWidth,job.priority||0);
       }else add(job.id,job.textureWidth,job.priority||0);
       if(job.id==='saturn')add('saturn-ring',job.textureWidth,job.priority||0);
+      for(const name of job.requiredTextures||[])if(name!=='saturn-ring'||job.id!=='saturn')add(name,job.textureWidth,job.priority||0);
       if(job.id==='earth'&&job.cloudAmount!==0)add('clouds',Math.min(4096,job.cloudTextureWidth||job.textureWidth),job.priority||0);
       if(job.id==='earth'&&job.cloudAmount!==0&&job.cloudDetail!==0)add('clouds-alt',Math.min(2048,job.cloudTextureWidth||job.textureWidth),job.priority||0);
       if(job.id==='earth'&&job.nightLights)add('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth),job.priority||0);

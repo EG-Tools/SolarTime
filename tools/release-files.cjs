@@ -8,7 +8,7 @@ function localReference(value){
  return clean.replaceAll('\\','/');
 }
 function releaseFiles(root){
- const files=new Set(['version.json','ads.txt','robots.txt','sitemap.xml',...pages,'src/release-notes.js']);
+ const files=new Set(['version.json','ads.txt','robots.txt','sitemap.xml',...pages,'src/release-notes.js','assets/effects/uranus-debris-atlas-v1.webp']);
  for(const page of pages){
   const html=fs.readFileSync(path.join(root,page),'utf8');
   for(const match of html.matchAll(/\b(?:src|href)="([^"]+)"/g)){

@@ -14,18 +14,17 @@ function fixture(w,h,sun=1,pluto=true){
 }
 // Decode the fixed endpoints with the same two independent shader weights.
 function gpuPoint(r,model,i,body){
- const m=r.gpuOrbitCamera().solarMorph,ratio=model[i*4+3],out={},inclined=body?.id==='pluto';
- const flatten=inclined?1:Math.hypot(model[i*4],model[i*4+1],model[i*4+2])/Math.max(1e-12,Math.hypot(model[i*4],model[i*4+1]));
+ const m=r.gpuOrbitCamera().solarMorph,ratio=model[i*4+3],out={};
  for(const [j,k] of ['x','y','z'].entries()){
   const offset=1+r.solarOrbitOffset()/Math.hypot(model[i*4],model[i*4+1],model[i*4+2]);
-  const ordinary=k==='z'&&!inclined?0:flatten;
+  const ordinary=k==='z'?0:Math.hypot(model[i*4],model[i*4+1],model[i*4+2])/Math.max(1e-12,Math.hypot(model[i*4],model[i*4+1]));
   out[k]=model[i*4+j]*(ordinary*offset*m[0]+ratio*m[1]);
   out['depth'+k.toUpperCase()]=model[i*4+j]*(ordinary*offset*m[2]+ratio*m[3]);
  }
  return out;
 }
 
-test('ordinary spacing includes the Sun-to-Mercury interval, centered circles and only Pluto inclined',()=>{
+test('ordinary spacing keeps all solar orbits coplanar with centered circles',()=>{
  for(const gap of [50,86,100,173,300,400]){
   const {r}=fixture(1280,800);r.actualScaleMix=0;r.options.overviewOrbitGap=gap;
   let previous=0;
@@ -34,9 +33,11 @@ test('ordinary spacing includes the Sun-to-Mercury interval, centered circles an
    if(index)close(expected-previous,gap*1.5);previous=expected;
    for(const point of path.points){
     const world=r.displaySolarPoint(point,path.body);close(Math.hypot(world.x,world.y,world.z),expected);
-    if(path.body.id!=='pluto')close(world.z,0);maxZ=Math.max(maxZ,Math.abs(world.z));
+    const radialScale=expected/Math.hypot(point.x,point.y);
+    for(const key of ['x','y'])close(world[key],point[key]*radialScale);close(world.z,0);
+    maxZ=Math.max(maxZ,Math.abs(world.z));
    }
-   if(path.body.id==='pluto')assert.ok(maxZ>expected*.1,'Pluto keeps its inclined but centered circle');
+   close(maxZ,0);
    for(const days of [0,13,66,180,300]){
     const physical=A.positionAt(path.body,ms+days*A.DAY),world=r.displayPhysicalPoint(physical,{},path.body);
     close(Math.hypot(world.x,world.y,world.z),expected);
@@ -89,7 +90,7 @@ test('global solar spacing never changes local Moon or Europa radii',()=>{
  }
 });
 
-test('ordinary satellite paths and bodies are circles centered on their parent',()=>{
+test('ordinary satellite paths and bodies retain inclined circles centered on their parent',()=>{
  const {r}=fixture(1280,800);r.actualScaleMix=0;r.fitScale=r.overviewFitScale;r.scale=r.fitScale*r.camera.zoom*r.camera.dolly;
  r.satelliteOrbitCache=new Map();const origin={x:120,y:-45,z:30,depthX:140,depthY:-35,depthZ:20};
  for(const satellite of A.SATELLITES){
@@ -100,7 +101,8 @@ test('ordinary satellite paths and bodies are circles centered on their parent',
   for(const point of [...points,A.satelliteAt(satellite,ms,1)]){
    const world=r.displaySatellitePoint(point,layout,origin);
    close(Math.hypot(world.x-origin.x,world.y-origin.y,world.z-origin.z),layout.orbitRadius);
-   close(world.z,origin.z);close(world.depthZ,origin.depthZ);
+   const direction=point.z/Math.hypot(point.x,point.y,point.z);
+   close(world.z-origin.z,direction*layout.orbitRadius);close(world.depthZ-origin.depthZ,direction*layout.orbitDepthRadius);
   }
  }
 });
@@ -351,7 +353,7 @@ test('the remapped minimum actual spacing keeps Mercury outside the Sun at every
 });
 
 test('ordinary 100% size ratios stay fixed across zoom, travel, tracking and viewport sizes',()=>{
- const ratios={sun:1,mercury:.25,venus:.25,earth:.25,mars:.25,jupiter:.5,saturn:.5,uranus:.5,neptune:.5,moon:.0625,pluto:.0625,europa:.125};
+ const ratios={sun:1,mercury:.25,venus:.25,earth:.25,mars:.25,jupiter:.5,saturn:.5,uranus:.5,neptune:.5,moon:.0625,pluto:.0625,triton:.0625,europa:.125};
  for(const [w,h] of [[1280,800],[390,844]])for(const zoom of [.1,1,4,64,2048])for(const dolly of [.002,1,12])for(const focus of [null,'earth','moon']){
   const {r}=fixture(w,h);r.actualScaleMix=0;Object.assign(r.camera,{zoom,dolly,focus});
   const sun=r.bodyRadiusAtZoom(A.SUN);

@@ -14,8 +14,8 @@ module.exports=async({evaluate,send,session,until,mouse})=>{
  assert.equal(await evaluate('SolarTime.getState().opening'),false);
  await until('!SolarTime.renderer.cameraTween');await assertHome();
  assert.equal(await evaluate('SolarTime.renderer.solarSceneHidden()'),false);
- // T remains a real warp even with boot opening disabled; saved preference stays intact.
- await evaluate('document.querySelector("[data-opening=none]").click()');await enter();await key('t','KeyT');
+ // W remains a real warp even with boot opening disabled; saved preference stays intact.
+ await evaluate('document.querySelector("[data-opening=none]").click()');await enter();await key('w','KeyW');
  await until('!!SolarTime.renderer.cameraTween?.replay');
  assert.equal(await evaluate('SolarTime.renderer.skySolarMix'),1);
  await until('!SolarTime.getState().opening&&!SolarTime.renderer.cameraTween',45000);

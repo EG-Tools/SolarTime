@@ -4,7 +4,7 @@
   const $=id=>document.getElementById(id), A=window.SolarAstro,Modules=window.SolarModules;
   const Localization=Modules.Localization,LanguageData=Modules.LanguageData,Preferences=Modules.Preferences,UI=Modules.UI;
   const STORAGE_KEY='eg.solar-time.v0.01';
-  const COUNTRY_BORDERS_SOURCE=new URL('../assets/data/country-borders.js?v=efbe30978254',document.currentScript?.src||document.baseURI).href;
+  const COUNTRY_BORDERS_SOURCE=new URL('../assets/data/country-borders.js?v=40c931d6cbe1',document.currentScript?.src||document.baseURI).href;
   const REGION_CATALOG=Object.freeze([
     Object.freeze({"id":"ao","code":"AO","name":"Angola","locale":"pt-AO","html":"pt-AO","copy":"pt","label":"ANGOLA","timeZone":"Africa/Luanda","latitude":-11.2027,"longitude":17.8739,"region":"Angola","city":"centro geográfico"}),
     Object.freeze({"id":"ar","code":"AR","name":"Argentina","locale":"es-AR","html":"es-AR","copy":"es","label":"ARGENTINA","timeZone":"America/Argentina/Buenos_Aires","latitude":-38.4161,"longitude":-63.6167,"region":"Argentina","city":"centro geográfico"}),
@@ -48,6 +48,7 @@
     Object.freeze({"id":"my","code":"MY","name":"Malaysia","locale":"en-MY","html":"en-MY","copy":"en","label":"MALAYSIA","timeZone":"Asia/Kuala_Lumpur","latitude":3.1666666666666665,"longitude":101.7,"region":"Malaysia","city":"Kuala Lumpur"}),
     Object.freeze({"id":"mt","code":"MT","name":"Malta","locale":"en-MT","html":"en-MT","copy":"en","label":"MALTA","timeZone":"Europe/Malta","latitude":35.9,"longitude":14.516666666666667,"region":"Malta","city":"Valletta"}),
     Object.freeze({"id":"mx","code":"MX","name":"México","locale":"es-MX","html":"es-MX","copy":"es","label":"MEXICO","timeZone":"America/Mexico_City","latitude":23.6345,"longitude":-102.5528,"region":"México","city":"centro de México"}),
+    Object.freeze({"id":"mn","code":"MN","name":"Монгол Улс","locale":"mn-MN","html":"mn","copy":"mn","label":"MONGOLIA","timeZone":"Asia/Ulaanbaatar","latitude":46.8625,"longitude":103.8467,"region":"Монгол Улс","city":"газарзүйн төв"}),
     Object.freeze({"id":"mz","code":"MZ","name":"Moçambique","locale":"pt-MZ","html":"pt-MZ","copy":"pt","label":"MOZAMBIQUE","timeZone":"Africa/Maputo","latitude":-18.6657,"longitude":35.5296,"region":"Moçambique","city":"centro geográfico"}),
     Object.freeze({"id":"nl","code":"NL","name":"Nederland","locale":"nl-NL","html":"nl-NL","copy":"nl","label":"NETHERLANDS","timeZone":"Europe/Amsterdam","latitude":52.36666666666667,"longitude":4.9,"region":"Nederland","city":"Amsterdam"}),
     Object.freeze({"id":"nz","code":"NZ","name":"New Zealand","locale":"en-NZ","html":"en-NZ","copy":"en","label":"NEW ZEALAND","timeZone":"Pacific/Auckland","latitude":-40.9006,"longitude":174.886,"region":"New Zealand","city":"geographic center"}),
@@ -74,9 +75,16 @@
     Object.freeze({"id":"uy","code":"UY","name":"Uruguay","locale":"es-UY","html":"es-UY","copy":"es","label":"URUGUAY","timeZone":"America/Montevideo","latitude":-32.5228,"longitude":-55.7658,"region":"Uruguay","city":"centro geográfico"}),
     Object.freeze({"id":"ve","code":"VE","name":"Venezuela","locale":"es-VE","html":"es-VE","copy":"es","label":"VENEZUELA","timeZone":"America/Caracas","latitude":6.4238,"longitude":-66.5897,"region":"Venezuela","city":"centro geográfico"})
   ]);
+  // Earth navigation includes places that are useful observation targets but
+  // are not interface languages. Keep them out of the language picker.
+  const EARTH_REGION_EXTRAS=Object.freeze([
+    Object.freeze({id:'north-pole',code:null,label:'NORTH POLE',nameKey:'northPole',timeZone:'UTC',latitude:89.5,longitude:0,polarCapDegrees:10,region:'North Pole',city:'North Pole'}),
+    Object.freeze({id:'south-pole',code:null,label:'SOUTH POLE',nameKey:'southPole',timeZone:'UTC',latitude:-89.5,longitude:0,polarCapDegrees:20,region:'South Pole',city:'South Pole'})
+  ]);
+  const EARTH_REGION_CATALOG=Object.freeze([...REGION_CATALOG,...EARTH_REGION_EXTRAS]);
   const LANG_ORDER=Object.freeze(REGION_CATALOG.map(region=>region.id));
   const LANG_META=Object.freeze(Object.fromEntries(REGION_CATALOG.map(({id,code,name,locale,html,copy})=>[id,Object.freeze({code,name,locale,html,copy})])));
-  const REGIONS=Object.freeze(Object.fromEntries(REGION_CATALOG.map(({id,code,label,timeZone,latitude,longitude,region,city})=>[id,Object.freeze({code,label,timeZone,latitude,longitude,region,city})])));
+  const REGIONS=Object.freeze(Object.fromEntries(EARTH_REGION_CATALOG.map(({id,code,label,nameKey,timeZone,latitude,longitude,region,city})=>[id,Object.freeze({code,label,nameKey,timeZone,latitude,longitude,region,city})])));
   function populateLanguageMenu(){
     const list=document.getElementById('language-scroll');if(!list)return;
     const fragment=document.createDocumentFragment();
@@ -139,7 +147,7 @@
     mercury:{mean:167,min:-180,max:430,gravity:3.7},venus:{mean:464,min:460,max:470,gravity:8.9},
     earth:{mean:15,min:-89,max:57,gravity:9.8},moon:{mean:-20,min:-173,max:127,gravity:1.6},
     mars:{mean:-65,min:-153,max:20,gravity:3.7},jupiter:{mean:-110,min:-145,max:-110,gravity:23.1},
-    europa:{mean:-160,min:-223,max:-133,gravity:1.31},saturn:{mean:-140,min:-178,max:-140,gravity:9},
+    triton:{mean:-235,gravity:.779},europa:{mean:-160,min:-223,max:-133,gravity:1.31},saturn:{mean:-140,min:-178,max:-140,gravity:9},
     uranus:{mean:-195,min:-224,max:-195,gravity:8.7},neptune:{mean:-200,min:-218,max:-200,gravity:11},
     pluto:{mean:-225,min:-240,max:-226,gravity:.7}
   });
@@ -153,7 +161,7 @@
     for(const image of document.querySelectorAll('img[data-life-user-watermark]'))image.src=url;
   }
   hydrateLifeUserWatermarks();
-  let toastTimer,awakeTimer;
+  let toastTimer,pointerAwakeTimer;
   function toast(message) { clearTimeout(toastTimer);$('toast').textContent=message;showFading($('toast'));toastTimer=setTimeout(()=>hideFading($('toast')),3400); }
   function fatal(error) { $('loading').hidden=true;$('fatal-error').hidden=false;$('fatal-message').textContent=error instanceof Error?error.message:String(error);console.error(error); }
   async function init() {
@@ -181,6 +189,7 @@
       const t=(key,values)=>interpolate(COPY[copyLanguage()]?.[key]??LanguageData.fallback.copy[key]??key,values);
       let regionDisplayLocale='',regionDisplayNames=null;
       const localizedRegionName=(region=displayRegion())=>{
+        if(region.nameKey)return t(region.nameKey);
         const locale=copyMeta().locale||'en-US',code=region.code==='UK'?'GB':region.code==='HI'?'IN':region.code;
         if(copyLanguage()==='kor'&&code==='KR')return '한국';
         if(locale!==regionDisplayLocale){regionDisplayLocale=locale;try{regionDisplayNames=new Intl.DisplayNames([locale],{type:'region'});}catch{regionDisplayNames=null;}}
@@ -197,7 +206,7 @@
       let regionRoute=null;
       function countryRoute(){
         if(regionRoute)return regionRoute;
-        const first=REGION_CATALOG.find(region=>region.id==='ca')||REGION_CATALOG[0],remaining=new Set(REGION_CATALOG.filter(region=>region!==first)),route=[first];let current=first;
+        const first=EARTH_REGION_CATALOG.find(region=>region.id==='ca')||EARTH_REGION_CATALOG[0],remaining=new Set(EARTH_REGION_CATALOG.filter(region=>region!==first)),route=[first];let current=first;
         while(remaining.size){let nearest=null,distance=Infinity;for(const candidate of remaining){const value=regionDistance(current,candidate);if(value<distance){nearest=candidate;distance=value;}}route.push(nearest);remaining.delete(nearest);current=nearest;}
         return regionRoute=Object.freeze(route);
       }
@@ -272,13 +281,14 @@
       let clockFont='georgia',savedRotationMode=FACTORY_AUTO_ROTATE,fixedRotationVisual=FACTORY_AUTO_ROTATE===-1?'right':'left',overviewCamera=renderer.defaultCameraSnapshot(),keyboardTrackingReturn=null,restoredUserCamera=false;
       renderer.options.twinkle=true;
       renderer.restoreSkyFeatureDisplay(Object.keys(SKY_FEATURE_CATALOG),false);
-      const validKeys={actualScale:'actual-scale',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',earthNightLights:'earth-night-lights',pluto:'show-pluto',moon:'show-moon',comets:'show-comets'};
+      const validKeys={actualScale:'actual-scale',labels:'show-labels',avoidLabels:'avoid-labels',activity:'show-activity',earthNightLights:'earth-night-lights',pluto:'show-pluto',comets:'show-comets'};
       try {
         const saved=Preferences.read(STORAGE_KEY);
         if(saved&&typeof saved==='object') {
-          renderer.restoreSkyFeatureDisplay(saved.skyFeatureDisplay??Object.keys(SKY_FEATURE_CATALOG),saved.skyFeatureDisplayMaster===true);
+          renderer.restoreSkyFeatureDisplay(Preferences.restoreCatalogSelection(saved.skyFeatureDisplay,saved.skyFeatureCatalog,Object.keys(SKY_FEATURE_CATALOG),Object.keys(SKY_FEATURE_CATALOG).slice(0,22)),saved.skyFeatureDisplayMaster===true);
           renderer.setSkySolarDisplay(saved.skySolarDisplay===true);
           for(const key of Object.keys(validKeys))if(typeof saved[key]==='boolean')renderer.options[key]=saved[key];
+          for(const satellite of A.SATELLITES)if(typeof saved.satelliteVisibility?.[satellite.id]==='boolean')renderer.options[satellite.id]=saved.satelliteVisibility[satellite.id];
           if(Number.isFinite(saved.earthCloudAmount))renderer.options.earthCloudAmount=A.clamp(saved.earthCloudAmount,0,1);
           else if(Number.isFinite(saved.earthCloudOpacity))renderer.options.earthCloudAmount=A.clamp(saved.earthCloudOpacity,0,1);
           if(Number.isFinite(saved.venusCloudAmount))renderer.options.venusCloudAmount=A.clamp(saved.venusCloudAmount,0,1);
@@ -334,13 +344,13 @@
       cleanups.push(()=>{clearInterval(languageRetry);window.removeEventListener('online',retryLanguage);});
       const openingModeKey='solar-time.opening-mode.v1';
       let openingMode=Preferences.read(openingModeKey,'default');
-      if(!['default','saturn','none'].includes(openingMode))openingMode='default';
+      if(!['default','none'].includes(openingMode)&&!renderer.hasRingTour(openingMode))openingMode='default';
       let openingRunMode=openingMode;
-      let resumeTravel=openingRunMode==='saturn';
+      let resumeTravel=renderer.hasRingTour(openingRunMode);
       renderer.setOption('actualScale',renderer.options.actualScale,false);
       if(!restoredUserCamera)renderer.restoreCamera(renderer.defaultCameraSnapshot(clock.value(performance.now(),Date.now())));
       let openingCameraTarget={...renderer.cameraSnapshot()};
-      if(resumeTravel)renderer.prepareCloseup('saturn');
+      if(resumeTravel)renderer.prepareCloseup(openingRunMode);
       if(openingCameraTarget.focus===null)overviewCamera={...openingCameraTarget};
       renderer.restoreCamera(openingRunMode==='none'?openingCameraTarget:renderer.openingCameraSnapshot(openingCameraTarget));
       const loading=$('loading'),OPENING_UNLOCK_BEFORE_END=1000,SATURN_OPENING_HANDOFF_LEAD=renderer.saturnOpeningHandoffLead;
@@ -349,11 +359,15 @@
       const helpReminder=Preferences.createHelpReminder();
       let firstHelpPending=helpReminder.visit(),lastTravelControlLock=null;
       function cameraViewControlsLocked(){return openingActive||openingReplayLocked||renderer.cameraTween?.timing==='opening'||!!renderer.cameraTween?.replay;}
+      function warpControlsLocked(){return clock.paused||cameraViewControlsLocked();}
+      function openingMenuLocked(){return cameraViewControlsLocked()||!!renderer.ringTour?.openingResume;}
       function travelSettingsLocked(){return openingActive||!!renderer.ringTour;}
       function syncRegionReset(){ $('timezone-reset').disabled=openingActive||!temporaryRegionId; }
       function syncTravelControlLock(){
-        const locked=travelSettingsLocked(),focusLocked=openingActive,viewLocked=cameraViewControlsLocked(),lockState=`${locked}:${focusLocked}:${viewLocked}`;
+        const locked=travelSettingsLocked(),focusLocked=openingActive,viewLocked=cameraViewControlsLocked(),menuLocked=openingMenuLocked(),lockState=`${locked}:${focusLocked}:${viewLocked}:${menuLocked}:${clock.paused}`;
         if(lastTravelControlLock===lockState)return;lastTravelControlLock=lockState;
+        for(const option of $('opening-menu').querySelectorAll('[data-opening]'))option.disabled=menuLocked||(clock.paused&&option.dataset.opening!=='none');
+        $('opening-play').disabled=warpControlsLocked();
         for(const id of ['eclipse-previous','eclipse-next','alignment-previous','alignment-next','actual-scale','camera-mode-toggle','reset-defaults','reset-defaults-yes'])$(id).disabled=locked;
         syncEclipseControl();syncAlignmentControl();
         // A body selected during a planet tour may request the shared
@@ -376,7 +390,7 @@
       }
       function beginOpening(mono=performance.now()){
         if(openingRunMode==='none'){renderer.restoreCamera(openingCameraTarget);renderer.scheduleOpeningAnnotations(mono,0);finishOpening();return false;}
-        renderer.prepareRingTourResources();
+        renderer.prepareRingTourResources(resumeTravel?openingRunMode:undefined);
         // Arrive at the user's saved view first. The ring tour itself owns the
         // complete ten-second S curve from that exact view to Saturn's rings.
         const openingTarget=openingCameraTarget;
@@ -385,34 +399,26 @@
         }return animated;
       }
       function replayOpening(mono=performance.now(),{mode=openingMode,target=null}={}){
-        if(clock.paused||openingActive)return false;
+        if(warpControlsLocked())return false;
         // Reuse boot's opening owner and selected mode. Music is independent.
         cancelGesture();clearKeyboardZoom();keyboardTrackingReturn=null;
         settings(false);closeBody();timerController?.close();closeLanguageMenu();closeOpeningMenu();
         const returnView=target||renderer.ringTour?.returnTarget||renderer.skyFeatureTrack?.returnState||renderer.cameraSnapshot();
-        // Constellation exits always use the real warp, even when boot opening is disabled.
-        openingRunMode=renderer.skyFeatureInputLocked&&mode==='none'?'default':mode;
-        // T uses the saved mode; explicit destinations override this run only.
-        resumeTravel=openingRunMode==='saturn';
+        // None skips boot; an explicit warp still runs from the current camera.
+        openingRunMode=mode==='none'?'default':mode;
+        resumeTravel=renderer.hasRingTour(openingRunMode);
         openingCameraTarget={...returnView};
-        if(resumeTravel){renderer.prepareCloseup('saturn');renderer.prepareRingTourResources();}
+        if(resumeTravel){renderer.prepareCloseup(openingRunMode);renderer.prepareRingTourResources(openingRunMode);}
         openingActive=true;openingReplayLocked=true;openingStartedAt=null;openingDuration=0;renderer.setOpeningPresentation(true,'warp',openingCameraTarget);
         openingDeparture=true;lockOpeningControls();loading.classList.add('done');
         // Warp returns to the requested solar-system view before the existing
         // S curve begins; never pre-enlarge Saturn with a second camera owner.
         const openingTarget=openingCameraTarget;
-        const departure=openingRunMode==='none'?openingCameraTarget:renderer.openingCameraSnapshot(openingTarget);
-        if(openingRunMode!=='none'){
-          openingDuration=renderer.openingCameraDuration(openingTarget);
-          if(!renderer.animateOpeningReplay(openingTarget,departure,mono,openingDuration)){openingDeparture=false;finishOpening();return false;}
-          openingDeparture=false;openingStartedAt=null;
-          if(resumeTravel){renderer.prepareOpeningBoarding(openingCameraTarget);}
-        }else{
-          renderer.setSkyFeatureTrack(null);
-          renderer.animateCamera(departure,mono,7000);
-          renderer.startOpeningParticles(mono,renderer.ringTour?renderer.ringTour.returnDuration*1000:7000);
-          if(renderer.openingParticles)renderer.openingParticles.ringReturn=!!renderer.ringTour;
-        }
+        const departure=renderer.openingCameraSnapshot(openingTarget);
+        openingDuration=renderer.openingCameraDuration(openingTarget);
+        if(!renderer.animateOpeningReplay(openingTarget,departure,mono,openingDuration)){openingDeparture=false;finishOpening();return false;}
+        openingDeparture=false;openingStartedAt=null;
+        if(resumeTravel)renderer.prepareOpeningBoarding(openingCameraTarget);
         wakePointer();return true;
       }
       function claimOpeningControl(){if(openingControlsLocked)return false;if(openingActive)finishOpening();return true;}
@@ -493,7 +499,7 @@
         // every in-flight frame are temporary, not the user's last viewpoint.
         const camera=openingActive?{...openingCameraTarget}:renderer.ringTour?{...(renderer.ringTour.returnTarget||renderer.cameraSnapshot())}:renderer.cameraTween?{...renderer.cameraTween.to}:renderer.cameraSnapshot(),rotationMode=renderer.randomRotateEnabled?'random':renderer.autoRotateDirection;
         if(camera.focus===null)overviewCamera={...camera,focus:null};
-        Preferences.write(STORAGE_KEY,{...renderer.options,skyFeatureDisplay:renderer.skyFeatureDisplayPreferences(),skyFeatureDisplayMaster:renderer.skyFeatureDisplayMaster(),skySolarDisplay:renderer.skySolarDisplay(),bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),rotationMode,autoRotateDirection:renderer.autoRotateDirection,timezone,clockVisible,showSeconds,hourCycle,clockSize,clockFont,speedMode,speedValues,language,languageMode,camera,overviewCamera,cameraControlVersion:4,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});
+        Preferences.write(STORAGE_KEY,{...renderer.options,satelliteVisibility:Object.fromEntries(A.SATELLITES.map(body=>[body.id,renderer.satelliteVisible(body.id)])),skyFeatureDisplay:renderer.skyFeatureDisplayPreferences(),skyFeatureCatalog:Object.keys(SKY_FEATURE_CATALOG),skyFeatureDisplayMaster:renderer.skyFeatureDisplayMaster(),skySolarDisplay:renderer.skySolarDisplay(),bodyScales:renderer.getBodyScales(),satelliteOrbitScales:renderer.getSatelliteOrbitScales(),rotationMode,autoRotateDirection:renderer.autoRotateDirection,timezone,clockVisible,showSeconds,hourCycle,clockSize,clockFont,speedMode,speedValues,language,languageMode,camera,overviewCamera,cameraControlVersion:4,elevation:overviewCamera.elevation/A.DEG,panY:overviewCamera.panY,panX:overviewCamera.panX});
       }
       let cameraUiSignature='';
       function cameraUi(force=false) {
@@ -556,7 +562,7 @@
         if(!value){toast(t('emptyPreset',{n:index+1}));return;}
         cancelGesture();
         const satellite=A.SATELLITES.some(body=>body.id===value.focus);
-        if(satellite&&!renderer.options.moon){renderer.setOption('moon',true);$('show-moon').checked=true;navVisibility();}
+        if(satellite&&!renderer.satelliteVisible(value.focus)){renderer.setOption(value.focus,true);navVisibility();}
         if(value.focus==='pluto'&&!renderer.options.pluto){renderer.setOption('pluto',true);$('show-pluto').checked=true;navVisibility();}
         const mono=performance.now();
         if(!renderer.animateCamera(value,mono,1100)){toast(t('hiddenBody'));return;}
@@ -644,13 +650,36 @@
           if(renderer.selected!==b.id)selectBody(b.id);
           focusBody(b.id);
         });
-        $('planet-nav').append(button);navButtons.set(b.id,button);
+        $('planet-nav-list').append(button);navButtons.set(b.id,button);
       }
+      const planetList=$('planet-nav-list'),planetCues=UI.bindScrollCues($('planet-nav'),planetList,{horizontal:true});
+      function updatePlanetListWidth(){
+        // The current thirteen bodies (including Triton) fit before expansion.
+        const baseline=[...navButtons.values()].slice(0,13).filter(button=>!button.hidden);
+        if(baseline.length){
+          const gap=parseFloat(getComputedStyle(planetList).columnGap)||0;
+          const width=baseline.reduce((sum,button)=>sum+button.getBoundingClientRect().width+(parseFloat(getComputedStyle(button).marginLeft)||0),0)+Math.max(0,baseline.length-1)*gap;
+          planetList.style.maxWidth=Math.max(80,width)+'px';
+        }else planetList.style.removeProperty('max-width');
+        planetCues.update();
+      }
+      const planetObserver=new MutationObserver(updatePlanetListWidth);
+      planetObserver.observe(planetList,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden']});
+      const scrollPlanets=event=>{
+        if(event.ctrlKey||planetList.scrollWidth<=planetList.clientWidth+1)return;
+        event.preventDefault();event.stopPropagation();
+        const delta=Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:event.deltaY;
+        planetList.scrollLeft+=delta*(event.deltaMode===1?16:event.deltaMode===2?planetList.clientWidth:1);
+      };
+      $('planet-nav').addEventListener('wheel',scrollPlanets,{passive:false});
+      window.addEventListener('resize',updatePlanetListWidth,{passive:true});
+      document.fonts?.ready.then(()=>{if(!disposed)updatePlanetListWidth();});
+      cleanups.push(()=>{planetObserver.disconnect();window.removeEventListener('resize',updatePlanetListWidth);$('planet-nav').removeEventListener('wheel',scrollPlanets);});
       function refreshNavLabels(){
         for(const b of bodies){const button=navButtons.get(b.id),copy=bodyCopy(b);button.lastChild.textContent=copy.name;button.setAttribute('aria-label',t('bodyInfo',{name:copy.name}));}
       }
-      function navVisibility() {navButtons.get('pluto').hidden=!renderer.options.pluto;for(const satellite of A.SATELLITES)navButtons.get(satellite.id).hidden=!renderer.options.moon;}
-      navVisibility();
+      function navVisibility() {navButtons.get('pluto').hidden=!renderer.options.pluto;for(const satellite of A.SATELLITES)navButtons.get(satellite.id).hidden=!renderer.satelliteVisible(satellite.id);}
+      navVisibility();updatePlanetListWidth();
       function trackedBodyId(){return renderer.cameraTween?.to?.focus||renderer.camera.focus||null;}
       function refreshDisplayedRegion(){
         renderer.setSite(localizedSite());refreshTimeFormats();lastWallKey='';updateWall(Date.now());
@@ -715,8 +744,11 @@
         $('body-size-slider').disabled=locked;
         syncRangeReset('body-size-slider',value!==resetValue,locked);
         syncRangeReset('satellite-orbit-slider',hasOrbitControl&&orbitValue!==100,orbitLocked||!hasOrbitControl);
-        $('body-size-lock').hidden=!locked||travelLocked;$('body-size-control').classList.toggle('locked',locked);
+        $('body-size-control').classList.toggle('locked',locked);
         const earth=body.id==='earth',cloudValue=Math.round(A.clamp(Number(renderer.options.earthCloudAmount) || 0,0,1)*100);
+        const child=A.SATELLITES.find(satellite=>satellite.parent===body.id);
+        $('body-satellite-control').hidden=!child;
+        if(child){$('body-satellite-label').textContent=bodyCopy(child).name;$('body-satellite-visible').checked=renderer.satelliteVisible(child.id);$('body-satellite-visible').setAttribute('aria-label',bodyCopy(child).name);}
         $('earth-night-lights-control').hidden=!earth;$('earth-night-lights').checked=renderer.options.earthNightLights!==false;
         $('earth-cloud-control').hidden=!earth;$('earth-cloud-amount').value=String(cloudValue);$('earth-cloud-amount-output').textContent=cloudValue+'%';
         syncRangeReset('earth-cloud-amount',cloudValue!==Math.round(FACTORY_OPTIONS.earthCloudAmount*100));
@@ -822,19 +854,16 @@
       function updateBody(ms) {
         if(selectedSkyFeature)return;
         const b=bodies.find(v=>v.id===renderer.selected);if(!b)return;
-        if(b.id==='saturn')$('ring-tour-button').disabled=openingActive||(!renderer.skyFeatureInputLocked&&!renderer.canStartRingTour());
+        if(b.id==='saturn'||b.id==='uranus')$('ring-tour-button').disabled=openingActive||(!renderer.skyFeatureInputLocked&&!renderer.canStartRingTour());
         syncRegionNavigation();
         const signature=b.id+'|'+copyLanguage();
         const staticChanged=signature!==bodyInfoSignature;bodyInfoSignature=signature;
         if(b.id==='sun') {
           if(staticChanged)$('stat-label-one').textContent=t('representation');setStat('stat-value-one',t('star'),'');
           if(staticChanged)$('stat-label-two').textContent=t('systemCenter');setStat('stat-value-two','SUN','');
-        } else if(b.id==='moon') {
-          if(staticChanged)$('stat-label-one').textContent=t('earthOrbitPeriod');setStat('stat-value-one','27.32',t('dayUnit'));
-          const phase=A.moonPhase(ms);if(staticChanged)$('stat-label-two').textContent=t('brightSide');setStat('stat-value-two',t('approximately',{value:Math.round(phase.fraction*100)}),'%');
-        } else if(b.id==='europa') {
-          if(staticChanged)$('stat-label-one').textContent=t('jupiterOrbitPeriod');setStat('stat-value-one','3.55',t('dayUnit'));
-          if(staticChanged)$('stat-label-two').textContent=t('jupiterDistance');setStat('stat-value-two','671,000','km');
+        } else if(b.parent) {
+          if(staticChanged)$('stat-label-one').textContent=t('orbitPeriod');setStat('stat-value-one',b.period.toFixed(2),t('dayUnit'));
+          if(staticChanged)$('stat-label-two').textContent=t('parentDistance',{name:bodyCopy(A.BODIES.find(parent=>parent.id===b.parent)).name});setStat('stat-value-two',Math.round(A.SATELLITE_MEAN_AU[b.id]*A.AU_KM).toLocaleString('en-US'),'km');
         } else {
           if(staticChanged)$('stat-label-one').textContent=t('orbitPeriod');setStat('stat-value-one',b.period>1000?(b.period/365.25).toFixed(1):b.period.toFixed(2),t(b.period>1000?'yearUnit':'dayUnit'));
           const p=A.positionAt(b,ms);if(staticChanged)$('stat-label-two').textContent=t('sunDistance');setStat('stat-value-two',Math.hypot(p.x,p.y,p.z).toFixed(2),'AU');
@@ -842,7 +871,8 @@
         if(!staticChanged)return;
         const environment=BODY_ENVIRONMENT[b.id]||BODY_ENVIRONMENT.earth,gravityRatio=environment.gravity/BODY_ENVIRONMENT.earth.gravity;
         if(staticChanged)$('stat-label-temperature').textContent=t('meanTemperature');setStat('stat-value-temperature',String(environment.mean),'°C');
-        $('stat-temperature-range').textContent=t('temperatureRange',{min:environment.min,max:environment.max});
+        $('stat-temperature-range').hidden=!Number.isFinite(environment.min)||!Number.isFinite(environment.max);
+        $('stat-temperature-range').textContent=$('stat-temperature-range').hidden?'':t('temperatureRange',{min:environment.min,max:environment.max});
         if(staticChanged)$('stat-label-gravity').textContent=t('surfaceGravity');setStat('stat-value-gravity',environment.gravity.toFixed(environment.gravity<2?2:1),'m/s²');
         $('stat-gravity-ratio').textContent=t('earthGravityRatio',{value:gravityRatio.toFixed(gravityRatio>=10?1:2)});
       }
@@ -886,12 +916,13 @@
         const b=bodies.find(v=>v.id===id);if(!b)return;
         clearSkyFeature();$('body-panel').classList.remove('sky-feature');
         renderer.selected=id;renderer.prepareCloseup(id);renderer.invalidatePresentation(420);showFading($('body-panel'));settings(false);$('settings-button').setAttribute('aria-expanded','false');
-        $('body-category').textContent=id==='sun'?'THE HEART OF OUR SYSTEM':id==='earth'?'OUR PALE BLUE HOME':id==='moon'?'EARTH’S COMPANION':id==='europa'?'JUPITER’S ICY MOON':id==='pluto'?'A DISTANT DWARF PLANET':'A WORLD IN MOTION';
+        $('body-category').textContent=id==='sun'?'THE HEART OF OUR SYSTEM':id==='earth'?'OUR PALE BLUE HOME':id==='moon'?'EARTH’S COMPANION':id==='europa'?'JUPITER’S ICY MOON':id==='triton'?'NEPTUNE’S RETROGRADE MOON':id==='pluto'?'A DISTANT DWARF PLANET':'A WORLD IN MOTION';
         const copy=bodyCopy(b);updateBodyTitle(copy.name,b.en);$('body-description').textContent=copy.description;
         $('focus-body').textContent=t('focusBody');$('focus-body').removeAttribute('aria-pressed');$('sky-feature-display-control').hidden=true;$('sky-solar-display-control').hidden=true;
         for(const [key,button] of navButtons){button.classList.toggle('active',key===id);button.setAttribute('aria-pressed',String(key===id));}
         syncRegionNavigation();
-        $('ring-tour-button').hidden=id!=='saturn';
+        const ringTravel=id==='saturn'||id==='uranus';$('ring-tour-button').hidden=!ringTravel;
+        if(ringTravel&&renderer.preparedRingTour?.bodyId!==id){renderer.clearPreparedTour();renderer.prepareRingTourResources();}
         syncBodySizeControl(b);
         syncEclipseControl(id);
         syncAlignmentControl(id);
@@ -1018,6 +1049,7 @@
         if(request!==languageRequest||disposed||travelSettingsLocked())return;
         const mono=performance.now();closeResetDefaults(false);renderer.cancelCameraMotion(mono);renderer.stopAutoRotate(mono);
         for(const [key,value] of Object.entries(FACTORY_OPTIONS))renderer.setOption(key,value,false);
+        for(const satellite of A.SATELLITES)renderer.setOption(satellite.id,true,false);
         renderer.restoreSkyFeatureDisplay(Object.keys(SKY_FEATURE_CATALOG),false);syncConstellationToggle();
         renderer.setSkySolarDisplay(false);
         renderer.setOption('earthCloudSeed',randomCloudSeed(renderer.options.earthCloudSeed),false);
@@ -1065,19 +1097,20 @@
       $('focus-body').addEventListener('click',()=>selectedSkyFeature?focusSkyFeature(selectedSkyFeature):focusBody(renderer.selected));
       syncConstellationToggle();
       $('constellations-toggle').addEventListener('click',toggleConstellations);
+      $('body-satellite-visible').addEventListener('change',()=>{const child=A.SATELLITES.find(body=>body.parent===renderer.selected);if(!child)return;renderer.setOption(child.id,$('body-satellite-visible').checked);navVisibility();persist();});
       $('show-sky-feature').addEventListener('change',()=>{if(selectedSkyFeature){renderer.setSkyFeatureDisplay(selectedSkyFeature,$('show-sky-feature').checked);persist();}});
       $('show-sky-solar').addEventListener('change',()=>{renderer.setSkySolarDisplay($('show-sky-solar').checked);persist();});
       function startRingTravel(target) {
         if(openingActive)return;
         if(renderer.skyFeatureInputLocked){
           const mono=performance.now();
-          replayOpening(mono,{mode:'saturn',target:renderer.defaultCameraSnapshot(clock.value(mono))});return;
+          replayOpening(mono,{mode:renderer.ringTourTargetBody(false,target),target:renderer.defaultCameraSnapshot(clock.value(mono))});return;
         }
         if(renderer.startRingTour(target)){closeBody();settings(false);toast(t('ringTravelStarted'));}
         else toast(t('ringTravelUnavailable'));
       }
       $('ring-tour-button').addEventListener('click',()=>{
-        if(renderer.selected!=='saturn')return;
+        if(renderer.selected!=='saturn'&&renderer.selected!=='uranus')return;
         cancelGesture();startRingTravel();
       });
       function viewEarthRegion(region=displayRegion()){
@@ -1093,7 +1126,7 @@
         }
         const id=renderer.selected;if(!['earth','jupiter'].includes(id))return;
         if(id==='earth'){viewEarthRegion();return;}
-        cancelGesture();renderer.animateFeature(id,-22,window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??70,clock.value(performance.now()));cameraUi();window.SolarUsageAnalytics?.track('solar_body_track',{body_id:id});
+        cancelGesture();renderer.animateFeature(id,window.SolarAssets.materialInfo?.jupiter?.feature?.latitude??-20.5,window.SolarAssets.materialInfo?.jupiter?.feature?.longitude??-48,clock.value(performance.now()));cameraUi();window.SolarUsageAnalytics?.track('solar_body_track',{body_id:id});
       });
       function navigateRegion(direction){
         if(renderer.selected!=='earth'&&!renderer.earthRegionNavigationActive)return false;
@@ -1189,7 +1222,7 @@
         // One press starts the smooth return. A SECOND press may leave
         // fullscreen even while returning; it must not restart/cut the flight.
         renderer.ringTour?.requestEntryHomeReturn?.();
-        if(renderer.ringTour?.openingResume&&['entering','cruising'].includes(renderer.ringTour.state)){
+        if((renderer.ringTour?.returnTarget||renderer.ringTour?.openingResume)&&['entering','cruising'].includes(renderer.ringTour.state)){
           renderer.animateCamera(renderer.ringTour.returnTarget||openingCameraTarget);return;
         }
         if(renderer.ringTour?.stop())return;
@@ -1202,7 +1235,10 @@
         help(true);
       }
       // A single idle owner controls the cursor, complete toolbar and hit/tab targets.
-      const viewControls=$('view-controls'),viewControlGroups=[viewControls],idleDelay=2000;
+      const viewControls=$('view-controls'),playbackControls=document.querySelector('.playback'),zenUiGroups=[...document.querySelectorAll('.ui:not(#body-panel)'),$('timezone-button')],zenRevealGroups=[...document.querySelectorAll('.ui:not(.panel)')],idleDelay=1000;
+      const zenGroupStaysInteractive=group=>group.matches?.('.panel:not([hidden])');
+      const zenCoupledGroups=group=>group===$('planet-nav')||group===playbackControls?[$('planet-nav'),playbackControls]:group?[group]:[];
+      const zenGroupIsAwake=(group,awakeGroups)=>awakeGroups.some(awakeGroup=>group===awakeGroup||awakeGroup.contains(group)||(group===$('timezone-button')&&awakeGroup===$('scene-status')));
       const travelCursor=document.createElement('div');
       travelCursor.id='travel-cursor';travelCursor.setAttribute('aria-hidden','true');
       travelCursor.style.backgroundImage=window.SolarRingTour.cursorImage;document.body.append(travelCursor);
@@ -1227,28 +1263,38 @@
         const opacity=visible?reveal*Math.max(0,Math.min(1,1-(mono-lastPointerActivity-idleDelay)/600)):0;
         travelCursor.style.opacity=String(opacity);
       }
-      document.addEventListener('pointerout',event=>{if(!event.relatedTarget){pointerOverScene=false;travelCursor.style.opacity='0';}},{passive:true});
-      function showAwake(value) {
-        const awake=zen&&value&&!disposed&&!document.hidden;
-        if(zen&&!awake)closeRotationChoices();
+      document.addEventListener('pointerout',event=>{if(!event.relatedTarget){pointerOverScene=false;travelCursor.style.opacity='0';clearTimeout(pointerAwakeTimer);pointerAwakeTimer=undefined;document.body.classList.remove('pointer-awake');showAwake(null);}},{passive:true});
+      function zenGroupAtPointer(event) {
+        if(!event||event.type==='pointercancel'||!Number.isFinite(event.clientX)||!Number.isFinite(event.clientY)||event.target?.closest?.('.panel,dialog'))return null;
+        for(const group of zenRevealGroups){
+          if(group.hidden)continue;
+          if(group.contains(event.target))return group;
+          const rect=group.getBoundingClientRect();
+          if(event.clientX>=rect.left&&event.clientX<=rect.right&&event.clientY>=rect.top&&event.clientY<=rect.bottom)return group;
+        }
+        return null;
+      }
+      function showAwake(requestedGroup) {
+        const awakeGroups=zen&&requestedGroup&&!disposed&&!document.hidden?zenCoupledGroups(requestedGroup):[];
+        if(zen&&!awakeGroups.includes(viewControls))closeRotationChoices();
         // Prepare the lens number before the toolbar becomes visible; otherwise
         // the output can miss the first compositor paint of the fade-in.
-        if(awake)cameraUi();
-        document.body.classList.toggle('pointer-awake',awake);
+        if(awakeGroups.includes(viewControls))cameraUi();
+        for(const group of zenRevealGroups)group.classList.toggle('zen-awake',awakeGroups.includes(group));
         // Move keyboard focus out before hiding/inerting the action group. The
         // programmatic canvas focus below must not wake it again (see focusin).
-        if(zen&&!awake&&viewControlGroups.some(group=>group.contains(document.activeElement)))$('universe').focus({preventScroll:true});
-        for(const group of viewControlGroups){group.inert=zen&&!awake;group.setAttribute('aria-hidden',String(zen&&!awake));}
+        if(zen&&zenUiGroups.some(group=>!zenGroupStaysInteractive(group)&&!zenGroupIsAwake(group,awakeGroups)&&group.contains(document.activeElement)))$('universe').focus({preventScroll:true});
+        for(const group of zenUiGroups){const hidden=zen&&!zenGroupIsAwake(group,awakeGroups)&&!zenGroupStaysInteractive(group);group.inert=hidden;group.setAttribute('aria-hidden',String(hidden));}
       }
-      function clearAwake() {clearTimeout(awakeTimer);awakeTimer=undefined;showAwake(false);updateTravelCursor(performance.now());}
+      function clearAwake() {clearTimeout(pointerAwakeTimer);pointerAwakeTimer=undefined;document.body.classList.remove('pointer-awake');showAwake(null);updateTravelCursor(performance.now());}
       function wakePointer(event) {
-        if(event?.type==='focusin'&&event.target===$('universe'))return;
         updateTravelCursor(performance.now(),event);
-        clearTimeout(awakeTimer);awakeTimer=undefined;
         if(!zen||disposed||document.hidden)return;
-        showAwake(true);
-        if(pointers.size||event?.buttons||presetDialog.open)return; // Keep controls awake throughout a held drag/pinch.
-        awakeTimer=setTimeout(()=>{awakeTimer=undefined;showAwake(false);},idleDelay);
+        if(event&&event.type!=='pointercancel'&&event.pointerType!=='touch'){
+          clearTimeout(pointerAwakeTimer);document.body.classList.add('pointer-awake');
+          pointerAwakeTimer=setTimeout(()=>{pointerAwakeTimer=undefined;document.body.classList.remove('pointer-awake');},idleDelay);
+        }
+        showAwake(zenGroupAtPointer(event));
       }
       function setZen(value) {
         const changed=zen!==!!value;
@@ -1257,15 +1303,15 @@
         $('zen-toggle').setAttribute('aria-pressed',String(zen));$('zen-toggle').setAttribute('aria-label',t(zen?'zenOff':'zenOn'));$('zen-toggle').title=t(zen?'normalMode':'zenMode')+' · H';
         // Keep the complete clock/date/timezone block pixel-identical in zen mode.
         // One timezone element is shared by both modes, so SEOUL/UTC never swaps or disappears.
-        for(const el of document.querySelectorAll('.ui:not(#body-panel),#timezone-button'))el.inert=zen;
+        for(const group of zenUiGroups)group.inert=zen;
         $('body-panel').inert=false;
         renderer.hover=null;
         if(zen){$('universe').focus({preventScroll:true});wakePointer();}
-        else {$('zen-toggle').focus({preventScroll:true});for(const group of viewControlGroups){group.inert=false;group.setAttribute('aria-hidden','false');}}
+        else {$('zen-toggle').focus({preventScroll:true});for(const group of zenUiGroups){group.inert=false;group.setAttribute('aria-hidden','false');}}
         if(changed)window.SolarUsageAnalytics?.track(zen?'solar_zen_on':'solar_zen_off');
       }
       $('zen-toggle').addEventListener('click',()=>setZen(!zen));
-      for(const event of ['pointermove','pointerdown','pointerup','pointercancel','wheel','keydown','focusin'])document.addEventListener(event,wakePointer,{passive:true});
+      for(const event of ['pointermove','pointerdown','pointerup','pointercancel','wheel'])document.addEventListener(event,wakePointer,{passive:true});
       const helpDialog=$('help-dialog');
       const helpScroll=$('help-scroll');
       // Both payment QR cards use the same surface, dismissal and focus lifecycle.
@@ -1284,7 +1330,7 @@
       let releaseNotesApi=null,releaseNotesNavigator=null,releaseNotesArchive=false;
       function loadReleaseNotes(){
         if(releaseNotesApi)return Promise.resolve(releaseNotesApi);
-        return UI.loadScript('src/release-notes.js?v=565dff333005','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
+        return UI.loadScript('src/release-notes.js?v=e97fe81397eb','SolarReleaseNotes').then(api=>{if(!releaseNotesApi){releaseNotesApi=api;releaseNotesNavigator=api.createReleaseNotesNavigator();}return releaseNotesApi;});
       }
       function formatReleaseNotesBytes(bytes){const value=Math.max(0,Number(bytes)||0);return value<1024?value+' B':(value/1024).toFixed(1)+' KB';}
       function renderReleaseNotes(state=releaseNotesNavigator?.current()){
@@ -1382,17 +1428,25 @@
       for(const option of languageMenu.querySelectorAll('[data-language]'))option.addEventListener('click',()=>{const next=option.dataset.language;setLanguage(next,{userInitiated:true});});
       window.addEventListener('languagechange',()=>{if(disposed)return;if(languageMode==='auto')setLanguage('auto').catch(fatal);else translateStatic();});
       const refreshAutomaticContext=()=>{if(!disposed&&languageMode==='auto')setLanguage('auto').catch(fatal);};
-      languageMenu.addEventListener('keydown',event=>{
-        const options=[...languageMenu.querySelectorAll('[role="menuitemradio"]')],index=options.indexOf(document.activeElement);let next=-1;
+      const navigateLanguageMenu=event=>{
+        if(!uiElementVisible(languageMenu)||UI.topDialog()||event.ctrlKey||event.metaKey||event.altKey||event.isComposing)return;
+        if(!languageMenu.contains(event.target)&&!languageMenu.matches(':hover'))return;
+        if(event.target.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+        const options=[...languageMenu.querySelectorAll('[role="menuitemradio"]')];
+        const focused=options.indexOf(document.activeElement),index=focused<0?options.findIndex(option=>option.getAttribute('aria-checked')==='true'):focused;let next=-1;
         if(event.key==='ArrowDown')next=(index+1)%options.length;else if(event.key==='ArrowUp')next=(index-1+options.length)%options.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=options.length-1;else return;
-        event.preventDefault();options[next].focus({preventScroll:true});if(languageScroll.contains(options[next]))options[next].scrollIntoView({block:'nearest'});updateLanguageScrollCues();
-      });
+        event.preventDefault();event.stopImmediatePropagation();options[next].focus({preventScroll:true});if(languageScroll.contains(options[next]))options[next].scrollIntoView({block:'nearest'});updateLanguageScrollCues();
+        if(event.key==='ArrowDown'||event.key==='ArrowUp')options[next].click();
+      };
+      window.addEventListener('keydown',navigateLanguageMenu,true);
+      cleanups.push(()=>window.removeEventListener('keydown',navigateLanguageMenu,true));
       document.addEventListener('pointerdown',event=>{if(uiElementVisible(languageMenu)&&!languageControl.contains(event.target))closeLanguageMenu();});
       function syncOpeningMenu(){
         const menu=$('opening-menu'),button=$('opening-toggle');
-        const labels={default:t('openingDefault'),saturn:bodyCopy(A.BODIES.find(body=>body.id==='saturn')).name,none:t('openingNone')};
+        const labels={default:t('openingDefault'),none:t('openingNone')};
+        for(const body of A.BODIES)if(renderer.hasRingTour(body.id))labels[body.id]=bodyCopy(body).name;
         for(const option of menu.querySelectorAll('[data-opening]')){option.textContent=labels[option.dataset.opening];option.setAttribute('aria-checked',String(option.dataset.opening===openingMode));}
-        menu.setAttribute('aria-label',t('openingTravel'));button.title=t('openingTravel')+' · '+labels[openingMode]+' · T';button.setAttribute('aria-label',button.title);button.setAttribute('aria-keyshortcuts','T');
+        menu.setAttribute('aria-label',t('openingTravel'));button.title=t('openingTravel')+' · '+labels[openingMode]+' · W';button.setAttribute('aria-label',button.title);button.setAttribute('aria-keyshortcuts','W');
       }
       function closeOpeningMenu(returnFocus=false){hideFading($('opening-menu'));$('opening-toggle').setAttribute('aria-expanded','false');if(returnFocus)$('opening-toggle').focus({preventScroll:true});}
       UI.bindPopup($('opening-menu'),()=>closeOpeningMenu());
@@ -1402,8 +1456,11 @@
         requestAnimationFrame(()=>$('opening-menu').querySelector('[aria-checked="true"]')?.focus({preventScroll:true}));
       });
       for(const option of $('opening-menu').querySelectorAll('[data-opening]'))option.addEventListener('click',()=>{
-        const changed=openingMode!==option.dataset.opening;openingMode=option.dataset.opening;
-        Preferences.write(openingModeKey,openingMode);syncOpeningMenu();if(changed)toast(t('openingReload'));
+        if(openingMenuLocked()||(clock.paused&&option.dataset.opening!=='none'))return;
+        openingMode=option.dataset.opening;
+        Preferences.write(openingModeKey,openingMode);syncOpeningMenu();
+        if(openingMode!=='none')replayOpening();
+        syncTravelControlLock();
       });
       $('opening-menu').addEventListener('keydown',event=>{
         const options=[...$('opening-menu').querySelectorAll('[role="menuitemradio"],[role="menuitem"]')],index=options.indexOf(document.activeElement);let next;
@@ -1427,7 +1484,7 @@
       function earthRegionAt(point){
         if(trackedBodyId()!=='earth'||!renderer.earthRegionInteractionReady())return null;
         if(!renderer.countryBorders){loadCountryBorders().catch(()=>{});return null;}
-        return renderer.earthRegionHit(point.x,point.y,REGION_CATALOG,clock.value(performance.now()));
+        return renderer.earthRegionHit(point.x,point.y,EARTH_REGION_CATALOG,clock.value(performance.now()));
       }
       // Camera buttons use the same T lock as canvas gestures and shortcuts.
       document.addEventListener('click',event=>{
@@ -1458,7 +1515,8 @@
           renderer.setEarthRegionHover(region);
           renderer.setSkyFeatureHover(skyFeature);
           renderer.setSkySolarHover(solar);
-          if(renderer.hover!==hover||renderer.ringTourHover!==!!ring){renderer.hover=hover;renderer.ringTourHover=!!ring;renderer.invalidatePresentation();}
+          renderer.setRingTourHover(ring);
+          if(renderer.hover!==hover){renderer.hover=hover;renderer.invalidatePresentation();}
           canvas.style.cursor=ring?window.SolarRingTour.cursor:region||renderer.hover||skyFeature||solar?'pointer':'grab';return;
         }
         pointers.set(event.pointerId,p);
@@ -1509,7 +1567,7 @@
       canvas.addEventListener('contextmenu',event=>event.preventDefault());
       canvas.addEventListener('pointerup',event=>endPointer(event));canvas.addEventListener('pointercancel',event=>endPointer(event,true));
       canvas.addEventListener('lostpointercapture',event=>{if(pointers.delete(event.pointerId))renderer.stopPointerRotation();if(!pointers.size){drag=null;canvas.classList.remove('dragging');wakePointer();}});
-      canvas.addEventListener('pointerleave',()=>{if(!pointers.size){renderer.setEarthRegionHover(null);renderer.setSkyFeatureHover(null);renderer.setSkySolarHover(false);if(renderer.hover!==null||renderer.ringTourHover){renderer.hover=null;renderer.ringTourHover=false;renderer.invalidatePresentation();}}});
+      canvas.addEventListener('pointerleave',()=>{if(!pointers.size){renderer.setEarthRegionHover(null);renderer.setSkyFeatureHover(null);renderer.setSkySolarHover(false);renderer.setRingTourHover(null);if(renderer.hover!==null){renderer.hover=null;renderer.invalidatePresentation();}}});
       canvas.addEventListener('wheel',event=>{event.preventDefault();renderer.stopPointerRotation();zoom(renderer.wheelTravelFactor(event.deltaY));},{passive:false});
       canvas.addEventListener('dblclick',event=>{
         if(openingControlsLocked||event.button!==0||clickGestures<2)return;
@@ -1572,7 +1630,7 @@
             (event.target.closest?.('button,a')&&['Enter','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End'].includes(event.key)))return;
           event.preventDefault();event.stopImmediatePropagation();return;
         }
-        if(key==='t'&&clock.paused){if(!editing){event.preventDefault();event.stopPropagation();}return;}
+        if((key==='w'||key==='t')&&clock.paused){if(!editing){event.preventDefault();event.stopPropagation();}return;}
         if(cameraViewControlsLocked()&&(['+','=','0','1','2','3'].includes(key)||/^(?:Digit|Numpad)[0123]$/.test(physical)||physical==='NumpadAdd')){
           if(!editing){event.preventDefault();event.stopPropagation();}return;
         }
@@ -1601,8 +1659,11 @@
           toggleConstellations();
           return;
         }
+        if(key==='w'){
+          event.preventDefault();event.stopPropagation();if(!event.repeat)replayOpening();return;
+        }
         if(key==='t'){
-          event.preventDefault();event.stopPropagation();replayOpening();return;
+          event.preventDefault();event.stopPropagation();if(!event.repeat&&!renderer.ringTravelShortcutLocked){cancelGesture();if(renderer.cycleRingTravel()){closeBody();settings(false);}else toast(t('ringTravelUnavailable'));}return;
         }
         if(key==='arrowleft'||key==='arrowright'){
           event.preventDefault();event.stopPropagation();const direction=key==='arrowright'?1:-1;
@@ -1737,12 +1798,12 @@
             if(wasTransitioning||renderer.cameraTween)cameraUi();
             const replay=renderer.cameraTween?.replay;
             if(openingReplayLocked&&replay)openingStartedAt=Number.isFinite(replay.resetAt)?renderer.cameraTween.start+renderer.replayOpeningAt(replay):null;
-            if(resumeTravel)renderer.captureOpeningFlight(motionMono);
+            if(resumeTravel)renderer.captureOpeningFlight(motionMono,openingRunMode);
             // Begin Saturn's existing momentum handoff before the opening camera
             // reaches a stop, so the two owners cross-fade instead of pausing
             // between otherwise continuous moves.
             if(!clock.paused&&resumeTravel&&openingStartedAt!==null&&motionMono-openingStartedAt>=Math.max(0,openingDuration-SATURN_OPENING_HANDOFF_LEAD)){
-              if(renderer.startRingTour(undefined,true,mono,openingRunMode==='saturn',openingCameraTarget)){
+              if(renderer.startRingTour({bodyId:openingRunMode},true,mono,true,openingCameraTarget)){
                 resumeTravel=false;finishOpening();
               }else if(!renderer.cameraTween){
                 // Missing GPU/resources must not leave a permanently hidden UI.
@@ -1774,7 +1835,7 @@
       window.addEventListener('pageshow',event=>{if(!disposed&&!document.hidden){firstHelpPending=helpReminder.visit();renderer.resume();refreshAutomaticContext();if(event.persisted&&openingActive&&!openingDeparture&&!clock.paused)beginOpening(performance.now());if(event.persisted){refreshViewport();scheduleMaterialRefresh();}else if(viewportLayers.some(layer=>layer.classList.contains('viewport-resizing')))refreshViewport();if(!raf){lastFrame=0;wakePointer();raf=requestAnimationFrame(frame);}}});
       window.addEventListener('focus',refreshAutomaticContext,{passive:true});
       // A small, documented inspection surface for automated tests and future development.
-      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!interactionBusy()&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.80',revision:'r2',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
+      window.SolarTime=Object.freeze({canApplyUpdate:()=>!disposed&&!interactionBusy()&&!music.enabled&&!timerController?.isBusy()&&!openingActive&&!renderer.cameraTween&&!renderer.ringTour,version:'0.81',revision:'r0',translate:t,clock,renderer,materials,calibrationMs,setLanguage,getPresets:()=>cameraPresets.map(v=>v?{...v}:null),getModel:()=>A.modelStatus(),getState:()=>({fullscreen:!!document.fullscreenElement,escapeLock:fullscreenEscape.state,opening:openingActive,openingLocked:openingControlsLocked,simulationMs:clock.value(performance.now()),wallMs:Date.now(),rate:clock.rate,live:clock.live,paused:clock.paused,timezone,timeZone:activeTimeZone(),region:displayRegion().label,temporaryRegion:temporaryRegionId,clockVisible,showSeconds,hourCycle,clockSize,clockFont,starDensity:renderer.options.starDensity,earthNightLights:renderer.options.earthNightLights!==false,earthCloudAmount:renderer.options.earthCloudAmount,earthCloudSeed:renderer.options.earthCloudSeed,randomRotate:renderer.randomRotateEnabled,language,copyLanguage:copyLanguage(),languageMode,zen,musicEnabled:music.enabled,musicTrack:music.track,timers:timerController?.getState(),effectTime,frameCount:renderer.frameCount})});
       uiNow();
       const bootMono=performance.now(),bootMs=clock.value(bootMono);if(openingRunMode!=='none')renderer.startOpeningPointReveal(bootMono);renderer.draw(bootMs,0,bootMono);
       await warmInitialScene();

@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Solar Time">
-  <meta name="solar-time-version" content="0.80">
-  <meta name="solar-time-revision" content="r2">
-  <meta name="solar-time-build" content="3dfdfbc6dfff">
+  <meta name="solar-time-version" content="0.81">
+  <meta name="solar-time-revision" content="r0">
+  <meta name="solar-time-build" content="01a446e7ff4c">
   <meta name="google-adsense-account" content="ca-pub-5773171100052324">
   <meta name="solar-time-ad-slot" content="">
   <meta id="meta-description" name="description" content="별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주." data-i18n-content="metaDescription">
@@ -25,8 +25,8 @@
   <script src="src/usage-analytics.js?v=889c5a4755d5"></script>
   <script src="src/microsoft-clarity.js?v=b5c8e1aede27"></script>
   <script src="src/page-runtime.js?v=ad4d3ee1093a"></script>
-  <link rel="stylesheet" href="styles.css?v=1f80085b664a">
-  <link rel="stylesheet" href="src/runtime-optimizations.css?v=b40398714259">
+  <link rel="stylesheet" href="styles.css?v=5ab63d44ac07">
+  <link rel="stylesheet" href="src/runtime-optimizations.css?v=bfb23dd5a45b">
 </head>
 <body>
   <div id="solar-viewport">
@@ -35,8 +35,8 @@
   <canvas id="universe" tabindex="0" aria-label="태양계. 좌클릭 드래그로 회전, 가운데 버튼 드래그로 화면 이동, 마우스 휠로 전진·후진, 우클릭 드래그로 광각·망원을 조절합니다." data-i18n-aria="universeAria"></canvas>
   <div class="edge-shade" aria-hidden="true"></div>
 
-  <header class="masthead ui">
-    <div class="brand">
+  <header class="masthead">
+    <div class="brand ui">
       <svg viewBox="0 0 46 40" aria-hidden="true">
         <g transform="rotate(-30 23 20)">
           <ellipse cx="23" cy="20" rx="21" ry="9"/>
@@ -50,8 +50,8 @@
       <p>A LITTLE CLOSER TO THE COSMOS</p>
       <button id="help-button" class="brand-help" type="button" aria-label="사용 방법과 계산 기준" aria-expanded="false" aria-controls="help-dialog" title="사용 방법과 계산 기준" data-i18n-aria="helpLabel" data-i18n-title="helpLabel"></button>
     </div>
-    <button id="update-notice" class="update-notice card-surface" type="button" hidden><span data-i18n="applyUpdate">업데이트 적용</span><span class="update-shortcut" aria-hidden="true"> · F5</span></button>
-    <div class="top-actions">
+    <button id="update-notice" class="update-notice card-surface ui" type="button" hidden><span data-i18n="applyUpdate">업데이트 적용</span><span class="update-shortcut" aria-hidden="true"> · F5</span></button>
+    <div class="top-actions ui">
       <div class="music-control">
         <button id="music-toggle" class="icon-button" type="button" aria-label="배경음악 켜기" aria-pressed="false" aria-controls="music-title" title="배경음악 켜기">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h3l4-3v10l-4-3H4z"/><path class="music-on-mark" d="M15 9.5a3.5 3.5 0 0 1 0 5M17.8 7a7 7 0 0 1 0 10"/><path class="music-off-mark" d="m15.5 10 4 4m0-4-4 4"/></svg>
@@ -79,10 +79,11 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11a5 5 0 0 1 10 0"/><ellipse cx="12" cy="13" rx="10" ry="3.5"/><path d="m7 19-1 2m6-2v3m5-3 1 2M6 13h1m4 1h2m4-1h1"/></svg>
         </button>
         <div id="opening-menu" class="language-menu opening-menu card-surface" role="menu" aria-label="오프닝 여행" hidden>
-          <button type="button" role="menuitemradio" data-opening="default" aria-checked="true" data-i18n="openingDefault">기본 오프닝</button>
+          <button id="opening-play" type="button" role="menuitem" data-i18n="openingPlay">워프</button>
+          <button type="button" role="menuitemradio" data-opening="default" aria-checked="true" data-i18n="openingDefault">기본</button>
           <button type="button" role="menuitemradio" data-opening="saturn" aria-checked="false">토성</button>
+          <button type="button" role="menuitemradio" data-opening="uranus" aria-checked="false">천왕성</button>
           <button type="button" role="menuitemradio" data-opening="none" aria-checked="false" data-i18n="openingNone">없음</button>
-          <button id="opening-play" type="button" role="menuitem" data-i18n="openingPlay">재생</button>
         </div>
       </div>
       <button id="timer-button" class="icon-button" type="button" aria-label="타이머" aria-expanded="false" aria-controls="timer-panel" title="타이머" data-i18n-aria="timer" data-i18n-title="timer">
@@ -127,7 +128,6 @@
     <div class="setting-row"><label for="show-seconds" data-i18n="showSeconds">시계 초 표시</label><input id="show-seconds" type="checkbox" role="switch"></div>
     <div class="setting-row"><label for="show-labels" data-i18n="bodyNames">천체 이름</label><input id="show-labels" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="avoid-labels" data-i18n="avoidLabels">이름 겹침 자동 정리</label><input id="avoid-labels" type="checkbox" role="switch"></div>
-    <div class="setting-row"><label for="show-moon" data-i18n="satellites">주요 위성 · 달과 유로파</label><input id="show-moon" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-pluto"><span data-i18n="pluto">명왕성</span> <small data-i18n="dwarfPlanet">왜행성</small></label><input id="show-pluto" type="checkbox" checked role="switch"></div>
     <div class="setting-row"><label for="show-comets" data-i18n="comets">멀리 지나는 혜성</label><input id="show-comets" type="checkbox" checked role="switch"></div>
     <div class="settings-actions">
@@ -223,7 +223,6 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
         <div class="body-size-heading"><span class="range-title"><label id="body-orbit-label" for="satellite-orbit-slider">위성 궤도 간격</label><button id="satellite-orbit-slider-reset" class="range-reset" type="button" aria-label="초기화" data-i18n-aria="resetDefaults"></button></span><output id="satellite-orbit-output" for="satellite-orbit-slider">100%</output></div>
         <input id="satellite-orbit-slider" class="solar-range" type="range" min="1" max="100" step="1" value="100" aria-label="선택한 행성의 위성 궤도 간격">
       </div>
-      <p id="body-size-lock" data-i18n="actualSizeLocked" hidden>실제 크기 비율에서는 조절할 수 없습니다.</p>
     </div>
     <!-- Body-only appearance: remaining sliders first, switches last. -->
     <div id="body-card-options" class="body-card-options">
@@ -238,6 +237,10 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
       <div id="earth-night-lights-control" class="setting-row body-option-row" hidden>
         <label for="earth-night-lights" data-i18n="earthNightLights">야간 불빛</label>
         <input id="earth-night-lights" type="checkbox" role="switch" checked aria-label="지구 야간 불빛" data-i18n-aria="earthNightLights">
+      </div>
+      <div id="body-satellite-control" class="setting-row body-option-row" hidden>
+        <label id="body-satellite-label" for="body-satellite-visible"></label>
+        <input id="body-satellite-visible" type="checkbox" role="switch" checked>
       </div>
       <div id="sun-shine-control" class="setting-row body-option-row" hidden>
         <label for="show-activity" data-i18n="sunShine">태양 샤인</label>
@@ -312,9 +315,9 @@ Windows 예약 종료는 프로그램을 강제로 닫을 수 있습니다.</p>
     </div>
   </section>
 
-  <footer class="footer ui">
-    <div class="signature" lang="en">
-      <span class="credit-line">Solar Time v0.80</span>
+  <footer class="footer">
+    <div class="signature ui" lang="en">
+      <span class="credit-line">Solar Time v0.81</span>
       <span class="credit-line"><a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span>
       <span class="credit-line"><span class="scale-note-primary">Mean orbit approximation
 Adjusted size and distance scale</span></span>
@@ -322,7 +325,7 @@ Adjusted size and distance scale</span></span>
       <nav class="site-policy-links" aria-label="Site information"><span class="site-policy-row"><a href="guide.html">GUIDE</a><a href="credits.html">CREDITS</a><a href="changelog.html">UPDATES</a></span><span class="site-policy-row"><a href="learn.html">LEARN</a><a href="about.html">ABOUT</a><a href="privacy.html">PRIVACY</a><a href="terms.html">TERMS</a></span></nav>
       <span class="credit-line">© 2026 Life User. All rights reserved.</span>
     </div>
-    <nav id="planet-nav" class="planet-nav" aria-label="천체 선택" data-i18n-aria="bodySelect"></nav>
+    <nav id="planet-nav" class="planet-nav ui" aria-label="천체 선택" data-i18n-aria="bodySelect"><span class="scroll-cue scroll-cue-up"></span><div id="planet-nav-list" class="planet-nav-list"></div><span class="scroll-cue scroll-cue-down"></span></nav>
   </footer>
   <div id="toast" class="toast card-surface" role="status" hidden></div>
 
@@ -386,7 +389,7 @@ Adjusted size and distance scale</span></span>
       <button id="release-notes-toggle" class="release-notes-toggle" type="button" aria-expanded="false" aria-controls="release-notes-panel"><span data-i18n="releaseNotes">업데이트 내역</span><span class="release-notes-toggle-mark" aria-hidden="true"></span></button>
       <section id="release-notes-panel" class="release-notes-panel" hidden>
         <div class="release-notes-header">
-          <div class="release-notes-heading"><h3 id="release-notes-version">v0.80</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
+          <div class="release-notes-heading"><h3 id="release-notes-version">v0.81</h3><small id="release-notes-date"></small><small id="release-notes-size"></small></div>
           <div class="release-notes-navigation step-navigation" aria-label="업데이트 내역 이동">
             <button id="release-notes-newer" class="step-previous" type="button" aria-label="최신 업데이트 내역" data-i18n-aria="releaseNotesNewer"></button>
             <span id="release-notes-position" aria-live="polite">1 / 1</span>
@@ -423,9 +426,10 @@ Adjusted size and distance scale</span></span>
         <div class="shortcut-row"><span class="shortcut-item"><kbd>M</kbd><span data-i18n="music">Background music</span></span><span class="shortcut-item"><kbd>H</kbd><span data-i18n="zenMode">Viewing mode</span></span><span class="shortcut-item"><kbd>F</kbd><span data-i18n="fullscreen">Fullscreen</span></span></div>
         <div class="shortcut-row"><span class="shortcut-item"><kbd aria-label="+"><span class="shortcut-symbol shortcut-symbol-plus" aria-hidden="true"><i></i></span></kbd><span data-i18n="actualScaleShortcut">True scale</span></span><span class="shortcut-item"><kbd>0</kbd><span data-i18n="defaultCamera">Default view</span></span><span class="shortcut-item"><kbd>1 · 2 · 3</kbd><span data-i18n="savedCameras">Saved views</span></span></div>
         <div class="shortcut-row"><span class="shortcut-item"><kbd aria-label="*"><span class="shortcut-symbol shortcut-symbol-asterisk" aria-hidden="true"><i></i></span></kbd><span data-i18n="constellationsShortcut">Show constellations</span></span><span class="shortcut-item"><kbd class="shortcut-arrows">← →</kbd><span data-i18n="targetSwitch">Previous / next target</span></span><span class="shortcut-item"><kbd class="shortcut-arrows">↑ ↓</kbd><span data-i18n="cameraTravel">Forward / back</span></span></div>
+        <div class="shortcut-row"><span class="shortcut-item"><kbd>W</kbd><span data-i18n="warpShortcut">Warp</span></span></div>
         <div class="shortcut-row shortcut-mouse-row"><span class="shortcut-item"><span class="mouse-control-icon mouse-left-click" aria-hidden="true"><i></i></span><span data-i18n="cameraRotate">회전</span></span><span class="shortcut-item"><span class="mouse-control-icon mouse-right-click" aria-hidden="true"><i></i></span><span data-i18n="zoomInOut">줌인·아웃</span></span><span class="shortcut-item"><span class="mouse-control-icon mouse-middle-click" aria-hidden="true"><i></i></span><span data-i18n="screenPan">이동</span></span><span class="shortcut-item"><img class="mouse-wheel-zoom-icon" src="assets/mouse-wheel-zoom.svg" width="34" height="32" alt="" aria-hidden="true"><span data-i18n="cameraTravel">전진·후진</span></span></div>
       </div>
-      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="wechat-pay-link" class="support-link" href="wechat-pay-qr.svg" aria-haspopup="dialog" aria-controls="wechat-pay-dialog">WeChat</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="deep-space-music-credit" class="music-credit support-credit">Deep Space Journey - <a class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span id="alarm-music-credit" class="music-credit support-credit">Soft Morning - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.80 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
+      <p class="modal-note"><span class="support-heading"><span class="coffee-cup" aria-hidden="true"></span><span data-i18n="supportMessage">이 프로그램이 도움이 되셨다면 개발자에게 커피 한 잔 후원해 주세요!</span></span><span class="support-copy" data-i18n="supportDetail">여러분들의 도움이 서버 유지와 개발을 지속하는데 큰 도움이 됩니다!</span><span class="support-options"><a class="support-link" href="https://buymeacoffee.com/lyrikey" target="_blank" rel="noopener noreferrer">Buy Me a Coffee</a><a id="wechat-pay-link" class="support-link" href="wechat-pay-qr.svg" aria-haspopup="dialog" aria-controls="wechat-pay-dialog">WeChat</a><a id="kakao-pay-link" class="support-link" href="https://qr.kakaopay.com/FC1GBtXGB" aria-haspopup="dialog" aria-controls="kakao-pay-dialog">카카오페이</a><a class="support-link" href="https://ctee.kr/place/lyrikey" target="_blank" rel="noopener noreferrer">크티</a></span><span class="social-links"><a class="social-link" href="https://www.youtube.com/@lifeuser1" target="_blank" rel="noopener noreferrer" aria-label="Life User YouTube" title="Life User YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="4"></rect><path d="m10 9 5 3-5 3z"></path></svg></a><a class="social-link" href="https://x.com/Lyrikey" target="_blank" rel="noopener noreferrer" aria-label="Lyrikey on X" title="Lyrikey on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.51 11.24h-6.66l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23Zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64Z"></path></svg></a></span><span id="background-music-credit" class="music-credit support-credit">BACKGROUND MUSIC SUNO AI - <a id="background-music-author" class="contact-email" href="https://suno.com/@lyrikey" target="_blank" rel="noopener noreferrer">Lyrikey</a></span><span id="deep-space-music-credit" class="music-credit support-credit">Deep Space Journey - <a class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span id="alarm-music-credit" class="music-credit support-credit">Soft Morning - <a id="alarm-music-author" class="contact-email" href="https://pixabay.com/ko/users/marmixer-6762941/" target="_blank" rel="noopener noreferrer">Maryan Dembitskyi</a></span><span class="support-identity">Life User • Solar Time v0.81 • <a class="contact-email" href="mailto:Lyrikey@Naver.com">Lyrikey@Naver.com</a></span><img class="life-user-watermark life-user-watermark-help" data-life-user-watermark alt="Life User"></p>
     </div>
     <span class="scroll-cue scroll-cue-down" aria-hidden="true"></span>
   </dialog>
@@ -487,22 +491,22 @@ Adjusted size and distance scale</span></span>
     <div class="cookie-consent-copy"><p><strong id="cookie-consent-title" data-i18n="cookieTitle">쿠키 사용</strong><span id="cookie-consent-message" data-i18n="cookieMessage">방문 분석과 광고 측정을 위해 쿠키 사용 여부를 선택해 주세요.</span></p><p id="cookie-choice-note" class="cookie-choice-note" data-i18n="cookieChoiceNote">허용은 6개월간 기억합니다. 거부와 X는 저장하지 않으며, 다음 접속 때 다시 묻습니다.</p></div>
     <div class="cookie-consent-actions"><a href="privacy.html" target="_blank" rel="noopener" data-i18n="cookiePrivacy">개인정보</a><button id="cookie-reject" type="button" data-i18n="cookieReject">거부</button><button id="cookie-accept" class="primary" type="button" data-i18n="cookieAccept">허용</button><button id="cookie-dismiss" type="button" class="close-button cookie-consent-close" aria-label="선택을 변경하지 않고 닫기" title="선택을 변경하지 않고 닫기" data-i18n-aria="cookieDismiss" data-i18n-title="cookieDismiss">×</button></div>
   </section>
-  <script id="solar-assets" defer src="src/assets.js?v=2d38f99d64bd"></script>
+  <script id="solar-assets" defer src="src/assets.js?v=7bf15443f850"></script>
   <script defer src="src/sky-asset.js?v=5f5dc3558635"></script>
-  <script defer src="src/materials.js?v=16d6c207252b"></script>
+  <script defer src="src/materials.js?v=916f9295a680"></script>
   <script defer src="src/astronomy-engine.min.js?v=f41139a87941"></script>
-  <script defer src="src/astro.js?v=4a67df7aa4bf"></script>
-  <script defer src="src/surface-style.js?v=46de48d4b031"></script>
-  <script defer src="src/surface.js?v=fad26f17e8f5"></script>
-  <script defer src="src/sky.js?v=2d77a3e7098d"></script>
+  <script defer src="src/astro.js?v=20ab43079a6d"></script>
+  <script defer src="src/surface-style.js?v=495f12d18ad3"></script>
+  <script defer src="src/surface.js?v=2e2ee948c3d1"></script>
+  <script defer src="src/sky.js?v=017a9e1e5dd4"></script>
   <script defer src="src/visual-effects.js?v=c1dee6764ab0"></script>
-  <script defer src="src/ring-tour.js?v=a07b365bf7c9"></script>
-  <script defer src="src/renderer.js?v=569af5bb7319"></script>
-  <script defer src="src/performance.js?v=e7dc7e32f258"></script>
-  <script defer src="src/language-data.js?v=e30ffc1ad010"></script>
-  <script defer src="src/localization.js?v=2805a44f18ff"></script>
-  <script defer src="src/preferences.js?v=292d73007ea4"></script>
-  <script defer src="src/ui-runtime.js?v=af5475286f16"></script>
+  <script defer src="src/ring-tour.js?v=9647fe07304f"></script>
+  <script defer src="src/renderer.js?v=654f27ca87c9"></script>
+  <script defer src="src/performance.js?v=6190fe06149b"></script>
+  <script defer src="src/language-data.js?v=35a0e124bb7b"></script>
+  <script defer src="src/localization.js?v=61dd0aa44326"></script>
+  <script defer src="src/preferences.js?v=12c16b058f09"></script>
+  <script defer src="src/ui-runtime.js?v=cdf9a484eb3d"></script>
   <script defer src="src/windows-shutdown.js?v=3109e303c919"></script>
   <script defer src="src/alarm-sound.js?v=a9cd1f76b67a"></script>
   <script defer src="src/timer-controller.js?v=69ee4ae7eea1"></script>
@@ -510,7 +514,7 @@ Adjusted size and distance scale</span></span>
   <script defer src="src/music-player.js?v=59c6928f8573"></script>
   <script defer src="src/adsense.js?v=b76b7bd64d36"></script>
   <script defer src="src/cookie-consent.js?v=1494a5b88bc9"></script>
-  <script defer src="src/app.js?v=a1e659a5453b"></script>
+  <script defer src="src/app.js?v=0284b3b7aa8d"></script>
   <!-- Cloudflare Web Analytics -->
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"fb63a7b11f6c409f8cdc1f703e68c5d9"}'></script>
   <!-- End Cloudflare Web Analytics -->

@@ -1,14 +1,33 @@
-/* Local Saturn-ring flight prototype. The app owns RAF; DirectRenderer owns textures.
-   Coordinates are Saturn radii in its equatorial frame: X/Z ring, Y north pole. */
+/* Local ring-system flight. The app owns RAF; DirectRenderer owns textures.
+   Coordinates are target-body radii in its equatorial frame: X/Z ring, Y north pole. */
 (function(root){
   'use strict';
+  const scriptUrl=typeof document==='object'?document.currentScript?.src:null;
+  let localAtlasTask=null;
+  function atlasSource(url){
+    if(!String(url).startsWith('file:'))return Promise.resolve(url);
+    const source=()=>{
+      const entries=root.SolarModules?.LocalEffectAtlases||{};
+      for(const [path,data] of Object.entries(entries))if(new URL(path,location.href).href===url)return data;
+      throw Error('Local ring atlas is missing: '+url);
+    };
+    if(root.SolarModules?.LocalEffectAtlases)return Promise.resolve().then(source);
+    if(!localAtlasTask)localAtlasTask=new Promise((resolve,reject)=>{
+      const script=document.createElement('script'),asset=new URL('local-effect-atlases.js',scriptUrl);
+      asset.search=new URL(scriptUrl).search;script.src=asset.href;script.async=true;
+      script.onload=()=>resolve();script.onerror=()=>{localAtlasTask=null;reject(Error('Local ring atlas could not be loaded.'));};
+      document.head.appendChild(script);
+    });
+    return localAtlasTask.then(source);
+  }
   const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),mix=(a,b,t)=>a+(b-a)*t;
   const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
   const DEBRIS_MIN_ALPHA=.002;
+  const TRAVEL_FOV=Object.freeze({min:35,max:60});
   const dot=(a,b)=>a.reduce((n,v,i)=>n+v*b[i],0),unit=a=>{const n=Math.hypot(...a)||1;return a.map(v=>v/n);};
   const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
   const blend=(a,b,t)=>a.map((v,i)=>mix(v,b[i],t));
-  const SETTINGS=Object.freeze({entry:10,detailStart:2.5,spiralThreshold:.8,return:3.2,returnFar:5,returnMax:7,returnSpeed:1.1,annotationHide:4,annotationLead:1,pathRadius:2.26,pathInner:1.35,pathDepth:.8,debris:30000,grains:5000,fog:10000,chips:10000});
+  const SETTINGS=Object.freeze({entry:10,detailStart:2.5,spiralThreshold:.8,return:3.2,returnFar:5,returnMax:7,returnSpeed:1.1,annotationHide:4,annotationLead:1,pathDepth:.8,debris:30000,grains:5000,fog:10000,chips:10000});
   // 4×2 atlas row order. Keep the angular rock, long ice and flat slab full-size;
   // rounded ice/stone clumps are half-size in both representations.
   const SPRITE_SIZE=Object.freeze([.5,1,.5,.5,1,.5,1,.5]);
@@ -20,6 +39,8 @@
   const BANK_LIMIT=20*Math.PI/180;
   const BANK_MAX=45*Math.PI/180;
   const BANK_HANDOFF=2;
+  const TRANSFER_SURFACE_BLEND=2;
+  const TRANSFER_ATTITUDE=Object.freeze({duration:5,decay:3,sample:.001});
   const OPENING_CARRY=Object.freeze({decay:2,settleStart:2.5,settleEnd:4});
   const ENTRY_HOME_RETURN=Object.freeze({min:1,max:2,farDistance:24});
   const LANDING_BANK_SETTLE=3.5;
@@ -78,7 +99,7 @@
     const h=.24,points=Array.from({length:7},(_,i)=>sample(time+(i-3)*h));
     return [1,4,6,4,1].reduce((sum,w,i)=>sum+w*bankAngle(points[i],points[i+1],points[i+2],right,h),0)/16;
   }
-  function viewPose({frame,radius,width,height,screen,fov=72}){
+  function viewPose({frame,radius,width,height,screen,fov=TRAVEL_FOV.max}){
     const focal=height/(2*Math.tan(fov*Math.PI/360)),orthoScale=focal/Math.max(radius,.001);
     const eye=unit([frame.u.z,frame.pole.z,frame.v.z]).map(v=>v*Math.max(1.08,orthoScale));
     return {...axes(unit(eye.map(v=>-v)),unit([-frame.u.y,-frame.pole.y,-frame.v.y])),eye,
@@ -99,8 +120,11 @@
       q=[0,0,0,0];q[i]=s/4;q[j]=(m[i*3+j]+m[j*3+i])/s;q[k]=(m[i*3+k]+m[k*3+i])/s;q[3]=(m[k*3+j]-m[j*3+k])/s;}
     return unit(q);
   }
-  function orientation(a,b,t){
-    const qa=quaternion(a);let qb=quaternion(b),d=dot(qa,qb);if(d<0){qb=qb.map(v=>-v);d=-d;}
+  function orientation(a,b,t,reference){
+    let qa=quaternion(a),qb=quaternion(b);
+    if(reference){if(dot(qa,reference.a)<0)qa=qa.map(v=>-v);if(dot(qb,reference.b)<0)qb=qb.map(v=>-v);}
+    else if(dot(qa,qb)<0)qb=qb.map(v=>-v);
+    const d=dot(qa,qb);
     const angle=Math.acos(clamp(d,-1,1)),q=angle<.001?unit(blend(qa,qb,t)):qa.map((v,i)=>(v*Math.sin((1-t)*angle)+qb[i]*Math.sin(t*angle))/Math.sin(angle));
     const [x,y,z,w]=q;
     return {right:[1-2*(y*y+z*z),2*(x*y+z*w),2*(x*z-y*w)],up:[2*(x*y-z*w),1-2*(x*x+z*z),2*(y*z+x*w)],forward:[2*(x*z+y*w),2*(y*z-x*w),1-2*(x*x+y*y)]};
@@ -387,6 +411,9 @@
   }
   const VERTEX=`attribute vec2 a;varying vec2 uv;void main(){uv=a*.5+.5;gl_Position=vec4(a,0.,1.);}`;
   const RAY=`
+    uniform vec2 ringBounds;uniform float narrowRing;
+    ${root.SolarSurfaceStyle.narrowRingGLSL}
+    ${root.SolarSurfaceStyle.ringCoverageGLSL}
     ${root.SolarSurfaceStyle.ringShadowGLSL}
     float ringDetail(float distance){return 1.-smoothstep(1.2,2.8,distance);}
     float ringTransition(vec3 point,float ready){
@@ -402,14 +429,13 @@
     // Pixel/ring overlap: two overlapping edge fades erased the entire thin
     // distant band when one pixel's footprint exceeded the width of the ring.
     float ringCoverage(float radius,float footprint){
-      float span=max(footprint,.0001);
-      return clamp((min(2.26,radius+span*.5)-max(1.28,radius-span*.5))/span,0.,1.);
+      return ringBandCoverage(radius,footprint,ringBounds);
     }
     float sphere(vec3 ro,vec3 rd){float b=dot(ro,rd),miss=length(cross(ro,rd)),h=1.-miss*miss;if(h<0.)return -1.;float t=-b-sqrt(h);return t>.001?t:-1.;}
-    float ring(vec3 ro,vec3 rd){if(abs(rd.y)<.00001)return -1.;float t=-ro.y/rd.y;vec3 p=ro+rd*t;float r=length(p.xz);return t>.001&&r>1.28&&r<2.26?t:-1.;}
+    float ring(vec3 ro,vec3 rd){if(abs(rd.y)<.00001)return -1.;float t=-ro.y/rd.y;vec3 p=ro+rd*t;float r=length(p.xz);return t>.001&&r>ringBounds.x&&r<ringBounds.y?t:-1.;}
   `;
   const FRAGMENT=`precision highp float;varying vec2 uv;
-    uniform vec3 eye,viewEye,detailEye,light;uniform mat3 basis;uniform vec2 lens,offset;uniform sampler2D planetMap,ringMap;uniform float phase,debrisReady,perspective,orthoScale,ringTexel,focal;
+    uniform vec3 eye,viewEye,detailEye,light,ringTint;uniform float distantRingGain;uniform mat3 basis;uniform vec2 lens,offset;uniform sampler2D planetMap,ringMap;uniform float phase,debrisReady,perspective,orthoScale,ringTexel,focal;
     ${RAY}
     ${root.SolarSurfaceStyle?.ringSamplingGLSL||''}
     void main(){
@@ -426,27 +452,28 @@
         float day=max(0.,dot(n,light));color=texture2D(planetMap,st).rgb*(.115+.98*day);
         color+=vec3(.18,.26,.33)*pow(1.-max(0.,dot(n,-ray)),5.)*day*.16;alpha=1.;}
       if(tr>0.&&(ts<0.||tr<ts)){
-        vec3 p=ro+ray*tr;float r=length(p.xz),f=(r-1.28)/.98;
+        vec3 p=ro+ray*tr;float r=length(p.xz),span=ringBounds.y-ringBounds.x,f=(r-ringBounds.x)/span;
         vec3 radial=vec3(p.x,0.,p.z)/r;vec2 screenRadial=vec2(dot(radial,basis[0]),dot(radial,basis[1]));
         float radius=focal/max(.01,mix(orthoScale,dot(p-eye,basis[2]),perspective));
-        float aa=max(1./(radius*.98),1.15/(max(radius*length(screenRadial),1.)*.98));
+        float aa=max(1./(radius*span),1.15/(max(radius*length(screenRadial),1.)*span));
         // Ray/plane footprint, not an orthographic projected radius: at grazing
         // angles one pixel spans many radial bands. Filter that complete span.
         float planeScale=mix(orthoScale,dot(p-eye,basis[2]),perspective);
         vec3 dx=planeScale*(basis[0]-ray*basis[0].y/ray.y);
         vec3 dy=planeScale*(basis[1]-ray*basis[1].y/ray.y);
-        float footprint=(abs(dot(radial,dx))+abs(dot(radial,dy)))/max(focal*.98,1.);
+        float footprint=(abs(dot(radial,dx))+abs(dot(radial,dy)))/max(focal*span,1.);
         aa=mix(aa,max(ringTexel,footprint),perspective);
-        vec4 band=ringFiltered(f,aa);
-        float edge=max(1./radius,aa*.98);
-        float orthoCoverage=smoothstep(1.28,1.28+edge,r)*(1.-smoothstep(2.26-edge,2.26,r));
-        float a=band.a*mix(orthoCoverage,ringCoverage(r,aa*.98),perspective);
+        vec4 band=narrowRing>.5?vec4(1.,1.,1.,narrowRingAlpha(f,aa,mix(1.,distantRingGain,debrisReady))):ringFiltered(f,aa);
+        float edge=max(1./radius,aa*span);
+        float orthoCoverage=smoothstep(ringBounds.x,ringBounds.x+edge,r)*(1.-smoothstep(ringBounds.y-edge,ringBounds.y,r));
+        if(narrowRing>.5)orthoCoverage=ringCoverage(r,edge);
+        float a=band.a*mix(orthoCoverage,ringCoverage(r,aa*span),perspective);
         // Keep the original ring until the blended projection's effective eye
         // is close enough to see debris, not just the not-yet-boarded locator.
         a*=1.-ringTransition(p,debrisReady);
         // Soft penumbra instead of a binary ray hit, which looked like a cut.
-        float shadow=ringShadow(p,light);
-        color=band.rgb*shadow*a+color*alpha*(1.-a);alpha=a+alpha*(1.-a);color/=max(alpha,.00001);
+        float shadow=narrowRing>.5?1.:ringShadow(p,light);
+        color=band.rgb*ringTint*shadow*a+color*alpha*(1.-a);alpha=a+alpha*(1.-a);color/=max(alpha,.00001);
       }
       gl_FragColor=vec4(color,alpha);
     }`;
@@ -502,7 +529,7 @@
       spriteUV=(a*.5+.5)*.992+.004;
       gl_Position=depth>.001?vec4((v.xy+corner+offset*depth)/lens,depth*(1.-2./(1.+depth)),depth):vec4(2.,2.,2.,1.);
     }`;
-  const DEBRIS_FRAGMENT=`precision highp float;uniform vec3 eye,viewEye,detailEye,light;uniform sampler2D ringMap,atlas;uniform float debrisReady,fogPass,chipPass;uniform vec2 atlasGrid;
+  const DEBRIS_FRAGMENT=`precision highp float;uniform vec3 eye,viewEye,detailEye,light,materialTint;uniform sampler2D ringMap,atlas;uniform float debrisReady,fogPass,chipPass;uniform vec2 atlasGrid;
     varying vec3 world,tint;varying vec2 spriteUV;varying float seed,fade,ringRadius;
     ${RAY}
     ${DEBRIS_COLOR}
@@ -526,14 +553,14 @@
       vec3 delta=world-viewEye,ray=normalize(delta);float distance=length(world-eye),rayDistance=length(delta),s=sphere(viewEye,ray);if(s>0.&&s<rayDistance)discard;
       // Choose density for the WHOLE instance. Sampling at each sprite pixel
       // sliced rocks and fog along the radial ring bands like a cookie cutter.
-      vec4 band=texture2D(ringMap,vec2(clamp((ringRadius-1.28)/.98,0.,1.),.5));
+      vec4 band=narrowRing>.5?vec4(1.):texture2D(ringMap,vec2(clamp((ringRadius-ringBounds.x)/(ringBounds.y-ringBounds.x),0.,1.),.5));
       if(fogPass<.5&&fract(seed*19.7)>band.a)discard;float tr=ring(viewEye,ray),occlusion=1.;
-      if(tr>0.&&tr<rayDistance){vec3 p=viewEye+ray*tr;occlusion=1.-texture2D(ringMap,vec2((length(p.xz)-1.28)/.98,.5)).a*(1.-ringTransition(p,debrisReady));}
+      if(tr>0.&&tr<rayDistance){vec3 p=viewEye+ray*tr;float f=(length(p.xz)-ringBounds.x)/(ringBounds.y-ringBounds.x);float sheetAlpha=narrowRing>.5?narrowRingAlpha(f,.001):texture2D(ringMap,vec2(f,.5)).a;occlusion=1.-sheetAlpha*(1.-ringTransition(p,debrisReady));}
       // Dust's former .13 opacity is reduced by 30%, independently of rocks.
       float alpha=rock.a*fade*occlusion*ringTransition(world,debrisReady)*mix(1.,.091*band.a,fogPass);
       // Fully faded pixels must never occlude another solid instance.
       if(alpha<${DEBRIS_MIN_ALPHA})discard;
-      gl_FragColor=vec4(mix(debrisColor(rock.rgb),rock.rgb,fogPass)*tint*mix(.72,.6,fogPass)*ringShadow(world,light),alpha);
+      gl_FragColor=vec4(mix(debrisColor(rock.rgb),rock.rgb,fogPass)*tint*materialTint*mix(.72,.6,fogPass)*ringShadow(world,light),alpha);
     }`;
   const ROCK_VERTEX=`precision highp float;attribute vec3 corner,normal,position;attribute vec2 detail;
     uniform vec3 eye,viewEye;uniform mat3 basis;uniform vec2 lens,offset;uniform float perspective,orthoScale,elapsed;
@@ -552,19 +579,20 @@
       fade=debrisFade(centerDepth,length(position-viewEye))*budgetFade(position-eye,seed);
       gl_Position=vec4((v.xy+offset*depth)/lens,depth*(1.-2./(1.+max(depth,0.))),depth);
     }`;
-  const ROCK_FRAGMENT=`precision highp float;uniform vec3 eye,viewEye,detailEye,light;uniform sampler2D ringMap,atlas;uniform float debrisReady;
+  const ROCK_FRAGMENT=`precision highp float;uniform vec3 eye,viewEye,detailEye,light,materialTint;uniform sampler2D ringMap,atlas;uniform float debrisReady;
     varying vec3 world,face,tint;varying vec2 rockUV;varying float seed,fade,ringRadius;
     ${RAY}
     ${DEBRIS_COLOR}
     void main(){
       if(fade*debrisReady<${DEBRIS_MIN_ALPHA})discard;vec3 d=world-viewEye;float distance=length(d),hit=sphere(viewEye,d/distance);if(hit>0.&&hit<distance-.001)discard;
-      float density=texture2D(ringMap,vec2(clamp((ringRadius-1.28)/.98,0.,1.),.5)).a;if(fract(seed*19.7)>density)discard;
+      float density=narrowRing>.5?1.:texture2D(ringMap,vec2(clamp((ringRadius-ringBounds.x)/(ringBounds.y-ringBounds.x),0.,1.),.5)).a;if(fract(seed*19.7)>density)discard;
       float slot=floor(seed*8.);vec4 texel=texture2D(atlas,(vec2(mod(slot,4.),floor(slot/4.))+rockUV)/vec2(4.,2.));
       vec3 albedo=debrisColor(mix(vec3(.39,.38,.35),texel.rgb,smoothstep(.1,.65,texel.a)));
       float alpha=fade*ringTransition(world,debrisReady);if(alpha<${DEBRIS_MIN_ALPHA})discard;
-      gl_FragColor=vec4(albedo*tint*(.28+.8*max(0.,dot(normalize(face),light)))*ringShadow(world,light),alpha);
+      gl_FragColor=vec4(albedo*tint*materialTint*(.28+.8*max(0.,dot(normalize(face),light)))*ringShadow(world,light),alpha);
     }`;
   function* programSteps(gl,vertex,fragment,names,parallel=null){
+    names=names.concat(['ringBounds','narrowRing']);
     const shaders=[];let p,complete=false;
     try{
       for(const [type,source] of [[gl.VERTEX_SHADER,vertex],[gl.FRAGMENT_SHADER,fragment]]){
@@ -579,13 +607,18 @@
     }finally{if(p&&!complete)gl.deleteProgram(p);shaders.forEach(s=>gl.deleteShader(s));}
   }
   class RingTour{
-    constructor({frame,radius,width,height,screen,startPose,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,openingAcceleration,prepared,deferPreparation=false,particleCapacity=1,lensZoom=1,pointified=false}){
+    constructor({frame,radius,width,height,screen,startPose,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,openingAcceleration,prepared,deferPreparation=false,particleCapacity=1,lensZoom=1,pointified=false,gentleDeparture=false,surfacePerspectiveStart=0,bodyId='saturn',planetTextureId=bodyId,ringTextureId='saturn-ring',atlasUrl=RingTour.atlasUrl,materialTint=[1,1,1],ringTint=[1,1,1],narrowRing=false,ringBounds=[1.28,2.26],debrisDensity=1,distantRingGain=1,debrisHeight=1,debrisMaxSize=1}){
+      this.bodyId=bodyId;this.planetTextureId=planetTextureId;this.ringTextureId=ringTextureId;this.atlasUrl=atlasUrl;this.materialTint=materialTint;this.ringTint=ringTint;
+      this.debrisMaxSize=clamp(debrisMaxSize,.25,1);this.debrisHeight=clamp(debrisHeight,.1,1);this.distantRingGain=distantRingGain;this.narrowRing=narrowRing;this.ringBounds=ringBounds;this.debrisDensity=clamp(debrisDensity,.25,2);
+      this.ringWidthScale=(ringBounds[1]-ringBounds[0])/.98;
+      this.pathRadius=ringBounds[1];this.pathInner=ringBounds[0]+.07*this.ringWidthScale;
       this.particleCapacity=clamp(particleCapacity,.25,1);this.particleBudget=1;
-      this.openingResume=!!openingVelocity;this.pointified=!!pointified;
+      this.surfacePerspectiveStart=clamp(surfacePerspectiveStart,0,1);
+      this.openingResume=!!openingVelocity;this.gentleDeparture=gentleDeparture;this.pointified=!!pointified;
       this.returnSpeedMultiplier=1;
       const rand=random(seed);this.seed=seed;this.phase=phase;this.state='entering';this.age=0;this.lastMono=null;this.speed=1;
-      this.radius=SETTINGS.pathRadius-(SETTINGS.pathRadius-1.28)*random(seed^0x6a09e667)()*.2;this.height=.025+rand()*.023;this.direction=rand()<.5?-1:1;this.period=(115+rand()*55)/6;
-      this.fov=72;this.lensZoom=Math.max(MIN_LENS_SCALE,Number.isFinite(lensZoom)?lensZoom:1);this.yaw=0;this.pitch=0;this.pan=[0,0];this.resources=null;this.disposed=false;
+      this.radius=this.pathRadius-(this.pathRadius-ringBounds[0])*random(seed^0x6a09e667)()*.2;this.height=.025+rand()*.023;this.direction=rand()<.5?-1:1;this.period=(115+rand()*55)/6;
+      this.fov=TRAVEL_FOV.max;this.lensZoom=Math.max(MIN_LENS_SCALE,Number.isFinite(lensZoom)?lensZoom:1);this.yaw=0;this.pitch=0;this.pan=[0,0];this.resources=null;this.disposed=false;
       const captured=startPose&&['eye','right','up','forward','offset'].every(key=>Array.isArray(startPose[key])&&startPose[key].every(Number.isFinite));
       this.startPose=captured?{...startPose,eye:[...startPose.eye],right:[...startPose.right],up:[...startPose.up],forward:[...startPose.forward],offset:[...startPose.offset]}:viewPose({frame,radius,width,height,screen,fov:this.fov});
       // A sub-pixel Saturn already represents a camera far enough away for a
@@ -593,6 +626,11 @@
       // perspective made every surrounding body follow a different apparent
       // route before rejoining the real S-curve camera.
       if(this.pointified)this.startPose={...this.startPose,perspective:1,pointified:true};
+      if(captured&&Number.isFinite(startPose.fov))this.fov=clamp(startPose.fov,TRAVEL_FOV.min,TRAVEL_FOV.max);
+      if(gentleDeparture&&openingVelocity){
+        const previous=key=>this.startPose[key].map((v,i)=>v-(openingVelocity[key]?.[i]||0)*TRANSFER_ATTITUDE.sample);
+        this.transferPreviousFrame=axes(unit(previous('forward')),unit(previous('up')));
+      }
       this.orthoScale=this.startPose.orthoScale;
       this.startEye=this.startPose.eye;
       this.startAngle=Math.atan2(this.startEye[2],this.startEye[0]);this.entryAngle=this.startAngle+(rand()-.5)*.65;
@@ -656,12 +694,14 @@
       this.detailStart=high;
       // Monotonic radial approach stays outside Saturn without an outward detour.
       this.light=unit([frame.u,frame.pole,frame.v].map(v=>v.x*light[0]+v.y*light[1]+v.z*light[2]));
-      if(prepared&&!prepared.disposed&&prepared.preparationReady&&(!prepared.resources||prepared.resources.ready)){
+      if(prepared&&!prepared.disposed&&prepared.bodyId===this.bodyId&&prepared.preparationReady&&(!prepared.resources||prepared.resources.ready)){
         // Transfer ownership, not a second pool. Camera/path state is still
         // sampled at handoff; only particles and GPU resources were prepared.
         for(const key of ['particleCapacity','points','fogPoints','chipPoints','instanceLayers','meshDetail','instanceData','instanceOrder','depths','instanceSpatial','flightField','atlasImage','resources'])this[key]=prepared[key];
         // T can recycle a completed tour as well as a fresh warm-up. Preserve
         // geometry and the pool; reset only visibility clocks and tube height.
+        // Resource readiness belongs to the inherited atlas, not the old tour clock.
+        if(this.resources?.atlas&&Number.isFinite(this.resources.atlasAge))this.resources.atlasAge-=prepared.visualAge||0;
         this.flightField.exit=null;this.flightField.started=false;this.flightField.alpha=0;
         for(const p of this.flightField.points){p.world[1]+=this.height-prepared.height;p.born=Infinity;delete p.exitFade;}
         prepared.disposed=true;this.preparationReady=true;this.pose=this.cameraPose();this.prepareGrainRoute();return;
@@ -672,7 +712,12 @@
       this.instanceData=new Float32Array(0);this.depths=new Float32Array(0);this.meshDetail=new Uint8Array(0);
       this.instanceLayers=[];this.instanceOrder=[];this.flightField={points:[],projected:{},alpha:0};
       this.atlasImage=typeof Image==='function'?new Image():null;
-      if(this.atlasImage){this.atlasImage.crossOrigin='anonymous';this.atlasImage.src=RingTour.atlasUrl;}
+      if(this.atlasImage){
+        this.atlasImage.crossOrigin='anonymous';
+        // The decoded image can transfer to a live tour while its source is loading.
+        const image=this.atlasImage;
+        atlasSource(this.atlasUrl).then(source=>{image.src=source;}).catch(error=>{this.atlasLoadError=error.message;});
+      }
       this.preparation=this.buildScene(rand,grainStyle);
       if(!deferPreparation)this.advancePreparation();
     }
@@ -686,19 +731,22 @@
       return false;
     }
     *buildScene(rand,grainStyle){
+      const [inner,outer]=this.ringBounds,dustInner=inner+.02*this.ringWidthScale,dustOuter=outer-.02*this.ringWidthScale;
+      const sampleRadius=(lo,hi)=>this.narrowRing?root.SolarSurfaceStyle.sampleNarrowRingRadius(rand,inner,outer):Math.sqrt(mix(lo**2,hi**2,rand()));
+      // Sample once at preparation; no frame-time resampling or Saturn-map rejection.
       // One fixed pool, not particles spawned per frame or attached to the camera.
-      this.points=new Float32Array(Math.floor(SETTINGS.debris*this.particleCapacity)*5);
+      this.points=new Float32Array(Math.floor(SETTINGS.debris*this.particleCapacity*this.debrisDensity)*5);
       // Equal counts of each sprite: original slots 0/1/4/5, extra slots 2/3/6/7.
       // Positions are random, so exact 50:50 source allocation creates no spatial bands.
-      for(let i=0;i<this.points.length;i+=5){if(i%640===0)yield;const a=rand()*TAU,r=Math.sqrt(mix(1.28**2,2.26**2,rand())),slot=(i/5)%8;
-        this.points.set([Math.cos(a)*r,(rand()-.5)*DEBRIS_LAYER_HEIGHT*edgeHeight(r),Math.sin(a)*r,mix(INSTANCE_SIZE.rockMin,INSTANCE_SIZE.rockMax,rand()**3)*SPRITE_SIZE[slot]*edgeSize(r),(slot+.001+rand()*.998)/8],i);}
-      this.fogPoints=new Float32Array(Math.floor(SETTINGS.fog*this.particleCapacity)*5);
+      for(let i=0;i<this.points.length;i+=5){if(i%640===0)yield;const a=rand()*TAU,r=sampleRadius(inner,outer),slot=(i/5)%8;
+        this.points.set([Math.cos(a)*r,(rand()-.5)*DEBRIS_LAYER_HEIGHT*this.debrisHeight*edgeHeight(r,inner,outer),Math.sin(a)*r,mix(INSTANCE_SIZE.rockMin,INSTANCE_SIZE.rockMax*this.debrisMaxSize,rand()**3)*SPRITE_SIZE[slot]*edgeSize(r,inner,outer),(slot+.001+rand()*.998)/8],i);}
+      this.fogPoints=new Float32Array(Math.floor(SETTINGS.fog*this.particleCapacity*this.debrisDensity)*5);
       // Relative to rock centres at -10..10, dust occupies -7..7 around ring Y=0.
-      for(let i=0;i<this.fogPoints.length;i+=5){if(i%640===0)yield;const a=rand()*TAU,r=Math.sqrt(mix(1.3**2,2.24**2,rand()));
-        this.fogPoints.set([Math.cos(a)*r,(rand()-.5)*DEBRIS_LAYER_HEIGHT*DUST_HEIGHT_RATIO*edgeHeight(r,1.3,2.24),Math.sin(a)*r,mix(INSTANCE_SIZE.fogMin,INSTANCE_SIZE.fogMax,rand())*edgeSize(r,1.3,2.24),rand()],i);}
-      this.chipPoints=new Float32Array(Math.floor(SETTINGS.chips*this.particleCapacity)*5);
-      for(let i=0;i<this.chipPoints.length;i+=5){if(i%640===0)yield;const a=rand()*TAU,r=Math.sqrt(mix(1.28**2,2.26**2,rand()));
-        this.chipPoints.set([Math.cos(a)*r,(rand()-.5)*DEBRIS_LAYER_HEIGHT*edgeHeight(r),Math.sin(a)*r,mix(.0006,.0036,rand()**3)*edgeSize(r),rand()],i);}
+      for(let i=0;i<this.fogPoints.length;i+=5){if(i%640===0)yield;const a=rand()*TAU,r=sampleRadius(dustInner,dustOuter);
+        this.fogPoints.set([Math.cos(a)*r,(rand()-.5)*DEBRIS_LAYER_HEIGHT*this.debrisHeight*DUST_HEIGHT_RATIO*edgeHeight(r,dustInner,dustOuter),Math.sin(a)*r,mix(INSTANCE_SIZE.fogMin,INSTANCE_SIZE.fogMax,rand())*edgeSize(r,dustInner,dustOuter),rand()],i);}
+      this.chipPoints=new Float32Array(Math.floor(SETTINGS.chips*this.particleCapacity*this.debrisDensity)*5);
+      for(let i=0;i<this.chipPoints.length;i+=5){if(i%640===0)yield;const a=rand()*TAU,r=sampleRadius(inner,outer);
+        this.chipPoints.set([Math.cos(a)*r,(rand()-.5)*DEBRIS_LAYER_HEIGHT*this.debrisHeight*edgeHeight(r,inner,outer),Math.sin(a)*r,mix(.0006,.0036*this.debrisMaxSize,rand()**3)*edgeSize(r,inner,outer),rand()],i);}
       yield* this.buildInstanceLayerSteps();
       if(grainStyle)for(let i=0;i<Math.floor(SETTINGS.grains*this.particleCapacity);i++){if(i%128===0)yield;
         this.flightField.points.push({world:[0,0,0],seed:(rand()*4294967296)>>>0,born:0,range:1,...grainStyle(rand)});
@@ -789,6 +837,10 @@
     }
     returnProgress(start=0){return transition(this.returnAge||0,start,this.returnDuration);}
     ringDetailState(viewEye=projectionEye(this.pose)){
+      if(this.departureVisual){
+        const {detail,elapsed}=this.departureVisual;
+        return {eye:detail.eye,amount:detail.amount*(1-transition(elapsed,0,2))};
+      }
       const returning=this.state==='returning'||this.state==='complete';
       // Leave the local handoff region where retreat began. Moving it away
       // with the camera restored the disk almost instantly. Both renderers
@@ -796,7 +848,7 @@
       if(returning)return {eye:this.returnDetail.eye,amount:this.returnDetail.amount*(1-this.returnProgress(this.returnDetailStart||0))};
       // Preview only the nearest patch of the ring, never the entire disk.
       // The old effective-eye height delayed this reveal until ~6 seconds.
-      const radius=Math.hypot(viewEye[0],viewEye[2]),scale=clamp(radius,1.28,2.26)/Math.max(radius,.0001);
+      const radius=Math.hypot(viewEye[0],viewEye[2]),scale=clamp(radius,...this.ringBounds)/Math.max(radius,.0001);
       const nearest=[viewEye[0]*scale,clamp(viewEye[1],-.2,.2),viewEye[2]*scale];
       const eye=blend(nearest,viewEye,transition(this.age,SETTINGS.entry-2,SETTINGS.entry));
       return {eye,amount:transition(this.age,this.detailStart,SETTINGS.entry)};
@@ -813,6 +865,7 @@
         if(entryTime!==null){this.returnMotion.duration=entryTime;this.returnMotion.rotationTime=entryTime;}
         return;
       }
+      this.returnSurfaceStart=this.surfaceProjectionProgress();
       const exiting=this.state==='returning',retargetStart=exiting&&this.returnAge===0,from=withoutDrift(this.pose);
       const dt=retargetStart?this.returnMotion.dt:Math.min(.001,exiting?this.returnAge:this.age);
       const previous=retargetStart?this.returnMotion.previous:dt>0?withoutDrift(this.cameraPose(this.age-dt,(this.returnAge||0)-dt)):from,a=polar(from.eye),b=polar(view.eye),old=polar(previous.eye);
@@ -887,6 +940,11 @@
       return pose;
     }
     returnPose(elapsed){
+      const pose=this.rawReturnPose(elapsed);
+      if(!this.replayBridge?.takeoff)pose.eye=this.applyFlightDetours(pose.eye,(elapsed-(this.returnClearanceStart||0))/Math.max(.001,this.returnDuration-(this.returnClearanceStart||0)),this.returnDetours||null);
+      return pose;
+    }
+    rawReturnPose(elapsed){
       if(this.replayBridge?.takeoff)return this.takeoffPose(elapsed);
       if(this.returnMotion.rewind)return this.rewindPose(elapsed);
       const m=this.returnMotion,from=this.returnFrom,to=this.returnTo,t=clamp(elapsed/this.returnDuration,0,1),weight=ease(t),u=clamp(elapsed/m.rotationTime,0,1);
@@ -928,14 +986,14 @@
     lensScale(fov=this.fov){return this.lensZoom*Math.tan(this.startPose.fov*Math.PI/360)/Math.tan(fov*Math.PI/360);}
     zoom(factor){
       if(!(factor>0&&Number.isFinite(factor)))return;
-      const maximum=Math.min(100,360/Math.PI*Math.atan(this.lensZoom*Math.tan(this.startPose.fov*Math.PI/360)/MIN_LENS_SCALE));
-      this.fov=clamp(this.fov/factor,35,maximum);
+      const maximum=Math.min(TRAVEL_FOV.max,360/Math.PI*Math.atan(this.lensZoom*Math.tan(this.startPose.fov*Math.PI/360)/MIN_LENS_SCALE));
+      this.fov=clamp(this.fov/factor,TRAVEL_FOV.min,maximum);
     }
     move(x,y){this.pan[0]=clamp(this.pan[0]+x,-.12,.12);this.pan[1]=clamp(this.pan[1]+y,-.012,.16);}
     cruiseTarget(index){
       // X uses the full visible ring width (0..80%); Y is relative to the
       // landing side (0..100%). Entry samples the outer 0..20% of the visible ring.
-      if(index===0)return {x:(SETTINGS.pathRadius-this.radius)/(SETTINGS.pathRadius-SETTINGS.pathInner),y:1};
+      if(index===0)return {x:(this.pathRadius-this.radius)/(this.pathRadius-this.pathInner),y:1};
       if(index===1)return {x:SETTINGS.pathDepth,y:0};
       const xStep=.51,yStep=.6;
       const outside=lap=>{
@@ -952,14 +1010,14 @@
     boardingSpeed(startDistance=Math.hypot(...this.startEye)){
       // Carry the inward approach through the sampled landing point.
       const gap=Math.max(0,Math.log(startDistance/Math.hypot(this.radius,this.height)));
-      return Math.min((this.radius-(SETTINGS.pathRadius-(SETTINGS.pathRadius-SETTINGS.pathInner)*SETTINGS.pathDepth))/this.period,this.radius*gap/SETTINGS.entry);
+      return Math.min((this.radius-(this.pathRadius-(this.pathRadius-this.pathInner)*SETTINGS.pathDepth))/this.period,this.radius*gap/SETTINGS.entry);
     }
     cruiseWave(age){
       const laps=Math.max(0,(age-SETTINGS.entry)/this.period),lap=Math.floor(laps);
       const a=this.cruiseTarget(lap),b=this.cruiseTarget(lap+1),phase=laps-lap,weight=ease(phase);
-      const span=(SETTINGS.pathRadius-SETTINGS.pathInner)*(b.x-a.x);
+      const span=(this.pathRadius-this.pathInner)*(b.x-a.x);
       const carry=lap===0?this.boardingSpeed()*this.period*initialTangent(phase):0;
-      return {radius:SETTINGS.pathRadius-(SETTINGS.pathRadius-SETTINGS.pathInner)*mix(a.x,b.x,weight+carry/span),height:this.height*(2*mix(a.y,b.y,weight+carry/(2*this.radius))-1)};
+      return {radius:this.pathRadius-(this.pathRadius-this.pathInner)*mix(a.x,b.x,weight+carry/span),height:this.height*(2*mix(a.y,b.y,weight+carry/(2*this.radius))-1)};
     }
     locatorPose(age=this.age,angle=this.entryAngle+age*TAU/this.period*this.direction){
       const c=Math.cos(angle),s=Math.sin(angle);
@@ -974,12 +1032,12 @@
       // looked like the orbit geometry itself was expanding. Distance now
       // follows the shared camera clock and still matches cruise velocity at
       // the landing tangent.
-      const p=clamp(age/SETTINGS.entry,0,1),weight=entryWeight(age,this.openingResume);
+      const p=clamp(age/SETTINGS.entry,0,1),weight=this.gentleDeparture?ease(p):entryWeight(age,this.openingResume);
       const gap=Math.log(startDistance/this.landingDistance);
       const flow=gap>0?clamp(this.boardingSpeed(startDistance)*SETTINGS.entry/(this.radius*gap),0,1):0;
       // The old radial ease ended at zero speed, then the first lap accelerated
       // again. This monotonic blend ends with the same tangent as cruiseWave.
-      const radial=mix(weight,p*p*(2-p),flow);
+      const radial=mix(weight,this.gentleDeparture?p*p*p*(3-2*p):p*p*(2-p),flow);
       const distance=Math.exp(mix(Math.log(startDistance),Math.log(this.landingDistance),radial));
       // A contracting spiral from departure, not a radial flight followed by
       // a last-second turn. Position and orientation share this angular clock;
@@ -997,7 +1055,7 @@
       // Distance and perspective must advance on the same clock. Letting a far
       // camera close the gap first made Saturn grow alone, then warped the rest
       // of the solar system when perspective caught up later.
-      const pose={...turnFrame(frame,turn),eye:this.entryPosition(age,motion),offset:blend(this.startOffset,[0,0],weight),perspective:mix(this.startPose.perspective||0,1,projection),fov,orthoScale:this.orthoScale*motion.distance/this.startDistance};
+      const pose={...turnFrame(frame,turn),eye:this.entryPosition(age,motion),offset:blend(this.startOffset,[0,0],weight),perspective:mix(this.startPose.perspective||0,1,projection),fov:mix(this.startPose.fov,fov,projection),orthoScale:this.orthoScale*motion.distance/this.startDistance};
       if(this.entryView){
         // Follow the moving planet progressively, without changing simulation
         // time or the ring arrival. The live lens also prevents a stale size
@@ -1083,9 +1141,76 @@
       pose.perspective=clamp(pose.perspective+(carry?.perspective||0)*bridge+(acceleration?.perspective||0)*accelerationBridge,0,1);
       return pose;
     }
+    planFlightClearance(obstacles,returning=false){
+      // Plan once in the destination body's frame. Smooth local detours keep
+      // departure/landing positions and velocities, with no per-frame repulsion.
+      const detours=[];if(returning){this.returnDetours=detours;this.returnClearanceStart=this.returnAge||0;}else this.entryDetours=detours;
+      const startAge=returning?this.returnClearanceStart:0,duration=returning?this.returnDuration-startAge:SETTINGS.entry;
+      const steps=256,base=Array.from({length:steps+1},(_,i)=>(returning?this.rawReturnPose(startAge+i/steps*duration):this.openingPose(i/steps*duration)).eye);
+      const start=base[0],end=base[steps];
+      const spheres=obstacles.filter(b=>b.radius>0&&b.center.every(Number.isFinite)).map(b=>({...b,
+        clearance:Math.min(b.radius*1.22+.025,Math.hypot(...start.map((v,k)=>v-b.center[k]))*.995,Math.hypot(...end.map((v,k)=>v-b.center[k]))*.995)}));
+      let points=base;
+      for(let iteration=0;iteration<48;iteration++){
+        let worst=null;
+        for(let i=0;i<steps;i++){
+          const a=points[i],b=points[i+1],dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2],length2=Math.max(1e-12,dx*dx+dy*dy+dz*dz);
+          for(const body of spheres){
+            const c=body.center,f=clamp(((c[0]-a[0])*dx+(c[1]-a[1])*dy+(c[2]-a[2])*dz)/length2,0,1);
+            const x=a[0]+dx*f-c[0],y=a[1]+dy*f-c[1],z=a[2]+dz*f-c[2],distance=Math.hypot(x,y,z),penetration=body.clearance-distance;
+            if(penetration>1e-4&&(!worst||penetration>worst.penetration))worst={body,t:(i+f)/steps,delta:[x,y,z],d:[dx,dy,dz],distance,penetration};
+          }
+        }
+        if(!worst)break;
+        const {body,t,d,delta,distance}=worst;if(t<1e-5||t>1-1e-5)break;
+        const tangent=unit(d),along=dot(delta,tangent);let direction=delta.map((v,k)=>v-tangent[k]*along);
+        if(Math.hypot(...direction)<1e-5)direction=cross(tangent,Math.abs(tangent[1])<.9?[0,1,0]:[1,0,0]);
+        direction=unit(direction);
+        const span=Math.min(.42,Math.max(.12,body.clearance/Math.max(.001,Math.hypot(...d)*steps)*2.5));
+        const projected=dot(delta,direction),amount=Math.max(.01,-projected+Math.sqrt(Math.max(0,projected*projected+(body.clearance*1.08)**2-distance*distance)));
+        const added={t,left:Math.max(0,t-span),right:Math.min(1,t+span),offset:direction.map(v=>v*amount)};
+        detours.push(added);
+        // Detours add independently; apply only the new correction to sampled points.
+        const correction=[added];
+        points=points.map((p,i)=>this.applyFlightDetours(p,i/steps,correction));
+      }
+      this.entryLandingBank=undefined;
+      this.pose=this.cameraPose();return detours.length;
+    }
+    applyFlightDetours(eye,t,detours=this.entryDetours){
+      if(!detours?.length||t<=0||t>=1)return eye;
+      const result=[...eye];
+      for(const detour of detours){if(t<=detour.left||t>=detour.right)continue;
+        const weight=ease(t<detour.t?(t-detour.left)/(detour.t-detour.left):(detour.right-t)/(detour.right-detour.t));
+        for(let k=0;k<3;k++)result[k]+=detour.offset[k]*weight;
+      }
+      return result;
+    }
     entryPose(age,fov=this.fov){
       const pose=this.openingPose(age,fov);
-      return this.bankEntryPose(pose,age);
+      pose.eye=this.applyFlightDetours(pose.eye,age/SETTINGS.entry);
+      const banked=this.bankEntryPose(pose,age);
+      if(!this.transferPreviousFrame||age>=TRANSFER_ATTITUDE.duration)return banked;
+      // Carry the departure angular velocity briefly, then turn the complete
+      // frame (including bank) together. The position/path clock stays unchanged.
+      const carry=-Math.expm1(-TRANSFER_ATTITUDE.decay*Math.max(0,age))/TRANSFER_ATTITUDE.decay;
+      const inherited=orientation(this.transferPreviousFrame,this.startPose,1+carry/TRANSFER_ATTITUDE.sample);
+      // Lift both quaternion paths continuously. Choosing a fresh shortest arc
+      // each frame flips the interpolation branch when their separation crosses 180°.
+      if(!this.transferOrientationTrack){
+        const track=[];let previous;
+        for(let i=0;i<=TRANSFER_ATTITUDE.duration*60;i++){
+          const time=i/60,carry=-Math.expm1(-TRANSFER_ATTITUDE.decay*time)/TRANSFER_ATTITUDE.decay;
+          let a=quaternion(orientation(this.transferPreviousFrame,this.startPose,1+carry/TRANSFER_ATTITUDE.sample));
+          let b=quaternion(this.bankEntryPose(this.openingPose(time),time));
+          if(previous&&dot(a,previous.a)<0)a=a.map(v=>-v);
+          if(dot(b,previous?.b||a)<0)b=b.map(v=>-v);
+          track.push(previous={a,b});
+        }
+        this.transferOrientationTrack=track;
+      }
+      const reference=this.transferOrientationTrack[Math.max(0,Math.min(this.transferOrientationTrack.length-1,Math.floor(age*60)))];
+      return {...banked,...orientation(inherited,banked,ease(age/TRANSFER_ATTITUDE.duration),reference)};
     }
     driftStrength(age,eye){
       const radius=Math.hypot(eye[0],eye[2]);
@@ -1103,24 +1228,37 @@
         for(let i=4;i>0;i--){const j=Math.floor(rand()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}
         return bag;
       };
-      const bag=order(cycle);
-      if(bag[0]===order(cycle-1)[4])[bag[0],bag[1]]=[bag[1],bag[0]];
+      const cache=this.driftBags||(this.driftBags=new Map());
+      let bag=cache.get(cycle);
+      if(!bag){
+        bag=order(cycle);
+        if(bag[0]===order(cycle-1)[4])[bag[0],bag[1]]=[bag[1],bag[0]];
+        if(cache.size>=2)cache.delete(cache.keys().next().value);
+        cache.set(cycle,bag);
+      }
       return bag[slot];
+    }
+    driftProfile(pattern){
+      const profiles=this.driftProfiles||(this.driftProfiles=[]);
+      if(!profiles[pattern]){
+        const rand=random(this.seed^Math.imul(pattern+1,0x85ebca6b));
+        profiles[pattern]=[0,1].map(axis=>({a:TAU*rand(),b:TAU*rand(),frequency:4.68*(.65+rand()*.25),gain:pattern===1?(axis===0?1:.4):pattern===2?(axis===1?1:.4):1}));
+      }
+      return profiles[pattern];
+    }
+    driftSample(pattern,age){
+      return this.driftProfile(pattern).map(({a,b,frequency,gain},axis)=>{
+        const phase=age*TAU*frequency;
+        if(pattern===3)return .65*Math.sin(phase+axis*Math.PI/2+a)+.35*Math.sin(phase*1.3+b);
+        const pulse=pattern===4?.45+.55*Math.sin(age*1.7+a)**2:1;
+        return gain*pulse*(.7*Math.sin(phase+a)+.3*Math.sin(phase*1.618+b));
+      });
     }
     driftWave(age){
       const segment=Math.floor(age/4),blendWeight=ease((age-segment*4)/1.2);
-      const sample=pattern=>{
-        const rand=random(this.seed^Math.imul(pattern+1,0x85ebca6b));
-        return [0,1].map(axis=>{
-          const a=TAU*rand(),b=TAU*rand(),frequency=4.68*(.65+rand()*.25);
-          const phase=age*TAU*frequency;
-          if(pattern===3)return .65*Math.sin(phase+axis*Math.PI/2+a)+.35*Math.sin(phase*1.3+b);
-          const gain=pattern===1?(axis===0?1:.4):pattern===2?(axis===1?1:.4):1;
-          const pulse=pattern===4?.45+.55*Math.sin(age*1.7+a)**2:1;
-          return gain*pulse*(.7*Math.sin(phase+a)+.3*Math.sin(phase*1.618+b));
-        });
-      };
-      return blend(sample(this.driftPattern(segment-1)),sample(this.driftPattern(segment)),blendWeight);
+      if(blendWeight===0)return this.driftSample(this.driftPattern(segment-1),age);
+      if(blendWeight===1)return this.driftSample(this.driftPattern(segment),age);
+      return blend(this.driftSample(this.driftPattern(segment-1),age),this.driftSample(this.driftPattern(segment),age),blendWeight);
     }
     cameraDrift(age,view=this.entryPose(age),active=this.state!=='complete',returnAge=this.returnAge||0){
       if(!active)return [0,0];
@@ -1128,6 +1266,7 @@
       // skipped events, quiet slots, frame jitter and any rotation/dolly.
       const returning=this.state==='returning'&&this.returnNoise;
       const strength=returning?this.returnNoise.strength*(1-ease(returnAge/this.returnDuration)):this.driftStrength(age,view.eye);
+      if(strength===0)return [0,0];
       if(returning)age=this.returnNoise.age+returnAge;
       return this.driftWave(age).map(v=>v*strength);
     }
@@ -1157,14 +1296,14 @@
       const field=this.flightField;
       if(!field.routeKind){
         field.routeKind='orbit';field.revision=1;
-        const centre=SETTINGS.pathRadius-(SETTINGS.pathRadius-SETTINGS.pathInner)*SETTINGS.pathDepth*.5;
+        const centre=this.pathRadius-(this.pathRadius-this.pathInner)*SETTINGS.pathDepth*.5,grainWidth=GRAIN_WIDTH*this.ringWidthScale;
         let built=0;
         for(const p of field.points){if(built++%128===0)yield;
           const rand=random(p.seed),a=rand()*TAU,section=rand()*TAU,spread=Math.sqrt(rand());
           // A filled elliptical tube: broad in the middle, thin at the sides.
-          const x=Math.cos(section)*spread,y=Math.sin(section)*spread,r=centre+x*GRAIN_WIDTH*.5;
+          const x=Math.cos(section)*spread,y=Math.sin(section)*spread,r=centre+x*grainWidth*.5;
           p.world=[Math.cos(a)*r,this.height+y*GRAIN_HEIGHT*.5,Math.sin(a)*r];
-          p.size*=edgeSize(r,centre-GRAIN_WIDTH*.5,centre+GRAIN_WIDTH*.5);
+          p.size*=edgeSize(r,centre-grainWidth*.5,centre+grainWidth*.5);
           p.range=1;p.born=Infinity;p.delay=rand()*.35;p.reveal=.5+rand()*.7;
         }
       }
@@ -1376,7 +1515,7 @@
           const resources=this.resources={gl:g,instances:g.getExtension('ANGLE_instanced_arrays'),parallel:{extension:g.getExtension('KHR_parallel_shader_compile'),blocking:false}};
           if(!resources.instances)throw Error('Instanced ring debris is not supported by this GPU.');
           const fragment=gpu.explicitMipLod?'#extension GL_EXT_shader_texture_lod : enable\n'+FRAGMENT.replace('texture2D(planetMap,st)','texture2DLodEXT(planetMap,st,0.)'):FRAGMENT;
-          this.scenePreparation=programSteps(g,VERTEX,fragment,['eye','viewEye','detailEye','basis','lens','offset','planetMap','ringMap','phase','debrisReady','perspective','orthoScale','light','ringTexel','focal'],resources.parallel);
+          this.scenePreparation=programSteps(g,VERTEX,fragment,['eye','viewEye','detailEye','basis','lens','offset','planetMap','ringMap','phase','debrisReady','perspective','orthoScale','light','ringTint','distantRingGain','ringTexel','focal'],resources.parallel);
         }
         if(!this.resources.scene){
           this.resources.parallel.blocking=requireScene;
@@ -1399,8 +1538,8 @@
     }
     *buildGpuResources(gpu){
       const g=gpu.gl,resources=this.resources;
-      resources.dust=yield* programSteps(g,DEBRIS_VERTEX,DEBRIS_FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','ringMap','atlas','debrisReady','perspective','orthoScale','fogPass','chipPass','atlasGrid','elapsed','light','particleBudget','budgetRange'],resources.parallel);yield;
-      resources.rock=yield* programSteps(g,ROCK_VERTEX,ROCK_FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','ringMap','atlas','debrisReady','perspective','orthoScale','light','elapsed','particleBudget','budgetRange'],resources.parallel);yield;
+      resources.dust=yield* programSteps(g,DEBRIS_VERTEX,DEBRIS_FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','ringMap','atlas','debrisReady','perspective','orthoScale','fogPass','chipPass','atlasGrid','elapsed','light','materialTint','particleBudget','budgetRange'],resources.parallel);yield;
+      resources.rock=yield* programSteps(g,ROCK_VERTEX,ROCK_FRAGMENT,['eye','viewEye','detailEye','basis','lens','offset','ringMap','atlas','debrisReady','perspective','orthoScale','light','materialTint','elapsed','particleBudget','budgetRange'],resources.parallel);yield;
       resources.meshBytes=0;
       for(const key of ['mesh','angularMesh','coarseMesh','angularCoarseMesh']){const mesh=rockGeometry(key.startsWith('angular'),key==='coarseMesh'||key==='angularCoarseMesh');resources[key+'Vertices']=mesh.length/6;resources.meshBytes+=mesh.byteLength;
         resources[key]=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,resources[key]);g.bufferData(g.ARRAY_BUFFER,mesh,g.STATIC_DRAW);yield;}
@@ -1446,7 +1585,7 @@
       if(!this.prepare(gpu,budget)||!this.preparationReady||!this.resources.ready)return false;
       if(!this.resources.atlas&&performance.now()-start<budget)this.prepareAtlas(gpu);
       if(this.resources.warmed)return true;
-      if(performance.now()-start>=budget||!gpu.textures.get('saturn')?.texture||!gpu.textures.get('saturn-ring')?.texture)return false;
+      if(performance.now()-start>=budget||!gpu.textures.get(this.planetTextureId)?.texture||!gpu.textures.get(this.ringTextureId)?.texture)return false;
       // Linking alone does not exercise the driver's first-draw pipeline.
       // Submit the real scene once without changing any visible pixel or time.
       const g=gpu.gl,scissor=g.isEnabled(g.SCISSOR_TEST),box=g.getParameter(g.SCISSOR_BOX),mask=g.getParameter(g.COLOR_WRITEMASK);
@@ -1458,10 +1597,38 @@
       }
       return !!this.resources.warmed;
     }
+    surfaceProjectionProgress(){
+      if(!this.gentleDeparture)return 1;
+      if(this.state==='returning')return mix(this.returnSurfaceStart??1,1,ease((this.returnAge||0)/Math.max(.001,this.returnDuration)));
+      if(this.state!=='entering')return 1;
+      return mix(this.surfacePerspectiveStart,1,this.entryMotion(this.age).projection);
+    }
+    surfacePose(){
+      const pose=this.pose,depth=-dot(pose.eye,pose.forward);
+      // Near/behind-camera geometry needs a perspective lens, but crossing that
+      // boundary must not switch projections in one frame. Carry this same
+      // progress through cancellation, retained scenes and reverse transfers.
+      const weight=mix(1,this.surfaceProjectionProgress(),smooth((depth-1)/2));
+      const perspective=pose.perspective*weight;
+      if(perspective===pose.perspective)return pose;
+      // Equivalent centre/scale preservation without subtracting nearly equal
+      // depth terms at the end of the morph.
+      return {...pose,perspective,orthoScale:depth+(pose.orthoScale-depth)*(1-pose.perspective)/(1-perspective)};
+    }
+    beginDepartureVisuals(){
+      const detail=this.ringDetailState();this.departureDetail={eye:[...detail.eye],amount:detail.amount};
+    }
+    drawFromPose(gpu,width,height,pose,elapsed=0){
+      const saved=this.pose;this.pose=pose;
+      if(this.departureDetail)this.departureVisual={detail:this.departureDetail,elapsed};
+      try{return this.draw(gpu,width,height);}finally{this.pose=saved;this.departureVisual=null;}
+    }
     draw(gpu,width,height){
-      const g=gpu.gl,planet=gpu.textures.get('saturn'),ring=gpu.textures.get('saturn-ring');
+      this.renderedSurfacePose=null;
+      const g=gpu.gl,planet=gpu.textures.get(this.planetTextureId),ring=gpu.textures.get(this.ringTextureId);
       if(!planet?.texture||!ring?.texture||!this.prepare(gpu,3,true))return false;
-      const r=this.resources,{scene,dust,instances}=r,p=this.pose,tan=Math.tan(p.fov*Math.PI/360);
+      const r=this.resources,{scene,dust,instances}=r,p=this.surfacePose(),tan=Math.tan(p.fov*Math.PI/360);
+      this.renderedSurfacePose=p;
       const viewEye=projectionEye(p),detail=this.ringDetailState(viewEye);
       // The planet phase is simulation time. Observe immutable debris through
       // its inverse parent transform so high time scales rotate the complete
@@ -1474,15 +1641,15 @@
       this.prepareAtlas(gpu);
       g.disable(g.DEPTH_TEST);g.enable(g.BLEND);g.blendFuncSeparate(g.SRC_ALPHA,g.ONE_MINUS_SRC_ALPHA,g.ONE,g.ONE_MINUS_SRC_ALPHA);
       g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,planet.texture);g.activeTexture(g.TEXTURE1);g.bindTexture(g.TEXTURE_2D,ring.texture);
-      const set=(shader,pose=p,detailEye=detail.eye,light=this.light)=>{g.useProgram(shader.program);g.uniform3fv(shader.u.eye,pose.eye);g.uniform3fv(shader.u.detailEye,detailEye);g.uniform3fv(shader.u.light,light);g.uniformMatrix3fv(shader.u.basis,false,pose.basis);g.uniform2f(shader.u.lens,width/height*tan,tan);g.uniform2fv(shader.u.offset,pose.offset);g.uniform1f(shader.u.perspective,pose.perspective);g.uniform1f(shader.u.orthoScale,pose.orthoScale);g.uniform1i(shader.u.ringMap,1);};
+      const set=(shader,pose=p,detailEye=detail.eye,light=this.light)=>{g.useProgram(shader.program);g.uniform2fv(shader.u.ringBounds,this.ringBounds);g.uniform1f(shader.u.narrowRing,this.narrowRing?1:0);g.uniform3fv(shader.u.eye,pose.eye);g.uniform3fv(shader.u.detailEye,detailEye);g.uniform3fv(shader.u.light,light);g.uniformMatrix3fv(shader.u.basis,false,pose.basis);g.uniform2f(shader.u.lens,width/height*tan,tan);g.uniform2fv(shader.u.offset,pose.offset);g.uniform1f(shader.u.perspective,pose.perspective);g.uniform1f(shader.u.orthoScale,pose.orthoScale);g.uniform1i(shader.u.ringMap,1);};
       const proximity=this.preparationReady&&r.ready?detail.amount:0,layers=this.entryLayers(proximity);
       const ready=r.atlas?smooth((this.visualAge-r.atlasAge)/.8)*layers.debris:0;
       g.activeTexture(g.TEXTURE2);g.bindTexture(g.TEXTURE_2D,r.atlas||planet.texture);
-      set(scene);g.uniform3fv(scene.u.viewEye,viewEye);g.uniform1i(scene.u.planetMap,0);
+      set(scene);g.uniform1f(scene.u.distantRingGain,this.distantRingGain);g.uniform3fv(scene.u.viewEye,viewEye);g.uniform3fv(scene.u.ringTint,this.ringTint);g.uniform1i(scene.u.planetMap,0);
       g.uniform1f(scene.u.ringTexel,1/ring.width);g.uniform1f(scene.u.focal,height/(2*tan));
       g.uniform1f(scene.u.phase,this.phase);g.uniform1f(scene.u.debrisReady,ready);
       g.bindBuffer(g.ARRAY_BUFFER,gpu.quad);const a=scene.attributes.a;g.enableVertexAttribArray(a);g.vertexAttribPointer(a,2,g.FLOAT,false,0,0);g.drawArrays(g.TRIANGLES,0,6);
-      gpu.markRingTexturePresented?.('saturn-ring');
+      gpu.markRingTexturePresented?.(this.ringTextureId);
       g.disableVertexAttribArray(a);
       if(!this.preparationReady||!r.ready){this.drawCalls=1;gpu.stats.drawCalls++;gpu.resetBindings();return true;}
       // Rocks are solid: depth testing prevents far sprites and mesh faces
@@ -1502,7 +1669,7 @@
         if(chips)this.chipCount=count;const vertices=mesh?r[mesh+'Vertices']:chips?r.chipVertices:6;
         this.submittedVertices+=count*vertices;
         g.depthMask(!fog);g.activeTexture(g.TEXTURE2);g.bindTexture(g.TEXTURE_2D,texture);
-        set(shader,parentPose,parentDetailEye,parentLight);g.uniform3fv(shader.u.viewEye,parentViewEye);g.uniform1i(shader.u.atlas,2);
+        set(shader,parentPose,parentDetailEye,parentLight);g.uniform3fv(shader.u.viewEye,parentViewEye);g.uniform3fv(shader.u.materialTint,this.materialTint);g.uniform1i(shader.u.atlas,2);
         g.uniform1f(shader.u.elapsed,this.visualAge||0);g.uniform1f(shader.u.debrisReady,opacity);g.uniform1f(shader.u.particleBudget,this.particleBudget);g.uniform1f(shader.u.budgetRange,fog?1.85:range);
         if(!mesh){g.uniform2f(shader.u.atlasGrid,fog?2:4,2);g.uniform1f(shader.u.fogPass,fog?1:0);g.uniform1f(shader.u.chipPass,chips?1:0);}
         const attributes=shader.attributes,corner=mesh?attributes.corner:attributes.a,{position,detail}=attributes;

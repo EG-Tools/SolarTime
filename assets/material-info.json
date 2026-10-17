@@ -64,7 +64,8 @@
     "height": 2048,
     "credit": "Solar System Scope / INOVE · CC BY 4.0",
     "feature": {
-      "longitude": 70
+      "longitude": -48,
+      "latitude": -20.5
     }
   },
   "saturn": {
@@ -113,6 +114,14 @@
     "width": 4096,
     "height": 2048,
     "credit": "Solar System Scope / INOVE · CC BY 4.0",
+    "feature": null
+  },
+  "triton": {
+    "revision": "nasa-reference-ai-reconstruction-v2",
+    "url": "https://science.nasa.gov/resource/map-of-triton/",
+    "width": 1774,
+    "height": 887,
+    "credit": "NASA/JPL-Caltech/Lunar & Planetary Institute · Voyager 2 PIA18668 reference; OpenAI ImageGen artistic reconstruction, unobserved terrain completion and grid removal",
     "feature": null
   }
 }

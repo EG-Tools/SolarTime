@@ -23,6 +23,7 @@ function packagePublicSite(root,{output,cdnBase,workerHeaders=false,noJekyll=fal
   fs.mkdirSync(path.dirname(destination),{recursive:true});
   if(file==='src/assets.js')atomicWrite(destination,scripts.assets);
   else if(file==='src/sky-asset.js')atomicWrite(destination,scripts.sky);
+  else if(file==='src/local-effect-atlases.js')atomicWrite(destination,scripts.localEffects);
   else fs.copyFileSync(path.resolve(root,file),destination);
  }
  if(workerHeaders)atomicWrite(path.join(site,'_headers'),WORKER_HEADERS);

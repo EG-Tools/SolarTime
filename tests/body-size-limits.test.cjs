@@ -19,7 +19,7 @@ test('every body reaches its exact limits and satellites never exceed their pare
  for(const body of fixture().allBodies()){
   const r=fixture(),limits=r.bodyScaleLimits(body);
   assert.equal(r.setBodyScale(body.id,-100),true);close(r.bodySizeScale(body),limits.min);
-  if(body.id==='moon')close(sizes(r).moon,A.MOON.size*.5);
+  if(['moon','triton'].includes(body.id))close(sizes(r)[body.id],body.size*.5);
   else if(body.id!=='sun')close(sizes(r)[body.id],A.MOON.size);
   r.setBodyScale(body.id,10000);close(r.bodySizeScale(body),limits.max);
   if(body.id!=='sun')close(sizes(r)[body.id],sizes(r)[body.parent||'sun']);
@@ -87,8 +87,8 @@ function frame(r,zoom,dolly,mode,spacing=1){
 
 test('local orbit controls clamp and restore their 1–100% range',()=>{
  const r=fixture();r.setSatelliteOrbitScales({sun:0,earth:-5,jupiter:2});
- assert.deepEqual(plain(r.getSatelliteOrbitScales()),{sun:.01,earth:.01,jupiter:1});
- for(const id of ['sun','earth','jupiter']){
+ assert.deepEqual(plain(r.getSatelliteOrbitScales()),{sun:.01,earth:.01,jupiter:1,neptune:1});
+ for(const id of ['sun','earth','jupiter','neptune']){
   assert.deepEqual(plain(r.satelliteOrbitScaleLimits(id)),{min:.01,max:1});
   r.setSatelliteOrbitScale(id,0);close(r.satelliteOrbitScale(id),.01);
  }
@@ -139,7 +139,7 @@ test('factory reset restores every size and supported child orbit to 100 percent
   const r=fixture();r.setBodyScales(Object.fromEntries(r.allBodies().map(b=>[b.id,value])));r.setSatelliteOrbitScales({sun:.16,earth:.43,jupiter:.05});
   r.setBodyScales(defaults.sizes);r.setSatelliteOrbitScales(defaults.orbits);
   for(const b of r.allBodies())assert.equal(r.bodySizeScale(b),1,b.id);
-  assert.deepEqual(plain(r.getSatelliteOrbitScales()),{sun:1,earth:1,jupiter:1});
+  assert.deepEqual(plain(r.getSatelliteOrbitScales()),{sun:1,earth:1,jupiter:1,neptune:1});
  }
 });
 test('unchanged size and orbit settings skip invalidation but real changes invalidate',()=>{

@@ -9,7 +9,7 @@
     "scrollDown": "Nach unten scrollen",
     "skyNavigate": "Zu {name} wechseln",
     "openingTravel": "Auftaktreise",
-    "openingDefault": "Standardauftakt",
+    "openingDefault": "Standard",
     "openingNone": "Keine",
     "openingReload": "T drücken, um den gewählten Start abzuspielen.",
     "metaDescription": "Eine Sonnensystem-Uhr im Fluss der Sterne – Echtzeit, Planetenbahnen, Erde und Mond in einem kleinen Kosmos.",
@@ -62,7 +62,7 @@
     "clockFont": "Ziffernschrift",
     "clockSize": "Uhrgröße",
     "sunShine": "Sonnenschein",
-    "satellites": "Wichtige Monde · Mond und Europa",
+    "satellites": "Große Monde · Mond, Europa und Triton",
     "pluto": "Pluto",
     "dwarfPlanet": "Zwergplanet",
     "comets": "Ferne Kometen",
@@ -210,6 +210,8 @@
     "night": "Nacht",
     "auNote": "",
     "koreaView": "{region} ansehen",
+    "northPole": "Nordpol",
+    "southPole": "Südpol",
     "stormView": "Großen Roten Fleck ansehen",
     "speedUnitActive": "Geschwindigkeitseinheit {unit}. Zum Wechseln drücken.",
     "speedUnitReady": "Einheit {unit} bereit. Zum Starten drücken.",
@@ -242,7 +244,8 @@
     "constellationsShortcut": "Sternbilder anzeigen",
     "targetSwitch": "Vorheriges / nächstes Ziel",
     "targetSwitchHint": "Je nach aktueller Ansicht zwischen Planeten, Regionen oder Sternbildern wechseln.",
-    "openingPlay": "Abspielen",
+    "openingPlay": "Warp",
+    "parentDistance": "Mittlerer Abstand: {name}",
     "timer": "Timer",
     "timerClose": "Timer schließen",
     "alarm": "Wecker",
@@ -450,6 +453,38 @@
     "big-dipper": [
       "Großer Wagen",
       "Ein Asterismus aus sieben hellen Sternen im Großen Bären. Seine wagenförmige Gestalt ist ein klassischer Wegweiser am Nordhimmel; die Linie von Merak zu Dubhe zeigt zum Polarstern."
+    ],
+    "triton": [
+      "Triton",
+      "Neptuns größter Mond bewegt sich auf einer rückläufigen Umlaufbahn. Seine kalte Oberfläche ist mit Stickstoff- und Wassereis bedeckt."
+    ],
+    "centaurus": [
+      "Zentaur",
+      "Ein südliches Sternbild neben dem Kreuz des Südens mit Alpha und Beta Centauri."
+    ],
+    "carina": [
+      "Schiffskiel",
+      "Ein südliches Sternbild mit dem hellen Stern Canopus."
+    ],
+    "vela": [
+      "Segel",
+      "Ein südliches Sternbild neben dem Schiffskiel, das Segel darstellt."
+    ],
+    "triangulum-australe": [
+      "Südliches Dreieck",
+      "Drei helle Sterne bilden ein kompaktes Dreieck am Südhimmel."
+    ],
+    "pavo": [
+      "Pfau",
+      "Ein südliches Sternbild, das einen Pfau darstellt."
+    ],
+    "grus": [
+      "Kranich",
+      "Ein südliches Sternbild mit Alnair, das einen Kranich darstellt."
+    ],
+    "phoenix": [
+      "Phönix",
+      "Ein südliches Sternbild, das den mythischen Phönix darstellt."
     ]
   },
   "phases": {

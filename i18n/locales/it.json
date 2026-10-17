@@ -9,7 +9,7 @@
     "scrollDown": "Scorri verso il basso",
     "skyNavigate": "Vai a {name}",
     "openingTravel": "Viaggio iniziale",
-    "openingDefault": "Apertura predefinita",
+    "openingDefault": "Predefinito",
     "openingNone": "Nessuno",
     "openingReload": "Premi T per riprodurre l’apertura selezionata.",
     "metaDescription": "Un orologio del Sistema Solare che scorre tra le stelle: ora reale, orbite planetarie, Terra e Luna in un piccolo cosmo.",
@@ -62,7 +62,7 @@
     "clockFont": "Carattere dei numeri dell’orologio",
     "clockSize": "Dimensione dell’orologio",
     "sunShine": "Bagliore solare",
-    "satellites": "Lune principali · Luna ed Europa",
+    "satellites": "Lune principali · Luna, Europa e Tritone",
     "pluto": "Plutone",
     "dwarfPlanet": "Pianeta nano",
     "comets": "Comete lontane",
@@ -210,6 +210,8 @@
     "night": "notte",
     "auNote": "",
     "koreaView": "Mostra {region}",
+    "northPole": "Polo Nord",
+    "southPole": "Polo Sud",
     "stormView": "Mostra la Grande Macchia Rossa",
     "speedUnitActive": "Unità di velocità: {unit}. Premi per cambiare.",
     "speedUnitReady": "Unità di velocità {unit} pronta. Premi per iniziare con questa unità.",
@@ -242,7 +244,8 @@
     "constellationsShortcut": "Mostra costellazioni",
     "targetSwitch": "Obiettivo precedente / successivo",
     "targetSwitchHint": "Passa tra pianeti, regioni o costellazioni in base alla vista attuale.",
-    "openingPlay": "Riproduci"
+    "openingPlay": "Salto spaziale",
+    "parentDistance": "Distanza media: {name}"
   },
   "timer": {
     "helperDownloadPrivacy": "A Solar Time vengono inviati solo ID casuali monouso, la versione dell’assistente e i risultati dei comandi. Non vengono inviati account, file o nomi del computer. Le ricevute scadono e vengono eliminate automaticamente.",
@@ -451,6 +454,38 @@
     "big-dipper": [
       "Grande Carro",
       "Asterismo formato da sette stelle luminose dell’Orsa Maggiore. La sua forma a mestolo è una guida classica del cielo boreale, e la linea da Merak a Dubhe indica la Stella Polare."
+    ],
+    "triton": [
+      "Tritone",
+      "La maggiore luna di Nettuno segue un’orbita retrograda. La sua superficie fredda è ricoperta di ghiaccio di azoto e d’acqua."
+    ],
+    "centaurus": [
+      "Centauro",
+      "Costellazione australe accanto alla Croce del Sud, con Alfa e Beta Centauri."
+    ],
+    "carina": [
+      "Carena",
+      "Costellazione australe che contiene la luminosa Canopo."
+    ],
+    "vela": [
+      "Vele",
+      "Costellazione australe accanto alla Carena che rappresenta le vele di una nave."
+    ],
+    "triangulum-australe": [
+      "Triangolo Australe",
+      "Tre stelle luminose formano un piccolo triangolo australe."
+    ],
+    "pavo": [
+      "Pavone",
+      "Costellazione australe che rappresenta un pavone."
+    ],
+    "grus": [
+      "Gru",
+      "Costellazione australe con Alnair che rappresenta una gru."
+    ],
+    "phoenix": [
+      "Fenice",
+      "Costellazione australe che rappresenta la mitica fenice."
     ]
   },
   "phases": {

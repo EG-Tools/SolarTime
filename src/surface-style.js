@@ -26,6 +26,35 @@
   const seam=Object.freeze({minBand:2,maxBand:32,ratio:.012});
   const ringSamplingGLSL=`vec4 ringSample(float f){vec4 c=texture2D(ringMap,vec2(clamp(f,ringTexel*.5,1.-ringTexel*.5),.5));return vec4(c.rgb*c.a,c.a);}
     vec4 ringFiltered(float f,float aa){vec4 c=(ringSample(f-aa*.5)+2.*ringSample(f)+ringSample(f+aa*.5))*.25;return vec4(c.rgb/max(c.a,.00001),c.a);}`;
+  // The overview and ring flight must resolve the same narrow bands.
+  // Illustrative band profile, shared by distant sheets and fixed debris pools.
+  const narrowRingBands=Object.freeze([[.07,.007,.22],[.16,.006,.28],[.27,.008,.18],[.39,.006,.30],[.53,.009,.24],[.68,.007,.34],[.83,.009,.27],[.95,.010,.62]].map(([center,width,opacity])=>Object.freeze({center,width,opacity})));
+  const narrowRingGapFraction=.15;
+  function sampleNarrowRingRadius(rand,inner,outer){
+    const span=outer-inner;
+    if(rand()<narrowRingGapFraction)return Math.sqrt(inner*inner+(outer*outer-inner*inner)*rand());
+    const total=narrowRingBands.reduce((sum,b)=>sum+b.width*b.opacity*(inner+span*b.center),0);
+    let pick=rand()*total,band=narrowRingBands[narrowRingBands.length-1];
+    for(const b of narrowRingBands){pick-=b.width*b.opacity*(inner+span*b.center);if(pick<=0){band=b;break;}}
+    const low=inner+span*(band.center-band.width),high=inner+span*(band.center+band.width);
+    return Math.sqrt(low*low+(high*high-low*low)*rand());
+  }
+  const narrowRingBrightness=1.5;
+  const narrowRingUnresolved=Object.freeze({base:.10,range:.04});
+  const ringCoverageGLSL=`float ringBandCoverage(float radius,float footprint,vec2 bounds){
+    float span=max(footprint,.0001);
+    return clamp((min(bounds.y,radius+span*.5)-max(bounds.x,radius-span*.5))/span,0.,1.);
+  }`;
+  const narrowRingGLSL=`float lineBand(float f,float center,float width,float aa){return 1.-smoothstep(width,width+aa,abs(f-center));}
+    float narrowRingAlpha(float f,float aa,float distantGain){
+      float lines=0.;
+      ${narrowRingBands.map(b=>'lines+=lineBand(f,'+f(b.center)+','+f(b.width)+',aa)*'+f(b.opacity)+';').join('\n      ')}
+      float detail=smoothstep(2.5,5.5,.09/max(aa,.0001));
+      float coverage=min(1.,.012/max(aa,.012));
+      float unresolved=(${f(narrowRingUnresolved.base)}+${f(narrowRingUnresolved.range)}*smoothstep(.70,1.,f))*distantGain;
+      return min(1.,mix(unresolved,min(lines*coverage,.68),detail)*${f(narrowRingBrightness)});
+    }
+    float narrowRingAlpha(float f,float aa){return narrowRingAlpha(f,aa,1.);}`;
   // Saturn-radius units in the ring frame (Y = pole). Shadow is illumination,
   // never opacity, and depends on the Sun rather than the camera or tour age.
   const ringShadowGLSL=`float ringShadow(vec3 point,vec3 sunDirection){
@@ -34,6 +63,6 @@
     // Shared by the ring sheet and every debris layer; 10% less darkening.
     return 1.-.6318*(1.-smoothstep(.90,1.14,clearance))*smoothstep(0.,.15,toward);
   }`;
-  const api=Object.freeze({sun,seam,warpGLSL,lightingGLSL,ringSamplingGLSL,ringShadowGLSL});
+  const api=Object.freeze({sun,seam,warpGLSL,lightingGLSL,ringSamplingGLSL,narrowRingBands,sampleNarrowRingRadius,narrowRingBrightness,narrowRingUnresolved,narrowRingGLSL,ringCoverageGLSL,ringShadowGLSL});
   if(typeof module==='object'&&module.exports)module.exports=api;else root.SolarSurfaceStyle=api;
 })(typeof window==='object'?window:globalThis);

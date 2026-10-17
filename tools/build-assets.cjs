@@ -9,6 +9,7 @@ const root=path.resolve(__dirname,'..');
  const {manifest,deployment}=runtimeOnly?existing():await buildMedia(root,path.join(root,'.cloudflare/media'),{musicOnly});
  const scripts=runtimeScripts(root,manifest,deployment);
  atomicWrite(path.join(root,'src/assets.js'),scripts.assets);atomicWrite(path.join(root,'src/sky-asset.js'),scripts.sky);
+ atomicWrite(path.join(root,'src/local-effect-atlases.js'),scripts.localEffects);
  if(runtimeOnly){console.log('Regenerated lightweight runtime manifests for '+manifest.revision+'.');return;}
  const textureBytes=Object.values(manifest.materials).flatMap(item=>item.tiers).reduce((sum,item)=>sum+item.bytes,0),musicBytes=Object.values(manifest.music).reduce((sum,item)=>sum+item.bytes,0);
  console.log(`Prepared ${manifest.revision}: ${(textureBytes/1048576).toFixed(2)} MiB texture tiers + ${(musicBytes/1048576).toFixed(2)} MiB music.`);

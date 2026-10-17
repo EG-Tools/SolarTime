@@ -88,14 +88,14 @@ test('Escape during an opening or departure cancels pending resume and restores 
  }
 });
 
-test('opening selection keeps the normal rotation blend unless Saturn was selected',()=>{
+test('opening selection keeps normal rotation unless a ring travel opening was selected',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8'),body=source.match(/function beginOpening\(mono=performance\.now\(\)\)\{[\s\S]*?\n      \}/)[0];
- for(const mode of ['default','saturn']){
+ for(const mode of ['default','saturn','uranus']){
   const blend={seconds:0,yaw:0,pitch:0},calls=[];
   const renderer={prepareRingTourResources(){calls.push('prepare');},animateOpeningCamera(){this.cameraTween={duration:5000,rotationBlend:blend};return true;},keepOpeningParticlesUntilBoarding(){calls.push('particles');}};
   const boarding=fs.readFileSync(path.join(__dirname,'../src/renderer.js'),'utf8').match(/    prepareOpeningBoarding\(returnTarget\) \{([\s\S]*?)\n    \}/)[1];
   renderer.prepareOpeningBoarding=new Function('returnTarget',boarding);
-  const context={openingRunMode:mode,resumeTravel:mode==='saturn',openingCameraTarget:{zoom:1,dolly:1},renderer,lockOpeningControls(){},loading:{classList:{add(){}}}};
+  const context={openingRunMode:mode,resumeTravel:mode!=='default',openingCameraTarget:{zoom:1,dolly:1},renderer,lockOpeningControls(){},loading:{classList:{add(){}}}};
   assert.equal(vm.runInNewContext('('+body+')',context)(100),true);
   assert.equal(context.openingStartedAt,100);
   if(mode==='default'){

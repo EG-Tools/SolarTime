@@ -64,6 +64,8 @@ body.zen:not(.pointer-awake) *{cursor:none!important}
 .help-interaction{color:var(--muted);font-size:11px;line-height:1.9}.help-interaction>span{margin:0 7px;color:var(--muted)}
 
 /* Keep the navigation centered independently of the signature/action widths. */
+body.zen .ui.zen-awake:not(#body-panel),body.zen #clock-face.zen-awake .scene-status.ui{opacity:1!important;visibility:visible!important;pointer-events:auto!important;transition:opacity 1s ease,visibility 0s linear 0s}
+body.zen .panel.ui:not([hidden]){z-index:12}body.zen .panel.ui:not(#body-panel):not([hidden]){opacity:1!important;visibility:visible!important;pointer-events:auto!important;transition:opacity 1s ease,visibility 0s linear 0s}
 @media(min-width:681px) and (max-width:1280px){.signature{visibility:hidden;display:block;width:0;overflow:hidden}}
 @media(max-width:680px){.planet-nav{justify-content:safe center}}
 
@@ -73,10 +75,13 @@ body.zen button{visibility:hidden!important;pointer-events:none!important}
 body.zen input{visibility:hidden!important;pointer-events:none!important}
 body.zen select{visibility:hidden!important;pointer-events:none!important}
 body.zen a{visibility:hidden!important;pointer-events:none!important}
+body.zen .ui:not(#body-panel) :is(button,input,select,a){visibility:inherit!important}
+body.zen :is(.ui,#clock-face).zen-awake :is(button,input,select,a){visibility:visible!important;pointer-events:auto!important}
+body.zen .panel:not([hidden]) :is(button,input,select,a){visibility:visible!important;pointer-events:auto!important}
 body.zen .view-controls{display:flex!important;z-index:10;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 1s ease,visibility 0s linear 1s}
-body.zen.pointer-awake .view-controls{opacity:1!important;visibility:visible!important;pointer-events:auto!important;transition:opacity 1s ease,visibility 0s linear 0s}
+body.zen .view-controls.zen-awake{opacity:1!important;visibility:visible!important;pointer-events:auto!important;transition:opacity 1s ease,visibility 0s linear 0s}
 body.zen .view-controls button{visibility:inherit!important}
-body.zen.pointer-awake .view-controls button{pointer-events:auto!important}
+body.zen .view-controls.zen-awake button{pointer-events:auto!important}
 body.zen dialog[open] :is(button,input,select,a){visibility:visible!important;pointer-events:auto!important}
 body.zen #body-panel :is(button,input,select,a){visibility:visible!important;pointer-events:auto!important}
 .settings-panel{max-height:none;overflow:hidden;--settings-height-limit:calc(100dvh - 100px)}.settings-scroll{box-sizing:border-box;overflow-x:hidden;overflow-y:auto;padding:23px;scrollbar-width:none;overscroll-behavior:contain}.settings-scroll::-webkit-scrollbar{display:none}
@@ -309,3 +314,17 @@ html[data-focus-input="pointer"] :focus{outline:none}
 /* Shared card control typography; informational text keeps its own hierarchy. */
 .body-panel{--card-control-font-size:12px}
 .body-panel .body-size-heading,.body-panel .text-button,.body-panel .region-view-button,.body-panel .body-option-row,.body-panel .event-heading{font-size:var(--card-control-font-size)}
+
+/* The body list shares card scroll cues and retains native touch scrolling. */
+.footer{grid-template-columns:minmax(0,1fr) minmax(0,max-content) minmax(0,1fr)}
+.planet-nav{position:relative;min-width:0;max-width:calc(100vw - 76px);padding:0 24px;overflow:visible;display:block}
+.planet-nav-list{display:flex;align-items:center;justify-content:safe center;gap:inherit;column-gap:15px;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;touch-action:pan-x;max-width:100%}
+.planet-nav-list::-webkit-scrollbar{display:none}
+.planet-nav-list>button{flex-shrink:0}
+.planet-nav>.scroll-cue{top:50%;bottom:auto}
+.planet-nav>.scroll-cue-up{left:6px;transform:translate(-50%,-50%) rotate(90deg)}
+.planet-nav>.scroll-cue-down{left:auto;right:6px;transform:translate(50%,-50%) rotate(-90deg)}
+@media(min-width:1800px){.planet-nav-list{column-gap:20px}}
+@media(max-width:1050px){.planet-nav-list{column-gap:12px}.planet-nav{max-width:calc(100vw - 60px)}}
+@media(max-width:680px){.planet-nav{max-width:100%}.planet-nav-list{column-gap:17px;padding:4px 0}}
+@media(max-width:365px){.planet-nav-list{column-gap:14px}}

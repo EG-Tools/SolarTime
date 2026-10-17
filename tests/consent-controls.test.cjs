@@ -14,7 +14,7 @@ test('neutral dismissal stays next to Allow; cookie settings exist only in Displ
  assert.match(read('privacy.html'),/six calendar months/);assert.match(read('privacy.html'),/one-time six-month/);
 });
 test('all shared languages carry real control copy and the archived consent release remains intact',()=>{
- const data=require('../tools/i18n.cjs').compile(root);assert.equal(data.codes.length,15);
+ const data=require('../tools/i18n.cjs').compile(root);assert.equal(data.codes.length,16);
  for(const code of data.codes)for(const key of ['cookieSettings','cookieDismiss','cookieChoiceNote'])assert.ok(data.bundles[code].copy[key]?.trim(),code+':'+key);
  const release=data.archive.find(r=>r.version==='0.66');assert.ok(release);assert.equal(release.items.length,3);
 });

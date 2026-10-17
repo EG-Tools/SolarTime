@@ -26,6 +26,8 @@ test('write mode regenerates an isolated fixture, retains English history and is
   for(const file of ['version.json','ads.txt','robots.txt','sitemap.xml','manifest.webmanifest'])fs.copyFileSync(path.join(real,file),path.join(tmp,file));
   fs.mkdirSync(path.join(tmp,'assets'));
   for(const file of ['manifest.json','revision.json','deployment.json','material-info.json'])fs.copyFileSync(path.join(real,'assets',file),path.join(tmp,'assets',file));
+  fs.mkdirSync(path.join(tmp,'assets/effects'),{recursive:true});
+  fs.copyFileSync(path.join(real,'assets/effects/uranus-debris-atlas-v1.webp'),path.join(tmp,'assets/effects/uranus-debris-atlas-v1.webp'));
   const historyFile=path.join(tmp,'i18n/releases.json'),allowFile=path.join(tmp,'i18n/legacy-allowlist.json');
   const history=JSON.parse(fs.readFileSync(historyFile)),before=JSON.parse(fs.readFileSync(path.join(tmp,'i18n/releases-archive-en.json')));
   const languages=Object.keys(JSON.parse(fs.readFileSync(path.join(tmp,'i18n/config.json'))).languages),allow=JSON.parse(fs.readFileSync(allowFile));

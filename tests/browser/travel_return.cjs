@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 module.exports=async({evaluate,until,esc,delay,send,session})=>{
- const key=async()=>{await evaluate('document.activeElement?.blur()');await send('Input.dispatchKeyEvent',{type:'keyDown',code:'KeyT',key:'t'},session);await send('Input.dispatchKeyEvent',{type:'keyUp',code:'KeyT',key:'t'},session);};
+ const key=async()=>{await evaluate('document.activeElement?.blur()');await send('Input.dispatchKeyEvent',{type:'keyDown',code:'KeyW',key:'w'},session);await send('Input.dispatchKeyEvent',{type:'keyUp',code:'KeyW',key:'w'},session);};
  const mode=value=>evaluate(`document.getElementById('opening-toggle').click();document.querySelector('[data-opening="${value}"]').click();document.activeElement?.blur()`);
  await evaluate(`(()=>{
   const r=SolarTime.renderer;r.stopAutoRotate();

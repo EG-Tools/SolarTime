@@ -31,7 +31,7 @@ test('Enter follows the selected or nearest visible planet and restores the prio
 
 test('Help uses three keyboard columns, four mouse columns and two columns on phones',()=>{
   const html=read('index.html'),css=read('styles.css');
-  assert.deepEqual([...html.matchAll(/<div class="shortcut-row">(.*?)<\/div>/g)].map(row=>[...row[1].matchAll(/data-i18n="([^"]+)"/g)].map(m=>m[1])),[['pause','realTime','ringTravel'],['music','zenMode','fullscreen'],['actualScaleShortcut','defaultCamera','savedCameras'],['constellationsShortcut','targetSwitch','cameraTravel']]);
+  assert.deepEqual([...html.matchAll(/<div class="shortcut-row">(.*?)<\/div>/g)].map(row=>[...row[1].matchAll(/data-i18n="([^"]+)"/g)].map(m=>m[1])),[['pause','realTime','ringTravel'],['music','zenMode','fullscreen'],['actualScaleShortcut','defaultCamera','savedCameras'],['constellationsShortcut','targetSwitch','cameraTravel'],['warpShortcut']]);
   assert.match(html,/shortcut-row shortcut-mouse-row[^]*cameraRotate[^]*zoomInOut[^]*screenPan[^]*cameraTravel/);
   assert.match(css,/\.shortcut-row\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(css,/\.shortcut-mouse-row\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);

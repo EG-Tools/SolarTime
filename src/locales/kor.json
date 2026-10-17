@@ -9,7 +9,7 @@
     "scrollDown": "아래로 스크롤",
     "skyNavigate": "{name}(으)로 이동",
     "openingTravel": "오프닝 여행",
-    "openingDefault": "기본 오프닝",
+    "openingDefault": "기본",
     "openingNone": "없음",
     "openingReload": "설정한 오프닝을 재생하려면 T를 눌러주세요.",
     "metaDescription": "별빛과 함께 흐르는 태양계 시계. 실제 시각, 행성의 공전, 지구와 달을 만나는 작은 우주.",
@@ -62,7 +62,7 @@
     "clockFont": "시계 숫자 폰트",
     "clockSize": "시계 크기",
     "sunShine": "태양 샤인",
-    "satellites": "주요 위성 · 달과 유로파",
+    "satellites": "주요 위성 · 달, 유로파, 트리톤",
     "pluto": "명왕성",
     "dwarfPlanet": "왜행성",
     "comets": "멀리 지나는 혜성",
@@ -210,6 +210,8 @@
     "night": "밤",
     "auNote": "1 AU는 지구와 태양 사이의 평균 거리입니다. 크기와 거리는 화면에서 축척을 조정했습니다.",
     "koreaView": "{region} 보기",
+    "northPole": "북극",
+    "southPole": "남극",
     "stormView": "붉은 소용돌이 보기",
     "speedUnitActive": "속도 단위 {unit}. 누르면 다음 단위로 전환",
     "speedUnitReady": "속도 단위 {unit} 대기. 누르면 이 단위로 배속 시작",
@@ -242,7 +244,8 @@
     "constellationsShortcut": "별자리 표시",
     "targetSwitch": "이전·다음 대상",
     "targetSwitchHint": "현재 상태에 따라 행성·지역·별자리를 전환합니다.",
-    "openingPlay": "재생",
+    "openingPlay": "워프",
+    "parentDistance": "{name}까지 평균 거리",
     "timer": "타이머",
     "timerClose": "타이머 닫기",
     "alarm": "알람",
@@ -450,6 +453,38 @@
     "big-dipper": [
       "북두칠성",
       "큰곰자리의 일곱 밝은 별이 이루는 별무리입니다. 국자 모양의 윤곽은 북쪽 하늘을 찾는 대표적인 길잡이이며, 메라크에서 두베로 이은 방향은 북극성을 가리킵니다."
+    ],
+    "triton": [
+      "트리톤",
+      "해왕성을 역행 공전하는 가장 큰 위성. 표면은 질소 얼음과 물얼음으로 덮여 있습니다."
+    ],
+    "centaurus": [
+      "센타우루스",
+      "남십자자리 옆에 펼쳐진 별자리로, 알파·베타 센타우리가 밝게 빛납니다."
+    ],
+    "carina": [
+      "용골",
+      "밝은 별 카노푸스가 있는 남쪽 하늘의 별자리입니다."
+    ],
+    "vela": [
+      "돛",
+      "용골자리 옆에서 배의 돛을 나타내는 남쪽 별자리입니다."
+    ],
+    "triangulum-australe": [
+      "남쪽삼각형",
+      "세 밝은 별이 남쪽 하늘에 작은 삼각형을 이룹니다."
+    ],
+    "pavo": [
+      "공작",
+      "남쪽 하늘에서 공작의 모습을 나타내는 별자리입니다."
+    ],
+    "grus": [
+      "두루미",
+      "알나이르를 포함하며 두루미의 모습을 나타내는 남쪽 별자리입니다."
+    ],
+    "phoenix": [
+      "봉황",
+      "신화 속 봉황을 나타내는 남쪽 하늘의 별자리입니다."
     ]
   },
   "phases": {

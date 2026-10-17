@@ -77,7 +77,7 @@ test('the far Sun keeps the approved footprint and reads as warm gold instead of
 });
 test('small bodies expose their default-view textures and keep dimmer particle floors',()=>{
  const {r,c,calls}=fixture();
- for(const id of ['moon','europa','pluto']){
+ for(const id of ['moon','europa','triton','pluto']){
   assert.equal(r.bodyPointLod({id},2.25).alpha,0,'default-size texture is not covered by a solid particle core');
   calls.length=0;r.drawBodyPoint(c,item(id,.001));
   assert.ok(Math.abs(calls.find(row=>row[0]==='fill')[1]-.4*.8)<1e-10);
@@ -231,7 +231,7 @@ test('all body classes keep a visible light floor in normal and actual scale mod
    const p={...item(body.id,radius),body};calls.length=0;
    assert.equal(r.drawBodyPoint(c,p),true);
    const d=calls.find(call=>call[0]==='draw');
-   const brightness=['moon','europa','pluto'].includes(body.id)?.8:1;
+   const brightness=['moon','europa','triton','pluto'].includes(body.id)?.8:1;
    assert.ok(Math.abs(d[1]-.36*brightness)<1e-10,body.id+' retains its approved marker brightness');
    assert.equal(r.bodyPointLod(body,radius).alpha,1);
   }

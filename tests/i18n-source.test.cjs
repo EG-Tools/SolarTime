@@ -12,20 +12,20 @@ function runtime({protocol='https:',fetch:fetchFn}={}){
  vm.runInContext(read('src/language-data.js'),context);const installFileCopy=()=>{vm.runInContext(read('src/language-file-copy.js'),context);return window.SolarModules.LanguageFileCopy;};return {loader:window.SolarModules.LanguageData,requests,scripts,installFileCopy};
 }
 test('all generated translations are deterministic and current',()=>{
- const a=api.sync(root);assert.deepEqual(a.changed,[]);assert.equal(a.report.languages,15);assert.deepEqual(api.sync(root).changed,[]);
+ const a=api.sync(root);assert.deepEqual(a.changed,[]);assert.equal(a.report.languages,16);assert.deepEqual(api.sync(root).changed,[]);
  const version=data('version.json');assert.equal(api.compile(root).releases[0].version,version.version);
  const compiled=api.compile(root),archive=compiled.archive;assert.ok(Number(archive[0].version)<Number(compiled.releases.at(-1).version));assert.equal(archive.at(-1).version,'0.01');
  assert.match(read('changelog.html'),/Complete Update History/);assert.match(read('changelog.html'),/id="v0\.01"/);
  assert.match(read('tools/public-site.cjs'),/require\('\.\/i18n\.cjs'\)\.sync\(root\)/);
  for(const file of ['tools/build-pages.cjs','tools/cloudflare-site.cjs'])assert.match(read(file),/require\('\.\/public-site\.cjs'\)/);
 });
-test('all 15 web and file-language bundles preserve approved interface, timer, body and phase text',async()=>{
+test('all 16 web and file-language bundles preserve approved interface, timer, body and phase text',async()=>{
  // UI fingerprints include the approved orbit label, + shortcut and current mouse accessibility guidance.
  // Historical release and automatic-language baselines remain unchanged.
  const compiled=api.compile(root);
  for(const protocol of ['https:','file:']){
   const environment=runtime({protocol}),{loader}=environment;
-  for(const code of compiled.codes){const bundle=await loader.load(code);assert.ok(bundle.copy.applyUpdate);const original=structuredClone(bundle);delete original.copy.applyUpdate;assert.equal(api.fingerprint(original),data('tests/fixtures/i18n-v077.json')[protocol==='file:'?'file':'web'][code],protocol+' '+code);assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
+  for(const code of compiled.codes){const bundle=await loader.load(code);assert.ok(bundle.copy.applyUpdate);const original=structuredClone(bundle);delete original.copy.applyUpdate;assert.equal(api.fingerprint(original),data('tests/fixtures/i18n-v077.json')[protocol==='file:'?'file':'web'][code],protocol+' '+code);if(gold.automaticLabels[code])assert.equal(api.fingerprint(loader.automaticLabels[code]),api.fingerprint(gold.automaticLabels[code]));else assert.deepEqual(Array.from(loader.automaticLabels[code]),Array.from(compiled.automaticLabels[code]));assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.copy));}
   assert.equal(environment.scripts.length,protocol==='file:'?1:0,protocol+' compatibility payload');
  }
 });
@@ -33,6 +33,14 @@ test('all 15 web and file-language bundles preserve approved interface, timer, b
 test('web startup excludes the direct-file compatibility payload',()=>{
  const html=read('index.html'),loader=read('src/language-data.js'),fileCopy=read('src/language-file-copy.js');
  assert.doesNotMatch(html,/language-file-copy\.js/);assert.doesNotMatch(loader,/const legacyFileCopy=/);assert.match(loader,/location\.protocol==='file:'[\s\S]*loadFileCopy\(\)/);assert.ok(Buffer.byteLength(loader)<Buffer.byteLength(fileCopy));
+});
+
+test('unpublished Mongolian works in file previews without a deployed locale',async()=>{
+ const {loader,requests,scripts}=runtime({protocol:'file:',fetch:async()=>({ok:false,status:404})});
+ const actual=await loader.load('mn'),expected=data('src/locales/mn.json');
+ assert.equal(actual.copy.settings,expected.copy.settings);
+ assert.deepEqual(Array.from(actual.bodies.earth),expected.bodies.earth);
+ assert.equal(requests.length,0);assert.equal(scripts.length,1);
 });
 test('all retained historical release translations are unchanged',()=>{
  const notes=require('../src/release-notes.js');for(const [version,languages] of Object.entries(gold.releases))for(const [code,digest] of Object.entries(languages)){const release=notes.RELEASES.find(r=>r.version===version);assert.ok(release,version);assert.equal(api.fingerprint(notes.itemsFor(release,code)),digest,version+' '+code);}
@@ -42,7 +50,7 @@ test('ring travel labels are localized for all languages including older file-la
  const {loader,installFileCopy}=runtime({protocol:'file:'}),fileCopy=installFileCopy(),compiled=api.compile(root);
  for(const code of compiled.codes){
   const bundle=loader.resolveBundle({copy:{},bodies:{},phases:{}},code,{local:true,fileCopy});
-  for(const key of ['ringTravel','ringTravelStarted','ringTravelUnavailable']){
+  for(const key of ['ringTravel','ringTravelStarted','ringTravelUnavailable','northPole','southPole']){
    assert.equal(bundle.copy[key],compiled.bundles[code].copy[key],code+' '+key);
    assert.ok(data('i18n/locales/'+code+'.json').ui[key].trim(),code+' '+key);
   }
@@ -52,8 +60,8 @@ test('ring travel labels are localized for all languages including older file-la
 
 test('footer signature stays English and outside localization',()=>{
  const html=read('index.html');
- const signature=html.match(/<div class="signature"[^>]*>[\s\S]*?<\/div>/)?.[0]||'';
- assert.match(signature,/class="signature" lang="en"/);
+ const signature=html.match(/<div class="signature(?: [^"]*)?"[^>]*>[\s\S]*?<\/div>/)?.[0]||'';
+ assert.match(signature,/class="signature(?: [^"]*)?" lang="en"/);
  assert.match(signature,/Mean orbit approximation\s*Adjusted size and distance scale/);
  assert.match(signature,/Rotation and orbit linked to time/);
  assert.doesNotMatch(signature,/data-i18n(?:-|=)/);
@@ -121,7 +129,7 @@ test('source-only changes are reported before translation completeness, without 
  const dir=sandbox();try{
   for(const args of [['init','-q'],['config','user.email','test@invalid.example'],['config','user.name','Test'],['add','i18n'],['commit','-qm','source baseline']]){const result=cp.spawnSync('git',args,{cwd:dir,encoding:'utf8'});assert.equal(result.status,0,result.stderr);}
   const en=data('i18n/locales/en.json',dir);en.ui.newFeatureLabel='New feature';write('i18n/locales/en.json',en,dir);
-  const change=api.diff(dir,'HEAD');assert.equal(change.messages.length,1);assert.equal(change.messages[0].key,'ui.newFeatureLabel');assert.equal(change.messages[0].reviewLanguages.length,14);assert.throws(()=>api.diff(dir,'--bad'),/Invalid base/);assert.throws(()=>api.diff(dir,'not-a-ref'),/Unknown base/);
+  const change=api.diff(dir,'HEAD');assert.equal(change.messages.length,1);assert.equal(change.messages[0].key,'ui.newFeatureLabel');assert.equal(change.messages[0].reviewLanguages.length,15);assert.throws(()=>api.diff(dir,'--bad'),/Invalid base/);assert.throws(()=>api.diff(dir,'not-a-ref'),/Unknown base/);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 test('public HTML and literal UI references have canonical message keys',()=>{

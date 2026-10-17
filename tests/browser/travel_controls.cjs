@@ -7,17 +7,17 @@ module.exports=async({evaluate,send,session,until,esc,delay})=>{
  };
  const choose=mode=>evaluate(`document.getElementById('opening-toggle').click();document.querySelector('[data-opening="${mode}"]').click();document.activeElement?.blur()`);
  // No speakers/network dependency: exercise the real player's commands while
- // recording whether T stops/restarts the already-playing media element.
+ // recording whether W stops/restarts the already-playing media element.
  await evaluate(`window.__musicPlays=0;window.__musicPauses=0;HTMLMediaElement.prototype.play=function(){window.__musicPlays++;return Promise.resolve();};HTMLMediaElement.prototype.pause=function(){window.__musicPauses++;};`);
  assert.equal(await evaluate('SolarTime.getState().musicEnabled'),false);
- await choose('none');await key('KeyT','t');await until('!SolarTime.getState().opening');
+ await choose('none');await key('KeyW','w');await until('!SolarTime.getState().opening');
  assert.equal(await evaluate('!!SolarTime.renderer.cameraTween||!!SolarTime.renderer.ringTour'),false);
  assert.equal(await evaluate('SolarTime.renderer.camera.focus'),null);
  assert.equal(await evaluate('SolarTime.getState().musicEnabled'),false);
  assert.equal(await evaluate('SolarTime.renderer.openingLabelOpacity(performance.now())'),0);
  await key('KeyM','m');assert.equal(await evaluate('SolarTime.getState().musicEnabled'),true);
  const music=await evaluate('[window.__musicPlays,window.__musicPauses]');
- await choose('default');await key('KeyT','ㅅ');
+ await choose('default');await key('KeyW','ㅈ');
  await until('SolarTime.getState().opening&&!!SolarTime.renderer.cameraTween');
  await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:600,y:400},session);
  await until('document.body.classList.contains("travel-cursor-active")&&Number(document.getElementById("travel-cursor").style.opacity)===1');
@@ -27,7 +27,7 @@ module.exports=async({evaluate,send,session,until,esc,delay})=>{
  assert.equal(await evaluate('SolarTime.renderer.cameraTween.timing'),'opening');
  await evaluate('void (window.__replayPool=SolarTime.renderer.openingParticles)');
  assert.ok(await evaluate('SolarTime.renderer.openingParticles?.points.length>0'));
- await key('KeyT','t',{autoRepeat:true});
+ await key('KeyW','w',{autoRepeat:true});
  assert.equal(await evaluate('SolarTime.renderer.cameraTween.start'),start);
  assert.equal(await evaluate('SolarTime.getState().musicEnabled'),true);
  assert.deepEqual(await evaluate('[window.__musicPlays,window.__musicPauses]'),music);
@@ -40,17 +40,17 @@ module.exports=async({evaluate,send,session,until,esc,delay})=>{
  await until('!SolarTime.getState().opening');
  await key('KeyM','ㅡ');assert.equal(await evaluate('SolarTime.getState().musicEnabled'),false);
  await evaluate(`const field=document.createElement('input');field.id='qa-edit';document.body.append(field);field.focus();`);
- await key('KeyT','t');await key('KeyM','m');
+ await key('KeyW','w');await key('KeyM','m');
  assert.equal(await evaluate('!!SolarTime.renderer.cameraTween||SolarTime.getState().musicEnabled'),false);
  await evaluate(`document.getElementById('qa-edit').remove();document.activeElement?.blur();`);
- await key('KeyT','t',{ctrlKey:true,modifiers:2});assert.equal(await evaluate('!!SolarTime.renderer.cameraTween'),false);
- await choose('saturn');await key('KeyT','t');
+ await key('KeyW','w',{ctrlKey:true,modifiers:2});assert.equal(await evaluate('!!SolarTime.renderer.cameraTween'),false);
+ await choose('saturn');await key('KeyW','w');
  await until('!!SolarTime.renderer.ringTour?.openingResume');
  assert.equal(await evaluate('SolarTime.getState().musicEnabled'),false);
  assert.equal(await evaluate('SolarTime.renderer.ringTour.annotationOpacity()'),0);
- assert.equal(await evaluate('SolarTime.renderer.ringTour.homeAfterAge===SolarRingTour.settings.entry+SolarTime.renderer.ringTour.period'),true,'T uses the selected one-lap opening');
- // T keeps the old tour alive through its smooth forward takeoff.
- await evaluate('void (window.__priorTour=SolarTime.renderer.ringTour)');await key('KeyT','t');
+ assert.equal(await evaluate('SolarTime.renderer.ringTour.homeAfterAge===SolarRingTour.settings.entry+SolarTime.renderer.ringTour.period'),true,'W uses the selected one-lap opening');
+ // W keeps the old tour alive through its smooth forward takeoff.
+ await evaluate('void (window.__priorTour=SolarTime.renderer.ringTour)');await key('KeyW','w');
  assert.equal(await evaluate('SolarTime.renderer.ringTour===window.__priorTour&&!window.__priorTour.disposed&&window.__priorTour.state==="returning"'),true);
  assert.ok(await evaluate('SolarTime.renderer.openingParticles?.points.length>0&&SolarTime.renderer.ringTour.replayBridge&&!Number.isFinite(SolarTime.renderer.cameraTween.replay.resetAt)'));
  await evaluate('window.__lockedTween=SolarTime.renderer.cameraTween;window.__lockedFov=SolarTime.renderer.ringTour.fov');
@@ -65,7 +65,7 @@ module.exports=async({evaluate,send,session,until,esc,delay})=>{
  await until('!SolarTime.renderer.cameraTween');
  assert.equal(await evaluate('SolarTime.renderer.camera.focus'),null);
  // T keeps the lock through an ordinary opening too; boot behaviour is separate.
- await choose('default');await key('KeyT','t');await until('SolarTime.renderer.cameraTween?.timing==="opening"');
+ await choose('default');await key('KeyW','w');await until('SolarTime.renderer.cameraTween?.timing==="opening"');
  await esc();assert.equal(await evaluate('SolarTime.getState().opening&&SolarTime.getState().openingLocked'),true);
  await until('!SolarTime.getState().opening');
  assert.equal(await evaluate('SolarTime.getState().openingLocked'),false);
@@ -157,6 +157,6 @@ module.exports=async({evaluate,send,session,until,esc,delay})=>{
  await choose('none');await key('KeyM','m');assert.equal(await evaluate('SolarTime.getState().musicEnabled'),true);
  await send('Page.reload',{},session);await until('!!window.SolarTime?.renderer&&!SolarTime.getState().opening');
  assert.equal(await evaluate('SolarTime.getState().musicEnabled'),false);
- await key('KeyT','t');assert.equal(await evaluate('SolarTime.getState().musicEnabled'),false);
+ await key('KeyW','w');assert.equal(await evaluate('SolarTime.getState().musicEnabled'),false);
  return {shortcuts:'T/M',modes:3,musicIndependent:true,noAutoplay:true,handoff,replay,occlusion};
 };

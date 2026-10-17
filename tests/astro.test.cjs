@@ -65,14 +65,14 @@ test('Precision lunar model retains its ~27.32-day sidereal recurrence without f
   assert.ok(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<r*.015);
 });
 test('Moon and Europa retain their parent hierarchy and deterministic fallback ellipses',()=>{
-  assert.deepEqual(A.SATELLITES.map(body=>[body.id,body.parent]),[['moon','earth'],['europa','jupiter']]);
+  assert.deepEqual(A.SATELLITES.map(body=>[body.id,body.parent]),[['moon','earth'],['europa','jupiter'],['triton','neptune']]);
   assert.equal(A.satelliteElements(A.MOON,A.SATELLITE_EPOCH).e,.05);
   assert.equal(A.satelliteElements(A.EUROPA,A.SATELLITE_EPOCH).e,.01);
   for(const body of A.SATELLITES){const path=A.satelliteOrbit(body,A.SATELLITE_EPOCH,body.displayOrbit,120);for(const key of ['x','y','z'])close(path[0][key],path.at(-1)[key],1e-9);}
 });
 test('Satellite phase at the reference timestamp agrees with JPL parent-relative vectors',()=>{
   const references={moon:{x:-374193.6060204512,y:-86496.75632675059,z:-24304.92683869517},europa:{x:-586207.5623074129,y:-313020.6838634806,z:-21332.16099731004}};
-  for(const body of A.SATELLITES){const p=A.satelliteAt(body,A.SATELLITE_EPOCH),r=references[body.id],cosine=(p.x*r.x+p.y*r.y+p.z*r.z)/(Math.hypot(p.x,p.y,p.z)*Math.hypot(r.x,r.y,r.z));assert.ok(cosine>.999998,body.id);}
+  for(const body of A.SATELLITES.filter(body=>references[body.id])){const p=A.satelliteAt(body,A.SATELLITE_EPOCH),r=references[body.id],cosine=(p.x*r.x+p.y*r.y+p.z*r.z)/(Math.hypot(p.x,p.y,p.z)*Math.hypot(r.x,r.y,r.z));assert.ok(cosine>.999998,body.id);}
 });
 test('Satellite angular motion is faster near periapsis than apoapsis',()=>{
   const angle=(a,b)=>Math.acos(Math.max(-1,Math.min(1,(a.x*b.x+a.y*b.y+a.z*b.z)/(Math.hypot(a.x,a.y,a.z)*Math.hypot(b.x,b.y,b.z)))));

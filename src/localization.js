@@ -27,6 +27,7 @@
     if(/taipei/i.test(zone))return 'tw';
     if(/hong_kong/i.test(zone))return 'hk';
     if(/(?:shanghai|chongqing|urumqi|macau)/i.test(zone))return 'chn';
+    if(/ulaanbaatar|ulan_bator|hovd|choibalsan/i.test(zone))return 'mn';
     if(/seoul/i.test(zone))return 'kor';
     if(/kyiv|kiev|uzhgorod|zaporozhye/i.test(zone))return 'ua';
     if(/minsk/i.test(zone))return 'by';
@@ -105,7 +106,7 @@
       ['de-ch','ch'],['fr-ch','ch'],['it-ch','ch'],['de-li','li'],['de-at','at'],['de','de'],
       ['fr-cm','cm'],['en-cm','cm'],['fr-ci','ci'],['fr-lu','lu'],['de-lu','lu'],['lb-lu','lu'],['fr-sn','sn'],['fr','fr'],
       ['ru-by','by'],['be-by','by'],['ru-kz','kz'],['kk-kz','kz'],['ru-kg','kg'],['ky-kg','kg'],['ru','ru'],
-      ['en-ke','ke'],['sw-ke','ke'],['en-pk','pk'],['ur-pk','pk'],['uk','ua'],['hi','hi'],['it','it'],['id','id']
+      ['en-ke','ke'],['sw-ke','ke'],['en-pk','pk'],['ur-pk','pk'],['mn','mn'],['uk','ua'],['hi','hi'],['it','it'],['id','id']
     ];
     for(const [prefix,language] of localeMap)if(languages.some(value=>value===prefix||value.startsWith(prefix+'-')))return language;
     return 'en';

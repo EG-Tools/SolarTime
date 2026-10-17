@@ -27,7 +27,7 @@ module.exports=async({evaluate,send,session,until,mouse})=>{
   await until('!SolarTime.renderer.cameraTween');
   const home=await evaluate('SolarTime.renderer.skyFeatureTrack.returnState');
   await evaluate(`(()=>{const r=SolarTime.renderer,draw=r.drawFlightParticles;window.__warpParticleDraws=0;r.drawFlightParticles=function(c,...args){const originals={drawImage:c.drawImage,stroke:c.stroke,fill:c.fill};for(const key of Object.keys(originals))c[key]=function(...a){if(c.globalAlpha>0)window.__warpParticleDraws++;return originals[key].apply(this,a);};try{return draw.call(this,c,...args);}finally{Object.assign(c,originals);}};document.activeElement?.blur();})()`);
-  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'t',code:'KeyT'},session);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'t',code:'KeyT'},session);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'w',code:'KeyW'},session);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'w',code:'KeyW'},session);
   await until('!!SolarTime.renderer.cameraTween?.replay');
   assert.equal(await evaluate('SolarTime.renderer.solarSceneHidden()'),true,'warp must retain solar hiding through departure');
   assert.equal(await evaluate('SolarTime.renderer.skyFeatureShortcutMode'),0,'warp releases constellation-only rendering');

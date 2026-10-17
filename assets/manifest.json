@@ -721,6 +721,42 @@
           "sha256": "b7bc54b4b8511166827c0a48bf858b374053b3e643080f6d2c3704467145fc58"
         }
       ]
+    },
+    "triton": {
+      "source": "triton.webp",
+      "width": 1774,
+      "height": 887,
+      "seamBaked": true,
+      "tiers": [
+        {
+          "width": 256,
+          "height": 128,
+          "path": "releases/content/textures/triton-256.c416d01c0f3fc6ec.webp",
+          "bytes": 16498,
+          "sha256": "c416d01c0f3fc6ec43e80435e1cf6d4cec5905d464049d1ee0240c045e2c78e3"
+        },
+        {
+          "width": 512,
+          "height": 256,
+          "path": "releases/content/textures/triton-512.d490a49af85822b6.webp",
+          "bytes": 68758,
+          "sha256": "d490a49af85822b61aed4d5a9e17cd8c95cca74a056d65b740138035a3563c14"
+        },
+        {
+          "width": 1024,
+          "height": 512,
+          "path": "releases/content/textures/triton-1024.ad6d1b858c72baf0.webp",
+          "bytes": 272006,
+          "sha256": "ad6d1b858c72baf0e4465096b46185b48d1adb386db301aeafdd4e93db728c1f"
+        },
+        {
+          "width": 1774,
+          "height": 887,
+          "path": "releases/content/textures/triton-1774.793d6e8d30380a7c.webp",
+          "bytes": 789920,
+          "sha256": "793d6e8d30380a7ce29d6aa11edb508bfa4cb051fedb24c9f4642e2956ab4f2d"
+        }
+      ]
     }
   },
   "sky": {

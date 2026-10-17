@@ -14,7 +14,7 @@ function revisions(root){
  pending.set('src/app.js',read('src/app.js').replace(/src\/release-notes\.js\?v=[^'"\s]+/g,'src/release-notes.js?v='+hash(read('src/release-notes.js'))));
  const {deployment}=projectConfig(root),manifest=JSON.parse(read('assets/manifest.json'));
  const generated=runtimeScripts(root,manifest,deployment,{cdnBase:deployment.cdnBase});
- const virtual={'src/assets.js':generated.assets,'src/sky-asset.js':generated.sky};
+ const virtual={'src/assets.js':generated.assets,'src/sky-asset.js':generated.sky,'src/local-effect-atlases.js':generated.localEffects};
  const key=file=>hash(virtual[file]??read(file));
  for(const file of ['index.html','guide.html','constellations.html','learn.html','learn-orbits.html','learn-scale.html','learn-eclipses.html','learn-sky.html','learn-cinematics.html','about.html','credits.html','privacy.html','terms.html','changelog.html']){
   pending.set(file,read(file).replace(/\b(src|href)="((?:src\/)?[a-zA-Z0-9_.\/-]+\.(?:js|css))(?:\?[^"#]*)?"/g,(all,attr,target)=>{

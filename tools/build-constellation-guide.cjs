@@ -23,6 +23,13 @@ const descriptions={
  'pisces':'Two extended chains meet near Alrescha, with a loop at one end. Follow the connection between the two parts before studying the smaller loop. A wide camera view helps preserve the overall shape.',
  'pegasus':'Find the Great Square, then trace the branches leaving it. Alpheratz forms one corner of this drawing and also begins the Andromeda chain; compare both targets to recognise their shared landmark.',
  'andromeda':'Follow the main chain from Alpheratz through Mirach toward Almach. A shorter branch leaves the chain near Mirach. Compare that branch with the nearby galaxy illustration in the app.',
+ 'centaurus':'Start with Alpha and Beta Centauri, then trace the branching figure beside the Southern Cross. Compare these bright landmarks with the shorter Crux outline.',
+ 'carina':'Begin at Canopus and trace the long keel of the former Argo Navis. Compare it with neighbouring Vela to distinguish the two ship patterns.',
+ 'vela':'Trace the broad sail outline beside Carina. Its larger shape helps distinguish it from the compact Southern Cross.',
+ 'triangulum-australe':'Three bright stars form a compact southern triangle. Turn its lines off and try finding the same three corners.',
+ 'pavo':'Start at the bright star Peacock and follow the branching southern figure. Compare the long outer segments with the compact central pattern.',
+ 'grus':'Begin at Alnair and trace the crane’s long axis and spreading branches. Rotate the view while keeping that axis as a reference.',
+ 'phoenix':'Follow the connected outline around Ankaa. Compare its compact loops with the longer neighbouring southern patterns.',
  'crux':'Two crossing axes make a compact Southern Cross. Compare its short outline with the much larger Cygnus cross. Similar shapes do not mean that two patterns occupy the same part of the sky.'
 };
 const escape=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');

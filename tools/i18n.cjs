@@ -150,6 +150,11 @@ ${sections}
 }
 function outputs(root,data=compile(root)){
  const out=new Map();for(const code of data.codes)out.set('src/locales/'+code+'.json',json(data.bundles[code]));
+ const fileBundles=Object.fromEntries((data.config.directFileBundles||[]).map(code=>{
+  if(!data.bundles[code])throw Error('Unknown direct-file locale: '+code);
+  return [code,data.bundles[code]];
+ }));
+ const fileBodies=Object.fromEntries(data.codes.map(code=>[code,Object.fromEntries((data.config.directFileBodyKeys||[]).map(id=>[id,data.bundles[code].bodies[id]]))]));
  const d=data,block=[
   '  const supported=Object.freeze('+JSON.stringify(d.codes)+');',
   '  const metadata=deepFreeze('+JSON.stringify(d.metadata)+');',
@@ -157,11 +162,12 @@ function outputs(root,data=compile(root)){
   '  const automaticLabels=deepFreeze('+JSON.stringify(d.automaticLabels)+');',
   '  const loadingText=Object.freeze('+JSON.stringify(Object.fromEntries(d.codes.map(code=>[code,d.bundles[code].copy.loading])))+');',
   '  const emptyCopyKeys=Object.freeze('+JSON.stringify(d.config.allowEmptyKeys.filter(k=>k.startsWith('ui.')||k.startsWith('timer.')).map(k=>k.slice(k.indexOf('.')+1)))+');',
+  '  const directFileBodies=deepFreeze('+JSON.stringify(fileBodies)+');',
   '  const fallback=deepFreeze('+JSON.stringify(d.bundles.en)+');',
-  '  const fileCopyRevision='+JSON.stringify(fingerprint(d.legacyFileCopy).slice(0,12))+';',
+  '  const fileCopyRevision='+JSON.stringify(fingerprint({copy:d.legacyFileCopy,bundles:fileBundles}).slice(0,12))+';',
   '  const missingFallback=Object.freeze('+JSON.stringify(d.config.missingBundleFallback||{})+');'
  ].join('\n');
- const fileCopy='src/language-file-copy.js';out.set(fileCopy,'/* Generated direct-file compatibility copy. Edit i18n/ and run npm run build:i18n. */\n(function(root){\n  \'use strict\';\n  const modules=root.SolarModules||(root.SolarModules={});\n  function deepFreeze(value){if(value&&typeof value===\'object\'&&!Object.isFrozen(value)){Object.values(value).forEach(deepFreeze);Object.freeze(value);}return value;}\n  modules.LanguageFileCopy=deepFreeze('+JSON.stringify(d.legacyFileCopy)+');\n})(window);\n');
+ const fileCopy='src/language-file-copy.js';out.set(fileCopy,'/* Generated direct-file compatibility copy. Edit i18n/ and run npm run build:i18n. */\n(function(root){\n  \'use strict\';\n  const modules=root.SolarModules||(root.SolarModules={});\n  function deepFreeze(value){if(value&&typeof value===\'object\'&&!Object.isFrozen(value)){Object.values(value).forEach(deepFreeze);Object.freeze(value);}return value;}\n  modules.LanguageFileCopy=deepFreeze('+JSON.stringify(d.legacyFileCopy)+');\n  modules.LanguageFileBundles=deepFreeze('+JSON.stringify(fileBundles)+');\n})(window);\n');
  const loader='src/language-data.js';out.set(loader,replaceBlock(fs.readFileSync(path.join(root,loader),'utf8'),'// BEGIN GENERATED I18N DATA','// END GENERATED I18N DATA',block,loader));
  const notes='src/release-notes.js';out.set(notes,replaceBlock(fs.readFileSync(path.join(root,notes),'utf8'),'// BEGIN GENERATED RELEASE DATA','// END GENERATED RELEASE DATA',' const RECENT_DATA='+JSON.stringify(d.releases.slice(0,10))+';',notes));
  out.set('CHANGELOG.md',englishChangelog(d.releases,d.archive));

@@ -2,6 +2,14 @@
 
 Current and past Solar Time updates, listed from newest to oldest.
 
+## v0.81 · 2026.10.17
+
+- Added Uranus ring tours and continuous travel between Saturn and Uranus.
+- Added Triton, a moon of Neptune.
+- Added seven southern constellations.
+- Improved area-specific UI visibility in viewing mode and controls for cards, menus and the planet list.
+- Added Earth regions, Mongolian language support and North and South Pole selection.
+
 ## v0.80 · 2026.10.15
 
 - Standardized button order, text size and spacing across planet and constellation cards.

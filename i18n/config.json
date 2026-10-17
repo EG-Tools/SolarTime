@@ -1,6 +1,9 @@
 {
   "schemaVersion": 1,
   "baseLanguage": "en",
+  "directFileBundles": [
+    "mn"
+  ],
   "languages": {
     "kor": {
       "locale": "ko-KR",
@@ -24,6 +27,14 @@
       "automaticLabel": [
         "自动",
         "语言"
+      ]
+    },
+    "mn": {
+      "locale": "mn-MN",
+      "html": "mn",
+      "automaticLabel": [
+        "АВТО",
+        "Хэл"
       ]
     },
     "zht": {
@@ -124,6 +135,8 @@
     }
   },
   "legacyFileKeys": [
+    "northPole",
+    "southPole",
     "shutdownAvailable",
     "shutdownUnavailable",
     "shutdownHelperNote",
@@ -193,7 +206,8 @@
     "scrollDown",
     "skyNavigate",
     "openingPlay",
-    "cookieSettings"
+    "cookieSettings",
+    "parentDistance"
   ],
   "invariantKeys": [
     "timer.helperChecksumLabel"
@@ -265,5 +279,15 @@
       "^en(?:-|$)",
       "en"
     ]
+  ],
+  "directFileBodyKeys": [
+    "triton",
+    "centaurus",
+    "carina",
+    "vela",
+    "triangulum-australe",
+    "pavo",
+    "grus",
+    "phoenix"
   ]
 }

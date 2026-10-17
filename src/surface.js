@@ -874,12 +874,14 @@ const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,ax
      return vec4(mix(previous.rgb*previous.a,current.rgb*current.a,ringLodMix)/max(alpha,.00001),alpha);
    }
    ${STYLE.ringShadowGLSL}
-   float lineBand(float f,float center,float width,float aa){return 1.-smoothstep(width,width+aa,abs(f-center));}
+   ${STYLE.narrowRingGLSL}
+   ${STYLE.ringCoverageGLSL}
    void main(){float r=length(local);if(r<inner||r>outer||(front>.5&&depth<0.)||(front<.5&&depth>=0.))discard;
      float f=(r-inner)/(outer-inner),span=outer-inner;
      vec2 radial=local/max(r,.0001),screenRadial=axisU*radial.x+axisV*radial.y;
      float aa=max(pixel/span,1.15/(max(radius*length(screenRadial),1.)*span));
      float edge=max(pixel,aa*span),alpha=smoothstep(inner,inner+edge,r)*(1.-smoothstep(outer-edge,outer,r));
+     if(saturn<.5)alpha=ringBandCoverage(r,edge,vec2(inner,outer));
      float shadow=saturn>.5?ringShadow(vec3(local.x,0.,local.y),light):1.;
      if(saturn>.5&&hasRingMap>=1.){vec4 band=blendedRing(f,aa);gl_FragColor=vec4(band.rgb*shadow,alpha*band.a);return;}
      float edgeAlpha=alpha;
@@ -890,16 +892,7 @@ const DIRECT_RING_VERTEX=`attribute vec2 a;uniform vec2 center,viewport,axisU,ax
      alpha*=bands*(1.-gap)*(f>.85?.6:1.);
      }
      else{
-      float lines=0.;
-      lines+=lineBand(f,.07,.007,aa)*.22;lines+=lineBand(f,.16,.006,aa)*.28;
-      lines+=lineBand(f,.27,.008,aa)*.18;lines+=lineBand(f,.39,.006,aa)*.30;
-      lines+=lineBand(f,.53,.009,aa)*.24;lines+=lineBand(f,.68,.007,aa)*.34;
-      lines+=lineBand(f,.83,.009,aa)*.27;lines+=lineBand(f,.95,.010,aa)*.62;
-      float separationPixels=.09/max(aa,.0001);
-      float detail=smoothstep(2.5,5.5,separationPixels);
-      float coverage=min(1.,.012/max(aa,.012));
-      float unresolved=.035+.025*smoothstep(.70,1.,f);
-      alpha*=mix(unresolved,min(lines*coverage,.68),detail);
+      alpha*=narrowRingAlpha(f,aa);
     }
     vec4 result=vec4(ringColor*shadow,alpha);
     if(saturn>.5&&hasRingMap>0.){
@@ -1045,7 +1038,7 @@ class DirectRenderer{
     if(earth)(this.cloudWeather||=new materialSource.CloudWeather()).prepare(earth.cloudSeed);
     else this.cloudWeather?.cancelBuild();
     this.pruneTextureQueue();
-    const assets=root.SolarAssets?.materials,key=jobs.map(job=>job.id+':'+job.textureWidth+':'+(job.nightTextureWidth||0)+':'+(job.cloudTextureWidth||0)+':'+Number(job.cloudDetail!==0)+':'+(job.venusSurfacePreviewWidth||0)+':'+job.priority+':'+Number(job.nightLights)+':'+(job.cloudAmount===0?0:job.cloudAmount<1?1:2)).join('|')+'|'+this.auxiliaryTextureBytes();
+    const assets=root.SolarAssets?.materials,key=jobs.map(job=>job.id+':'+job.textureWidth+':'+(job.nightTextureWidth||0)+':'+(job.cloudTextureWidth||0)+':'+Number(job.cloudDetail!==0)+':'+(job.venusSurfacePreviewWidth||0)+':'+(job.requiredTextures||[]).join(',')+':'+job.priority+':'+Number(job.nightLights)+':'+(job.cloudAmount===0?0:job.cloudAmount<1?1:2)).join('|')+'|'+this.auxiliaryTextureBytes();
     if(key!==this.planKey||assets!==this.planAssets){
       this.planKey=key;this.planAssets=assets;this.texturePlan=root.SolarPerformance?.planTextures(jobs,assets,this.maxTextureSize,this.auxiliaryTextureBytes(),this.explicitMipLod);
       this.stats.plannedTextureBytes=this.texturePlan?.bytes||0;
@@ -1055,6 +1048,7 @@ class DirectRenderer{
     for(const job of jobs){
       this.texture(job.id==='venus'&&job.cloudAmount<1?'venus-surface':job.id,job.textureWidth);
       if(job.id==='saturn')this.texture('saturn-ring',job.textureWidth);
+      for(const name of job.requiredTextures||[])this.texture(name,job.textureWidth);
       if(job.id==='venus'&&job.cloudAmount>=1&&job.venusSurfacePreviewWidth>0)this.texture('venus-surface',256);
       if(job.id==='venus'&&job.cloudAmount>0&&job.cloudAmount<1)this.texture('venus',job.cloudTextureWidth||job.textureWidth);
       if(job.id==='earth'&&job.nightLights)this.texture('earth-night',Math.min(4096,job.nightTextureWidth||job.textureWidth));
@@ -1086,6 +1080,7 @@ class DirectRenderer{
     this.gl.uniform2f(program.u.viewport,this.width,this.height);program.viewportWidth=this.width;program.viewportHeight=this.height;
   }
   textureIsWanted(name){
+    for(const job of this.desired.values())if(job.requiredTextures?.includes(name))return true;
     if(name==='saturn-ring')return this.desired.has('saturn');
     if(name==='venus'&&this.desired.has('venus'))return this.desired.get('venus').cloudAmount!==0;
     if(this.desired.has(name)||root.SolarPerformance?.protectTexture(this,name))return true;

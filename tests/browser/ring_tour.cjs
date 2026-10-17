@@ -16,6 +16,8 @@ module.exports=async({root,evaluate,send,session})=>{
   const choose=id=>evaluate(`document.querySelector('#planet-nav [data-body="${id}"]').click()`);
   const button='document.getElementById("ring-tour-button")';
   for(const id of ['earth','jupiter','sun']){await choose(id);assert.equal(await evaluate(button+'.hidden'),true,id);}
+  await choose('uranus');assert.equal(await evaluate(button+'.hidden'),false);
+  assert.equal(await evaluate('SolarTime.renderer.ringTourTargetBody()'),'uranus');
   await choose('saturn');assert.equal(await evaluate(button+'.hidden'),false);
   assert.equal(await evaluate(button+'.previousElementSibling.id'),'focus-body');
   await evaluate('SolarTime.setLanguage("kor")');assert.equal(await evaluate(button+'.textContent'),'여행');
@@ -47,7 +49,7 @@ module.exports=async({root,evaluate,send,session})=>{
   await until('!!SolarTime.renderer.ringTour');await esc();
   await evaluate('SolarTime.renderer.ringTour.returnAge=SolarTime.renderer.ringTour.returnDuration-.05');
   await until('!SolarTime.renderer.ringTour');
-  return {saturnOnly:true,sharedEntry:true,overviewAndTracking:true,keyboard:true,translations:true,image,error:await evaluate('SolarTime.renderer.gpu.gl.getError()')};
+  return {ringPlanets:['saturn','uranus'],sharedEntry:true,overviewAndTracking:true,keyboard:true,translations:true,image,error:await evaluate('SolarTime.renderer.gpu.gl.getError()')};
  }
  async function checkTourNavigation(){
   const choose=id=>evaluate(`document.querySelector('#planet-nav [data-body="${id}"]').click()`);
@@ -211,14 +213,38 @@ module.exports=async({root,evaluate,send,session})=>{
     const pressH=async()=>{await send('Input.dispatchKeyEvent',{type:'keyDown',key:'h',code:'KeyH'},session);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'h',code:'KeyH'},session);};
     assert.equal(await evaluate('SolarTime.getState().zen'),false);
     assert.equal(await evaluate('getComputedStyle(document.getElementById("universe")).cursor'),'grab');
-    await mouse('mouseMoved',600,400);await pressH();
-    await until('SolarTime.getState().zen&&document.body.classList.contains("pointer-awake")');
+    await mouse('mouseMoved',600,400);await pressH();await until('SolarTime.getState().zen');
+    await until('getComputedStyle(document.querySelector(".brand")).visibility==="hidden"');
+    assert.equal(await evaluate('document.body.classList.contains("pointer-awake")'),false);
+    await send('Input.dispatchKeyEvent',{type:'keyDown',key:'0',code:'Digit0'},session);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'0',code:'Digit0'},session);
+    assert.equal(await evaluate('document.body.classList.contains("pointer-awake")'),false);
+    const mastheadPoint=await evaluate('(()=>{const r=document.querySelector(".brand").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()');
+    await mouse('mouseMoved',mastheadPoint.x,mastheadPoint.y);await until('document.querySelector(".brand").classList.contains("zen-awake")');
+    assert.equal(await evaluate('getComputedStyle(document.querySelector(".brand")).visibility'),'visible');
+    assert.equal(await evaluate('getComputedStyle(document.querySelector(".brand")).opacity'),'1');
+    assert.equal(await evaluate('document.querySelector(".top-actions").classList.contains("zen-awake")'),false);
+    assert.equal(await evaluate('document.querySelector(".signature").classList.contains("zen-awake")'),false);
+    assert.equal(await evaluate('document.querySelector(".playback").classList.contains("zen-awake")'),false);
     assert.equal(await evaluate('document.body.classList.contains("travel-cursor-active")'),false);
     assert.equal(await evaluate('getComputedStyle(document.getElementById("universe")).cursor'),'grab');
-    await until('!document.body.classList.contains("pointer-awake")');
+    await mouse('mouseMoved',600,400);await until('!document.body.classList.contains("pointer-awake")');
+    assert.equal(await evaluate('getComputedStyle(document.querySelector(".brand")).visibility'),'hidden');
+    assert.equal(await evaluate('getComputedStyle(document.querySelector(".brand")).opacity'),'0');
     assert.equal(await evaluate('getComputedStyle(document.getElementById("universe")).cursor'),'none');
-    await mouse('mouseMoved',620,420);
-    assert.equal(await evaluate('getComputedStyle(document.getElementById("universe")).cursor'),'grab');
+    const playbackPoint=await evaluate('(()=>{const r=document.querySelector(".playback").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()');
+    await mouse('mouseMoved',playbackPoint.x,playbackPoint.y);await until('document.querySelector(".playback").classList.contains("zen-awake")');
+    assert.equal(await evaluate('document.getElementById("planet-nav").classList.contains("zen-awake")'),true);
+    assert.equal(await evaluate('document.querySelector(".signature").classList.contains("zen-awake")'),false);
+    const settingsPoint=await evaluate('(()=>{const r=document.getElementById("settings-button").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()');
+    await mouse('mouseMoved',settingsPoint.x,settingsPoint.y);await until('document.querySelector(".top-actions").classList.contains("zen-awake")');
+    await evaluate('document.getElementById("settings-button").click()');
+    await until('!document.getElementById("settings-panel").hidden');
+    await mouse('mouseMoved',600,400);await until('!document.body.classList.contains("pointer-awake")');
+    assert.equal(await evaluate('document.getElementById("settings-panel").inert'),false);
+    assert.equal(await evaluate('getComputedStyle(document.getElementById("settings-panel")).visibility'),'visible');
+    assert.equal(await evaluate('Number(getComputedStyle(document.getElementById("settings-panel")).zIndex)>Number(getComputedStyle(document.getElementById("view-controls")).zIndex)'),true);
+    await evaluate('document.getElementById("settings-close").click()');
+    await until('document.getElementById("settings-panel").hidden');
     await pressH();await until('!SolarTime.getState().zen');
     assert.equal(await evaluate('getComputedStyle(document.getElementById("universe")).cursor'),'grab');
     const choose=async mode=>{await evaluate(`document.getElementById('opening-toggle').click()`);await delay(100);await evaluate(`document.querySelector('[data-opening="${mode}"]').click()`);};
@@ -299,7 +325,7 @@ module.exports=async({root,evaluate,send,session})=>{
   if(process.argv.includes('--ring-tour-shortcuts')){await checkSavedViews();return {shortcuts:true,error:await evaluate('SolarTime.renderer.gpu.gl.getError()')};}
   const point=await evaluate("(()=>{const r=SolarTime.renderer;for(let y=270;y<650;y+=5)for(let x=300;x<1000;x+=5)if(r.ringTourHit(x,y))return {x,y};throw Error('No ring hit');})()");
   await mouse('mouseMoved',point.x,point.y);
-  assert.equal(await evaluate('SolarTime.renderer.ringTourHover'),true);
+  assert.equal(await evaluate('SolarTime.renderer.ringTourHover'),'saturn');
   assert.ok((await evaluate("document.getElementById('universe').style.cursor")).includes('svg'));
   const saved=await evaluate('SolarTime.renderer.cameraSnapshot()');
   // Compare the actual orthographic tracking disc against the first tour frame, not just pose numbers.
@@ -458,7 +484,7 @@ module.exports=async({root,evaluate,send,session})=>{
   await evaluate('(()=>{const r=SolarTime.renderer,home=r.defaultCameraSnapshot();r.restoreCamera({...home,zoom:.8,dolly:home.dolly*.35/.8});})()');await delay(250);
   const farPoint=await evaluate("(()=>{const r=SolarTime.renderer,p=r.currentFrameItem('saturn'),f=r.bodyFrame(p.body);for(let i=0;i<32;i++){const a=i*Math.PI/16,x=p.screen.x+p.r*1.77*(f.u.x*Math.cos(a)+f.v.x*Math.sin(a)),y=p.screen.y+p.r*1.77*(f.u.y*Math.cos(a)+f.v.y*Math.sin(a));if(r.ringTourHit(x,y))return {x,y,radius:p.r,focus:r.camera.focus};}throw Error('No distant ring hit');})()");
   assert.equal(farPoint.focus,null);assert.ok(farPoint.radius<20);
-  await mouse('mouseMoved',farPoint.x,farPoint.y);assert.equal(await evaluate('SolarTime.renderer.ringTourHover'),true);
+  await mouse('mouseMoved',farPoint.x,farPoint.y);assert.equal(await evaluate('SolarTime.renderer.ringTourHover'),'saturn');
   await mouse('mousePressed',farPoint.x,farPoint.y,'left',1);await mouse('mouseReleased',farPoint.x,farPoint.y,'left',0);
   await until('!!SolarTime.renderer.ringTour');
   const directApproach=await evaluate('(()=>{const r=SolarTime.renderer,t=r.ringTour;return {local:!!t,tween:!!r.cameraTween,state:t?.state,entry:SolarRingTour.settings.entry,startDistance:t?.startDistance,eye:t?.pose.eye};})()');

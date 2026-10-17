@@ -9,7 +9,7 @@
     "scrollDown": "Défiler vers le bas",
     "skyNavigate": "Aller à {name}",
     "openingTravel": "Voyage d’ouverture",
-    "openingDefault": "Ouverture par défaut",
+    "openingDefault": "Par défaut",
     "openingNone": "Aucun",
     "openingReload": "Appuyez sur T pour lancer l’ouverture choisie.",
     "metaDescription": "Une horloge du système solaire au fil des étoiles : heure réelle, orbites planétaires, Terre et Lune dans un petit cosmos.",
@@ -62,7 +62,7 @@
     "clockFont": "Police des chiffres",
     "clockSize": "Taille de l’horloge",
     "sunShine": "Éclat solaire",
-    "satellites": "Satellites principaux · Lune et Europe",
+    "satellites": "Lunes principales · Lune, Europe et Triton",
     "pluto": "Pluton",
     "dwarfPlanet": "Planète naine",
     "comets": "Comètes lointaines",
@@ -210,6 +210,8 @@
     "night": "nuit",
     "auNote": "",
     "koreaView": "Voir {region}",
+    "northPole": "Pôle Nord",
+    "southPole": "Pôle Sud",
     "stormView": "Voir la Grande Tache rouge",
     "speedUnitActive": "Unité de vitesse : {unit}. Appuyez pour changer.",
     "speedUnitReady": "Unité {unit} prête. Appuyez pour démarrer.",
@@ -242,7 +244,8 @@
     "constellationsShortcut": "Afficher les constellations",
     "targetSwitch": "Cible précédente / suivante",
     "targetSwitchHint": "Passez entre les planètes, les régions ou les constellations selon la vue actuelle.",
-    "openingPlay": "Lire"
+    "openingPlay": "Saut spatial",
+    "parentDistance": "Distance moyenne : {name}"
   },
   "timer": {
     "helperDownloadPrivacy": "Seuls des identifiants aléatoires à usage unique, la version de l’assistant et les résultats des commandes sont envoyés à Solar Time. Aucun compte, fichier ni nom d’ordinateur n’est transmis. Les accusés de réception expirent et sont supprimés automatiquement.",
@@ -451,6 +454,38 @@
     "big-dipper": [
       "Grande Casserole",
       "Astérisme formé de sept étoiles brillantes de la Grande Ourse. Sa silhouette de casserole guide vers le ciel du nord, et la ligne de Merak à Dubhe indique la direction de l’étoile Polaire."
+    ],
+    "triton": [
+      "Triton",
+      "La plus grande lune de Neptune suit une orbite rétrograde. Sa surface froide est couverte de glace d’azote et d’eau."
+    ],
+    "centaurus": [
+      "Centaure",
+      "Constellation australe voisine de la Croix du Sud, avec Alpha et Bêta du Centaure."
+    ],
+    "carina": [
+      "Carène",
+      "Constellation australe contenant la brillante Canopus."
+    ],
+    "vela": [
+      "Voiles",
+      "Constellation australe voisine de la Carène, figurant les voiles d’un navire."
+    ],
+    "triangulum-australe": [
+      "Triangle austral",
+      "Trois étoiles brillantes forment un petit triangle austral."
+    ],
+    "pavo": [
+      "Paon",
+      "Constellation australe représentant un paon."
+    ],
+    "grus": [
+      "Grue",
+      "Constellation australe contenant Alnair et représentant une grue."
+    ],
+    "phoenix": [
+      "Phénix",
+      "Constellation australe représentant le phénix mythique."
     ]
   },
   "phases": {

@@ -16,6 +16,21 @@ function screenPoint(r,latitude,longitude){
   return {x:500+normal.x*200,y:300+normal.y*200};
 }
 
+test('polar caps share hover hit areas and cached, limb-clipped outlines',()=>{
+  for(const sign of [-1,1]){
+    const pole={id:sign>0?'north-pole':'south-pole',latitude:sign*89.5,longitude:0,polarCapDegrees:10};
+    const r=rendererFacing(pole),item=r.currentFrameItem('earth');
+    assert.equal(r.earthRegionHit(500,300,[pole,korea],ms),pole);
+    const outside=screenPoint(r,sign*75,0);
+    assert.equal(r.earthRegionHit(outside.x,outside.y,[pole],ms),null);
+    const lines=r.earthRegionOutline(pole,item,ms);
+    assert.ok(lines.length>0&&lines[0].length>20);
+    const cached=r.polarOutlineCache.get(sign*80);
+    r.earthRegionOutline(pole,item,ms);assert.equal(r.polarOutlineCache.get(sign*80),cached);
+    for(const line of lines)for(const p of line)assert.ok(Math.hypot(p.x-500,p.y-300)<=200.01);
+  }
+});
+
 test('Earth picking requires a settled tracked close-up and an actual country polygon',()=>{
   const r=rendererFacing();
   assert.equal(r.earthRegionHit(500,300,[korea],ms),korea);
@@ -80,7 +95,7 @@ test('temporary Earth region changes are isolated from the persistent language r
   assert.match(app,/const centeredRegion=.*renderer\.countryRegionCenter/);
   assert.match(app,/if\(userInitiated\)clearTemporaryRegion\(\)/);
   assert.doesNotMatch(app,/temporaryRegionId&&trackedBodyId\(\)!=='earth'/);
-  assert.match(app,/renderer\.earthRegionHit\(point\.x,point\.y,REGION_CATALOG/);
+  assert.match(app,/renderer\.earthRegionHit\(point\.x,point\.y,EARTH_REGION_CATALOG/);
   assert.match(app,/renderer\.earthRegionInteractionReady\(\)/);
   assert.match(app,/renderer\.setEarthRegionHover\(region\)/);
   assert.match(app,/UI\.loadScript\(COUNTRY_BORDERS_SOURCE,'SolarCountryBorders'\)/);
@@ -89,6 +104,23 @@ test('temporary Earth region changes are isolated from the persistent language r
   assert.match(app,/dayLabel:t\('day'\),nightLabel:t\('night'\)/);
   const picking=app.slice(app.indexOf('      function earthRegionAt'),app.indexOf("      window.addEventListener('keydown'"));
   assert.doesNotMatch(picking,/setLanguage\(/);
+});
+
+test('Mongolia uses Mongolian while stable polar points belong only to Earth navigation',()=>{
+  const app=read('src/app.js'),{catalog,earthCatalog,extras,order,regions}=require('./helpers/region-metadata.cjs').metadata();
+  assert.equal(Array.from(extras,region=>region.id).join(','),'north-pole,south-pole');
+  assert.equal(earthCatalog.length,catalog.length+2);assert.equal(order.length,catalog.length);
+  assert.ok(order.includes('mn'));assert.equal(catalog.find(region=>region.id==='mn').copy,'mn');
+  assert.ok(!order.includes('north-pole')&&!order.includes('south-pole'),'polar observation targets never enter the language menu');
+  assert.equal(regions.mn.code,'MN');assert.equal(regions.mn.timeZone,'Asia/Ulaanbaatar');
+  const probe=rendererFacing(regions.mn),center=probe.countryRegionCenter(regions.mn);
+  assert.ok(center&&window.SolarCountryBorders.MN?.length);assert.equal(probe.countryContains('MN',regions.mn.longitude,regions.mn.latitude),true);
+  assert.equal(regions['north-pole'].latitude,89.5);assert.equal(regions['south-pole'].latitude,-89.5);
+  assert.equal(regions['north-pole'].timeZone,'UTC');assert.equal(regions['south-pole'].timeZone,'UTC');
+  assert.match(app,/if\(region\.nameKey\)return t\(region\.nameKey\)/);
+  assert.equal(extras.find(region=>region.id==='north-pole').polarCapDegrees,10);
+  assert.equal(extras.find(region=>region.id==='south-pole').polarCapDegrees,20);
+  for(const locale of fs.readdirSync(path.join(root,'i18n/locales')).filter(name=>name.endsWith('.json'))){const copy=JSON.parse(read(`i18n/locales/${locale}`)).ui;assert.ok(copy.northPole&&copy.southPole,locale);}
 });
 
 test('wheel travel preserves temporary country inspection until an explicit reset',()=>{
@@ -133,9 +165,9 @@ test('country card uses alarm-style triangle controls and a nearest-neighbour lo
   const app=read('src/app.js'),html=read('index.html'),css=read('src/runtime-optimizations.css'),{metadata}=require('./helpers/region-metadata.cjs'),data=metadata();
   assert.match(html,/id="region-navigation"[\s\S]*id="region-previous" class="timer-sound-preview[\s\S]*id="feature-view"[\s\S]*id="region-next" class="timer-sound-preview/);
   assert.match(css,/\.region-navigation\{display:grid/);assert.match(css,/\.region-previous>span\{transform:rotate\(180deg\)\}/);
-  const start=app.indexOf('      const regionDistance='),end=app.indexOf('      function syncRegionNavigation',start),context={A,REGION_CATALOG:data.catalog,REGIONS:data.regions,temporaryRegionId:'en',language:'kor'};
+  const start=app.indexOf('      const regionDistance='),end=app.indexOf('      function syncRegionNavigation',start),context={A,REGION_CATALOG:data.catalog,EARTH_REGION_CATALOG:data.earthCatalog,REGIONS:data.regions,temporaryRegionId:'en',language:'kor'};
   vm.createContext(context);vm.runInContext(app.slice(start,end)+';this.route=countryRoute();this.previous=regionNeighbor(-1);this.next=regionNeighbor(1);',context);
-  assert.equal(context.route.length,data.catalog.length);assert.equal(new Set(context.route.map(region=>region.id)).size,data.catalog.length);assert.equal(context.route[0].id,'ca');
+  assert.equal(context.route.length,data.earthCatalog.length);assert.equal(new Set(context.route.map(region=>region.id)).size,data.earthCatalog.length);assert.equal(context.route[0].id,'ca');
   assert.equal(context.previous.code,'CA');assert.equal(context.next.code,'MX');
   assert.match(app,/function viewEarthRegion\(region=displayRegion\(\)\)/);assert.match(app,/viewEarthRegion\(target\)/);assert.match(app,/setTemporaryRegion\(target\.id,!rotateEarth\)/);
 });

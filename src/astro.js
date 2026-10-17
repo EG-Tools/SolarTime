@@ -20,7 +20,7 @@
   // One distance unit for true-scale radii, heliocentric orbits and satellites.
   // IAU astronomical unit; mean planetary radii: ssd.jpl.nasa.gov/planets/phys_par.html.
   const AU_KM=149597870.7,TRUE_SCALE_UNITS_PER_AU=20;
-  const BODY_RADIUS_KM=Object.freeze({sun:695700,mercury:2439.4,venus:6051.8,earth:6371.0084,mars:3389.5,jupiter:69911,saturn:58232,uranus:25362,neptune:24622,pluto:1188.3,moon:1737.4,europa:1560.8});
+  const BODY_RADIUS_KM=Object.freeze({sun:695700,mercury:2439.4,venus:6051.8,earth:6371.0084,mars:3389.5,jupiter:69911,saturn:58232,uranus:25362,neptune:24622,pluto:1188.3,moon:1737.4,europa:1560.8,triton:1353.4});
   const J2000 = Date.UTC(2000, 0, 1, 12), MIN_TIME = Date.UTC(1800, 0, 1), MAX_TIME = Date.UTC(2999, 11, 31, 23, 59, 59);
   const CURRENT_START=Date.UTC(1800,0,1),CURRENT_END=Date.UTC(2051,0,1),HAS_PRECISION=!!(Astronomy?.GeoMoon&&Astronomy?.JupiterMoons&&Astronomy?.HelioVector&&Astronomy?.SearchGlobalSolarEclipse);
   const round2 = value => Math.round(value*100)/100;
@@ -148,7 +148,9 @@
     parent:'earth',description:'규산염 암석으로 된 지구의 자연 위성. 물은 주로 영구 그늘의 극지 토양과 분화구에 얼음으로 존재합니다.'});
   const EUROPA = Object.freeze({id:'europa',ko:'유로파',en:'EUROPA',size:3.5,displayOrbit:45,color:'#d8c89c',period:3.551181,periodSeconds:306822.04,spin:3.551181,spinSeconds:306822.04,referenceSpinDays:3.551181,tilt:.1,
     parent:'jupiter',description:'물얼음 지각으로 덮인 목성의 갈릴레이 위성. 얼음 아래에는 염분을 포함한 거대한 액체 바다가 있을 가능성이 큽니다.'});
-  const SATELLITES=Object.freeze([MOON,EUROPA]);
+  const TRITON=Object.freeze({id:'triton',ko:'트리톤',en:'TRITON',size:1.75,displayOrbit:35,color:'#c9bba8',period:5.876994,periodSeconds:507772.2816,spin:5.876994,spinSeconds:507772.2816,referenceSpinDays:5.876994,tilt:157.3,
+    parent:'neptune',description:'해왕성을 역행 공전하는 가장 큰 위성. 질소 얼음과 물얼음으로 덮인 차가운 표면을 지닙니다.'});
+  const SATELLITES=Object.freeze([MOON,EUROPA,TRITON]);
   // One local reference owner. A frame does not numerically integrate its predecessor:
   // any timestamp (seek, reopen, sleep, leap year) gives the same phase directly.
   // The saved period is seconds to TWO decimals, never degrees/second rounded to 0.
@@ -322,17 +324,30 @@
       peri:Object.freeze({x:-.8040980656771407,y:-.5935108906148845,z:-.03422168166246992}),
       pole:Object.freeze({x:-.020239681604346447,y:-.03020057409227212,z:.9993389217943289})})
   });
+  // JPL NEP097 mean elements, J2000 epoch, Laplace reference plane.
+  // Node precession is positive for Triton's retrograde orbit (340.379 years).
+  // This mean-orbit model is not a replacement for a full numerical ephemeris.
+  function tritonMeanState(ms){
+    const ra=299.8*DEG,dec=43.1*DEG,inc=157.3*DEG;
+    const node=(178.1+360*(ms-J2000)/(340.379*365.25*DAY))*DEG;
+    const x={x:-Math.sin(ra),y:Math.cos(ra),z:0};
+    const y={x:-Math.sin(dec)*Math.cos(ra),y:-Math.sin(dec)*Math.sin(ra),z:Math.cos(dec)};
+    const z={x:Math.cos(dec)*Math.cos(ra),y:Math.cos(dec)*Math.sin(ra),z:Math.sin(dec)};
+    const peri={},pole={};
+    for(const k of ['x','y','z']){peri[k]=x[k]*Math.cos(node)+y[k]*Math.sin(node);pole[k]=x[k]*Math.sin(node)*Math.sin(inc)-y[k]*Math.cos(node)*Math.sin(inc)+z[k]*Math.cos(inc);}
+    return {e:0,M0:63*DEG,epoch:J2000,peri:equatorialToEcliptic(peri),pole:equatorialToEcliptic(pole)};
+  }
   function satelliteElements(body,ms){
     if(!Number.isFinite(ms))throw new TypeError('A finite timestamp is required.');
-    const state=satelliteStates[body.id];if(!state)throw new RangeError('Unknown satellite.');
+    const state=body.id===TRITON.id?tritonMeanState(ms):satelliteStates[body.id];if(!state)throw new RangeError('Unknown satellite.');
     const inc=Math.acos(clamp(state.pole.z,-1,1)),node=wrap(Math.atan2(state.pole.x,-state.pole.y));
     const sinInc=Math.sin(inc),sinOmega=sinInc>1e-12?state.peri.z/sinInc:0;
     const cosOmega=state.peri.x*Math.cos(node)+state.peri.y*Math.sin(node),omega=Math.atan2(sinOmega,cosOmega);
-    const M=wrap(state.M0+TAU*wrap((ms-SATELLITE_EPOCH)/(body.periodSeconds*1000),1));
+    const M=wrap(state.M0+TAU*wrap((ms-(state.epoch??SATELLITE_EPOCH))/(body.periodSeconds*1000),1));
     return {a:1,e:state.e,inc,node,omega,M};
   }
   function moonElements(ms) {return satelliteElements(MOON,ms);}
-  const SATELLITE_MEAN_AU=Object.freeze({moon:.00256955529,europa:.004485883});
+  const SATELLITE_MEAN_AU=Object.freeze({moon:.00256955529,europa:.004485883,triton:354800/AU_KM});
   function precisionSatelliteVector(body,ms,radius){
     if(!HAS_PRECISION)return null;
     try{
@@ -513,5 +528,5 @@
     }
     now(mono,wall=Date.now()) { this.travel=null;this.anchorMs=wall; this.anchorMono=mono; this.rate=1; this.live=true; this.paused=false; }
   }
-  return Object.freeze({DAY,TAU,DEG,AU_KM,TRUE_SCALE_UNITS_PER_AU,BODY_RADIUS_KM,SATELLITE_MEAN_AU,J2000,MIN_TIME,MAX_TIME,CURRENT_START,CURRENT_END,OVERVIEW_ORBIT,BODIES,SUN,MOON,EUROPA,SATELLITES,SATELLITE_EPOCH,PLANETARY_ALIGNMENT_EVENTS,wrap,clamp,ephemerisTier,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,displayDistance,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,eclipseAlignment,europaShadowGeometry,eclipseEvent,planetaryAlignmentEvent,SimulationClock});
+  return Object.freeze({DAY,TAU,DEG,AU_KM,TRUE_SCALE_UNITS_PER_AU,BODY_RADIUS_KM,SATELLITE_MEAN_AU,J2000,MIN_TIME,MAX_TIME,CURRENT_START,CURRENT_END,OVERVIEW_ORBIT,BODIES,SUN,MOON,EUROPA,TRITON,SATELLITES,SATELLITE_EPOCH,PLANETARY_ALIGNMENT_EVENTS,wrap,clamp,ephemerisTier,rotationAt,calibrateAt,modelStatus,modelYear,rotationPoleTilt,surfaceDirection,bodyAxes,siteSun,eccentricAnomaly,elementsAt,pointOnOrbit,displayDistance,positionAt,orbitAt,satelliteElements,moonElements,moonAt,europaAt,satelliteAt,satelliteOrbit,moonPhase,eclipseAlignment,europaShadowGeometry,eclipseEvent,planetaryAlignmentEvent,SimulationClock});
 });
