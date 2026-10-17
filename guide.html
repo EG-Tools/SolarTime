@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Learn Solar Time camera controls, constellation viewing and connecting lines, regional time, planet tracking, Saturn travel, music, and timers.">
+  <meta name="description" content="Learn Solar Time camera controls, constellation viewing and connecting lines, regional time, planet tracking, Saturn and Uranus ring travel, Triton, music, and timers.">
   <meta name="google-adsense-account" content="ca-pub-5773171100052324">
   <link rel="canonical" href="https://solartime.app/guide.html"><script src="src/policy-dialog.js?v=525a7f777bf7"></script><link rel="stylesheet" href="site-info.css?v=41828134c954">
   <script src="src/consent.js?v=97c3343f45eb"></script>
@@ -16,7 +16,7 @@
     <p class="eyebrow">EXPLORE · OBSERVE · TRAVEL</p><h1>Guide to Solar Time</h1>
     <p class="lead">Solar Time turns the current time into a navigable view of the solar system and a sky of recognisable star patterns. Learn to follow planets, explore constellations, change simulation time, and compose your own view.</p>
     <nav class="guide-toc" aria-label="Guide sections">
-      <a href="#start">Start here</a><a href="#camera">Camera</a><a href="#time">Time</a><a href="#bodies">Planets</a><a href="#constellations">Constellations</a><a href="#travel">Travel</a><a href="#display">Display</a><a href="#shortcuts">Shortcuts</a><a href="#troubleshooting">Help</a>
+      <a href="#start">Start here</a><a href="#camera">Camera</a><a href="#time">Time</a><a href="#bodies">Planets</a><a href="#constellations">Constellations</a><a href="#travel">Travel</a><a href="#opening-menu">Opening choices</a><a href="#display">Display</a><a href="#shortcuts">Shortcuts</a><a href="#troubleshooting">Help</a>
     </nav>
 
     <section id="start" class="guide-section">
@@ -43,42 +43,58 @@
     <section id="time" class="guide-section">
       <h2>Control simulation time</h2>
       <p>The clock at the top follows the selected region. With <strong>Real time</strong> enabled, the model follows the current clock. Turn Real time off to use the lower slider. Click the unit button to cycle through hours, days, and years; Solar Time remembers the unit you last selected.</p>
-      <p>The available ranges are 1 minute–24 hours, 1–365 days, and 1–20 years advanced per real second. Planets follow elliptical paths, so their apparent speed varies across an orbit. The Moon and Europa continue around their parent planets at the selected simulation time.</p>
+      <p>The available ranges are 1 minute–24 hours, 1–365 days, and 1–20 years advanced per real second. Planets follow elliptical paths, so their apparent speed varies across an orbit. The Moon, Europa, and Triton continue around their parent planets at the selected simulation time.</p>
       <div class="notice"><strong>Accuracy note.</strong> Solar Time is an educational and artistic visualization. Long-term perturbations and small distance changes are simplified, so confirm observation dates, navigation, and eclipse predictions with an authoritative ephemeris.</div>
     </section>
 
     <section id="bodies" class="guide-section">
       <h2>Select and inspect celestial bodies</h2>
-      <p>Use the footer list to select the Sun, planets, Moon, Europa, and Pluto. The information card shows useful facts and body-specific controls. The left and right arrow keys move through the same list; when tracking is active, the camera transfers smoothly to the new target.</p>
+      <p>Use the footer list to select the Sun, planets, Moon, Europa, Triton, and Pluto. The information card shows useful facts and body-specific controls. The left and right arrow keys move through the same list; when tracking is active, the camera transfers smoothly to the new target.</p>
       <p>The normal overview adjusts sizes and orbit spacing so the whole system remains readable. <strong>True size ratio</strong> reduces those visual adjustments for comparison. Display Size changes individual bodies, while Orbit Spacing changes their visual separation. These controls affect presentation rather than rewriting the selected simulation date.</p>
+      <h3 id="triton">Explore Neptune and Triton</h3>
+      <p>Open Neptune's card and enable Triton if it is hidden. Select Triton in the footer, then double-click the moon or use its close-up control to follow it. The Moon, Europa, and Triton each have a visibility switch on their parent planet's card.</p>
+      <p>In normal view, Triton starts at a display size comparable to Pluto; its size slider can go down to 50%, with 100% as the default. True size ratio uses its physical radius instead. Its tilted, retrograde orbit is retained in both viewing modes. The blue orbit identifies Neptune's satellite system; it is a display colour, not a physical property.</p>
+      <p>Triton's texture is an artistic reconstruction based on Voyager 2 imagery, with unobserved terrain completed. Read the <a href="credits.html">texture credits</a> and the <a href="learn-orbits.html#triton">Triton orbit note</a> for the model's limits.</p>
       <p>Earth and Venus include cloud controls. High-resolution surfaces are loaded as you approach a body, so a sharper texture may replace the first image after a short moment.</p>
     </section>
 
     <section id="constellations" class="guide-section">
       <h2>Explore constellations</h2>
-      <p>The named sky includes 20 constellations, the Big Dipper pattern, and Polaris. Their directions stay fixed on the celestial sphere while you move the camera. For illustrated shapes and things to look for, open the <a href="constellations.html">Constellation Explorer</a>.</p>
+      <p>The named sky includes 27 constellations, the Big Dipper pattern, and Polaris. Their directions stay fixed on the celestial sphere while you move the camera. For illustrated shapes and things to look for, open the <a href="constellations.html">Constellation Explorer</a>.</p>
       <ol class="guide-steps">
         <li><strong>Find a pattern</strong><span>Rotate the scene and rest the pointer over a named star or its connecting lines for about half a second. The guide draws in; unpinned lines fade over two seconds when you move away.</span></li>
         <li><strong>Open its card</strong><span>Click the pattern to read its description. Enable Connecting lines to keep its guide visible after closing the card. Polaris uses a circular marker instead of a line figure.</span></li>
-        <li><strong>Enter constellation viewing</strong><span>Choose Constellation view in the card, or double-click the pattern. Use the card arrows or keyboard arrows to browse neighbouring patterns; shared-star groups stay together in the route.</span></li>
+        <li><strong>Enter constellation viewing</strong><span>Choose Constellation mode in the card, or double-click the pattern. Use the card arrows or keyboard arrows to browse neighbouring patterns; shared-star groups stay together in the route.</span></li>
       </ol>
       <p><kbd>*</kbd> is the master switch for saved line displays, not a camera-mode switch. Turning it back on restores individually enabled guides; it does not enable patterns you switched off. A temporary hover can still reveal a pattern. Individual choices and the master setting are remembered when browser storage is available.</p>
-      <p>Selected or hovered guides use blue-white lines; other visible guides use softer gold. Lines draw progressively and then brighten and dim gently. Their colours indicate interaction, not the physical colour of the stars.</p>
-      <p>In constellation viewing, left-drag rotates the camera at a fixed 1.2× lens. The card's Show solar system switch displays or hides a small solar system. Choose Solar system view to return to the previous camera, or press <kbd>0</kbd> for the default composition. Double-clicking the visible miniature also returns. Escape closes an open card first; with no card or dialog open, it returns from constellation viewing to the default view.</p>
-      <p class="guide-tip"><strong>Current card labels:</strong> constellation cards currently use Korean text: <span lang="ko">별자리 보기</span> means Constellation view, <span lang="ko">태양계 보기</span> means Solar system view, <span lang="ko">이음선 표시</span> means Connecting lines, and <span lang="ko">태양계 표시</span> means Show solar system. Polaris has its own marker switch.</p>
+      <p>Selected or hovered guides use blue-white lines; other visible guides use softer gold. Lines draw progressively and then hold a steady brightness. Their colours indicate interaction, not the physical colour of the stars.</p>
+      <p>In constellation viewing, left-drag rotates the camera at a fixed 1.2× lens. The card's Show solar system switch fades a small solar system in or out; it is off by default and is available in Constellation mode. Choose Solar system mode to return to the previous camera, or press <kbd>0</kbd> for the default composition. Double-clicking the visible miniature also returns. Escape closes an open card first; with no card or dialog open, it returns from constellation viewing to the default view.</p>
+      <p class="guide-tip"><strong>Browse without changing modes:</strong> in Solar system mode, click the constellation name to frame it at the viewing grid point. The card arrows and left/right keys continue through the catalogue while keeping Solar system mode. Card controls follow the selected interface language.</p>
+      <p>The seven added southern patterns are Centaurus, Carina, Vela, Triangulum Australe, Pavo, Grus, and Phoenix. Together with the existing Crux, they provide a southern-sky route to explore. All 29 targets are included once in the browsing cycle. New patterns have Connecting lines enabled by default; the <kbd>*</kbd> master switch still controls their combined display.</p>
     </section>
 
     <section id="travel" class="guide-section">
-      <h2>Opening, warp, and Saturn ring travel</h2>
-      <p>Press <kbd>W</kbd> to start the selected warp sequence. Press <kbd>T</kbd> to visit the nearest available ringed planet, then press it again after arrival to alternate between Saturn and Uranus. T is ignored during transit; use 0 for the default view or Escape for the view saved before the journey. The UFO control chooses the opening style. A journey may pass through a departure, continuous flight, and arrival sequence before restoring the solar-system view.</p>
-      <p>Saturn ring travel approaches Saturn, enters the ring field, and continues around the rings. Press <kbd>Space</kbd> to pause the cinematic camera. During the ring tour, a paused view can still be rotated for screenshots; during warp, manual camera control remains locked so the flight direction stays coherent. Press Space again to continue.</p>
-      <p>Opening and warp temporarily lock camera destinations and controls that would disrupt the sequence. During Saturn travel, selecting another planet to track or choosing an Earth region first returns through the default view, then approaches the new target. Press <kbd>0</kbd> for the default view or <kbd>Esc</kbd> to leave the tour smoothly; an open card or dialog may consume Escape first.</p>
+      <h2>Opening, warp, and ring travel</h2>
+      <p>Press <kbd>W</kbd> to warp from the current view, including during a ring tour. Press <kbd>T</kbd> to visit the nearest available ringed planet, then press it again after arrival to alternate between Saturn and Uranus. T is ignored during transit; use 0 for the default view or Escape for the view saved before the journey. The UFO control opens the travel and opening menu.</p>
+      <p>Saturn ring travel and Uranus ring travel approach the selected planet along a curved path, then continue around its rings. During the loop, use the other planet's Travel control or click its ring when the travel cursor appears to fly directly there without warp. Distant rings remain visible while nearby fragments give a sense of depth. Press <kbd>Space</kbd> to pause the cinematic camera. During the ring tour, a paused view can still be rotated for screenshots; during warp, manual camera control remains locked so the flight direction stays coherent. Press Space again to continue.</p>
+      <p>Opening and warp temporarily lock camera destinations and controls that would disrupt the sequence. During ring travel, selecting another planet to track or choosing an Earth region first returns through the default view, then approaches the new target. Press <kbd>0</kbd> for the default view or <kbd>Esc</kbd> to leave the tour smoothly; an open card or dialog may consume Escape first.</p>
+    </section>
+
+    <section id="opening-menu" class="guide-section">
+      <h2>Choose what follows the opening</h2>
+      <ul>
+        <li><strong>Warp:</strong> performs the same action as <kbd>W</kbd> without changing the saved opening choice.</li>
+        <li><strong>Default:</strong> the opening ends at your saved or default camera view.</li>
+        <li><strong>Saturn / Uranus:</strong> the opening leads into one ring loop around that planet, then returns to your saved view.</li>
+        <li><strong>None:</strong> skips the camera opening on refresh. Selecting it leaves the current scene unchanged; an explicit Warp command still runs.</li>
+      </ul>
+      <p>Selecting Default, Saturn, or Uranus starts a warp preview and saves the choice for the next refresh. Repeated selections are blocked during the sequence. Pause blocks new W and T journeys; resume first. H and F remain available during opening and warp.</p>
     </section>
 
     <section id="display" class="guide-section">
       <h2>Display, music, and viewing tools</h2>
       <div class="info-grid">
-        <article class="info-card"><h3>Viewing mode</h3><p>Press <kbd>H</kbd> to hide interface panels for an unobstructed scene. Moving the pointer brings controls back when interaction is available.</p></article>
+        <article class="info-card"><h3>Viewing mode</h3><p>Press <kbd>H</kbd> to hide interface panels for an unobstructed scene. Hover over the timeline, right controls, logo, or lower-left information to reveal only that region. The planet list appears with the timeline. Move away to let the region fade out; cards remain usable.</p></article>
         <article class="info-card"><h3>Background music</h3><p>Press <kbd>M</kbd> to start or stop ambient music. Track controls appear while music is playing, and your preference is stored in this browser.</p></article>
         <article class="info-card"><h3>Fullscreen and screenshots</h3><p>Press <kbd>F</kbd> for fullscreen. Pause motion, hide the interface, and compose the camera before using your device's screenshot command.</p></article>
         <article class="info-card"><h3>Timer</h3><p>The timer can play an alarm in the browser. Windows scheduled shutdown is optional and requires the separately verified Solar Time helper.</p></article>
