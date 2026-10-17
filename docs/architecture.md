@@ -465,3 +465,34 @@ The bottom navigation reserves its baseline width for the current thirteen bodie
 고리 여행 미세 흔들림은 RingTour의 driftProfile(시드별 고정 계수), driftPattern(순서), driftSample(시간별 값)이 담당합니다. 프로필은 5개, 순서 캐시는 최대 2개만 유지하며 시간 역행에도 같은 결과를 냅니다. 흔들림 강도가 0이거나 패턴 혼합이 끝난 구간은 불필요한 샘플 계산을 생략합니다. 회피 경로 계획은 구간별 충돌 검사에서 임시 벡터 생성을 줄이고, 새 우회 보정만 기존 샘플에 누적합니다. 프레임마다 경로를 다시 계획하지 않습니다.
 
 명시적 워프(W·메뉴 워프 버튼)는 App.warpControlsLocked를 공유하며 일시정지와 실제 오프닝·워프 진행 중에만 잠깁니다. 고리 여행의 openingResume는 속도 인계에도 쓰이므로 워프 잠금 조건으로 사용하지 않습니다. 오프닝 설정 선택의 openingMenuLocked와 분리하며 현재 고리 카메라의 기존 워프 인계 경로를 유지합니다.
+
+
+## v0.81 로컬 1차 최적화 검토
+
+- DirectRenderer의 directTextureTarget은 공통 업로드 정책(원본 이하 2의 거듭제곱)을 수요와 prefetch에 함께 적용한다. 1774px 원본은 보존하며 기존 1024px 업로드 품질은 유지한다. 달성 불가능한 2048px 목표를 반복 요청하지 않는다. 실제 실패 재시도 및 자산 변경 감지는 기존 텍스처 소유자가 유지한다.
+- 고리 atlasRequest는 이미지와 함께 인계되는 요청 레코드다. 정상 인계에서 donor의 disposed 상태와 독립적으로 완료할 수 있으며, 실제 소유자의 dispose만 요청을 취소해 뒤늦은 image.src 설정을 막는다. GPU 업로드 취소는 기존 atlasAbort가 담당한다.
+- code-revisions의 바이너리 지문은 Buffer 원시 바이트로 계산한다. 선언된 텍스트 확장자만 기존 개행 정규화와 buildId 자기참조 제거를 적용한다.
+- 후속 로컬 수정: DirectRenderer setup은 실패 시 생성된 프로그램·버퍼·대체 텍스처를 회수하며 생성자 실패는 리스너까지 해제한다. 복구 setup 실패는 contextLost 상태를 유지해 미완성 프로그램을 표시하지 않고 다음 복구를 허용한다.
+- contextEpoch는 실제 컨텍스트 손실에서만 증가한다. 고리 GPU 자원은 소유 GPU와 세대를 기록하고, 준비/표시 전 세대가 다르면 GPU 부분만 폐기·재준비한다. CPU 배치·카메라·이미지 요청은 유지한다. 일반 texture generation 변경은 고리 재생성을 유발하지 않는다.
+- 천왕성 고리 샘플 가중치와 경계는 buildScene에서 한 번 준비한다. 난수 호출 순서·빈 영역 비중·입자 위치는 기존과 동일하다.
+- 파티클 계측은 빈 표본/비유한값을 실패로 처리하고 CPU 계측 오버헤드가 포함된 수치임을 명시한다. GPU 완료 시간 또는 보정된 실측 FPS로 해석하지 않는다.
+
+- 실제 Chromium WebGL(소프트웨어 GPU)에서 컨텍스트 손실·복구 후 고리 풀 3개를 재준비하고 CPU 위치 보존 및 GL 오류 0을 확인했다. 실제 장치 FPS·숨김 탭의 전체 여행 연출 검증을 대신하지 않는다. 복구 전 핸들은 이미 무효화되므로 삭제 호출도 건너뛴다.
+
+
+### Additional local optimization evidence (2026-10-17)
+
+- `tests/browser/shader-preparation-benchmark.py` measures DirectRenderer initialization and restoration in five Chromium/SwiftShader trials. Cold maximum 38.1 ms and restoration maximum 4.8 ms are software-GPU CPU timings, not hardware FPS. No asynchronous readiness rewrite was made from this evidence alone.
+- `tests/browser/particle-cost-probe.js` compares alternating instrumented/uninstrumented renders of identical frozen projected inputs. An offline run captured 106 frames and warp/opening profiles; timer wrappers added roughly 3 ms on average in calibration. Live instrumented totals are not uninstrumented rendering cost or GPU completion time. Particle appearance and population are unchanged.
+- Recovery capture retains the exact bytes of the three existing public fingerprints as base64 alongside byte counts and SHA-256 in the existing JSON evidence artifact. This is diagnostic evidence, not a complete deployable backup. Exact previous Pages deployment/artifact identity and paired restore rehearsal remain outstanding; immutable release paths and retention remain separate deployment work.
+
+
+### Opening fade and interrupted ring entry (2026-10-17)
+
+Opening grain fade windows are now 2200-4000 ms, with staggered completion up to 3500 ms after camera arrival; camera duration and particle population are unchanged. The renderer owns these values in PARTICLE_TRANSITION. When a ring-entry field retires, it captures distance, velocity and elapsed time. Retirement advances on the shared animation clock independently of the stopped/disposed tour, coasts at the captured speed, and retains the departure alpha envelope. It skips the obsolete acceleration calculation during this coast. Pause/resume shifts the retirement clock through the existing lifecycle owner.
+
+Local targeted transition, fade, pause and recovery-integrity checks: 9 passed. A full camera suite was attempted but the host reported resource exhaustion; no full-suite or visual verification is claimed for this change. Recovery evidence now validates saved base64 bytes, byte counts and SHA-256 before use, while retaining compatibility with older hash-only evidence. Immutable release storage and paired production restoration remain outstanding deployment work.
+
+Pluto retains its ephemeris orbital plane in ordinary view as well as actual scale. Other solar orbits remain coplanar in ordinary view. CPU positions, fallback paths and GPU orbit-plane selection share this exception.
+
+Release validation: the bounded full suite completed 1188 cases; three revision-metadata checks initially found stale r1 tags. The HTML/CSS tags were corrected to r2 and both affected test files passed on rerun. Runtime cases passed in the full run. Remote verification remains the final deployment gate.

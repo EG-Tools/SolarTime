@@ -982,7 +982,7 @@ test('boot opening begins at warp arrival and preserves its camera and fade life
    if(elapsed===0)assert.ok(alphas.every(alpha=>alpha===0));else assert.ok(alphas.some(alpha=>alpha>0));assert.equal(r.openingParticles,pool);
   }
   r.advanceCamera(100+duration);assert.equal(r.cameraTween,null);
-  assert.equal(r.openingParticleFrame(100+duration+2000),null);
+  assert.equal(r.openingParticleFrame(100+duration+3500),null);
   sandbox.matchMedia=()=>({matches:true});r.animateOpeningCamera(target,20000,duration);assert.equal(r.openingParticles,null);
  }
 });
@@ -1047,7 +1047,7 @@ test('boot and warp particles keep approaching while their random alpha fades',(
   assert.ok(later.velocity>0&&later.travel>first.travel);
   assert.ok(Math.hypot(b.x-r.w*.5,b.y-r.h*.5)>Math.hypot(a.x-r.w*.5,a.y-r.h*.5),'grains continue approaching');
   assert.ok(b.alpha<a.alpha&&b.alpha>0,'the still-moving grain fades away');
-  assert.equal(r.openingParticleFrame(boot?end+2000:15200),null);
+  assert.equal(r.openingParticleFrame(boot?end+3500:15200),null);
  }
 });
 
@@ -2403,7 +2403,7 @@ test('ordinary opening grains fade separately to zero before natural cleanup',()
  const endings=[];
  for(const phase of [0,.25,.5,.75,1]){
   const p={retirePhase:phase,edgeKeep:true,earlyKeep:true};let last=1,end=0;
-  for(let arrival=3000;arrival<=8512;arrival+=16){
+  for(let arrival=3000;arrival<=10016;arrival+=16){
    const alpha=r.particleArrivalEnvelope(p,field,{arrival,early:1,exitWindow:6200},path,arrival,.5,.5,1);
    assert.ok(alpha<=last+1e-9);assert.ok(last-alpha<.025,'no one-frame drop');if(alpha>1e-4)end=arrival;last=alpha;
   }
@@ -2483,4 +2483,16 @@ test('Saturn/opening particle painting shares canvas state and preserves the par
  r.drawSaturnFlightParticles(c,field,()=>({visible:true,alpha:.4,x:10,y:20,angle:0,size:1,tail:10}));
  assert.equal(saves,1);assert.equal(restores,1);assert.equal(transforms.length,2);
  assert.deepEqual(transforms[0],[2,0,0,3,24,65]);assert.equal(images,6);assert.equal(strokes,2);
+});
+
+
+test('interrupted ring entry particles keep moving after the source tour stops',()=>{
+ const {r}=renderer();const tour={age:5,state:'entering',seed:41};r.ringTour=tour;r.startSaturnParticles(tour,0);
+ const field=r.openingParticleFrame(5000),distance=field.distance,velocity=field.velocity;
+ assert.ok(velocity>0);r.retireOpeningParticleField(field,5000);tour.disposed=true;r.ringTour=null;
+ r.openingParticleFrame(5400,field);close(field.elapsed,5400);close(field.distance,distance+velocity*.4);
+ r.openingParticleFrame(5800,field);close(field.distance,distance+velocity*.8);
+ r.setAnimationPaused(true,5800);r.openingParticleFrame(6000,field);close(field.distance,distance+velocity*.8);
+ r.setAnimationPaused(false,6200);r.openingParticleFrame(6300,field);close(field.distance,distance+velocity*.9);
+ assert.equal(r.openingParticleFrame(6600,field),null);
 });

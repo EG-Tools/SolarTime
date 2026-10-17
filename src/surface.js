@@ -923,6 +923,7 @@ function directPrograms(gl,specs){
 }
 function directTexturePixels(record){return record?.pixels??((record?.width||0)*(record?.height||0));}
 function directPower(value){return Math.max(128,Math.min(4096,2**Math.round(Math.log2(Math.max(128,value)))));}
+function directTextureTarget(value,limit){return Math.min(directPower(value),Math.max(2,2**Math.floor(Math.log2(Math.max(2,limit)))));}
 class DirectRenderer{
   constructor(canvas){
     if(!canvas)throw Error('Direct GPU canvas is missing.');
@@ -935,10 +936,10 @@ class DirectRenderer{
     this.textures=new Map();this.recentTextures=new Map();this.textureIntent=null;this.frames=new Map();this.desired=new Map();this.orbitBuffers=new Map();this.textureSources=new Map();this.coronaTexture=null;this.coronaUpload=null;this.pendingCount=0;this.loadQueue=[];this.activeLoads=0;
     this.boundProgram=null;this.boundBuffer=null;this.boundAttrib=-1;this.boundAttribSize=0;this.boundAttribBuffer=null;this.activeTextureUnit=-1;this.boundTextures=[null,null,null,null];this.canvasViewportW=0;this.canvasViewportH=0;this.orbitState={valid:false};
     this.stats={backend:'gpu-direct',accepted:0,discarded:0,drawCalls:0,frames:0,texturesLoaded:0,texturePixels:0,orbitUploads:0,kernel:{backend:'gpu-direct'}};
-    this.contextLost=false;this.onLost=event=>{event.preventDefault();this.contextLost=true;this.invalidate();this.cloudWeather?.dispose();this.cloudWeather=null;this.orbitBuffers.clear();this.resetBindings();this.stats.contextLost=true;};
-    this.onRestored=()=>{this.contextLost=false;this.recentTextures.clear();this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.coronaUpload=null;this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.resetBindings();this.setup();};
+    this.contextEpoch=0;this.contextLost=false;this.onLost=event=>{event.preventDefault();this.contextEpoch++;this.contextLost=true;this.invalidate();this.cloudWeather?.dispose();this.cloudWeather=null;this.orbitBuffers.clear();this.resetBindings();this.stats.contextLost=true;};
+    this.onRestored=()=>{this.contextLost=false;this.recentTextures.clear();this.textures.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.coronaUpload=null;this.stats.texturePixels=0;this.stats.contextLost=false;this.stats.recoveries=(this.stats.recoveries||0)+1;this.resetBindings();try{this.setup();}catch(error){this.contextLost=true;this.stats.contextLost=true;this.stats.error=error.message;}};
     canvas.addEventListener('webglcontextlost',this.onLost,false);canvas.addEventListener('webglcontextrestored',this.onRestored,false);
-    this.setup();
+    try{this.setup();}catch(error){this.dispose();throw error;}
   }
   resetBindings(){
     if(this.orbitState)this.orbitState.valid=false;
@@ -971,7 +972,13 @@ class DirectRenderer{
     const key=name+':'+target,cached=this.textureSources.get(key);if(cached?.asset===asset)return cached.source;
     const source=materialSource.sourceFor(asset,target);this.textureSources.set(key,{asset,source});return source;
   }
-  setup(){
+  releaseSetup(){
+    const g=this.gl;
+    for(const key of ['planetProgram','coronaProgram','line','ring']){if(this[key]?.program)g.deleteProgram(this[key].program);this[key]=null;}
+    if(this.black)g.deleteTexture(this.black);if(this.quad)g.deleteBuffer(this.quad);this.black=null;this.quad=null;
+  }
+  setup(){try{this.setupResources();}catch(error){this.releaseSetup();throw error;}}
+  setupResources(){
     const g=this.gl;
     this.orbitBufferBytes=0;this.antialiasMemory=g.getContextAttributes?.()?.antialias!==false;
     this.maxTextureSize=Math.min(4096,2**Math.floor(Math.log2(g.getParameter(g.MAX_TEXTURE_SIZE))));
@@ -984,8 +991,8 @@ class DirectRenderer{
     this.line=queueProgram(DIRECT_LINE_VERTEX,DIRECT_COLOR_FRAGMENT,['center','viewport','roll','worldOffset','anchor','depthOffset','depthAnchor','camera','orbitMorph','lens','travel','scale','localScale','depthLocalScale','orbitPlane','solarOffset','color','ink','inkWeight']);
     this.ring=queueProgram(DIRECT_RING_VERTEX,DIRECT_RING_FRAGMENT,['center','viewport','axisU','axisV','radius','outer','depthAxis','inner','front','saturn','pixel','ringColor','ringMap','hasRingMap','ringTexel','previousRingMap','previousRingTexel','ringLodMix','light']);
     directPrograms(g,programSpecs).forEach((program,index)=>Object.assign(programTargets[index],program));
-    this.quad=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,this.quad);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
-    this.black=g.createTexture();g.bindTexture(g.TEXTURE_2D,this.black);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,1,1,0,g.RGBA,g.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
+    this.quad=g.createBuffer();if(!this.quad)throw Error('GPU quad allocation failed');g.bindBuffer(g.ARRAY_BUFFER,this.quad);g.bufferData(g.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),g.STATIC_DRAW);
+    this.black=g.createTexture();if(!this.black)throw Error('GPU fallback texture allocation failed');g.bindTexture(g.TEXTURE_2D,this.black);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,1,1,0,g.RGBA,g.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
     g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_S,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_WRAP_T,g.CLAMP_TO_EDGE);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MAG_FILTER,g.LINEAR);g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR);
     g.useProgram(this.planetProgram.program);g.uniform1i(this.planetProgram.u.colorMap,0);g.uniform1i(this.planetProgram.u.bumpMap,1);g.uniform1i(this.planetProgram.u.cloudsMap,2);
     g.uniform1i(this.planetProgram.u.nightMap,3);
@@ -1103,7 +1110,7 @@ class DirectRenderer{
   prefetchBody(name,target=4096){
     if(this.disposed||this.paused||this.contextLost)return;
     const asset=root.SolarAssets?.materials?.[name];if(!asset)return;
-    target=directPower(Math.min(target,this.maxTextureSize,asset.tiers?.at(-1)?.width||target));
+    target=directTextureTarget(target,Math.min(this.maxTextureSize,asset.tiers?.at(-1)?.width||this.maxTextureSize));
     this.textureIntent={id:name,target,until:performance.now()+2500};
     const current=this.textures.get(name);
     if(current?.asset===asset&&current.texture&&current.width>=target)return;
@@ -1311,7 +1318,7 @@ class DirectRenderer{
     const asset=root.SolarAssets?.materials?.[name];if(!asset)return null;
     const intent=this.textureIntent;
     if(intent?.id===name&&performance.now()<intent.until&&!this.texturePlan?.constrained)target=Math.max(target,intent.target||0);
-    target=directPower(Math.min(target,this.maxTextureSize,previewIntent?Infinity:this.texturePlan?.targets.get(name)??Infinity,asset.tiers?.at(-1)?.width||target));
+    target=directTextureTarget(Math.min(target,previewIntent?Infinity:this.texturePlan?.targets.get(name)??Infinity),Math.min(this.maxTextureSize,asset.tiers?.at(-1)?.width||this.maxTextureSize));
     let record=this.textures.get(name);
     const assetChanged=!record||record.asset!==asset,now=performance.now();
     // Finish a displayed layer before replacing its source a second time.
@@ -1567,9 +1574,9 @@ class DirectRenderer{
     for(const key of this.recentTextures?.keys()||[])this.discardRecent(key);
     for(const record of this.textures.values())if(record.texture)g.deleteTexture(record.texture);
     for(const record of this.orbitBuffers.values())g.deleteBuffer(record.buffer);
-    for(const p of [this.planetProgram,this.coronaProgram,this.line,this.ring])g.deleteProgram(p.program);
+    this.releaseSetup();
     if(this.coronaTexture?.texture)g.deleteTexture(this.coronaTexture.texture);
-    g.deleteTexture(this.black);g.deleteBuffer(this.quad);this.textures.clear();this.textureSources.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.coronaUpload=null;
+    this.textures.clear();this.textureSources.clear();this.frames.clear();this.desired.clear();this.orbitBuffers.clear();this.coronaTexture=null;this.coronaUpload=null;
     this.canvas.removeEventListener('webglcontextlost',this.onLost);this.canvas.removeEventListener('webglcontextrestored',this.onRestored);
   }
 }

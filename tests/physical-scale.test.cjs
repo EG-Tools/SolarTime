@@ -17,14 +17,14 @@ function gpuPoint(r,model,i,body){
  const m=r.gpuOrbitCamera().solarMorph,ratio=model[i*4+3],out={};
  for(const [j,k] of ['x','y','z'].entries()){
   const offset=1+r.solarOrbitOffset()/Math.hypot(model[i*4],model[i*4+1],model[i*4+2]);
-  const ordinary=k==='z'?0:Math.hypot(model[i*4],model[i*4+1],model[i*4+2])/Math.max(1e-12,Math.hypot(model[i*4],model[i*4+1]));
+  const ordinary=body?.id==='pluto'?1:k==='z'?0:Math.hypot(model[i*4],model[i*4+1],model[i*4+2])/Math.max(1e-12,Math.hypot(model[i*4],model[i*4+1]));
   out[k]=model[i*4+j]*(ordinary*offset*m[0]+ratio*m[1]);
   out['depth'+k.toUpperCase()]=model[i*4+j]*(ordinary*offset*m[2]+ratio*m[3]);
  }
  return out;
 }
 
-test('ordinary spacing keeps all solar orbits coplanar with centered circles',()=>{
+test('ordinary spacing keeps centered circles with Pluto alone retaining its orbital plane',()=>{
  for(const gap of [50,86,100,173,300,400]){
   const {r}=fixture(1280,800);r.actualScaleMix=0;r.options.overviewOrbitGap=gap;
   let previous=0;
@@ -33,11 +33,11 @@ test('ordinary spacing keeps all solar orbits coplanar with centered circles',()
    if(index)close(expected-previous,gap*1.5);previous=expected;
    for(const point of path.points){
     const world=r.displaySolarPoint(point,path.body);close(Math.hypot(world.x,world.y,world.z),expected);
-    const radialScale=expected/Math.hypot(point.x,point.y);
-    for(const key of ['x','y'])close(world[key],point[key]*radialScale);close(world.z,0);
+    const inclined=path.body.id==='pluto',radialScale=expected/Math.hypot(point.x,point.y,inclined?point.z:0);
+    for(const key of ['x','y'])close(world[key],point[key]*radialScale);close(world.z,inclined?point.z*radialScale:0);
     maxZ=Math.max(maxZ,Math.abs(world.z));
    }
-   close(maxZ,0);
+   if(path.body.id==='pluto')assert.ok(maxZ>expected*.25);else close(maxZ,0);
    for(const days of [0,13,66,180,300]){
     const physical=A.positionAt(path.body,ms+days*A.DAY),world=r.displayPhysicalPoint(physical,{},path.body);
     close(Math.hypot(world.x,world.y,world.z),expected);

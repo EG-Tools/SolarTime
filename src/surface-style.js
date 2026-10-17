@@ -30,13 +30,16 @@
   // Illustrative band profile, shared by distant sheets and fixed debris pools.
   const narrowRingBands=Object.freeze([[.07,.007,.22],[.16,.006,.28],[.27,.008,.18],[.39,.006,.30],[.53,.009,.24],[.68,.007,.34],[.83,.009,.27],[.95,.010,.62]].map(([center,width,opacity])=>Object.freeze({center,width,opacity})));
   const narrowRingGapFraction=.15;
-  function sampleNarrowRingRadius(rand,inner,outer){
-    const span=outer-inner;
+  function prepareNarrowRingSampling(inner,outer){
+    const span=outer-inner,bands=narrowRingBands.map(b=>({weight:b.width*b.opacity*(inner+span*b.center),low:inner+span*(b.center-b.width),high:inner+span*(b.center+b.width)}));
+    return {inner,outer,bands,total:bands.reduce((sum,b)=>sum+b.weight,0)};
+  }
+  function sampleNarrowRingRadius(rand,inner,outer,prepared){
     if(rand()<narrowRingGapFraction)return Math.sqrt(inner*inner+(outer*outer-inner*inner)*rand());
-    const total=narrowRingBands.reduce((sum,b)=>sum+b.width*b.opacity*(inner+span*b.center),0);
-    let pick=rand()*total,band=narrowRingBands[narrowRingBands.length-1];
-    for(const b of narrowRingBands){pick-=b.width*b.opacity*(inner+span*b.center);if(pick<=0){band=b;break;}}
-    const low=inner+span*(band.center-band.width),high=inner+span*(band.center+band.width);
+    const {bands,total}=prepared||prepareNarrowRingSampling(inner,outer);
+    let pick=rand()*total,band=bands[bands.length-1];
+    for(const b of bands){pick-=b.weight;if(pick<=0){band=b;break;}}
+    const {low,high}=band;
     return Math.sqrt(low*low+(high*high-low*low)*rand());
   }
   const narrowRingBrightness=1.5;
@@ -63,6 +66,6 @@
     // Shared by the ring sheet and every debris layer; 10% less darkening.
     return 1.-.6318*(1.-smoothstep(.90,1.14,clearance))*smoothstep(0.,.15,toward);
   }`;
-  const api=Object.freeze({sun,seam,warpGLSL,lightingGLSL,ringSamplingGLSL,narrowRingBands,sampleNarrowRingRadius,narrowRingBrightness,narrowRingUnresolved,narrowRingGLSL,ringCoverageGLSL,ringShadowGLSL});
+  const api=Object.freeze({sun,seam,warpGLSL,lightingGLSL,ringSamplingGLSL,narrowRingBands,prepareNarrowRingSampling,sampleNarrowRingRadius,narrowRingBrightness,narrowRingUnresolved,narrowRingGLSL,ringCoverageGLSL,ringShadowGLSL});
   if(typeof module==='object'&&module.exports)module.exports=api;else root.SolarSurfaceStyle=api;
 })(typeof window==='object'?window:globalThis);

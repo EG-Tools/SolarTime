@@ -31,7 +31,7 @@ test('deployment recovery captures the active pair and records a read-only manua
  try{
   assert.equal(currentVersion({versions:[{version_id:old,percentage:0},{version_id:active,percentage:100}]}),active);assert.equal(currentVersion({latest_version:old}),old);assert.throws(()=>currentVersion({versions:[]}));
   const request=async url=>new Response(Buffer.from(url));const record=await capture(tmp,{request,status:{versions:[{version_id:active,percentage:100}]},now:()=> '2026-10-13T00:00:00.000Z'});
-  assert.equal(record.previousPair.worker.versionId,active);assert.equal(record.previousPair.pages.files.length,3);assert.match(record.manualRecovery.workerCommand,new RegExp(active));
+  assert.equal(record.previousPair.worker.versionId,active);assert.equal(record.previousPair.pages.files.length,3);for(const file of record.previousPair.pages.files){const body=Buffer.from(file.bodyBase64,'base64');assert.equal(body.length,file.bytes);assert.equal(require('node:crypto').createHash('sha256').update(body).digest('hex'),file.sha256);}assert.match(record.manualRecovery.workerCommand,new RegExp(active));
   fs.writeFileSync(path.join(tmp,'version.json'),'new release');
   fs.writeFileSync(path.join(tmp,'.cloudflare/worker-publication.json'),'{}');const failed=await reportFailure(tmp,{request:async()=>{throw Error('timeout');},env:{WORKER_OUTCOME:'success',PAGES_OUTCOME:'failure'},now:()=> '2026-10-13T00:01:00.000Z'});
   assert.equal(failed.failure.workerPublished,true);assert.equal(failed.failure.pagesPublished,null);assert.equal(failed.failure.pagesState,'unknown');

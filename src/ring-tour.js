@@ -604,7 +604,7 @@
       if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));
       const attributes={};for(let i=0;i<gl.getProgramParameter(p,gl.ACTIVE_ATTRIBUTES);i++){const {name}=gl.getActiveAttrib(p,i);attributes[name]=gl.getAttribLocation(p,name);}
       const result={program:p,u:Object.fromEntries(names.map(n=>[n,gl.getUniformLocation(p,n)])),attributes};complete=true;return result;
-    }finally{if(p&&!complete)gl.deleteProgram(p);shaders.forEach(s=>gl.deleteShader(s));}
+    }finally{if(p&&!complete&&(!gl.isProgram||gl.isProgram(p)))gl.deleteProgram(p);shaders.forEach(s=>{if(!gl.isShader||gl.isShader(s))gl.deleteShader(s);});}
   }
   class RingTour{
     constructor({frame,radius,width,height,screen,startPose,target,light=[-.55,-.75,.65],seed=(Math.random()*4294967296)>>>0,phase=0,grainStyle,openingVelocity,openingAcceleration,prepared,deferPreparation=false,particleCapacity=1,lensZoom=1,pointified=false,gentleDeparture=false,surfacePerspectiveStart=0,bodyId='saturn',planetTextureId=bodyId,ringTextureId='saturn-ring',atlasUrl=RingTour.atlasUrl,materialTint=[1,1,1],ringTint=[1,1,1],narrowRing=false,ringBounds=[1.28,2.26],debrisDensity=1,distantRingGain=1,debrisHeight=1,debrisMaxSize=1}){
@@ -697,7 +697,7 @@
       if(prepared&&!prepared.disposed&&prepared.bodyId===this.bodyId&&prepared.preparationReady&&(!prepared.resources||prepared.resources.ready)){
         // Transfer ownership, not a second pool. Camera/path state is still
         // sampled at handoff; only particles and GPU resources were prepared.
-        for(const key of ['particleCapacity','points','fogPoints','chipPoints','instanceLayers','meshDetail','instanceData','instanceOrder','depths','instanceSpatial','flightField','atlasImage','resources'])this[key]=prepared[key];
+        for(const key of ['particleCapacity','points','fogPoints','chipPoints','instanceLayers','meshDetail','instanceData','instanceOrder','depths','instanceSpatial','flightField','atlasImage','atlasRequest','resources'])this[key]=prepared[key];
         // T can recycle a completed tour as well as a fresh warm-up. Preserve
         // geometry and the pool; reset only visibility clocks and tube height.
         // Resource readiness belongs to the inherited atlas, not the old tour clock.
@@ -715,8 +715,8 @@
       if(this.atlasImage){
         this.atlasImage.crossOrigin='anonymous';
         // The decoded image can transfer to a live tour while its source is loading.
-        const image=this.atlasImage;
-        atlasSource(this.atlasUrl).then(source=>{image.src=source;}).catch(error=>{this.atlasLoadError=error.message;});
+        const image=this.atlasImage,request=this.atlasRequest={cancelled:false,error:null};
+        atlasSource(this.atlasUrl).then(source=>{if(!request.cancelled)image.src=source;}).catch(error=>{if(!request.cancelled)request.error=error.message;});
       }
       this.preparation=this.buildScene(rand,grainStyle);
       if(!deferPreparation)this.advancePreparation();
@@ -732,7 +732,8 @@
     }
     *buildScene(rand,grainStyle){
       const [inner,outer]=this.ringBounds,dustInner=inner+.02*this.ringWidthScale,dustOuter=outer-.02*this.ringWidthScale;
-      const sampleRadius=(lo,hi)=>this.narrowRing?root.SolarSurfaceStyle.sampleNarrowRingRadius(rand,inner,outer):Math.sqrt(mix(lo**2,hi**2,rand()));
+      const narrowSampling=this.narrowRing?root.SolarSurfaceStyle.prepareNarrowRingSampling(inner,outer):null;
+      const sampleRadius=(lo,hi)=>this.narrowRing?root.SolarSurfaceStyle.sampleNarrowRingRadius(rand,inner,outer,narrowSampling):Math.sqrt(mix(lo**2,hi**2,rand()));
       // Sample once at preparation; no frame-time resampling or Saturn-map rejection.
       // One fixed pool, not particles spawned per frame or attached to the camera.
       this.points=new Float32Array(Math.floor(SETTINGS.debris*this.particleCapacity*this.debrisDensity)*5);
@@ -1510,9 +1511,10 @@
     prepare(gpu,budget=Infinity,requireScene=false){
       const g=gpu.gl;if(this.disposed||gpu.contextLost||g.isContextLost())return false;
       const start=performance.now();
+      if(this.resources&&(this.resources.gl!==g||this.resources.contextEpoch!==(gpu.contextEpoch||0)))this.releaseGpuResources(true);
       try{
         if(!this.resources){
-          const resources=this.resources={gl:g,instances:g.getExtension('ANGLE_instanced_arrays'),parallel:{extension:g.getExtension('KHR_parallel_shader_compile'),blocking:false}};
+          const resources=this.resources={gl:g,gpuOwner:gpu,contextEpoch:gpu.contextEpoch||0,instances:g.getExtension('ANGLE_instanced_arrays'),parallel:{extension:g.getExtension('KHR_parallel_shader_compile'),blocking:false}};
           if(!resources.instances)throw Error('Instanced ring debris is not supported by this GPU.');
           const fragment=gpu.explicitMipLod?'#extension GL_EXT_shader_texture_lod : enable\n'+FRAGMENT.replace('texture2D(planetMap,st)','texture2DLodEXT(planetMap,st,0.)'):FRAGMENT;
           this.scenePreparation=programSteps(g,VERTEX,fragment,['eye','viewEye','detailEye','basis','lens','offset','planetMap','ringMap','phase','debrisReady','perspective','orthoScale','light','ringTint','distantRingGain','ringTexel','focal'],resources.parallel);
@@ -1566,7 +1568,7 @@
             g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR_MIPMAP_LINEAR);g.generateMipmap(g.TEXTURE_2D);
             r.atlas=texture;r.atlasAge=null;published=true;
           }catch(error){if(!controller.signal.aborted)r.atlasError=String(error.message||error);}
-          finally{if(!published){if(!g.isContextLost())g.deleteTexture(texture);r.atlasBytes=0;}r.atlasPending=null;r.atlasAbort=null;}
+          finally{if(!published){if(!g.isContextLost()&&(!g.isTexture||g.isTexture(texture)))g.deleteTexture(texture);r.atlasBytes=0;}r.atlasPending=null;r.atlasAbort=null;}
         })();return;
       }
       r.atlasAge=this.visualAge||0;r.atlasBytes=Math.ceil(image.naturalWidth*image.naturalHeight*4*4/3);
@@ -1578,7 +1580,7 @@
       g.texParameteri(g.TEXTURE_2D,g.TEXTURE_MIN_FILTER,g.LINEAR_MIPMAP_LINEAR);g.generateMipmap(g.TEXTURE_2D);
     }
     needsWarmup(){
-      return !this.disposed&&(!this.preparationReady||!this.resources?.ready||!this.resources?.warmed||(!this.resources?.atlas&&this.atlasImage?.complete&&this.atlasImage.naturalWidth>0));
+      return !this.disposed&&(!this.preparationReady||(this.resources?.gpuOwner&&this.resources.contextEpoch!==this.resources.gpuOwner.contextEpoch)||!this.resources?.ready||!this.resources?.warmed||(!this.resources?.atlas&&this.atlasImage?.complete&&this.atlasImage.naturalWidth>0));
     }
     warm(gpu,width,height,budget=3){
       const start=performance.now();
@@ -1709,16 +1711,25 @@
       const r=this.resources;if(!r)return 0;let bytes=(r.meshBytes||0)+(r.atlasBytes||0);
       for(const upload of r.layerUploads?.values()||[])bytes+=upload.bytes;return bytes;
     }
-    dispose(){
-      if(this.disposed)return;this.disposed=true;
-      this.preparation?.return();this.preparation=null;this.scenePreparation?.return();this.scenePreparation=null;this.gpuPreparation?.return();this.gpuPreparation=null;
+    releaseGpuResources(stale=false){
+      this.scenePreparation?.return();this.scenePreparation=null;this.gpuPreparation?.return();this.gpuPreparation=null;
       const r=this.resources;if(r){
+        stale=stale||!!(r.gpuOwner&&r.contextEpoch!==(r.gpuOwner.contextEpoch||0));
         r.atlasAbort?.abort();
+        if(!stale){
         for(const upload of r.layerUploads?.values()||[])r.gl.deleteBuffer(upload.buffer);r.layerUploads?.clear();
         for(const key of ['scene','dust','rock'])if(r[key])r.gl.deleteProgram(r[key].program);
         for(const key of ['mesh','angularMesh','coarseMesh','angularCoarseMesh','chip'])if(r[key])r.gl.deleteBuffer(r[key]);
         if(r.atlas)r.gl.deleteTexture(r.atlas);
+        }
       }
+      this.resources=null;
+    }
+    dispose(){
+      if(this.disposed)return;this.disposed=true;
+      this.preparation?.return();this.preparation=null;
+      this.releaseGpuResources();
+      if(this.atlasRequest)this.atlasRequest.cancelled=true;this.atlasRequest=null;
       if(this.atlasImage)this.atlasImage.src='';this.atlasImage=null;
       this.flightField.points.length=0;this.instanceLayers.length=this.instanceOrder.length=0;this.resources=null;this.projection=null;
       this.instanceVisibility?.clear();this.instanceSpatial?.clear();this.spatialCandidates=null;this.grainFrame=null;

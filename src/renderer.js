@@ -26,7 +26,7 @@
   const FLIGHT_GLOW_COLORS=Object.freeze(['#76bfff','#f3d6aa','#b8a1ff','#bfecff']);
   const WARP_PARTICLES=Object.freeze({speedPeak:.65,populationPeak:.6,populationFade:.65,peakReduction:.1,peakBlend:.1,midStart:.3,midEnd:.65,midReduction:.05,entryDelay:1000,entrySpread:1200,entryFade:450,exitLead:300,openingAppear:1000,openingTail:.175,appear:700,speed:1.44,arrivalSpeed:.3,arrivalDrift:.06,tail:.8,edgeTail:.5,arrivalTail:.25,alpha:.64,speedAlpha:.7,arrivalAlpha:1.2,brightness:.91333,fadeFootprintAlpha:1/255,fastTailGain:.1,arrivalHold:.25,afterglow:2000,loopSpread:1200,loopFade:800,blend:450});
   const SATURN_APPEAR=Object.freeze({delay:300,duration:1000,linger:500,glowScale:.7,alpha:.9,extraCohorts:2});
-  const PARTICLE_TRANSITION=Object.freeze({finalFade:1200,boardingHold:250,warpFadeLead:1000,warpOverlapExtra:2000,openingParticleLead:1000});
+  const PARTICLE_TRANSITION=Object.freeze({finalFade:1200,openingAfterglow:3500,openingFadeMin:2200,openingFadeSpread:1800,boardingHold:250,warpFadeLead:1000,warpOverlapExtra:2000,openingParticleLead:1000});
   // A render-only scene may calculate presentation output, but it never owns
   // the live camera or transition objects. Keep this boundary in one registry
   // so compact and replay scenes cannot silently drop a newly added output.
@@ -86,7 +86,7 @@
     }
     get size(){return this.retiring.length+(this.active?1:0);}
   }
-  // Ordinary solar orbits are coplanar; satellites retain their own planes.
+  // Ordinary solar orbits are coplanar except Pluto; satellites retain their own planes.
   // The physical endpoint always preserves the ephemeris vector.
   function blendOrbitPoint(point,normal,actual,depthNormal,depthActual,inclined,out){
     const planar=Math.hypot(point.x,point.y),flatten=inclined?1:Math.hypot(point.x,point.y,point.z)/Math.max(1e-12,planar);
@@ -969,7 +969,7 @@
       const radius=Math.hypot(physical.x,physical.y,physical.z);
       if(!(radius>1e-9)){out.depthX=out.x=physical.x;out.depthY=out.y=physical.y;out.depthZ=out.z=physical.z;return out;}
       const normal=(this.overviewSolarRadius(radius,body)+this.solarOrbitOffset())/radius,actual=A.TRUE_SCALE_UNITS_PER_AU,m=this.solarOrbitMorph();
-      return blendOrbitPoint(physical,normal*m[0],actual*m[1],normal*m[2],actual*m[3],false,out);
+      return blendOrbitPoint(physical,normal*m[0],actual*m[1],normal*m[2],actual*m[3],body?.id==='pluto',out);
     }
     displaySatellitePoint(point,layout,parent,out={}) {
       const inverse=1/Math.max(1e-12,Math.hypot(point.x,point.y,point.z)),m=layout.orbitShape;
@@ -1966,7 +1966,8 @@
     fadeOpeningParticleField(mono=performance.now(),duration=PARTICLE_TRANSITION.finalFade,field=this.openingParticles) {
       mono=this.animationMono(mono);
       if(!field||field.exitAt!==null)return false;
-      field.holdExitEnvelope=!!field.awaitingSaturn||!!field.fadeToOpening;field.awaitingSaturn=false;
+      field.holdExitEnvelope=!!field.awaitingSaturn||!!field.fadeToOpening||!!field.replay?.saturnTour;field.awaitingSaturn=false;
+      field.exitDistance=field.distance;field.exitVelocity=field.velocity;
       field.exitAt=mono;field.exitElapsed=field.elapsed;field.exitBaseAlpha=Math.max(0,Number(field.alpha)||0);field.fadeDuration=Math.max(1,duration);
       this.invalidatePresentation(field.fadeDuration,mono);return true;
     }
@@ -2029,6 +2030,7 @@
     }
     saturnParticleTime(field,mono) {
       // Travel age is the field lifetime. Source motion is inherited separately.
+      if(field.exitAt!==null)return field.exitElapsed+Math.max(0,mono-field.exitAt);
       return Math.max(0,field.replay.saturnTour.age||0)*1000;
     }
     saturnDustSample(path,elapsed,field) {
@@ -2073,10 +2075,15 @@
       // the complete field like a single light switch.
       const exitAge=field.exitAt===null?0:Math.max(0,mono-field.exitAt);
       field.exitAge=exitAge;
-      const end=this.replayOpeningAt(path)+(path.openingMove?path.inbound+WARP_PARTICLES.afterglow:Math.max(0,path.inbound-WARP_PARTICLES.exitLead));
+      const end=this.replayOpeningAt(path)+(path.openingMove?path.inbound+PARTICLE_TRANSITION.openingAfterglow:Math.max(0,path.inbound-WARP_PARTICLES.exitLead));
       if((field.exitAt===null&&(landed||(!field.awaitingSaturn&&!field.handoffOnly&&elapsed>=end)))
         ||(field.exitAt!==null&&exitAge>=field.fadeDuration)){this.clearOpeningParticleField(field);return null;}
-      field.elapsed=elapsed;this.replayDustMotion(path,elapsed,field);
+      field.elapsed=elapsed;
+      if(field.exitAt!==null&&Number.isFinite(field.exitDistance)&&Number.isFinite(field.exitVelocity)){
+        // Continue the outgoing field in its original space at the handoff speed.
+        field.distance=field.travel=field.exitDistance+field.exitVelocity*exitAge/1000;
+        field.velocity=field.exitVelocity;
+      }else this.replayDustMotion(path,elapsed,field);
       if(path.saturnTour){
         // Entry particles only need the current pose for solid-body occlusion.
         const shape=field.saturnLoopShape||(field.saturnLoopShape={});shape.pose=tour.pose;
@@ -2109,7 +2116,7 @@
       const elapsed=Math.max(0,mono-field.start),path=field.replay;
       const exitAge=field.exitAt===null?0:Math.max(0,mono-field.exitAt);
       field.exitAge=exitAge;
-      const end=this.replayOpeningAt(path)+(path.openingMove?path.inbound+WARP_PARTICLES.afterglow:Math.max(0,path.inbound-WARP_PARTICLES.exitLead));
+      const end=this.replayOpeningAt(path)+(path.openingMove?path.inbound+PARTICLE_TRANSITION.openingAfterglow:Math.max(0,path.inbound-WARP_PARTICLES.exitLead));
       if((field.exitAt===null&&!field.awaitingSaturn&&elapsed>=end)
         ||(field.exitAt!==null&&exitAge>=field.fadeDuration)){this.clearOpeningParticleField(field);return null;}
       field.elapsed=elapsed;
@@ -2362,7 +2369,7 @@
       // Keep the entry cohort substantial through the ten-second S curve, then
       // retire it over the half-second landing afterglow. The old 6.5-second
       // fade began around five seconds and made the extension feel unchanged.
-      const elapsed=this.particleFieldElapsed(field),path=this.particleFieldPath(field);
+      const elapsed=field.exitAt!==null?field.exitElapsed:this.particleFieldElapsed(field),path=this.particleFieldPath(field);
       const timing=clamp(p.rotation/TAU,0,1),end=path.brakeAt+SATURN_APPEAR.linger,span=2500;
       const stagger=1200*timing,start=end-span+stagger,duration=span-stagger;
       const sparse=field.saturnFadeRetire?.has(p)
@@ -2403,8 +2410,8 @@
         // One envelope per opening grain. Multiplying arrival, cohort and
         // cleanup fades squeezed their tails into a simultaneous blackout.
         const phase=clamp(p.retirePhase??timing,0,1);
-        const finish=path.inbound+WARP_PARTICLES.afterglow*(.1+.9*phase);
-        const start=Math.max(path.inbound*.35,finish-(1400+1200*lifetime));
+        const finish=path.inbound+PARTICLE_TRANSITION.openingAfterglow*(.1+.9*phase);
+        const start=Math.max(path.inbound*.35,finish-(PARTICLE_TRANSITION.openingFadeMin+PARTICLE_TRANSITION.openingFadeSpread*lifetime));
         return (field.awaitingSaturn||field.holdExitEnvelope)?birthDensity
           :birthDensity*(1-ease((arrival-start)/(finish-start)));
       }
@@ -4452,7 +4459,7 @@
         if(orbitDirect){
           const origin=this.orbitOrigin||(this.orbitOrigin={x:0,y:0,z:0});
           for(const path of this.paths){const selected=this.selected===path.body.id;
-            camera.orbitPlane=0;
+            camera.orbitPlane=path.body.id==='pluto'?1:0;
             const localReveal=this.openingOrbitOpacity(mono,path.body.id),ink=this.orbitInk(path.body.id,localReveal,this.currentFrameItem(path.body.id)?.world),alpha=ink?1:localReveal;
             this.gpu.orbit('solar:'+path.body.id,this.orbitModel(path),origin,camera,this.scale,this.cx,this.cy,path.body.id==='earth'?[.43,.68,.83]:path.body.id==='pluto'?[.61,.55,.50]:[.54,.59,.66],clamp((selected?.64:.22)*alpha*orbitStrength,0,1)*orbitFade,1,1,4,ink);}
         }else if(!this.gpu||this.flightLook)for(const path of this.paths)this.orbit(c,path,this.selected===path.body.id,this.openingOrbitOpacity(mono,path.body.id),orbitStrength,orbitFade);

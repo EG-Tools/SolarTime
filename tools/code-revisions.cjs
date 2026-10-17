@@ -2,7 +2,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {runtimeScripts,projectConfig}=require('./asset-pipeline.cjs');
-const hash=text=>crypto.createHash('sha256').update(String(text).replace(/\r\n?/g,'\n')).digest('hex').slice(0,12);
+const hash=text=>crypto.createHash('sha256').update(Buffer.isBuffer(text)?text:String(text).replace(/\r\n?/g,'\n')).digest('hex').slice(0,12);
 function revisions(root){
  const pending=new Map(),read=file=>pending.get(file)??fs.readFileSync(path.join(root,file),'utf8');
  const locales=Object.fromEntries(fs.readdirSync(path.join(root,'src/locales')).filter(f=>f.endsWith('.json')).sort().map(f=>[f.slice(0,-5),hash(read('src/locales/'+f))]));
@@ -26,7 +26,7 @@ function revisions(root){
  // Exclude its own metadata to avoid a hash/reload cycle on every build.
  const stripBuild=text=>text.replace(/\s*<meta name="solar-time-build" content="[^"]*">/g,'');
  const identity=require('./release-files.cjs').releaseFiles(root).filter(file=>file!=='version.json')
-  .map(file=>file+'\0'+hash(stripBuild(virtual[file]??read(file)))).join('\n');
+  .map(file=>file+'\0'+hash(/\.(?:html|css|js|json|md|txt|webmanifest|xml|svg)$/i.test(file)?stripBuild(virtual[file]??read(file)):fs.readFileSync(path.join(root,file)))).join('\n');
  const buildId=hash(identity),release=JSON.parse(read('version.json'));
  pending.set('version.json',JSON.stringify({...release,buildId},null,2)+'\n');
  const html=stripBuild(read('index.html')).replace(/(<meta name="solar-time-revision" content="[^"]*">)/,'$1\n  <meta name="solar-time-build" content="'+buildId+'">');

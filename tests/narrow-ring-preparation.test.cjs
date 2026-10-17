@@ -1,0 +1,6 @@
+const test=require('node:test'),assert=require('node:assert/strict'),style=require('../src/surface-style.js');
+function rng(seed){let calls=0;const f=()=>{calls++;seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};f.calls=()=>calls;return f;}
+function previous(rand,inner,outer){const span=outer-inner;if(rand()<.15)return Math.sqrt(inner*inner+(outer*outer-inner*inner)*rand());const total=style.narrowRingBands.reduce((sum,b)=>sum+b.width*b.opacity*(inner+span*b.center),0);let pick=rand()*total,band=style.narrowRingBands.at(-1);for(const b of style.narrowRingBands){pick-=b.width*b.opacity*(inner+span*b.center);if(pick<=0){band=b;break;}}const low=inner+span*(band.center-band.width),high=inner+span*(band.center+band.width);return Math.sqrt(low*low+(high*high-low*low)*rand());}
+test('prepared band sampling exactly preserves radii and random consumption',()=>{
+ for(const bounds of [[1.58,1.94],[1.6,1.92],[1,3]])for(const seed of [1,42,12345]){const a=rng(seed),b=rng(seed),prepared=style.prepareNarrowRingSampling(...bounds);for(let i=0;i<10000;i++)assert.equal(style.sampleNarrowRingRadius(a,...bounds,prepared),previous(b,...bounds));assert.equal(a.calls(),b.calls());}
+});

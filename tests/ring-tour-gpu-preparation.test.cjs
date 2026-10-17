@@ -41,3 +41,13 @@ test('disposing during atlas upload cancels work and never publishes it',async()
  gpu.uploadTexturePixels=(_t,_i,_w,_h,signal)=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true}));gpu.waitForTextureUpload=()=>{};
  tour.prepareAtlas(gpu);const pending=r.atlasPending;tour.dispose();await pending;assert.equal(deleted,1);assert.equal(r.atlas,undefined);assert.equal(r.atlasBytes,0);
 });
+
+
+test('only a real context epoch change rebuilds GPU resources while preserving CPU scene',()=>{
+ const {tour,gpu,state}=fixture();state.ready=true;gpu.contextEpoch=0;tour.points=new Float32Array([1,2,3]);const points=tour.points;
+ assert.equal(tour.prepare(gpu),true);const resources=tour.resources;
+ gpu.generation=123;assert.equal(tour.prepare(gpu),true);assert.equal(tour.resources,resources);
+ gpu.contextLost=true;assert.equal(tour.prepare(gpu),false);gpu.contextLost=false;gpu.contextEpoch++;
+ state.ready=false;assert.equal(tour.prepare(gpu),false);assert.notEqual(tour.resources,resources);assert.equal(tour.points,points);assert.equal(tour.disposed,undefined);
+ state.ready=true;assert.equal(tour.prepare(gpu),true);assert.equal(tour.resources.contextEpoch,1);tour.dispose();
+});

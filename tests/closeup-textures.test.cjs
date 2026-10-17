@@ -20,9 +20,9 @@ function fixture({hold=false,mobile=false,holdDecode=false,staged=false}={}){
  const focus=(name,width=4096)=>{r.desired.clear();r.desired.set(name,{id:name,textureWidth:width,priority:2});};
  return {r,window,requests,decodes,uploads,deleted,closed,focus,time:n=>now=n,turn,uploadFrames,strips};
 }
-async function full(f,name='earth'){
+async function full(f,name='earth',expected=4096){
  f.focus(name);f.r.textureFor(name,4096);await turn();f.r.textureFor(name,4096);await turn();f.r.textureFor(name,4096);await turn();
- assert.equal(f.r.textures.get(name).width,4096);
+ assert.equal(f.r.textures.get(name).width,expected);
 }
 test('Saturn and Uranus rings inherit the same parent phase frame as their body',()=>{
  const f=fixture(),source=read('src/surface.js'),frame={u:[1,0,0],v:[0,0,1],pole:[0,1,0]};
@@ -345,4 +345,19 @@ test('Venus close-up prepares its atmosphere and reveals it over a visible fallb
  assert.equal(r.visibleTexturesReady(),false);r.textures.set('venus-surface',{texture:{id:'surface-map'}});r.textures.set('venus',{texture:{id:'cloud'}});assert.equal(r.visibleTexturesReady(),true);
  const cloud=r.textures.get('venus'),surface={texture:{id:'surface'},sampled:true};cloud.sampled=false;cloud.revealFallback=surface;r.black={id:'black'};r.planetProgram={u:{}};r.gl.uniform1f=()=>{};r.gl.uniform2f=()=>{};
  let previous;r.bindTextureUnit=(slot,texture)=>{if(slot===6)previous=texture;};r.mapLod([surface,null,cloud],0);assert.equal(previous,surface.texture);r.dispose();
+});
+
+
+test('non-power-of-two source ceilings stop at the attainable upload tier without retries',async()=>{
+ for(const native of [1774,2048,4096]){
+  const f=fixture(),asset=f.window.SolarAssets.materials.earth;
+  asset.tiers=[256,512,1024,native].map(width=>({width,path:width+'.webp'}));
+  const expected=2**Math.floor(Math.log2(native));await full(f,'earth',expected);
+  assert.equal(f.r.textures.get('earth').width,expected);
+  assert.equal(f.r.textures.get('earth').retryAt,0);
+  const counts=[f.requests.length,f.decodes.length,f.uploads.length];
+  for(const time of [31001,61002,90000]){f.time(time);f.r.prefetchBody('earth',4096);f.r.textureFor('earth',4096);f.r.pumpTextureQueue();await f.turn();}
+  assert.deepEqual([f.requests.length,f.decodes.length,f.uploads.length],counts);
+  assert.equal(f.r.textureIntent.target,expected);f.r.dispose();
+ }
 });

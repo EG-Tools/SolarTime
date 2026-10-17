@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
-const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8');
+const source=fs.readFileSync(path.join(__dirname,'../src/app.js'),'utf8').replace(/\r\n?/g,'\n');
 const fn=source.match(/function cameraViewControlsLocked\(\)\{[^}]+\}/)[0];
 test('view controls unlock on ordinary pause and stay locked throughout opening and warp',()=>{
  const context={openingActive:false,openingReplayLocked:false,renderer:{animationPaused:true,cameraTween:null}};vm.createContext(context);vm.runInContext(fn,context);
